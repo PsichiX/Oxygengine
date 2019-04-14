@@ -18,7 +18,6 @@ impl<'s> System<'s> for CounterSystem {
     fn run(&mut self, (mut lifecycle, mut counters): Self::SystemData) {
         for counter in (&mut counters).join() {
             counter.times -= 1;
-            println!("{:?}", counter.times);
             if counter.times <= 0 {
                 lifecycle.running = false;
             }
