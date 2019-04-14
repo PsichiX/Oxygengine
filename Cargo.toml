@@ -1,0 +1,49 @@
+[package]
+name = "oxygengine"
+version = "0.1.0"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+edition = "2018"
+description = "Oxygen Engine"
+license = "MIT"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine"
+
+[features]
+parallel = ["oxygengine-core/parallel"]
+web = [
+  "oxygengine-backend-web",
+  "oxygengine-core/web",
+  "oxygengine-composite-renderer-backend-web",
+]
+composite-renderer = ["oxygengine-composite-renderer"]
+composite-web = ["web", "composite-renderer"]
+
+[dependencies]
+oxygengine-core = { version = "0.1", path = "./oxygengine-core" }
+
+[dependencies.oxygengine-backend-web]
+version = "0.1"
+path = "./oxygengine-backend-web"
+optional = true
+
+[dependencies.oxygengine-composite-renderer]
+version = "0.1"
+path = "./oxygengine-composite-renderer"
+optional = true
+
+[dependencies.oxygengine-composite-renderer-backend-web]
+version = "0.1"
+path = "./oxygengine-composite-renderer-backend-web"
+optional = true
+
+[workspace]
+members = [
+  "oxygengine-core",
+  "oxygengine-backend-web",
+  "oxygengine-composite-renderer",
+  "oxygengine-composite-renderer-backend-web",
+]
+exclude = [
+  "demos/hello-world",
+]
