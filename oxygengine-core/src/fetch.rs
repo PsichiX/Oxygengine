@@ -21,7 +21,7 @@ pub enum FetchStatus {
     Canceled(FetchCancelReason),
 }
 
-pub trait FetchProcessReader {
+pub trait FetchProcessReader: Send + Sync {
     fn status(&self) -> FetchStatus;
     fn read(&self) -> Option<Vec<u8>>;
     fn box_clone(&self) -> Box<FetchProcessReader>;
