@@ -1,5 +1,6 @@
 use crate::id::ID;
 use std::{
+    collections::HashMap,
     mem::replace,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
@@ -138,10 +139,39 @@ impl FetchProcessReader for FetchProcess {
 }
 
 pub trait FetchEngine: Send + Sync {
-    fn fetch(&mut self, path: &str) -> Box<FetchProcessReader>;
-    fn cancel(&mut self, reader: Box<FetchProcessReader>);
+    fn fetch(&mut self, path: &str) -> Result<Box<FetchProcessReader>, FetchStatus>;
+
+    fn cancel(&mut self, reader: Box<FetchProcessReader>) {
+        let ptr = Box::into_raw(reader) as *mut FetchProcess;
+        unsafe {
+            (*ptr).cancel(FetchCancelReason::User);
+            Box::from_raw(ptr);
+        }
+    }
 }
 
+#[derive(Default, Clone)]
+pub struct MapFetchEngine {
+    pub map: HashMap<String, Vec<u8>>,
+}
+
+impl MapFetchEngine {
+    pub fn new(map: HashMap<String, Vec<u8>>) -> Self {
+        Self { map }
+    }
+}
+
+impl FetchEngine for MapFetchEngine {
+    fn fetch(&mut self, path: &str) -> Result<Box<FetchProcessReader>, FetchStatus> {
+        if let Some(bytes) = self.map.get(path) {
+            Ok(Box::new(FetchProcess::new_done(bytes.to_vec())))
+        } else {
+            Err(FetchStatus::Canceled(FetchCancelReason::Error))
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct FsFetchEngine {
     root_path: PathBuf,
 }
@@ -155,7 +185,7 @@ impl FsFetchEngine {
 }
 
 impl FetchEngine for FsFetchEngine {
-    fn fetch(&mut self, path: &str) -> Box<FetchProcessReader> {
+    fn fetch(&mut self, path: &str) -> Result<Box<FetchProcessReader>, FetchStatus> {
         #[cfg(feature = "parallel")]
         {
             let path = self.root_path.join(path);
@@ -168,23 +198,15 @@ impl FetchEngine for FsFetchEngine {
                     p.cancel(FetchCancelReason::Error);
                 }
             });
-            Box::new(process)
+            Ok(Box::new(process))
         }
         #[cfg(not(feature = "parallel"))]
         {
             if let Ok(bytes) = std::fs::read(self.root_path.join(path)) {
-                Box::new(FetchProcess::new_done(bytes))
+                Ok(Box::new(FetchProcess::new_done(bytes)))
             } else {
-                Box::new(FetchProcess::new_cancel(FetchCancelReason::Error))
+                Err(FetchStatus::Canceled(FetchCancelReason::Error))
             }
-        }
-    }
-
-    fn cancel(&mut self, reader: Box<FetchProcessReader>) {
-        let ptr = Box::into_raw(reader) as *mut FetchProcess;
-        unsafe {
-            (*ptr).cancel(FetchCancelReason::User);
-            Box::from_raw(ptr);
         }
     }
 }
@@ -196,7 +218,7 @@ mod tests {
     #[test]
     fn test_general() {
         let mut engine = FsFetchEngine::new(&".");
-        let reader = engine.fetch("Cargo.toml");
+        let reader = engine.fetch("Cargo.toml").unwrap();
         let reader2 = reader.clone();
         #[cfg(feature = "parallel")]
         {
