@@ -1,13 +1,5 @@
-use crate::{assets::bundle_installer as assets_bundle_installer, fetch::FetchEngine};
 use specs::{Component, Dispatcher, DispatcherBuilder, RunNow, System, World};
 use std::{cell::RefCell, rc::Rc};
-
-pub fn bundle_installer<'a, 'b, FE: 'static>(builder: &mut AppBuilder<'a, 'b>, fetch_engine: FE)
-where
-    FE: FetchEngine,
-{
-    assets_bundle_installer(builder, fetch_engine);
-}
 
 #[derive(Default)]
 pub struct AppLifeCycle {

@@ -15,6 +15,8 @@ pub mod core {
 pub mod backend {
     #[cfg(feature = "web")]
     pub mod web {
+        pub use oxygengine_backend_web::app::*;
+        pub use oxygengine_backend_web::fetch::engines::web::*;
         pub use oxygengine_backend_web::*;
         #[cfg(feature = "composite-renderer")]
         pub use oxygengine_composite_renderer_backend_web::*;

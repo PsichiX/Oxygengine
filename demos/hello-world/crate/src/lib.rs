@@ -20,7 +20,7 @@ macro_rules! console_log {
 struct DebugSystem;
 
 impl<'s> System<'s> for DebugSystem {
-    type SystemData = ReadExpect<'s, WebCompositeRenderer>;
+    type SystemData = ReadExpect<'s, PlatformCompositeRenderer>;
 
     fn run(&mut self, renderer: Self::SystemData) {
         console_log!("{:#?}", renderer.state().stats());
@@ -32,7 +32,10 @@ pub fn run() -> Result<(), JsValue> {
     set_panic_hook();
 
     let mut app = App::build()
-        .with_bundle(oxygengine::core::bundle_installer, WebFetchEngine::default())
+        .with_bundle(
+            oxygengine::core::assets::bundle_installer,
+            (WebFetchEngine::default(), |_| {}),
+        )
         .with_bundle(
             composite_renderer_bundle_installer,
             WebCompositeRenderer::with_state("screen", State::new(Some(Color::black()))),
