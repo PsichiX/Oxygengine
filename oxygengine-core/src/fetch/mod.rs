@@ -1,8 +1,8 @@
+pub mod engines;
+
 use crate::id::ID;
 use std::{
-    collections::HashMap,
     mem::replace,
-    path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
 
@@ -150,74 +150,13 @@ pub trait FetchEngine: Send + Sync {
     }
 }
 
-#[derive(Default, Clone)]
-pub struct MapFetchEngine {
-    pub map: HashMap<String, Vec<u8>>,
-}
-
-impl MapFetchEngine {
-    pub fn new(map: HashMap<String, Vec<u8>>) -> Self {
-        Self { map }
-    }
-}
-
-impl FetchEngine for MapFetchEngine {
-    fn fetch(&mut self, path: &str) -> Result<Box<FetchProcessReader>, FetchStatus> {
-        if let Some(bytes) = self.map.get(path) {
-            Ok(Box::new(FetchProcess::new_done(bytes.to_vec())))
-        } else {
-            Err(FetchStatus::Canceled(FetchCancelReason::Error))
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct FsFetchEngine {
-    root_path: PathBuf,
-}
-
-impl FsFetchEngine {
-    pub fn new<S: AsRef<Path>>(root_path: &S) -> Self {
-        Self {
-            root_path: root_path.as_ref().into(),
-        }
-    }
-}
-
-impl FetchEngine for FsFetchEngine {
-    fn fetch(&mut self, path: &str) -> Result<Box<FetchProcessReader>, FetchStatus> {
-        #[cfg(feature = "parallel")]
-        {
-            let path = self.root_path.join(path);
-            let process = FetchProcess::new_start();
-            let mut p = process.clone();
-            rayon::spawn(move || {
-                if let Ok(bytes) = std::fs::read(path) {
-                    p.done(bytes);
-                } else {
-                    p.cancel(FetchCancelReason::Error);
-                }
-            });
-            Ok(Box::new(process))
-        }
-        #[cfg(not(feature = "parallel"))]
-        {
-            if let Ok(bytes) = std::fs::read(self.root_path.join(path)) {
-                Ok(Box::new(FetchProcess::new_done(bytes)))
-            } else {
-                Err(FetchStatus::Canceled(FetchCancelReason::Error))
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_general() {
-        let mut engine = FsFetchEngine::new(&".");
+        let mut engine = engines::fs::FsFetchEngine::new(&".");
         let reader = engine.fetch("Cargo.toml").unwrap();
         let reader2 = reader.clone();
         #[cfg(feature = "parallel")]

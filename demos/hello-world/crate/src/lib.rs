@@ -32,6 +32,7 @@ pub fn run() -> Result<(), JsValue> {
     set_panic_hook();
 
     let mut app = App::build()
+        .with_bundle(oxygengine::core::bundle_installer, WebFetchEngine::default())
         .with_bundle(
             composite_renderer_bundle_installer,
             WebCompositeRenderer::with_state("screen", State::new(Some(Color::black()))),

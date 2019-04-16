@@ -1,5 +1,5 @@
 use crate::id::ID;
-use std::any::Any;
+use std::{any::Any, mem::replace};
 
 pub type AssetID = ID<()>;
 
@@ -22,6 +22,10 @@ impl Asset {
 
     pub fn id(&self) -> AssetID {
         self.id
+    }
+
+    pub fn protocol(&self) -> &str {
+        &self.protocol
     }
 
     pub fn to_full_path(&self) -> String {
@@ -49,7 +53,10 @@ impl Asset {
         self.data.downcast_mut()
     }
 
-    pub fn set(&mut self, data: Box<dyn Any + Send + Sync>) {
-        self.data = data;
+    pub fn set<T>(&mut self, data: T) -> Box<dyn Any + Send + Sync>
+    where
+        T: Any + Send + Sync,
+    {
+        replace(&mut self.data, Box::new(data))
     }
 }

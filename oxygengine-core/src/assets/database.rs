@@ -1,11 +1,11 @@
 use crate::{
     assets::{
         asset::{Asset, AssetID},
-        protocol::{AssetLoadResult, AssetProtocol},
+        protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
     },
     fetch::{FetchEngine, FetchProcessReader, FetchStatus},
 };
-use std::{any::Any, borrow::BorrowMut, collections::HashMap, mem::replace};
+use std::{borrow::BorrowMut, collections::HashMap, mem::replace};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LoadStatus {
@@ -20,13 +20,16 @@ pub struct AssetsDatabase {
     assets: HashMap<AssetID, (String, Asset)>,
     table: HashMap<String, AssetID>,
     loading: HashMap<String, (String, Box<FetchProcessReader>)>,
-    yielded: HashMap<String, (String, Box<dyn Any + Send + Sync>, Vec<(String, String)>)>,
+    yielded: HashMap<String, (String, Meta, Vec<(String, String)>)>,
 }
 
 impl AssetsDatabase {
-    pub fn new(fetch_engine: Box<FetchEngine>) -> Self {
+    pub fn new<FE>(fetch_engine: FE) -> Self
+    where
+        FE: FetchEngine + 'static,
+    {
         Self {
-            fetch_engines: vec![fetch_engine],
+            fetch_engines: vec![Box::new(fetch_engine)],
             protocols: Default::default(),
             assets: Default::default(),
             table: Default::default(),
@@ -122,10 +125,13 @@ impl AssetsDatabase {
         action(fetch_engine)
     }
 
-    pub fn register(&mut self, mut protocol: Box<AssetProtocol>) {
+    pub fn register<FE>(&mut self, mut protocol: FE)
+    where
+        FE: AssetProtocol + 'static,
+    {
         protocol.on_register();
         let name = protocol.name().to_owned();
-        self.protocols.insert(name, protocol);
+        self.protocols.insert(name, Box::new(protocol));
     }
 
     pub fn unregister(&mut self, protocol_name: &str) -> Option<Box<AssetProtocol>> {
@@ -173,6 +179,11 @@ impl AssetsDatabase {
     pub fn remove_by_id(&mut self, id: AssetID) -> Option<Asset> {
         if let Some((path, asset)) = self.assets.remove(&id) {
             self.table.remove(&path);
+            if let Some(protocol) = self.protocols.get_mut(asset.protocol()) {
+                if let Some(list) = protocol.on_unload(&asset) {
+                    self.remove_by_variants(&list);
+                }
+            }
             Some(asset)
         } else {
             None
@@ -182,10 +193,24 @@ impl AssetsDatabase {
     pub fn remove_by_path(&mut self, path: &str) -> Option<Asset> {
         if let Some(id) = self.table.remove(path) {
             if let Some((_, asset)) = self.assets.remove(&id) {
+                if let Some(protocol) = self.protocols.get_mut(asset.protocol()) {
+                    if let Some(list) = protocol.on_unload(&asset) {
+                        self.remove_by_variants(&list);
+                    }
+                }
                 return Some(asset);
             }
         }
         None
+    }
+
+    pub fn remove_by_variants(&mut self, variants: &[AssetVariant]) {
+        for v in variants {
+            match v {
+                AssetVariant::Id(id) => self.remove_by_id(*id),
+                AssetVariant::Path(path) => self.remove_by_path(path),
+            };
+        }
     }
 
     pub fn id_by_path(&self, path: &str) -> Option<AssetID> {
@@ -256,31 +281,38 @@ impl AssetsDatabase {
                 false
             }
         });
-        self.yielded = replace(&mut self.yielded, Default::default())
-            .into_iter()
-            .filter_map(|(path, (prot, meta, list))| {
-                if list.iter().all(|(_, path)| self.table.contains_key(path)) {
-                    let ptr = self as *const Self;
-                    if let Some(protocol) = self.protocols.get_mut(&prot) {
-                        let list = list
-                            .iter()
-                            .map(|(key, path)| unsafe {
-                                let asset = &(&*ptr).table[path];
-                                let asset = &(&*ptr).assets[asset].1;
-                                (key.as_str(), asset)
-                            })
-                            .collect::<Vec<_>>();
-                        if let Some(data) = protocol.on_resume(meta, &list) {
+        let yielded = replace(&mut self.yielded, Default::default());
+        for (path, (prot, meta, list)) in yielded {
+            if list.iter().all(|(_, path)| self.table.contains_key(path)) {
+                let ptr = self as *const Self;
+                if let Some(protocol) = self.protocols.get_mut(&prot) {
+                    let list = list
+                        .iter()
+                        .map(|(key, path)| unsafe {
+                            let asset = &(&*ptr).table[path];
+                            let asset = &(&*ptr).assets[asset].1;
+                            (key.as_str(), asset)
+                        })
+                        .collect::<Vec<_>>();
+                    match protocol.on_resume(meta, &list) {
+                        AssetLoadResult::Data(data) => {
                             let asset = Asset::new(&prot, &path, data);
                             self.insert(&asset.to_full_path(), asset);
                         }
+                        AssetLoadResult::Yield(meta, list) => {
+                            let list = list
+                                .into_iter()
+                                .filter(|(_, path)| self.load(&path).is_ok())
+                                .collect();
+                            self.yielded.insert(path, (prot, meta, list));
+                        }
+                        _ => {}
                     }
-                    None
-                } else {
-                    Some((path, (prot, meta, list)))
                 }
-            })
-            .collect();
+            } else {
+                self.yielded.insert(path, (prot, meta, list));
+            }
+        }
     }
 }
 
@@ -317,25 +349,33 @@ mod tests {
                 .enumerate()
                 .map(|(i, line)| (i.to_string(), line.to_owned()))
                 .collect();
-            AssetLoadResult::Yield(Box::new(()), list)
+            AssetLoadResult::Yield(None, list)
         }
 
-        fn on_resume(
-            &mut self,
-            _: Box<dyn Any + Send + Sync>,
-            list: &[(&str, &Asset)],
-        ) -> Option<Box<dyn Any + Send + Sync>> {
+        fn on_resume(&mut self, _: Meta, list: &[(&str, &Asset)]) -> AssetLoadResult {
             let data = list
                 .iter()
                 .map(|(_, asset)| asset.to_full_path())
                 .collect::<Vec<_>>();
-            Some(Box::new(data))
+            AssetLoadResult::Data(Box::new(data))
+        }
+
+        fn on_unload(&mut self, asset: &Asset) -> Option<Vec<AssetVariant>> {
+            if let Some(data) = asset.get::<Vec<String>>() {
+                Some(
+                    data.iter()
+                        .map(|path| AssetVariant::Path(path.to_owned()))
+                        .collect(),
+                )
+            } else {
+                None
+            }
         }
     }
 
     #[test]
     fn test_general() {
-        let mut fetch_engine = MapFetchEngine::default();
+        let mut fetch_engine = engines::map::MapFetchEngine::default();
         fetch_engine
             .map
             .insert("text://a.txt".to_owned(), b"A".to_vec());
@@ -347,9 +387,9 @@ mod tests {
             b"text://a.txt\ntext://b.txt".to_vec(),
         );
 
-        let mut database = AssetsDatabase::new(Box::new(fetch_engine));
-        database.register(Box::new(TextAssetProtocol));
-        database.register(Box::new(SetAssetProtocol));
+        let mut database = AssetsDatabase::new(fetch_engine);
+        database.register(TextAssetProtocol);
+        database.register(SetAssetProtocol);
         assert_eq!(database.load("set://list.txt"), Ok(()));
         assert_eq!(database.loaded_count(), 0);
         assert_eq!(database.loading_count(), 1);
@@ -408,5 +448,11 @@ mod tests {
                 .as_str(),
             "B"
         );
+
+        assert!(database.remove_by_path("set://list.txt").is_some());
+        assert_eq!(database.loaded_count(), 0);
+        assert_eq!(database.loading_count(), 0);
+        assert_eq!(database.yielded_count(), 0);
+        assert_eq!(database.yielded_deps_count(), 0);
     }
 }
