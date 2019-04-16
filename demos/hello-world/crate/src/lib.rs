@@ -1,6 +1,10 @@
 extern crate oxygengine;
 
-use oxygengine::{composite_renderer::math::*, prelude::*};
+use oxygengine::{
+    backend::web::*,
+    composite_renderer::{component::*, composite_renderer::*, math::*},
+    prelude::*,
+};
 use wasm_bindgen::prelude::*;
 
 #[cfg(feature = "wee_alloc")]
@@ -37,7 +41,7 @@ pub fn run() -> Result<(), JsValue> {
             (WebFetchEngine::default(), |_| {}),
         )
         .with_bundle(
-            composite_renderer_bundle_installer,
+            oxygengine::composite_renderer::bundle_installer,
             WebCompositeRenderer::with_state("screen", State::new(Some(Color::black()))),
         )
         .with_system(DebugSystem, "debug", &[])

@@ -2,7 +2,7 @@ extern crate oxygengine_composite_renderer as renderer;
 extern crate oxygengine_core as core;
 
 use core::error::*;
-use renderer::{math::*, prelude::*};
+use renderer::{composite_renderer::*, math::*};
 use wasm_bindgen::JsCast;
 use web_sys::*;
 

@@ -29,10 +29,6 @@ pub mod composite_renderer {
 }
 
 pub mod prelude {
-    #[cfg(feature = "web")]
-    pub use crate::backend::web::*;
-    #[cfg(feature = "composite-renderer")]
-    pub use crate::composite_renderer::prelude::*;
     pub use crate::core::prelude::*;
     pub use crate::platform::*;
 }

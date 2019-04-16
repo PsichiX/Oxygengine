@@ -5,13 +5,6 @@ pub mod composite_renderer;
 pub mod math;
 pub mod system;
 
-pub mod prelude {
-    pub use crate::bundle_installer as composite_renderer_bundle_installer;
-    pub use crate::component::*;
-    pub use crate::composite_renderer::*;
-    pub use crate::system::*;
-}
-
 use crate::{
     component::{CompositeRenderDepth, CompositeRenderable, CompositeTransform},
     composite_renderer::CompositeRenderer,
