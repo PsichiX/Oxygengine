@@ -29,7 +29,7 @@ impl<'s> System<'s> for CounterSystem {
 fn test_general() {
     let mut app = App::build()
         .with_system(CounterSystem, "counter", &[])
-        .build();
+        .build_empty();
 
     app.world_mut()
         .create_entity()

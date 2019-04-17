@@ -42,10 +42,10 @@ pub fn run() -> Result<(), JsValue> {
         )
         .with_bundle(
             oxygengine::composite_renderer::bundle_installer,
-            WebCompositeRenderer::with_state("screen", State::new(Some(Color::black()))),
+            WebCompositeRenderer::with_state("screen", RenderState::new(Some(Color::black()))),
         )
         .with_system(DebugSystem, "debug", &[])
-        .build();
+        .build_empty();
 
     app.world_mut()
         .create_entity()

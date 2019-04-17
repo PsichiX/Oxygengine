@@ -10,6 +10,7 @@ pub mod assets;
 pub mod error;
 pub mod fetch;
 pub mod id;
+pub mod state;
 #[cfg(test)]
 mod tests;
 
@@ -27,4 +28,5 @@ pub mod prelude {
     pub use crate::events::*;
     pub use crate::fetch::*;
     pub use crate::id::*;
+    pub use crate::state::*;
 }

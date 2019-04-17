@@ -1,9 +1,37 @@
+use crate::state::{EmptyState, State, StateChange};
 use specs::{Component, Dispatcher, DispatcherBuilder, RunNow, System, World};
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    time::{Duration, Instant},
+};
 
-#[derive(Default)]
 pub struct AppLifeCycle {
     pub running: bool,
+    pub(crate) timer: Instant,
+    pub(crate) delta_time: Duration,
+    pub(crate) delta_time_seconds: f64,
+}
+
+impl Default for AppLifeCycle {
+    fn default() -> Self {
+        Self {
+            running: true,
+            timer: Instant::now(),
+            delta_time: Duration::default(),
+            delta_time_seconds: 0.0,
+        }
+    }
+}
+
+impl AppLifeCycle {
+    pub fn delta_time(&self) -> Duration {
+        self.delta_time
+    }
+
+    pub fn delta_time_seconds(&self) -> f64 {
+        self.delta_time_seconds
+    }
 }
 
 pub struct AppRunner<'a, 'b> {
@@ -21,10 +49,6 @@ impl<'a, 'b> AppRunner<'a, 'b> {
     where
         BAR: BackendAppRunner<'a, 'b, E>,
     {
-        self.app
-            .borrow_mut()
-            .world_mut()
-            .add_resource(AppLifeCycle { running: true });
         BAR::run(self.app.clone())
     }
 }
@@ -45,6 +69,7 @@ impl<'a, 'b> BackendAppRunner<'a, 'b, ()> for SyncAppRunner {}
 
 pub struct App<'a, 'b> {
     world: World,
+    states: Vec<Box<dyn State>>,
     dispatcher: Dispatcher<'a, 'b>,
 }
 
@@ -66,8 +91,45 @@ impl<'a, 'b> App<'a, 'b> {
 
     #[inline]
     pub fn process(&mut self) {
+        if self.states.is_empty() {
+            self.world.write_resource::<AppLifeCycle>().running = false;
+            return;
+        }
+        // TODO: process background.
+        let change = self.states.last_mut().unwrap().on_process(&mut self.world);
         self.dispatcher.dispatch(&mut self.world.res);
         self.world.maintain();
+        match change {
+            StateChange::Push(mut state) => {
+                self.states.last_mut().unwrap().on_pause(&mut self.world);
+                state.on_enter(&mut self.world);
+                self.states.push(state);
+            }
+            StateChange::Pop => {
+                self.states.pop().unwrap().on_exit(&mut self.world);
+                if let Some(state) = self.states.last_mut() {
+                    state.on_resume(&mut self.world);
+                }
+            }
+            StateChange::Swap(mut state) => {
+                self.states.pop().unwrap().on_exit(&mut self.world);
+                state.on_enter(&mut self.world);
+                self.states.push(state);
+            }
+            StateChange::Quit => {
+                while let Some(mut state) = self.states.pop() {
+                    state.on_exit(&mut self.world);
+                }
+            }
+            _ => {}
+        }
+        {
+            let lifecycle: &mut AppLifeCycle = &mut self.world.write_resource::<AppLifeCycle>();
+            let d = lifecycle.timer.elapsed();
+            lifecycle.timer = Instant::now();
+            lifecycle.delta_time = d;
+            lifecycle.delta_time_seconds = d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9;
+        }
     }
 }
 
@@ -184,12 +246,21 @@ impl<'a, 'b> AppBuilder<'a, 'b> {
         self.world.register::<T>();
     }
 
-    pub fn build(mut self) -> App<'a, 'b> {
+    pub fn build<S>(mut self, state: S) -> App<'a, 'b>
+    where
+        S: State + 'static,
+    {
+        self.world.add_resource(AppLifeCycle::default());
         let mut dispatcher = self.dispatcher_builder.build();
         dispatcher.setup(&mut self.world.res);
         App {
             world: self.world,
+            states: vec![Box::new(state)],
             dispatcher,
         }
+    }
+
+    pub fn build_empty(self) -> App<'a, 'b> {
+        self.build(EmptyState)
     }
 }

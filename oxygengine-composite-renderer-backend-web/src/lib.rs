@@ -7,7 +7,7 @@ use wasm_bindgen::JsCast;
 use web_sys::*;
 
 pub struct WebCompositeRenderer {
-    state: State,
+    state: RenderState,
     viewport: Rect,
     canvas: HtmlCanvasElement,
     context: CanvasRenderingContext2d,
@@ -31,14 +31,14 @@ impl WebCompositeRenderer {
             .dyn_into::<CanvasRenderingContext2d>()
             .unwrap();
         Self {
-            state: State::default(),
+            state: RenderState::default(),
             viewport: Rect::default(),
             canvas,
             context,
         }
     }
 
-    pub fn with_state(canvas_id: &str, state: State) -> Self {
+    pub fn with_state(canvas_id: &str, state: RenderState) -> Self {
         let mut result = Self::new(canvas_id);
         *result.state_mut() = state;
         result
@@ -304,11 +304,11 @@ impl CompositeRenderer for WebCompositeRenderer {
         Ok(())
     }
 
-    fn state(&self) -> &State {
+    fn state(&self) -> &RenderState {
         &self.state
     }
 
-    fn state_mut(&mut self) -> &mut State {
+    fn state_mut(&mut self) -> &mut RenderState {
         &mut self.state
     }
 

@@ -94,12 +94,12 @@ pub struct Stats {
 }
 
 #[derive(Debug, Clone)]
-pub struct State {
+pub struct RenderState {
     pub clear_color: Option<Color>,
     stats: Stats,
 }
 
-impl Default for State {
+impl Default for RenderState {
     fn default() -> Self {
         Self {
             clear_color: Some(Color::black()),
@@ -108,7 +108,7 @@ impl Default for State {
     }
 }
 
-impl State {
+impl RenderState {
     pub fn new(clear_color: Option<Color>) -> Self {
         Self {
             clear_color,
@@ -130,9 +130,9 @@ pub trait CompositeRenderer {
     where
         I: IntoIterator<Item = Command<'a>>;
 
-    fn state(&self) -> &State;
+    fn state(&self) -> &RenderState;
 
-    fn state_mut(&mut self) -> &mut State;
+    fn state_mut(&mut self) -> &mut RenderState;
 
     fn viewport(&self) -> Rect;
 
