@@ -1,6 +1,6 @@
 use crate::math::{Color, Rect, Scalar, Vec2};
 use core::error::*;
-use std::ops::Range;
+use std::{borrow::Cow, ops::Range};
 
 #[derive(Debug, Copy, Clone)]
 pub enum TextAlign {
@@ -24,9 +24,9 @@ pub struct Rectangle {
 #[derive(Debug, Default, Clone)]
 pub struct Text<'a> {
     pub color: Color,
-    pub font: &'a str,
+    pub font: Cow<'a, str>,
     pub align: TextAlign,
-    pub text: &'a str,
+    pub text: Cow<'a, str>,
     pub position: Vec2,
     pub size: Scalar,
 }
@@ -54,7 +54,7 @@ pub struct Path {
 
 #[derive(Debug, Default, Clone)]
 pub struct Image<'a> {
-    pub image: &'a str,
+    pub image: Cow<'a, str>,
     pub source: Rect,
     pub destination: Rect,
 }

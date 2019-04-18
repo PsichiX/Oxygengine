@@ -97,6 +97,20 @@ impl AssetsDatabase {
         result
     }
 
+    pub fn is_ready(&self) -> bool {
+        self.loading.is_empty() && self.yielded.is_empty()
+    }
+
+    pub fn are_ready<I, S>(&self, iter: I) -> bool
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        !iter
+            .into_iter()
+            .any(|path| !self.table.contains_key(path.as_ref()))
+    }
+
     pub fn push_fetch_engine(&mut self, fetch_engine: Box<FetchEngine>) {
         self.fetch_engines.push(fetch_engine);
     }

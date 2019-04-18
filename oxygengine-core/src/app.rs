@@ -6,17 +6,21 @@ use std::{
     time::{Duration, Instant},
 };
 
-pub struct AppLifeCycle {
-    pub running: bool,
-    pub(crate) timer: Instant,
-    pub(crate) delta_time: Duration,
-    pub(crate) delta_time_seconds: f64,
+pub trait AppTimer: Send + Sync {
+    fn tick(&mut self);
+    fn delta_time(&self) -> Duration;
+    fn delta_time_seconds(&self) -> f64;
 }
 
-impl Default for AppLifeCycle {
+pub struct StandardAppTimer {
+    timer: Instant,
+    delta_time: Duration,
+    delta_time_seconds: f64,
+}
+
+impl Default for StandardAppTimer {
     fn default() -> Self {
         Self {
-            running: true,
             timer: Instant::now(),
             delta_time: Duration::default(),
             delta_time_seconds: 0.0,
@@ -24,13 +28,42 @@ impl Default for AppLifeCycle {
     }
 }
 
-impl AppLifeCycle {
-    pub fn delta_time(&self) -> Duration {
+impl AppTimer for StandardAppTimer {
+    fn tick(&mut self) {
+        let d = self.timer.elapsed();
+        self.timer = Instant::now();
+        self.delta_time = d;
+        self.delta_time_seconds = d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9;
+    }
+
+    fn delta_time(&self) -> Duration {
         self.delta_time
     }
 
-    pub fn delta_time_seconds(&self) -> f64 {
+    fn delta_time_seconds(&self) -> f64 {
         self.delta_time_seconds
+    }
+}
+
+pub struct AppLifeCycle {
+    pub running: bool,
+    pub(crate) timer: Box<dyn AppTimer>,
+}
+
+impl AppLifeCycle {
+    pub fn new(timer: Box<dyn AppTimer>) -> Self {
+        Self {
+            running: true,
+            timer,
+        }
+    }
+
+    pub fn delta_time(&self) -> Duration {
+        self.timer.delta_time()
+    }
+
+    pub fn delta_time_seconds(&self) -> f64 {
+        self.timer.delta_time_seconds()
     }
 }
 
@@ -95,7 +128,10 @@ impl<'a, 'b> App<'a, 'b> {
             self.world.write_resource::<AppLifeCycle>().running = false;
             return;
         }
-        // TODO: process background.
+        let count = self.states.len() - 1;
+        for state in self.states.iter_mut().take(count) {
+            state.on_process_background(&mut self.world);
+        }
         let change = self.states.last_mut().unwrap().on_process(&mut self.world);
         self.dispatcher.dispatch(&mut self.world.res);
         self.world.maintain();
@@ -125,10 +161,10 @@ impl<'a, 'b> App<'a, 'b> {
         }
         {
             let lifecycle: &mut AppLifeCycle = &mut self.world.write_resource::<AppLifeCycle>();
-            let d = lifecycle.timer.elapsed();
-            lifecycle.timer = Instant::now();
-            lifecycle.delta_time = d;
-            lifecycle.delta_time_seconds = d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9;
+            lifecycle.timer.tick();
+            // lifecycle.timer = Instant::now();
+            // lifecycle.delta_time = d;
+            // lifecycle.delta_time_seconds = d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9;
         }
     }
 }
@@ -246,11 +282,11 @@ impl<'a, 'b> AppBuilder<'a, 'b> {
         self.world.register::<T>();
     }
 
-    pub fn build<S>(mut self, state: S) -> App<'a, 'b>
+    pub fn build<S>(mut self, state: S, app_timer: Box<dyn AppTimer>) -> App<'a, 'b>
     where
         S: State + 'static,
     {
-        self.world.add_resource(AppLifeCycle::default());
+        self.world.add_resource(AppLifeCycle::new(app_timer));
         let mut dispatcher = self.dispatcher_builder.build();
         dispatcher.setup(&mut self.world.res);
         App {
@@ -260,7 +296,7 @@ impl<'a, 'b> AppBuilder<'a, 'b> {
         }
     }
 
-    pub fn build_empty(self) -> App<'a, 'b> {
-        self.build(EmptyState)
+    pub fn build_empty(self, app_timer: Box<dyn AppTimer>) -> App<'a, 'b> {
+        self.build(EmptyState, app_timer)
     }
 }

@@ -69,14 +69,14 @@ impl CompositeRenderer for WebCompositeRenderer {
                     Renderable::Text(text) => {
                         self.context.set_fill_style(&text.color.to_string().into());
                         self.context
-                            .set_font(&format!("{}px {}", text.size, text.font));
+                            .set_font(&format!("{}px {}", text.size, &text.font));
                         self.context.set_text_align(match text.align {
                             TextAlign::Left => "left",
                             TextAlign::Center => "center",
                             TextAlign::Right => "right",
                         });
                         drop(self.context.fill_text(
-                            text.text,
+                            &text.text,
                             text.position.x.into(),
                             text.position.y.into(),
                         ));
@@ -175,14 +175,14 @@ impl CompositeRenderer for WebCompositeRenderer {
                             .set_stroke_style(&text.color.to_string().into());
                         self.context.set_line_width(line_width.into());
                         self.context
-                            .set_font(&format!("{}px {}", text.size, text.font));
+                            .set_font(&format!("{}px {}", text.size, &text.font));
                         self.context.set_text_align(match text.align {
                             TextAlign::Left => "left",
                             TextAlign::Center => "center",
                             TextAlign::Right => "right",
                         });
                         drop(self.context.stroke_text(
-                            text.text,
+                            &text.text,
                             text.position.x.into(),
                             text.position.y.into(),
                         ));

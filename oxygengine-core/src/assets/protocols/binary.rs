@@ -3,10 +3,6 @@ use crate::assets::protocol::{AssetLoadResult, AssetProtocol};
 pub struct BinaryAsset(Vec<u8>);
 
 impl BinaryAsset {
-    pub fn new(content: Vec<u8>) -> Self {
-        Self(content)
-    }
-
     pub fn get(&self) -> &[u8] {
         &self.0
     }
@@ -20,6 +16,6 @@ impl AssetProtocol for BinaryAssetProtocol {
     }
 
     fn on_load(&mut self, data: Vec<u8>) -> AssetLoadResult {
-        AssetLoadResult::Data(Box::new(BinaryAsset::new(data)))
+        AssetLoadResult::Data(Box::new(BinaryAsset(data)))
     }
 }
