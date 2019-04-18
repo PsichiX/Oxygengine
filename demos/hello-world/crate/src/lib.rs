@@ -4,7 +4,7 @@ use oxygengine::{
     backend::web::*,
     composite_renderer::{component::*, composite_renderer::*, math::*},
     core::{
-        assets::{database::AssetsDatabase, protocols::text::TextAsset},
+        assets::{database::AssetsDatabase, protocols::prelude::*},
         fetch::engines::map::MapFetchEngine,
     },
     prelude::*,
@@ -49,7 +49,7 @@ impl State for LoadingState {
         if assets.is_ready() {
             StateChange::Swap(Box::new(MainState))
         } else {
-            StateChange::Quit
+            StateChange::None
         }
     }
 }
@@ -121,21 +121,25 @@ pub fn run() -> Result<(), JsValue> {
         "#
         .to_vec(),
     );
-    assets.insert("txt://a.txt".to_owned(), b"AAA".to_vec());
-    assets.insert("txt://b.txt".to_owned(), b"BBB".to_vec());
+    assets.insert("txt://a.txt".to_owned(), b"Hello".to_vec());
+    assets.insert("txt://b.txt".to_owned(), b"World".to_vec());
 
     let app = App::build()
         .with_bundle(
             oxygengine::core::assets::bundle_installer,
             // (WebFetchEngine::default(), |_| {}),
-            (MapFetchEngine::new(assets), |_| {}),
+            (MapFetchEngine::new(assets), |assets| {
+                assets.register(BinaryAssetProtocol);
+                assets.register(TextAssetProtocol);
+                assets.register(SetAssetProtocol);
+            }),
         )
         .with_bundle(
             oxygengine::composite_renderer::bundle_installer,
             WebCompositeRenderer::with_state("screen", RenderState::new(Some(Color::black()))),
         )
         .with_system(DebugSystem, "debug", &[])
-        .build(LoadingState);
+        .build(LoadingState, WebAppTimer::default());
 
     AppRunner::new(app).run::<PlatformAppRunner, _>()?;
 

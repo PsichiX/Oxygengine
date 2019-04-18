@@ -104,6 +104,7 @@ pub struct App<'a, 'b> {
     world: World,
     states: Vec<Box<dyn State>>,
     dispatcher: Dispatcher<'a, 'b>,
+    setup: bool,
 }
 
 impl<'a, 'b> App<'a, 'b> {
@@ -127,6 +128,10 @@ impl<'a, 'b> App<'a, 'b> {
         if self.states.is_empty() {
             self.world.write_resource::<AppLifeCycle>().running = false;
             return;
+        }
+        if self.setup {
+            self.states.last_mut().unwrap().on_enter(&mut self.world);
+            self.setup = false;
         }
         let count = self.states.len() - 1;
         for state in self.states.iter_mut().take(count) {
@@ -162,9 +167,6 @@ impl<'a, 'b> App<'a, 'b> {
         {
             let lifecycle: &mut AppLifeCycle = &mut self.world.write_resource::<AppLifeCycle>();
             lifecycle.timer.tick();
-            // lifecycle.timer = Instant::now();
-            // lifecycle.delta_time = d;
-            // lifecycle.delta_time_seconds = d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9;
         }
     }
 }
@@ -282,21 +284,27 @@ impl<'a, 'b> AppBuilder<'a, 'b> {
         self.world.register::<T>();
     }
 
-    pub fn build<S>(mut self, state: S, app_timer: Box<dyn AppTimer>) -> App<'a, 'b>
+    pub fn build<S, AT>(mut self, state: S, app_timer: AT) -> App<'a, 'b>
     where
         S: State + 'static,
+        AT: AppTimer + 'static,
     {
-        self.world.add_resource(AppLifeCycle::new(app_timer));
+        self.world
+            .add_resource(AppLifeCycle::new(Box::new(app_timer)));
         let mut dispatcher = self.dispatcher_builder.build();
         dispatcher.setup(&mut self.world.res);
         App {
             world: self.world,
             states: vec![Box::new(state)],
             dispatcher,
+            setup: true,
         }
     }
 
-    pub fn build_empty(self, app_timer: Box<dyn AppTimer>) -> App<'a, 'b> {
+    pub fn build_empty<AT>(self, app_timer: AT) -> App<'a, 'b>
+    where
+        AT: AppTimer + 'static,
+    {
         self.build(EmptyState, app_timer)
     }
 }

@@ -1,5 +1,8 @@
 #![cfg(test)]
-use super::app::{App, AppLifeCycle, AppRunner, SyncAppRunner};
+use super::{
+    app::{App, AppLifeCycle, AppRunner, StandardAppTimer, SyncAppRunner},
+    state::State,
+};
 use specs::prelude::*;
 
 struct Counter {
@@ -13,7 +16,7 @@ impl Component for Counter {
 struct CounterSystem;
 
 impl<'s> System<'s> for CounterSystem {
-    type SystemData = (Write<'s, AppLifeCycle>, WriteStorage<'s, Counter>);
+    type SystemData = (WriteExpect<'s, AppLifeCycle>, WriteStorage<'s, Counter>);
 
     fn run(&mut self, (mut lifecycle, mut counters): Self::SystemData) {
         for counter in (&mut counters).join() {
@@ -25,11 +28,15 @@ impl<'s> System<'s> for CounterSystem {
     }
 }
 
+struct Example;
+
+impl State for Example {}
+
 #[test]
 fn test_general() {
     let mut app = App::build()
         .with_system(CounterSystem, "counter", &[])
-        .build_empty();
+        .build(Example, StandardAppTimer::default());
 
     app.world_mut()
         .create_entity()

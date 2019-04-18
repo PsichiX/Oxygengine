@@ -29,4 +29,5 @@ features = [
   'RequestInit',
   'RequestMode',
   'Response',
+  'Performance',
 ]

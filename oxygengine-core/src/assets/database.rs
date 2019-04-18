@@ -49,6 +49,10 @@ impl AssetsDatabase {
             .collect()
     }
 
+    pub fn loaded_ids(&self) -> Vec<AssetID> {
+        self.assets.iter().map(|(id, _)| *id).collect()
+    }
+
     pub fn loading_count(&self) -> usize {
         self.loading.len()
     }
@@ -184,7 +188,7 @@ impl AssetsDatabase {
     }
 
     pub fn insert(&mut self, path: &str, asset: Asset) -> AssetID {
-        let id = AssetID::new();
+        let id = asset.id();
         self.assets.insert(id, (path.to_owned(), asset));
         self.table.insert(path.to_owned(), id);
         id
@@ -333,78 +337,31 @@ impl AssetsDatabase {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::assets::protocols::prelude::*;
     use crate::fetch::*;
-    use std::str::from_utf8;
-
-    struct TextAssetProtocol;
-
-    impl AssetProtocol for TextAssetProtocol {
-        fn name(&self) -> &str {
-            "text"
-        }
-
-        fn on_load(&mut self, data: Vec<u8>) -> AssetLoadResult {
-            let data = from_utf8(&data).unwrap().to_owned();
-            AssetLoadResult::Data(Box::new(data))
-        }
-    }
-
-    struct SetAssetProtocol;
-
-    impl AssetProtocol for SetAssetProtocol {
-        fn name(&self) -> &str {
-            "set"
-        }
-
-        fn on_load(&mut self, data: Vec<u8>) -> AssetLoadResult {
-            let data = from_utf8(&data).unwrap().to_owned();
-            let list = data
-                .split('\n')
-                .enumerate()
-                .map(|(i, line)| (i.to_string(), line.to_owned()))
-                .collect();
-            AssetLoadResult::Yield(None, list)
-        }
-
-        fn on_resume(&mut self, _: Meta, list: &[(&str, &Asset)]) -> AssetLoadResult {
-            let data = list
-                .iter()
-                .map(|(_, asset)| asset.to_full_path())
-                .collect::<Vec<_>>();
-            AssetLoadResult::Data(Box::new(data))
-        }
-
-        fn on_unload(&mut self, asset: &Asset) -> Option<Vec<AssetVariant>> {
-            if let Some(data) = asset.get::<Vec<String>>() {
-                Some(
-                    data.iter()
-                        .map(|path| AssetVariant::Path(path.to_owned()))
-                        .collect(),
-                )
-            } else {
-                None
-            }
-        }
-    }
 
     #[test]
     fn test_general() {
         let mut fetch_engine = engines::map::MapFetchEngine::default();
-        fetch_engine
-            .map
-            .insert("text://a.txt".to_owned(), b"A".to_vec());
-        fetch_engine
-            .map
-            .insert("text://b.txt".to_owned(), b"B".to_vec());
         fetch_engine.map.insert(
-            "set://list.txt".to_owned(),
-            b"text://a.txt\ntext://b.txt".to_vec(),
+            "set://assets.txt".to_owned(),
+            br#"
+                txt://a.txt
+                txt://b.txt
+            "#
+            .to_vec(),
         );
+        fetch_engine
+            .map
+            .insert("txt://a.txt".to_owned(), b"A".to_vec());
+        fetch_engine
+            .map
+            .insert("txt://b.txt".to_owned(), b"B".to_vec());
 
         let mut database = AssetsDatabase::new(fetch_engine);
         database.register(TextAssetProtocol);
         database.register(SetAssetProtocol);
-        assert_eq!(database.load("set://list.txt"), Ok(()));
+        assert_eq!(database.load("set://assets.txt"), Ok(()));
         assert_eq!(database.loaded_count(), 0);
         assert_eq!(database.loading_count(), 1);
         assert_eq!(database.yielded_count(), 0);
@@ -416,54 +373,56 @@ mod tests {
         assert_eq!(database.yielded_count(), 0);
         assert_eq!(database.yielded_deps_count(), 0);
 
-        assert!(database.asset_by_path("set://list.txt").is_some());
+        assert!(database.asset_by_path("set://assets.txt").is_some());
         assert_eq!(
             &database
-                .asset_by_path("set://list.txt")
+                .asset_by_path("set://assets.txt")
                 .unwrap()
                 .to_full_path(),
-            "set://list.txt"
+            "set://assets.txt"
         );
         assert!(database
-            .asset_by_path("set://list.txt")
+            .asset_by_path("set://assets.txt")
             .unwrap()
-            .is::<Vec<String>>());
+            .is::<SetAsset>());
         assert_eq!(
             database
-                .asset_by_path("set://list.txt")
+                .asset_by_path("set://assets.txt")
                 .unwrap()
-                .get::<Vec<String>>()
-                .unwrap(),
-            &vec!["text://a.txt".to_owned(), "text://b.txt".to_owned()],
+                .get::<SetAsset>()
+                .unwrap()
+                .paths()
+                .to_vec(),
+            vec!["txt://a.txt".to_owned(), "txt://b.txt".to_owned()],
         );
 
-        assert!(database.asset_by_path("text://a.txt").is_some());
+        assert!(database.asset_by_path("txt://a.txt").is_some());
         assert!(database
-            .asset_by_path("text://a.txt")
+            .asset_by_path("txt://a.txt")
             .unwrap()
-            .is::<String>());
+            .is::<TextAsset>());
         assert_eq!(
             database
-                .asset_by_path("text://a.txt")
+                .asset_by_path("txt://a.txt")
                 .unwrap()
-                .get::<String>()
+                .get::<TextAsset>()
                 .unwrap()
-                .as_str(),
+                .get(),
             "A"
         );
 
-        assert!(database.asset_by_path("text://b.txt").is_some());
+        assert!(database.asset_by_path("txt://b.txt").is_some());
         assert_eq!(
             database
-                .asset_by_path("text://b.txt")
+                .asset_by_path("txt://b.txt")
                 .unwrap()
-                .get::<String>()
+                .get::<TextAsset>()
                 .unwrap()
-                .as_str(),
+                .get(),
             "B"
         );
 
-        assert!(database.remove_by_path("set://list.txt").is_some());
+        assert!(database.remove_by_path("set://assets.txt").is_some());
         assert_eq!(database.loaded_count(), 0);
         assert_eq!(database.loading_count(), 0);
         assert_eq!(database.yielded_count(), 0);
