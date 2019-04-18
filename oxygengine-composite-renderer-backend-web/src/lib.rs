@@ -154,7 +154,7 @@ impl CompositeRenderer for WebCompositeRenderer {
                         stats.render_ops += 3 + ops;
                         stats.renderables += 1;
                     }
-                    _ => {}
+                    Renderable::Image(image) => {}
                 },
                 Command::Stroke(line_width, renderable) => match renderable {
                     Renderable::Rectangle(rectangle) => {

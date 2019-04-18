@@ -9,6 +9,30 @@ pub enum AssetVariant {
     Path(String),
 }
 
+impl From<AssetID> for AssetVariant {
+    fn from(id: AssetID) -> Self {
+        AssetVariant::Id(id)
+    }
+}
+
+impl From<&str> for AssetVariant {
+    fn from(path: &str) -> Self {
+        AssetVariant::Path(path.to_owned())
+    }
+}
+
+impl From<String> for AssetVariant {
+    fn from(path: String) -> Self {
+        AssetVariant::Path(path)
+    }
+}
+
+impl From<&String> for AssetVariant {
+    fn from(path: &String) -> Self {
+        AssetVariant::Path(path.clone())
+    }
+}
+
 pub enum AssetLoadResult {
     None,
     Data(Box<dyn Any + Send + Sync>),

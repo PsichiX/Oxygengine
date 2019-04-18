@@ -170,7 +170,7 @@ impl AssetsDatabase {
             let prot = parts[0];
             let subpath = parts[1];
             if self.protocols.contains_key(prot) {
-                let reader = self.fetch_engine_mut().fetch(path);
+                let reader = self.fetch_engine_mut().fetch(subpath);
                 match reader {
                     Ok(reader) => {
                         self.loading
@@ -344,19 +344,15 @@ mod tests {
     fn test_general() {
         let mut fetch_engine = engines::map::MapFetchEngine::default();
         fetch_engine.map.insert(
-            "set://assets.txt".to_owned(),
+            "assets.txt".to_owned(),
             br#"
                 txt://a.txt
                 txt://b.txt
             "#
             .to_vec(),
         );
-        fetch_engine
-            .map
-            .insert("txt://a.txt".to_owned(), b"A".to_vec());
-        fetch_engine
-            .map
-            .insert("txt://b.txt".to_owned(), b"B".to_vec());
+        fetch_engine.map.insert("a.txt".to_owned(), b"A".to_vec());
+        fetch_engine.map.insert("b.txt".to_owned(), b"B".to_vec());
 
         let mut database = AssetsDatabase::new(fetch_engine);
         database.register(TextAssetProtocol);

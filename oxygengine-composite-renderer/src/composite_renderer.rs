@@ -55,8 +55,8 @@ pub struct Path {
 #[derive(Debug, Default, Clone)]
 pub struct Image<'a> {
     pub image: Cow<'a, str>,
-    pub source: Rect,
-    pub destination: Rect,
+    pub source: Option<Rect>,
+    pub destination: Option<Rect>,
 }
 
 #[derive(Debug, Clone)]

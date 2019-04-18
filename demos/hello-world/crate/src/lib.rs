@@ -2,14 +2,12 @@ extern crate oxygengine;
 
 use oxygengine::{
     backend::web::*,
-    composite_renderer::{component::*, composite_renderer::*, math::*},
-    core::{
-        assets::{database::AssetsDatabase, protocols::prelude::*},
-        fetch::engines::map::MapFetchEngine,
+    composite_renderer::{
+        component::*, composite_renderer::*, math::*, png_image_asset_protocol::*,
     },
+    core::assets::{database::AssetsDatabase, protocols::prelude::*},
     prelude::*,
 };
-use std::{borrow::Cow, collections::HashMap};
 use wasm_bindgen::prelude::*;
 
 #[cfg(feature = "wee_alloc")]
@@ -40,8 +38,10 @@ struct LoadingState;
 
 impl State for LoadingState {
     fn on_enter(&mut self, world: &mut World) {
-        let assets = &mut world.write_resource::<AssetsDatabase>();
-        assets.load("set://assets.txt").unwrap();
+        world
+            .write_resource::<AssetsDatabase>()
+            .load("set://assets.txt")
+            .expect("cannot load `assets.txt`");
     }
 
     fn on_process(&mut self, world: &mut World) -> StateChange {
@@ -62,9 +62,9 @@ impl State for MainState {
             let assets = &world.read_resource::<AssetsDatabase>();
             assets
                 .asset_by_path("txt://a.txt")
-                .unwrap()
+                .expect("`a.txt` is not loaded")
                 .get::<TextAsset>()
-                .unwrap()
+                .expect("`a.txt` is not TextAsset")
                 .get()
                 .to_owned()
         };
@@ -82,7 +82,7 @@ impl State for MainState {
             .create_entity()
             .with(CompositeRenderable(Renderable::Text(Text {
                 color: Color::yellow(),
-                font: Cow::from("Verdana"),
+                font: "Verdana".into(),
                 align: TextAlign::Center,
                 text: text.into(),
                 position: [100.0 + 250.0, 100.0 + 50.0 + 12.0].into(),
@@ -105,6 +105,17 @@ impl State for MainState {
             .with(CompositeTransform::default())
             .with(CompositeRenderableStroke(5.0))
             .build();
+
+        world
+            .create_entity()
+            .with(CompositeRenderable(Renderable::Image(Image {
+                image: "logo.png".into(),
+                source: None,
+                destination: None,
+            })))
+            .with(CompositeTransform::default())
+            .with(CompositeRenderableStroke(5.0))
+            .build();
     }
 }
 
@@ -112,26 +123,14 @@ impl State for MainState {
 pub fn run() -> Result<(), JsValue> {
     set_panic_hook();
 
-    let mut assets = HashMap::new();
-    assets.insert(
-        "set://assets.txt".to_owned(),
-        br#"
-            txt://a.txt
-            txt://b.txt
-        "#
-        .to_vec(),
-    );
-    assets.insert("txt://a.txt".to_owned(), b"Hello".to_vec());
-    assets.insert("txt://b.txt".to_owned(), b"World".to_vec());
-
     let app = App::build()
         .with_bundle(
             oxygengine::core::assets::bundle_installer,
-            // (WebFetchEngine::default(), |_| {}),
-            (MapFetchEngine::new(assets), |assets| {
+            (WebFetchEngine::default(), |assets| {
                 assets.register(BinaryAssetProtocol);
                 assets.register(TextAssetProtocol);
                 assets.register(SetAssetProtocol);
+                assets.register(PngImageAssetProtocol);
             }),
         )
         .with_bundle(

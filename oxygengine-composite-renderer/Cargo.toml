@@ -11,3 +11,4 @@ documentation = "https://docs.rs/oxygengine-composite-renderer"
 
 [dependencies]
 oxygengine-core = { version = "0.1", path = "../oxygengine-core" }
+png = "0.14"
