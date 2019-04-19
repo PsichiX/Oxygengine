@@ -18,7 +18,7 @@ fn window() -> web_sys::Window {
 
 pub struct WebCompositeRenderer {
     state: RenderState,
-    viewport: Rect,
+    viewport: Vec2,
     canvas: HtmlCanvasElement,
     context: CanvasRenderingContext2d,
     images_cache: Rc<RefCell<HashMap<String, ImageBitmap>>>,
@@ -46,7 +46,7 @@ impl WebCompositeRenderer {
             .unwrap();
         Self {
             state: RenderState::default(),
-            viewport: Rect::default(),
+            viewport: Vec2::zero(),
             canvas,
             context,
             images_cache: Default::default(),
@@ -372,22 +372,17 @@ impl CompositeRenderer for WebCompositeRenderer {
         &mut self.state
     }
 
-    fn viewport(&self) -> Rect {
+    fn viewport(&self) -> Vec2 {
         self.viewport
     }
 
     fn update_state(&mut self) {
         let w = self.canvas.client_width();
         let h = self.canvas.client_height();
-        if (self.viewport.w - w as f32).abs() > 1.0 || (self.viewport.h - h as f32).abs() > 1.0 {
+        if (self.viewport.x - w as f32).abs() > 1.0 || (self.viewport.y - h as f32).abs() > 1.0 {
             self.canvas.set_width(w as u32);
             self.canvas.set_height(h as u32);
-            self.viewport = Rect {
-                x: 0.0,
-                y: 0.0,
-                w: w as Scalar,
-                h: h as Scalar,
-            };
+            self.viewport = Vec2::new(w as Scalar, h as Scalar);
         }
     }
 

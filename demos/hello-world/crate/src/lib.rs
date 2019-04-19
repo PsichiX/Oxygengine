@@ -8,6 +8,7 @@ use oxygengine::{
     core::assets::{database::AssetsDatabase, protocols::prelude::*},
     prelude::*,
 };
+use std::f32::consts::PI;
 use wasm_bindgen::prelude::*;
 
 #[cfg(feature = "wee_alloc")]
@@ -71,6 +72,21 @@ impl State for MainState {
 
         world
             .create_entity()
+            .with(CompositeCamera::new(CompositeScalingMode::Aspect))
+            .with(CompositeTransform::scale(800.0.into()))
+            .build();
+
+        world
+            .create_entity()
+            .with(CompositeCamera {
+                scaling: CompositeScalingMode::Aspect,
+                tags: vec!["ferris".into()],
+            })
+            .with(CompositeTransform::scale(800.0.into()).with_translation((-300.0).into()))
+            .build();
+
+        world
+            .create_entity()
             .with(CompositeRenderable(Renderable::Rectangle(Rectangle {
                 color: Color::rgba(128, 0, 0, 128),
                 rect: [100.0, 100.0, 500.0, 100.0].into(),
@@ -115,7 +131,7 @@ impl State for MainState {
         world
             .create_entity()
             .with(CompositeRenderable(Image::new("web.png").into()))
-            .with(CompositeTransform::scale([0.5, 0.5].into()))
+            .with(CompositeTransform::scale(0.5.into()))
             .with(CompositeRenderDepth(-1.0))
             .build();
 
@@ -124,10 +140,11 @@ impl State for MainState {
             .with(CompositeRenderable(Image::new("logo.png").into()))
             .with(
                 CompositeTransform::translation([50.0, 100.0].into())
-                    .with_scale([0.2, 0.2].into())
-                    .with_rotation(std::f32::consts::PI * -0.15),
+                    .with_scale(0.2.into())
+                    .with_rotation(PI * -0.15),
             )
             .with(CompositeRenderDepth(1.0))
+            .with(CompositeTag("ferris".into()))
             .build();
     }
 }

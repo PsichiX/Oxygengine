@@ -168,7 +168,7 @@ pub trait CompositeRenderer {
 
     fn state_mut(&mut self) -> &mut RenderState;
 
-    fn viewport(&self) -> Rect;
+    fn viewport(&self) -> Vec2;
 
     fn update_state(&mut self) {}
 

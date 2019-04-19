@@ -1,4 +1,4 @@
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 pub type Scalar = f32;
 
@@ -280,6 +280,23 @@ impl Div<Scalar> for Vec2 {
             x: self.x / other,
             y: self.y / other,
         }
+    }
+}
+
+impl Neg for Vec2 {
+    type Output = Self;
+
+    fn neg(self) -> Self {
+        Vec2 {
+            x: -self.x,
+            y: -self.y,
+        }
+    }
+}
+
+impl From<Scalar> for Vec2 {
+    fn from(value: Scalar) -> Self {
+        Self { x: value, y: value }
     }
 }
 
