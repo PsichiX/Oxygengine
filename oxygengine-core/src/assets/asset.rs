@@ -28,6 +28,10 @@ impl Asset {
         &self.protocol
     }
 
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
     pub fn to_full_path(&self) -> String {
         format!("{}://{}", self.protocol, self.path)
     }

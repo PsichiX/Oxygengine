@@ -4,7 +4,10 @@ use crate::{
     },
     composite_renderer::{Command, CompositeRenderer, Rectangle, Renderable, Transformation},
 };
-use core::ecs::{Entities, Join, ReadStorage, System, Write};
+use core::{
+    assets::database::AssetsDatabase,
+    ecs::{Entities, Join, Read, ReadStorage, System, Write},
+};
 use std::marker::PhantomData;
 
 pub struct CompositeRendererSystem<CR>
@@ -32,6 +35,7 @@ where
     type SystemData = (
         Option<Write<'s, CR>>,
         Entities<'s>,
+        Option<Read<'s, AssetsDatabase>>,
         ReadStorage<'s, CompositeRenderable>,
         ReadStorage<'s, CompositeTransform>,
         ReadStorage<'s, CompositeRenderDepth>,
@@ -40,13 +44,16 @@ where
 
     fn run(
         &mut self,
-        (renderer, entities, renderables, transforms, depths, strokes): Self::SystemData,
+        (renderer, entities, assets, renderables, transforms, depths, strokes): Self::SystemData,
     ) {
         if renderer.is_none() {
             return;
         }
 
         let renderer: &mut CR = &mut renderer.unwrap();
+        if let Some(assets) = &assets {
+            renderer.update_cache(assets);
+        }
         renderer.update_state();
         let viewport = renderer.viewport();
         let mut sorted = (&entities, &renderables, &transforms)

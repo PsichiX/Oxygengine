@@ -1,5 +1,5 @@
 use crate::math::{Color, Rect, Scalar, Vec2};
-use core::error::*;
+use core::{assets::database::AssetsDatabase, error::*};
 use std::{borrow::Cow, ops::Range};
 
 #[derive(Debug, Copy, Clone)]
@@ -59,12 +59,46 @@ pub struct Image<'a> {
     pub destination: Option<Rect>,
 }
 
+impl<'a> Image<'a> {
+    pub fn new(image: &'a str) -> Self {
+        Self {
+            image: image.into(),
+            source: None,
+            destination: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Renderable<'a> {
     Rectangle(Rectangle),
     Text(Text<'a>),
     Path(Path),
     Image(Image<'a>),
+}
+
+impl<'a> From<Rectangle> for Renderable<'a> {
+    fn from(rect: Rectangle) -> Self {
+        Renderable::Rectangle(rect)
+    }
+}
+
+impl<'a> From<Text<'a>> for Renderable<'a> {
+    fn from(text: Text<'a>) -> Self {
+        Renderable::Text(text)
+    }
+}
+
+impl<'a> From<Path> for Renderable<'a> {
+    fn from(path: Path) -> Self {
+        Renderable::Path(path)
+    }
+}
+
+impl<'a> From<Image<'a>> for Renderable<'a> {
+    fn from(image: Image<'a>) -> Self {
+        Renderable::Image(image)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -136,9 +170,7 @@ pub trait CompositeRenderer {
 
     fn viewport(&self) -> Rect;
 
-    fn update_state(&mut self);
+    fn update_state(&mut self) {}
 
-    // fn register_image<T>(name: &str, image: T);
-    //
-    // fn unregister_image(name: &str);
+    fn update_cache(&mut self, _assets: &AssetsDatabase) {}
 }

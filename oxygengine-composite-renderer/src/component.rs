@@ -11,9 +11,9 @@ impl Component for CompositeRenderable {
     type Storage = VecStorage<Self>;
 }
 
-impl From<&Renderable<'static>> for CompositeRenderable {
-    fn from(value: &Renderable<'static>) -> Self {
-        Self(value.clone())
+impl From<Renderable<'static>> for CompositeRenderable {
+    fn from(value: Renderable<'static>) -> Self {
+        Self(value)
     }
 }
 
@@ -38,6 +38,43 @@ impl Default for CompositeTransform {
             rotation: 0.0,
             scale: Vec2::one(),
         }
+    }
+}
+
+impl CompositeTransform {
+    pub fn new(translation: Vec2, rotation: Scalar, scale: Vec2) -> Self {
+        Self {
+            translation,
+            rotation,
+            scale,
+        }
+    }
+
+    pub fn translation(v: Vec2) -> Self {
+        Self::default().with_translation(v)
+    }
+
+    pub fn rotation(v: Scalar) -> Self {
+        Self::default().with_rotation(v)
+    }
+
+    pub fn scale(v: Vec2) -> Self {
+        Self::default().with_scale(v)
+    }
+
+    pub fn with_translation(mut self, v: Vec2) -> Self {
+        self.translation = v;
+        self
+    }
+
+    pub fn with_rotation(mut self, v: Scalar) -> Self {
+        self.rotation = v;
+        self
+    }
+
+    pub fn with_scale(mut self, v: Vec2) -> Self {
+        self.scale = v;
+        self
     }
 }
 

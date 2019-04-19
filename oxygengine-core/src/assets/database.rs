@@ -21,6 +21,8 @@ pub struct AssetsDatabase {
     table: HashMap<String, AssetID>,
     loading: HashMap<String, (String, Box<FetchProcessReader>)>,
     yielded: HashMap<String, (String, Meta, Vec<(String, String)>)>,
+    lately_loaded: Vec<(String, AssetID)>,
+    lately_unloaded: Vec<(String, AssetID)>,
 }
 
 impl AssetsDatabase {
@@ -35,6 +37,8 @@ impl AssetsDatabase {
             table: Default::default(),
             loading: Default::default(),
             yielded: Default::default(),
+            lately_loaded: vec![],
+            lately_unloaded: vec![],
         }
     }
 
@@ -99,6 +103,32 @@ impl AssetsDatabase {
         result.sort();
         result.dedup();
         result
+    }
+
+    pub fn lately_loaded<'a>(&'a self) -> impl Iterator<Item = &'a AssetID> {
+        self.lately_loaded.iter().map(|(_, id)| id)
+    }
+
+    pub fn lately_loaded_protocol<'a>(
+        &'a self,
+        protocol: &'a str,
+    ) -> impl Iterator<Item = &'a AssetID> {
+        self.lately_loaded
+            .iter()
+            .filter_map(move |(prot, id)| if protocol == prot { Some(id) } else { None })
+    }
+
+    pub fn lately_unloaded<'a>(&'a self) -> impl Iterator<Item = &'a AssetID> {
+        self.lately_unloaded.iter().map(|(_, id)| id)
+    }
+
+    pub fn lately_unloaded_protocol<'a>(
+        &'a self,
+        protocol: &'a str,
+    ) -> impl Iterator<Item = &'a AssetID> {
+        self.lately_unloaded
+            .iter()
+            .filter_map(move |(prot, id)| if protocol == prot { Some(id) } else { None })
     }
 
     pub fn is_ready(&self) -> bool {
@@ -189,6 +219,7 @@ impl AssetsDatabase {
 
     pub fn insert(&mut self, path: &str, asset: Asset) -> AssetID {
         let id = asset.id();
+        self.lately_loaded.push((asset.protocol().to_owned(), id));
         self.assets.insert(id, (path.to_owned(), asset));
         self.table.insert(path.to_owned(), id);
         id
@@ -197,6 +228,7 @@ impl AssetsDatabase {
     pub fn remove_by_id(&mut self, id: AssetID) -> Option<Asset> {
         if let Some((path, asset)) = self.assets.remove(&id) {
             self.table.remove(&path);
+            self.lately_unloaded.push((asset.protocol().to_owned(), id));
             if let Some(protocol) = self.protocols.get_mut(asset.protocol()) {
                 if let Some(list) = protocol.on_unload(&asset) {
                     self.remove_by_variants(&list);
@@ -211,6 +243,7 @@ impl AssetsDatabase {
     pub fn remove_by_path(&mut self, path: &str) -> Option<Asset> {
         if let Some(id) = self.table.remove(path) {
             if let Some((_, asset)) = self.assets.remove(&id) {
+                self.lately_unloaded.push((asset.protocol().to_owned(), id));
                 if let Some(protocol) = self.protocols.get_mut(asset.protocol()) {
                     if let Some(list) = protocol.on_unload(&asset) {
                         self.remove_by_variants(&list);
@@ -253,6 +286,8 @@ impl AssetsDatabase {
     }
 
     pub fn process(&mut self) {
+        self.lately_loaded.clear();
+        self.lately_unloaded.clear();
         loop {
             let to_dispatch = {
                 self.loading

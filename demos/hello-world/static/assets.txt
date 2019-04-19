@@ -1,3 +1,4 @@
 txt://a.txt
 txt://b.txt
 png://logo.png
+png://web.png

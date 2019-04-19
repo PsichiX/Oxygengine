@@ -1,11 +1,9 @@
-use core::fetch::{FetchCancelReason, FetchEngine, FetchProcess, FetchProcessReader, FetchStatus};
+use core::fetch::{FetchEngine, FetchProcess, FetchProcessReader, FetchStatus};
 use futures::{future, Future};
 use js_sys::{ArrayBuffer, Promise, Uint8Array};
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::future_to_promise;
-use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, RequestInit, RequestMode, Response};
+use wasm_bindgen::{prelude::*, JsCast};
+use wasm_bindgen_futures::{future_to_promise, JsFuture};
+use web_sys::*;
 
 fn window() -> web_sys::Window {
     web_sys::window().expect("no global `window` exists")
@@ -50,6 +48,7 @@ impl FetchEngine for WebFetchEngine {
                 process2.done(body);
                 future::ok(JsValue::null())
             });
+        // TODO: fail process on error catch.
         future_to_promise(future);
         Ok(Box::new(process))
     }

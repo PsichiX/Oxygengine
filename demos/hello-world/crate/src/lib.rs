@@ -72,7 +72,7 @@ impl State for MainState {
         world
             .create_entity()
             .with(CompositeRenderable(Renderable::Rectangle(Rectangle {
-                color: Color::blue(),
+                color: Color::rgba(128, 0, 0, 128),
                 rect: [100.0, 100.0, 500.0, 100.0].into(),
             })))
             .with(CompositeTransform::default())
@@ -80,41 +80,54 @@ impl State for MainState {
 
         world
             .create_entity()
-            .with(CompositeRenderable(Renderable::Text(Text {
-                color: Color::yellow(),
-                font: "Verdana".into(),
-                align: TextAlign::Center,
-                text: text.into(),
-                position: [100.0 + 250.0, 100.0 + 50.0 + 12.0].into(),
-                size: 24.0,
-            })))
+            .with(CompositeRenderable(
+                Text {
+                    color: Color::yellow(),
+                    font: "Verdana".into(),
+                    align: TextAlign::Center,
+                    text: text.into(),
+                    position: [100.0 + 250.0, 100.0 + 50.0 + 12.0].into(),
+                    size: 24.0,
+                }
+                .into(),
+            ))
             .with(CompositeTransform::default())
             .build();
 
         world
             .create_entity()
-            .with(CompositeRenderable(Renderable::Path(Path {
-                color: Color::white(),
-                elements: vec![
-                    PathElement::MoveTo([300.0, 300.0].into()),
-                    PathElement::LineTo([400.0, 300.0].into()),
-                    PathElement::QuadraticCurveTo([400.0, 400.0].into(), [300.0, 400.0].into()),
-                    PathElement::LineTo([300.0, 300.0].into()),
-                ],
-            })))
+            .with(CompositeRenderable(
+                Path {
+                    color: Color::magenta().a(192),
+                    elements: vec![
+                        PathElement::MoveTo([300.0, 300.0].into()),
+                        PathElement::LineTo([400.0, 300.0].into()),
+                        PathElement::QuadraticCurveTo([400.0, 400.0].into(), [300.0, 400.0].into()),
+                        PathElement::LineTo([300.0, 300.0].into()),
+                    ],
+                }
+                .into(),
+            ))
             .with(CompositeTransform::default())
             .with(CompositeRenderableStroke(5.0))
             .build();
 
         world
             .create_entity()
-            .with(CompositeRenderable(Renderable::Image(Image {
-                image: "logo.png".into(),
-                source: None,
-                destination: None,
-            })))
-            .with(CompositeTransform::default())
-            .with(CompositeRenderableStroke(5.0))
+            .with(CompositeRenderable(Image::new("web.png").into()))
+            .with(CompositeTransform::scale([0.5, 0.5].into()))
+            .with(CompositeRenderDepth(-1.0))
+            .build();
+
+        world
+            .create_entity()
+            .with(CompositeRenderable(Image::new("logo.png").into()))
+            .with(
+                CompositeTransform::translation([50.0, 100.0].into())
+                    .with_scale([0.2, 0.2].into())
+                    .with_rotation(std::f32::consts::PI * -0.15),
+            )
+            .with(CompositeRenderDepth(1.0))
             .build();
     }
 }
@@ -137,7 +150,7 @@ pub fn run() -> Result<(), JsValue> {
             oxygengine::composite_renderer::bundle_installer,
             WebCompositeRenderer::with_state("screen", RenderState::new(Some(Color::black()))),
         )
-        .with_system(DebugSystem, "debug", &[])
+        // .with_system(DebugSystem, "debug", &[])
         .build(LoadingState, WebAppTimer::default());
 
     AppRunner::new(app).run::<PlatformAppRunner, _>()?;
