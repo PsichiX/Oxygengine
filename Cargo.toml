@@ -8,6 +8,9 @@ license = "MIT"
 homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine"
+exclude = [
+  "demos/**",
+]
 
 [features]
 parallel = ["oxygengine-core/parallel"]
