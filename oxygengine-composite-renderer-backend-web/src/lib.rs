@@ -62,11 +62,12 @@ impl WebCompositeRenderer {
 }
 
 impl CompositeRenderer for WebCompositeRenderer {
-    fn execute<'a, I>(&mut self, commands: I) -> Result<()>
+    fn execute<'a, I>(&mut self, commands: I) -> Result<(usize, usize)>
     where
         I: IntoIterator<Item = Command<'a>>,
     {
-        let mut stats = Stats::default();
+        let mut render_ops = 0;
+        let mut renderables = 0;
         for command in commands {
             match command {
                 Command::Draw(renderable) => match renderable {
@@ -79,8 +80,8 @@ impl CompositeRenderer for WebCompositeRenderer {
                             rectangle.rect.w.into(),
                             rectangle.rect.h.into(),
                         );
-                        stats.render_ops += 2;
-                        stats.renderables += 1;
+                        render_ops += 2;
+                        renderables += 1;
                     }
                     Renderable::Text(text) => {
                         self.context.set_fill_style(&text.color.to_string().into());
@@ -96,8 +97,8 @@ impl CompositeRenderer for WebCompositeRenderer {
                             text.position.x.into(),
                             text.position.y.into(),
                         ));
-                        stats.render_ops += 4;
-                        stats.renderables += 1;
+                        render_ops += 4;
+                        renderables += 1;
                     }
                     Renderable::Path(path) => {
                         let mut ops = 0;
@@ -167,8 +168,8 @@ impl CompositeRenderer for WebCompositeRenderer {
                         }
                         self.context.set_fill_style(&path.color.to_string().into());
                         self.context.fill();
-                        stats.render_ops += 3 + ops;
-                        stats.renderables += 1;
+                        render_ops += 3 + ops;
+                        renderables += 1;
                     }
                     Renderable::Image(image) => {
                         let path: &str = &image.image;
@@ -206,8 +207,8 @@ impl CompositeRenderer for WebCompositeRenderer {
                                     dst.w.into(),
                                     dst.h.into(),
                                 ));
-                            stats.render_ops += 1;
-                            stats.renderables += 1;
+                            render_ops += 1;
+                            renderables += 1;
                         }
                     }
                 },
@@ -222,8 +223,8 @@ impl CompositeRenderer for WebCompositeRenderer {
                             rectangle.rect.w.into(),
                             rectangle.rect.h.into(),
                         );
-                        stats.render_ops += 3;
-                        stats.renderables += 1;
+                        render_ops += 3;
+                        renderables += 1;
                     }
                     Renderable::Text(text) => {
                         self.context
@@ -241,8 +242,8 @@ impl CompositeRenderer for WebCompositeRenderer {
                             text.position.x.into(),
                             text.position.y.into(),
                         ));
-                        stats.render_ops += 5;
-                        stats.renderables += 1;
+                        render_ops += 5;
+                        renderables += 1;
                     }
                     Renderable::Path(path) => {
                         let mut ops = 0;
@@ -314,8 +315,8 @@ impl CompositeRenderer for WebCompositeRenderer {
                             .set_stroke_style(&path.color.to_string().into());
                         self.context.set_line_width(line_width.into());
                         self.context.stroke();
-                        stats.render_ops += 4 + ops;
-                        stats.renderables += 1;
+                        render_ops += 4 + ops;
+                        renderables += 1;
                     }
                     Renderable::Image(image) => {
                         panic!(
@@ -327,15 +328,15 @@ impl CompositeRenderer for WebCompositeRenderer {
                 Command::Transform(transform) => match transform {
                     Transformation::Translate(pos) => {
                         drop(self.context.translate(pos.x.into(), pos.y.into()));
-                        stats.render_ops += 1;
+                        render_ops += 1;
                     }
                     Transformation::Rotate(rot) => {
                         drop(self.context.rotate(rot.into()));
-                        stats.render_ops += 1;
+                        render_ops += 1;
                     }
                     Transformation::Scale(scl) => {
                         drop(self.context.scale(scl.x.into(), scl.y.into()));
-                        stats.render_ops += 1;
+                        render_ops += 1;
                     }
                     Transformation::Transform(a, b, c, d, e, f) => {
                         drop(self.context.transform(
@@ -346,22 +347,21 @@ impl CompositeRenderer for WebCompositeRenderer {
                             e.into(),
                             f.into(),
                         ));
-                        stats.render_ops += 1;
+                        render_ops += 1;
                     }
                 },
                 Command::Store => {
                     self.context.save();
-                    stats.render_ops += 1;
+                    render_ops += 1;
                 }
                 Command::Restore => {
                     self.context.restore();
-                    stats.render_ops += 1;
+                    render_ops += 1;
                 }
                 _ => {}
             }
         }
-        self.state.set_stats(stats);
-        Ok(())
+        Ok((render_ops, renderables))
     }
 
     fn state(&self) -> &RenderState {

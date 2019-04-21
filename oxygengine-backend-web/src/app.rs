@@ -37,7 +37,7 @@ impl Default for WebAppTimer {
 impl AppTimer for WebAppTimer {
     fn tick(&mut self) {
         let t = performance().now();
-        let d = t - self.timer;
+        let d = (t - self.timer) * 0.001;
         self.timer = t;
         let d = Duration::new(d as u64, (d.fract() * 1e9) as u32);
         self.delta_time = d;

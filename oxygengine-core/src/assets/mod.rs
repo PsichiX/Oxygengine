@@ -28,3 +28,10 @@ pub fn bundle_installer<'a, 'b, FE: 'static, ADS>(
     builder.install_resource(database);
     builder.install_thread_local_system(AssetsSystem);
 }
+
+pub fn protocols_installer(database: &mut AssetsDatabase) {
+    use protocols::prelude::*;
+    database.register(TextAssetProtocol);
+    database.register(TextAssetProtocol);
+    database.register(SetAssetProtocol);
+}

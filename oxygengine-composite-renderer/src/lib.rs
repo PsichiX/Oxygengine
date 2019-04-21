@@ -12,7 +12,7 @@ use crate::{
     composite_renderer::CompositeRenderer,
     system::CompositeRendererSystem,
 };
-use core::app::AppBuilder;
+use core::{app::AppBuilder, assets::database::AssetsDatabase};
 
 pub fn bundle_installer<'a, 'b, CR: 'static>(builder: &mut AppBuilder<'a, 'b>, data: CR)
 where
@@ -23,4 +23,8 @@ where
     builder.install_component::<CompositeTransform>();
     builder.install_component::<CompositeRenderDepth>();
     builder.install_thread_local_system(CompositeRendererSystem::<CR>::default());
+}
+
+pub fn protocols_installer(database: &mut AssetsDatabase) {
+    database.register(png_image_asset_protocol::PngImageAssetProtocol);
 }

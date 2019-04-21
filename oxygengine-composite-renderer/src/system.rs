@@ -3,12 +3,15 @@ use crate::{
         CompositeCamera, CompositeRenderDepth, CompositeRenderable, CompositeRenderableStroke,
         CompositeScalingMode, CompositeTag, CompositeTransform,
     },
-    composite_renderer::{Command, CompositeRenderer, Rectangle, Renderable, Transformation},
+    composite_renderer::{
+        Command, CompositeRenderer, Rectangle, Renderable, Stats, Transformation,
+    },
     math::Vec2,
 };
 use core::{
+    app::AppLifeCycle,
     assets::database::AssetsDatabase,
-    ecs::{Entities, Join, Read, ReadStorage, System, Write},
+    ecs::{Entities, Join, Read, ReadExpect, ReadStorage, System, Write},
 };
 use std::marker::PhantomData;
 
@@ -37,6 +40,7 @@ where
     type SystemData = (
         Option<Write<'s, CR>>,
         Entities<'s>,
+        ReadExpect<'s, AppLifeCycle>,
         Option<Read<'s, AssetsDatabase>>,
         ReadStorage<'s, CompositeCamera>,
         ReadStorage<'s, CompositeRenderable>,
@@ -51,6 +55,7 @@ where
         (
             renderer,
             entities,
+            lifecycle,
             assets,
             cameras,
             renderables,
@@ -76,14 +81,17 @@ where
         let wh = w * 0.5;
         let hh = h * 0.5;
         let s = if w > h { h } else { w };
+        let mut stats = Stats::default();
 
         if let Some(color) = renderer.state().clear_color {
-            drop(
-                renderer.execute(vec![Command::Draw(Renderable::Rectangle(Rectangle {
-                    color,
-                    rect: [0.0, 0.0, w, h].into(),
-                }))]),
-            );
+            let result = renderer.execute(vec![Command::Draw(Renderable::Rectangle(Rectangle {
+                color,
+                rect: [0.0, 0.0, w, h].into(),
+            }))]);
+            if let Ok((render_ops, renderables)) = result {
+                stats.render_ops += render_ops;
+                stats.renderables += renderables;
+            }
         }
 
         let mut sorted_cameras = (&entities, &cameras, &transforms)
@@ -180,7 +188,13 @@ where
                 )
                 .chain(std::iter::once(Command::Restore));
 
-            drop(renderer.execute(commands));
+            if let Ok((render_ops, renderables)) = renderer.execute(commands) {
+                stats.render_ops += render_ops;
+                stats.renderables += renderables;
+            }
         }
+        stats.delta_time = lifecycle.delta_time_seconds();
+        stats.fps = 1.0 / stats.delta_time;
+        renderer.state_mut().set_stats(stats);
     }
 }

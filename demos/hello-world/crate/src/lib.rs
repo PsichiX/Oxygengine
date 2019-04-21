@@ -2,9 +2,7 @@ extern crate oxygengine;
 
 use oxygengine::{
     backend::web::*,
-    composite_renderer::{
-        component::*, composite_renderer::*, math::*, png_image_asset_protocol::*,
-    },
+    composite_renderer::{component::*, composite_renderer::*, math::*},
     core::assets::{database::AssetsDatabase, protocols::prelude::*},
     prelude::*,
 };
@@ -48,14 +46,17 @@ impl State for LoadingState {
     fn on_process(&mut self, world: &mut World) -> StateChange {
         let assets = &world.read_resource::<AssetsDatabase>();
         if assets.is_ready() {
-            StateChange::Swap(Box::new(MainState))
+            StateChange::Swap(Box::new(MainState::default()))
         } else {
             StateChange::None
         }
     }
 }
 
-struct MainState;
+#[derive(Default)]
+struct MainState {
+    fps_label: Option<Entity>,
+}
 
 impl State for MainState {
     fn on_enter(&mut self, world: &mut World) {
@@ -68,6 +69,10 @@ impl State for MainState {
                 .expect("`a.txt` is not TextAsset")
                 .get()
                 .to_owned()
+        };
+        let fps = {
+            let lifecycle = &world.read_resource::<AppLifeCycle>();
+            "FPS: 0"
         };
 
         world
@@ -146,6 +151,43 @@ impl State for MainState {
             .with(CompositeRenderDepth(1.0))
             .with(CompositeTag("ferris".into()))
             .build();
+
+        self.fps_label = Some(
+            world
+                .create_entity()
+                .with(CompositeRenderable(
+                    Text {
+                        color: Color::yellow(),
+                        font: "Verdana".into(),
+                        align: TextAlign::Left,
+                        text: fps.into(),
+                        position: [10.0, 10.0].into(),
+                        size: 12.0,
+                    }
+                    .into(),
+                ))
+                .with(CompositeTransform::default())
+                .with(CompositeRenderDepth(10.0))
+                .build(),
+        );
+    }
+
+    fn on_process(&mut self, world: &mut World) -> StateChange {
+        let fps = {
+            let lifecycle = &world.read_resource::<AppLifeCycle>();
+            format!("FPS: {:?}", (1.0 / lifecycle.delta_time_seconds()) as isize)
+        };
+        if let Some(fps_label) = self.fps_label {
+            if let Some(renderable) = world
+                .write_storage::<CompositeRenderable>()
+                .get_mut(fps_label)
+            {
+                if let Renderable::Text(text) = &mut renderable.0 {
+                    text.text = fps.into();
+                }
+            }
+        }
+        StateChange::None
     }
 }
 
@@ -157,10 +199,8 @@ pub fn run() -> Result<(), JsValue> {
         .with_bundle(
             oxygengine::core::assets::bundle_installer,
             (WebFetchEngine::default(), |assets| {
-                assets.register(BinaryAssetProtocol);
-                assets.register(TextAssetProtocol);
-                assets.register(SetAssetProtocol);
-                assets.register(PngImageAssetProtocol);
+                oxygengine::core::assets::protocols_installer(assets);
+                oxygengine::composite_renderer::protocols_installer(assets);
             }),
         )
         .with_bundle(

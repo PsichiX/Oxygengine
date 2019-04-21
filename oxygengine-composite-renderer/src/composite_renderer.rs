@@ -125,6 +125,8 @@ pub enum Command<'a> {
 pub struct Stats {
     pub render_ops: usize,
     pub renderables: usize,
+    pub fps: f64,
+    pub delta_time: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -160,7 +162,8 @@ impl RenderState {
 }
 
 pub trait CompositeRenderer {
-    fn execute<'a, I>(&mut self, commands: I) -> Result<()>
+    fn execute<'a, I>(&mut self, commands: I) -> Result<(usize, usize)>
+    // (render ops, renderables)
     where
         I: IntoIterator<Item = Command<'a>>;
 
