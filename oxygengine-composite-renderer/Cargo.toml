@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-composite-renderer"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Composite renderer module for Oxygen Engine"
@@ -10,5 +10,5 @@ repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine-composite-renderer"
 
 [dependencies]
-oxygengine-core = { version = "0.1", path = "../oxygengine-core" }
+oxygengine-core = { version = "0.2", path = "../oxygengine-core" }
 png = "0.14"

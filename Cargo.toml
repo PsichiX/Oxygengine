@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygen Engine"
@@ -23,20 +23,20 @@ composite-renderer = ["oxygengine-composite-renderer"]
 composite-web = ["web", "composite-renderer"]
 
 [dependencies]
-oxygengine-core = { version = "0.1", path = "./oxygengine-core" }
+oxygengine-core = { version = "0.2", path = "./oxygengine-core" }
 
 [dependencies.oxygengine-backend-web]
-version = "0.1"
+version = "0.2"
 path = "./oxygengine-backend-web"
 optional = true
 
 [dependencies.oxygengine-composite-renderer]
-version = "0.1"
+version = "0.2"
 path = "./oxygengine-composite-renderer"
 optional = true
 
 [dependencies.oxygengine-composite-renderer-backend-web]
-version = "0.1"
+version = "0.2"
 path = "./oxygengine-composite-renderer-backend-web"
 optional = true
 

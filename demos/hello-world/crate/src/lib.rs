@@ -70,10 +70,7 @@ impl State for MainState {
                 .get()
                 .to_owned()
         };
-        let fps = {
-            let lifecycle = &world.read_resource::<AppLifeCycle>();
-            "FPS: 0"
-        };
+        let fps = "FPS: 0";
 
         world
             .create_entity()

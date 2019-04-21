@@ -6,7 +6,7 @@ license = "Apache-2.0/MIT"
 name = "rust-webpack"
 readme = "./README.md"
 repository = "https://github.com/rustwasm/rust-webpack-template"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2018"
 
 [lib]
@@ -17,7 +17,7 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 wasm-bindgen = "0.2.25"
-oxygengine = { version = "0.1", path = "../../..", features = ["web", "composite-renderer"] }
+oxygengine = { version = "0.2", path = "../../..", features = ["web", "composite-renderer"] }
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
