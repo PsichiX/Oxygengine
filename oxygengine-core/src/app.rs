@@ -1,5 +1,9 @@
-use crate::state::{EmptyState, State, StateChange};
-use specs::{Component, Dispatcher, DispatcherBuilder, RunNow, System, World};
+use crate::{
+    hierarchy::Parent,
+    state::{EmptyState, State, StateChange},
+};
+use specs::{Component, Dispatcher, DispatcherBuilder, ReaderId, RunNow, System, World};
+use specs_hierarchy::{Hierarchy, HierarchyEvent, HierarchySystem};
 use std::{
     cell::RefCell,
     rc::Rc,
@@ -105,6 +109,7 @@ pub struct App<'a, 'b> {
     states: Vec<Box<dyn State>>,
     dispatcher: Dispatcher<'a, 'b>,
     setup: bool,
+    hierarchy_change_event: ReaderId<HierarchyEvent>,
 }
 
 impl<'a, 'b> App<'a, 'b> {
@@ -140,6 +145,25 @@ impl<'a, 'b> App<'a, 'b> {
         let change = self.states.last_mut().unwrap().on_process(&mut self.world);
         self.dispatcher.dispatch(&mut self.world.res);
         self.world.maintain();
+        {
+            let entities = {
+                let hierarchy = &self.world.read_resource::<Hierarchy<Parent>>();
+                hierarchy
+                    .changed()
+                    .read(&mut self.hierarchy_change_event)
+                    .filter_map(|event| {
+                        if let HierarchyEvent::Removed(entity) = event {
+                            Some(*entity)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            };
+            for entity in entities {
+                drop(self.world.delete_entity(entity));
+            }
+        }
         match change {
             StateChange::Push(mut state) => {
                 self.states.last_mut().unwrap().on_pause(&mut self.world);
@@ -289,15 +313,22 @@ impl<'a, 'b> AppBuilder<'a, 'b> {
         S: State + 'static,
         AT: AppTimer + 'static,
     {
+        self.dispatcher_builder
+            .add(HierarchySystem::<Parent>::new(), "hierarchy", &[]);
         self.world
             .add_resource(AppLifeCycle::new(Box::new(app_timer)));
         let mut dispatcher = self.dispatcher_builder.build();
         dispatcher.setup(&mut self.world.res);
+        let hierarchy_change_event = {
+            let hierarchy = &mut self.world.write_resource::<Hierarchy<Parent>>();
+            hierarchy.track()
+        };
         App {
             world: self.world,
             states: vec![Box::new(state)],
             dispatcher,
             setup: true,
+            hierarchy_change_event,
         }
     }
 

@@ -121,28 +121,42 @@ where
 
             let camera_transforms = match camera.scaling {
                 CompositeScalingMode::None => vec![
-                    Command::Transform(Transformation::Scale(Vec2::one() / camera_transform.scale)),
-                    Command::Transform(Transformation::Rotate(-camera_transform.rotation)),
-                    Command::Transform(Transformation::Translate(-camera_transform.translation)),
+                    Command::Transform(Transformation::Scale(
+                        Vec2::one() / camera_transform.get_scale(),
+                    )),
+                    Command::Transform(Transformation::Rotate(-camera_transform.get_rotation())),
+                    Command::Transform(Transformation::Translate(
+                        -camera_transform.get_translation(),
+                    )),
                 ],
                 CompositeScalingMode::Center => vec![
                     Command::Transform(Transformation::Translate([wh, hh].into())),
-                    Command::Transform(Transformation::Scale(Vec2::one() / camera_transform.scale)),
-                    Command::Transform(Transformation::Rotate(-camera_transform.rotation)),
-                    Command::Transform(Transformation::Translate(-camera_transform.translation)),
+                    Command::Transform(Transformation::Scale(
+                        Vec2::one() / camera_transform.get_scale(),
+                    )),
+                    Command::Transform(Transformation::Rotate(-camera_transform.get_rotation())),
+                    Command::Transform(Transformation::Translate(
+                        -camera_transform.get_translation(),
+                    )),
                 ],
                 CompositeScalingMode::Aspect => vec![
-                    Command::Transform(Transformation::Scale(s.into())),
-                    Command::Transform(Transformation::Scale(Vec2::one() / camera_transform.scale)),
-                    Command::Transform(Transformation::Rotate(-camera_transform.rotation)),
-                    Command::Transform(Transformation::Translate(-camera_transform.translation)),
+                    Command::Transform(Transformation::Scale(
+                        Vec2::new(s, s) / camera_transform.get_scale(),
+                    )),
+                    Command::Transform(Transformation::Rotate(-camera_transform.get_rotation())),
+                    Command::Transform(Transformation::Translate(
+                        -camera_transform.get_translation(),
+                    )),
                 ],
                 CompositeScalingMode::CenterAspect => vec![
                     Command::Transform(Transformation::Translate([wh, hh].into())),
-                    Command::Transform(Transformation::Scale(s.into())),
-                    Command::Transform(Transformation::Scale(Vec2::one() / camera_transform.scale)),
-                    Command::Transform(Transformation::Rotate(-camera_transform.rotation)),
-                    Command::Transform(Transformation::Translate(-camera_transform.translation)),
+                    Command::Transform(Transformation::Scale(
+                        Vec2::new(s, s) / camera_transform.get_scale(),
+                    )),
+                    Command::Transform(Transformation::Rotate(-camera_transform.get_rotation())),
+                    Command::Transform(Transformation::Translate(
+                        -camera_transform.get_translation(),
+                    )),
                 ],
             };
             let commands = std::iter::once(Command::Store)
@@ -151,19 +165,15 @@ where
                     sorted
                         .iter()
                         .flat_map(|(_, renderable, transform, entity)| {
-                            let renderable = if let Some(stroke) = strokes.get(*entity) {
-                                Command::Stroke(stroke.0, renderable.0.clone())
-                            } else {
-                                Command::Draw(renderable.0.clone())
-                            };
+                            let [a, b, c, d, e, f] = transform.matrix();
                             vec![
                                 Command::Store,
-                                Command::Transform(Transformation::Translate(
-                                    transform.translation,
-                                )),
-                                Command::Transform(Transformation::Rotate(transform.rotation)),
-                                Command::Transform(Transformation::Scale(transform.scale)),
-                                renderable,
+                                Command::Transform(Transformation::Transform(a, b, c, d, e, f)),
+                                if let Some(stroke) = strokes.get(*entity) {
+                                    Command::Stroke(stroke.0, renderable.0.clone())
+                                } else {
+                                    Command::Draw(renderable.0.clone())
+                                },
                                 Command::Restore,
                             ]
                         }),

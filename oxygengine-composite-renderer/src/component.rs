@@ -1,6 +1,6 @@
 use crate::{
     composite_renderer::Renderable,
-    math::{Scalar, Vec2},
+    math::{mul_mat, Scalar, Vec2},
 };
 use core::ecs::{Component, DenseVecStorage, HashMapStorage, VecStorage};
 use std::borrow::Cow;
@@ -27,9 +27,10 @@ impl Component for CompositeRenderableStroke {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompositeTransform {
-    pub translation: Vec2,
-    pub rotation: Scalar,
-    pub scale: Vec2,
+    translation: Vec2,
+    rotation: Scalar,
+    scale: Vec2,
+    cached: [Scalar; 6],
 }
 
 impl Component for CompositeTransform {
@@ -42,17 +43,21 @@ impl Default for CompositeTransform {
             translation: Vec2::zero(),
             rotation: 0.0,
             scale: Vec2::one(),
+            cached: [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
         }
     }
 }
 
 impl CompositeTransform {
     pub fn new(translation: Vec2, rotation: Scalar, scale: Vec2) -> Self {
-        Self {
+        let mut result = Self {
             translation,
             rotation,
             scale,
-        }
+            cached: [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+        };
+        result.rebuild();
+        result
     }
 
     pub fn translation(v: Vec2) -> Self {
@@ -69,17 +74,62 @@ impl CompositeTransform {
 
     pub fn with_translation(mut self, v: Vec2) -> Self {
         self.translation = v;
+        self.rebuild();
         self
     }
 
     pub fn with_rotation(mut self, v: Scalar) -> Self {
         self.rotation = v;
+        self.rebuild();
         self
     }
 
     pub fn with_scale(mut self, v: Vec2) -> Self {
         self.scale = v;
+        self.rebuild();
         self
+    }
+
+    pub fn get_translation(&self) -> Vec2 {
+        self.translation
+    }
+
+    pub fn get_rotation(&self) -> Scalar {
+        self.rotation
+    }
+
+    pub fn get_scale(&self) -> Vec2 {
+        self.scale
+    }
+
+    pub fn set_translation(&mut self, v: Vec2) {
+        self.translation = v;
+        self.rebuild();
+    }
+
+    pub fn set_rotation(&mut self, v: Scalar) {
+        self.rotation = v;
+        self.rebuild();
+    }
+
+    pub fn set_scale(&mut self, v: Vec2) {
+        self.scale = v;
+        self.rebuild();
+    }
+
+    pub fn matrix(&self) -> [Scalar; 6] {
+        self.cached.clone()
+    }
+
+    fn rebuild(&mut self) {
+        let (sin, cos) = self.rotation.sin_cos();
+        self.cached = mul_mat(
+            mul_mat(
+                [1.0, 0.0, 0.0, 1.0, self.translation.x, self.translation.y],
+                [cos, sin, -sin, cos, 0.0, 0.0],
+            ),
+            [self.scale.x, 0.0, 0.0, self.scale.y, 0.0, 0.0],
+        );
     }
 }
 

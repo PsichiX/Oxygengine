@@ -76,14 +76,14 @@ impl State for MainState {
             .with(CompositeTransform::scale(800.0.into()))
             .build();
 
-        world
-            .create_entity()
-            .with(CompositeCamera {
-                scaling: CompositeScalingMode::Aspect,
-                tags: vec!["ferris".into()],
-            })
-            .with(CompositeTransform::scale(800.0.into()).with_translation((-300.0).into()))
-            .build();
+        // world
+        //     .create_entity()
+        //     .with(CompositeCamera {
+        //         scaling: CompositeScalingMode::Aspect,
+        //         tags: vec!["ferris".into()],
+        //     })
+        //     .with(CompositeTransform::scale(800.0.into()).with_translation((-300.0).into()))
+        //     .build();
 
         world
             .create_entity()
