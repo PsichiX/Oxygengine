@@ -17,10 +17,15 @@ parallel = ["oxygengine-core/parallel"]
 web = [
   "oxygengine-backend-web",
   "oxygengine-core/web",
+]
+input = ["oxygengine-input"]
+composite-renderer = ["oxygengine-composite-renderer"]
+web-game = [
+  "input",
+  "composite-renderer",
+  "web",
   "oxygengine-composite-renderer-backend-web",
 ]
-composite-renderer = ["oxygengine-composite-renderer"]
-composite-web = ["web", "composite-renderer"]
 
 [dependencies]
 oxygengine-core = { version = "0.2", path = "./oxygengine-core" }
@@ -28,6 +33,11 @@ oxygengine-core = { version = "0.2", path = "./oxygengine-core" }
 [dependencies.oxygengine-backend-web]
 version = "0.2"
 path = "./oxygengine-backend-web"
+optional = true
+
+[dependencies.oxygengine-input]
+version = "0.2"
+path = "./oxygengine-input"
 optional = true
 
 [dependencies.oxygengine-composite-renderer]
@@ -44,6 +54,7 @@ optional = true
 members = [
   "oxygengine-core",
   "oxygengine-backend-web",
+  "oxygengine-input",
   "oxygengine-composite-renderer",
   "oxygengine-composite-renderer-backend-web",
 ]

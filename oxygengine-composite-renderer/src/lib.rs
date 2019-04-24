@@ -9,7 +9,6 @@ pub mod resource;
 pub mod system;
 
 use crate::{
-    component::{CompositeRenderDepth, CompositeRenderable, CompositeTransform},
     composite_renderer::CompositeRenderer,
     system::{CompositeRendererSystem, CompositeTransformSystem},
 };
@@ -20,9 +19,6 @@ where
     CR: CompositeRenderer + Send + Sync,
 {
     builder.install_resource(data);
-    builder.install_component::<CompositeRenderable>();
-    builder.install_component::<CompositeTransform>();
-    builder.install_component::<CompositeRenderDepth>();
     builder.install_system(CompositeTransformSystem, "transform", &[]);
     builder.install_thread_local_system(CompositeRendererSystem::<CR>::default());
 }

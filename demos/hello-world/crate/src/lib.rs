@@ -32,6 +32,7 @@ pub fn run() -> Result<(), JsValue> {
             oxygengine::composite_renderer::bundle_installer,
             PlatformCompositeRenderer::with_state("screen", RenderState::new(Some(Color::black()))),
         )
+        .with_bundle(oxygengine::input::bundle_installer, |input| {})
         // .with_system(DebugSystem, "debug", &[])
         .build(LoadingState, PlatformAppTimer::default());
 
