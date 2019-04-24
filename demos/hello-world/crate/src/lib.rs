@@ -8,7 +8,6 @@ pub mod systems;
 
 use crate::states::loading::LoadingState;
 use oxygengine::{
-    backend::web::*,
     composite_renderer::{composite_renderer::*, math::*},
     prelude::*,
 };
@@ -26,7 +25,6 @@ pub fn run() -> Result<(), JsValue> {
         .with_bundle(
             oxygengine::core::assets::bundle_installer,
             (PlatformFetchEngine::default(), |assets| {
-                oxygengine::core::assets::protocols_installer(assets);
                 oxygengine::composite_renderer::protocols_installer(assets);
             }),
         )
@@ -35,7 +33,7 @@ pub fn run() -> Result<(), JsValue> {
             PlatformCompositeRenderer::with_state("screen", RenderState::new(Some(Color::black()))),
         )
         // .with_system(DebugSystem, "debug", &[])
-        .build(LoadingState, WebAppTimer::default());
+        .build(LoadingState, PlatformAppTimer::default());
 
     AppRunner::new(app).run::<PlatformAppRunner, _>()?;
 
