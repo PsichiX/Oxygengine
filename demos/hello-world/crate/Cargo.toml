@@ -1,13 +1,13 @@
 [package]
-authors = ["The RustWasm Developers"]
-categories = ["wasm"]
-description = "My super awesome Rust, WebAssembly, and Webpack project!"
-license = "Apache-2.0/MIT"
-name = "rust-webpack"
-readme = "./README.md"
-repository = "https://github.com/rustwasm/rust-webpack-template"
-version = "0.2.0"
+name = "oxygengine-demo"
+version = "0.2.1"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
+description = "Oxygen Engine demo"
+license = "MIT"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine"
 
 [lib]
 crate-type = ["cdylib"]
