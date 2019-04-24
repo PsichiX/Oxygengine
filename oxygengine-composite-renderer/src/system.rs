@@ -6,14 +6,65 @@ use crate::{
     composite_renderer::{
         Command, CompositeRenderer, Rectangle, Renderable, Stats, Transformation,
     },
-    math::Vec2,
+    math::{mul_mat, Scalar, Vec2},
+    resource::CompositeTransformRes,
 };
 use core::{
     app::AppLifeCycle,
     assets::database::AssetsDatabase,
-    ecs::{Entities, Join, Read, ReadExpect, ReadStorage, System, Write},
+    ecs::{Entities, Entity, Join, Read, ReadExpect, ReadStorage, System, Write},
+    hierarchy::{HierarchyRes, Parent},
 };
 use std::marker::PhantomData;
+
+pub struct CompositeTransformSystem;
+
+impl<'s> System<'s> for CompositeTransformSystem {
+    type SystemData = (
+        Entities<'s>,
+        ReadStorage<'s, Parent>,
+        ReadStorage<'s, CompositeTransform>,
+        ReadExpect<'s, HierarchyRes>,
+        Write<'s, CompositeTransformRes>,
+    );
+
+    fn run(
+        &mut self,
+        (entities, parents, transforms, hierarchy, mut transform_res): Self::SystemData,
+    ) {
+        let hierarchy = &hierarchy;
+        let mut transform_res = &mut transform_res;
+        transform_res.clear();
+        for (entity, transform, _) in (&entities, &transforms, !&parents).join() {
+            transform_res.add(entity, transform.matrix());
+            for child in hierarchy.children(entity) {
+                add_matrix(
+                    *child,
+                    &transforms,
+                    transform.matrix(),
+                    hierarchy,
+                    &mut transform_res,
+                );
+            }
+        }
+    }
+}
+
+fn add_matrix<'s>(
+    child: Entity,
+    transforms: &ReadStorage<'s, CompositeTransform>,
+    root_matrix: [Scalar; 6],
+    hierarchy: &HierarchyRes,
+    result: &mut CompositeTransformRes,
+) {
+    if let Some(transform) = transforms.get(child) {
+        let mat = mul_mat(root_matrix, transform.matrix());
+        result.add(child, mat);
+        for child in hierarchy.children(child) {
+            add_matrix(*child, transforms, mat, hierarchy, result);
+        }
+    }
+}
 
 pub struct CompositeRendererSystem<CR>
 where
@@ -42,6 +93,7 @@ where
         Entities<'s>,
         ReadExpect<'s, AppLifeCycle>,
         Option<Read<'s, AssetsDatabase>>,
+        Read<'s, CompositeTransformRes>,
         ReadStorage<'s, CompositeCamera>,
         ReadStorage<'s, CompositeRenderable>,
         ReadStorage<'s, CompositeTransform>,
@@ -57,6 +109,7 @@ where
             entities,
             lifecycle,
             assets,
+            transform_res,
             cameras,
             renderables,
             transforms,
@@ -108,7 +161,7 @@ where
         sorted_cameras.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
 
         for (_, camera, camera_transform) in sorted_cameras {
-            let mut sorted = (&entities, &renderables, &transforms)
+            let mut sorted = (&entities, &renderables, &transform_res)
                 .join()
                 .filter(|(entity, _, _)| {
                     camera.tags.is_empty()
@@ -173,10 +226,12 @@ where
                     sorted
                         .iter()
                         .flat_map(|(_, renderable, transform, entity)| {
-                            let [a, b, c, d, e, f] = transform.matrix();
+                            let [a, b, c, d, e, f] = transform;
                             vec![
                                 Command::Store,
-                                Command::Transform(Transformation::Transform(a, b, c, d, e, f)),
+                                Command::Transform(Transformation::Transform(
+                                    *a, *b, *c, *d, *e, *f,
+                                )),
                                 if let Some(stroke) = strokes.get(*entity) {
                                     Command::Stroke(stroke.0, renderable.0.clone())
                                 } else {

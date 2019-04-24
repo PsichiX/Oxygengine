@@ -3,7 +3,7 @@
 use crate::fetch::{FetchCancelReason, FetchEngine, FetchProcess, FetchProcessReader, FetchStatus};
 use std::path::{Path, PathBuf};
 
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub struct FsFetchEngine {
     root_path: PathBuf,
 }

@@ -1,9 +1,9 @@
 use crate::{
-    hierarchy::Parent,
+    hierarchy::{HierarchyRes, Parent},
     state::{EmptyState, State, StateChange},
 };
 use specs::{Component, Dispatcher, DispatcherBuilder, ReaderId, RunNow, System, World};
-use specs_hierarchy::{Hierarchy, HierarchyEvent, HierarchySystem};
+use specs_hierarchy::{HierarchyEvent, HierarchySystem};
 use std::{
     cell::RefCell,
     rc::Rc,
@@ -147,7 +147,7 @@ impl<'a, 'b> App<'a, 'b> {
         self.world.maintain();
         {
             let entities = {
-                let hierarchy = &self.world.read_resource::<Hierarchy<Parent>>();
+                let hierarchy = &self.world.read_resource::<HierarchyRes>();
                 hierarchy
                     .changed()
                     .read(&mut self.hierarchy_change_event)
@@ -195,16 +195,28 @@ impl<'a, 'b> App<'a, 'b> {
     }
 }
 
-#[derive(Default)]
 pub struct AppBuilder<'a, 'b> {
     world: World,
     dispatcher_builder: DispatcherBuilder<'a, 'b>,
 }
 
+impl<'a, 'b> Default for AppBuilder<'a, 'b> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a, 'b> AppBuilder<'a, 'b> {
     #[inline]
     pub fn new() -> Self {
-        Self::default()
+        let mut result = Self {
+            world: Default::default(),
+            dispatcher_builder: Default::default(),
+        };
+        result
+            .dispatcher_builder
+            .add(HierarchySystem::<Parent>::new(), "hierarchy", &[]);
+        result
     }
 
     #[inline]
@@ -313,14 +325,12 @@ impl<'a, 'b> AppBuilder<'a, 'b> {
         S: State + 'static,
         AT: AppTimer + 'static,
     {
-        self.dispatcher_builder
-            .add(HierarchySystem::<Parent>::new(), "hierarchy", &[]);
         self.world
             .add_resource(AppLifeCycle::new(Box::new(app_timer)));
         let mut dispatcher = self.dispatcher_builder.build();
         dispatcher.setup(&mut self.world.res);
         let hierarchy_change_event = {
-            let hierarchy = &mut self.world.write_resource::<Hierarchy<Parent>>();
+            let hierarchy = &mut self.world.write_resource::<HierarchyRes>();
             hierarchy.track()
         };
         App {

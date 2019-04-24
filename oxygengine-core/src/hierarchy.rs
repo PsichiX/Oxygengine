@@ -1,4 +1,7 @@
 use specs::{Component, DenseVecStorage, Entity, FlaggedStorage};
+use specs_hierarchy::Hierarchy;
+
+pub type HierarchyRes = Hierarchy<Parent>;
 
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Parent(pub Entity);

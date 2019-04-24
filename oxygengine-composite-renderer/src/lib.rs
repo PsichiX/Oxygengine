@@ -5,12 +5,13 @@ pub mod component;
 pub mod composite_renderer;
 pub mod math;
 pub mod png_image_asset_protocol;
+pub mod resource;
 pub mod system;
 
 use crate::{
     component::{CompositeRenderDepth, CompositeRenderable, CompositeTransform},
     composite_renderer::CompositeRenderer,
-    system::CompositeRendererSystem,
+    system::{CompositeRendererSystem, CompositeTransformSystem},
 };
 use core::{app::AppBuilder, assets::database::AssetsDatabase};
 
@@ -22,6 +23,7 @@ where
     builder.install_component::<CompositeRenderable>();
     builder.install_component::<CompositeTransform>();
     builder.install_component::<CompositeRenderDepth>();
+    builder.install_system(CompositeTransformSystem, "transform", &[]);
     builder.install_thread_local_system(CompositeRendererSystem::<CR>::default());
 }
 
