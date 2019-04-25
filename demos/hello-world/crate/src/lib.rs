@@ -6,7 +6,7 @@ pub mod macros;
 pub mod states;
 pub mod systems;
 
-use crate::states::loading::LoadingState;
+use crate::{states::loading::LoadingState, systems::debug::DebugSystem};
 use oxygengine::prelude::*;
 use wasm_bindgen::prelude::*;
 
@@ -34,8 +34,13 @@ pub fn run() -> Result<(), JsValue> {
         )
         .with_bundle(oxygengine::input::bundle_installer, |input| {
             input.register(WebMouseInputDevice::new(get_element_by_id("screen")));
+            input.map_axis("mouse-x", "mouse", "x");
+            input.map_axis("mouse-y", "mouse", "y");
+            input.map_trigger("mouse-left", "mouse", "left");
+            input.map_trigger("mouse-right", "mouse", "right");
+            input.map_trigger("mouse-middle", "mouse", "middle");
         })
-        // .with_system(DebugSystem, "debug", &[])
+        .with_system(DebugSystem, "debug", &[])
         .build(LoadingState, WebAppTimer::default());
 
     AppRunner::new(app).run::<WebAppRunner, _>()?;

@@ -4,9 +4,10 @@ use oxygengine::prelude::*;
 pub struct DebugSystem;
 
 impl<'s> System<'s> for DebugSystem {
-    type SystemData = ReadExpect<'s, WebCompositeRenderer>;
+    type SystemData = ReadExpect<'s, InputController>;
 
-    fn run(&mut self, renderer: Self::SystemData) {
-        console_log!("{:#?}", renderer.state().stats());
+    fn run(&mut self, input: Self::SystemData) {
+        console_log!("mx: {:?}", input.axis("mouse-x"));
+        console_log!("my: {:?}", input.axis("mouse-y"));
     }
 }
