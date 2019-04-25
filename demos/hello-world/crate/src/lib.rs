@@ -32,7 +32,9 @@ pub fn run() -> Result<(), JsValue> {
                 RenderState::new(Some(Color::black())),
             ),
         )
-        .with_bundle(oxygengine::input::bundle_installer, |input| {})
+        .with_bundle(oxygengine::input::bundle_installer, |input| {
+            input.register(WebMouseInputDevice::new(get_element_by_id("screen")));
+        })
         // .with_system(DebugSystem, "debug", &[])
         .build(LoadingState, WebAppTimer::default());
 

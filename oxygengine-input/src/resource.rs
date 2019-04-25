@@ -1,14 +1,21 @@
 use crate::{device::InputDevice, Scalar};
-use std::{
-    any::{Any, TypeId},
-    collections::HashMap,
-};
+use std::collections::HashMap;
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum TriggerState {
+    Idle,
+    Pressed,
+    Hold,
+    Released,
+}
 
 #[derive(Default)]
 pub struct InputController {
-    devices: HashMap<TypeId, Box<InputDevice>>,
+    devices: HashMap<String, Box<InputDevice>>,
+    mapping_axes: HashMap<String, (String, String)>,
+    mapping_triggers: HashMap<String, (String, String)>,
     axes: HashMap<String, Scalar>,
-    triggers: HashMap<String, bool>,
+    triggers: HashMap<String, TriggerState>,
 }
 
 impl InputController {
@@ -21,20 +28,39 @@ impl InputController {
         D: InputDevice + 'static,
     {
         device.on_register();
-        let tid = device.type_id();
-        self.devices.insert(tid, Box::new(device));
+        self.devices
+            .insert(device.name().to_owned(), Box::new(device));
     }
 
-    pub fn unregister<D>(&mut self) -> Option<Box<dyn InputDevice>>
-    where
-        D: InputDevice + 'static,
-    {
-        if let Some(mut device) = self.devices.remove(&TypeId::of::<D>()) {
+    pub fn unregister(&mut self, name: &str) -> Option<Box<dyn InputDevice>> {
+        if let Some(mut device) = self.devices.remove(name) {
             device.on_unregister();
             Some(device)
         } else {
             None
         }
+    }
+
+    pub fn map_axis(&mut self, name_from: &str, device: &str, name_to: &str) {
+        self.mapping_axes.insert(
+            name_from.to_owned(),
+            (device.to_owned(), name_to.to_owned()),
+        );
+    }
+
+    pub fn unmap_axis(&mut self, name: &str) {
+        self.mapping_axes.remove(name);
+    }
+
+    pub fn map_trigger(&mut self, name_from: &str, device: &str, name_to: &str) {
+        self.mapping_triggers.insert(
+            name_from.to_owned(),
+            (device.to_owned(), name_to.to_owned()),
+        );
+    }
+
+    pub fn unmap_trigger(&mut self, name: &str) {
+        self.mapping_triggers.remove(name);
     }
 
     pub fn axis(&self, name: &str) -> Option<Scalar> {
@@ -49,15 +75,15 @@ impl InputController {
         self.axes.insert(name.to_owned(), value);
     }
 
-    pub fn trigger(&self, name: &str) -> Option<bool> {
+    pub fn trigger(&self, name: &str) -> Option<TriggerState> {
         self.triggers.get(name).map(|v| *v)
     }
 
-    pub fn trigger_or_default(&self, name: &str) -> bool {
-        self.trigger(name).unwrap_or(false)
+    pub fn trigger_or_default(&self, name: &str) -> TriggerState {
+        self.trigger(name).unwrap_or(TriggerState::Idle)
     }
 
-    pub fn set_trigger(&mut self, name: &str, value: bool) {
+    pub fn set_trigger(&mut self, name: &str, value: TriggerState) {
         self.triggers.insert(name.to_owned(), value);
     }
 
@@ -67,12 +93,37 @@ impl InputController {
         }
         self.axes.clear();
         self.triggers.clear();
-        for device in self.devices.values() {
-            for (name, value) in device.query_axes() {
-                self.axes.insert(name.to_string(), *value);
+        for (name_from, (dev, name_to)) in &self.mapping_axes {
+            if let Some(device) = self.devices.get(dev) {
+                if let Some(value) = device.query_axis(name_to) {
+                    self.axes.insert(name_from.to_owned(), value);
+                }
             }
-            for (name, value) in device.query_triggers() {
-                self.triggers.insert(name.to_string(), *value);
+        }
+        for (name_from, (dev, name_to)) in &self.mapping_triggers {
+            if let Some(device) = self.devices.get(dev) {
+                if let Some(value) = device.query_trigger(name_to) {
+                    let prev = self.triggers.get(name_from).unwrap_or(&TriggerState::Idle);
+                    match (prev, value) {
+                        (TriggerState::Idle, true) | (TriggerState::Released, true) => {
+                            self.triggers
+                                .insert(name_from.to_owned(), TriggerState::Pressed);
+                        }
+                        (TriggerState::Pressed, true) | (TriggerState::Pressed, false) => {
+                            self.triggers
+                                .insert(name_from.to_owned(), TriggerState::Hold);
+                        }
+                        (TriggerState::Hold, false) => {
+                            self.triggers
+                                .insert(name_from.to_owned(), TriggerState::Released);
+                        }
+                        (TriggerState::Released, false) => {
+                            self.triggers
+                                .insert(name_from.to_owned(), TriggerState::Idle);
+                        }
+                        _ => {}
+                    }
+                }
             }
         }
     }

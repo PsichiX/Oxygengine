@@ -21,9 +21,10 @@ web = [
 input = ["oxygengine-input"]
 composite-renderer = ["oxygengine-composite-renderer"]
 web-game = [
+  "web",
   "input",
   "composite-renderer",
-  "web",
+  "oxygengine-input-device-web",
   "oxygengine-composite-renderer-backend-web",
 ]
 
@@ -38,6 +39,11 @@ optional = true
 [dependencies.oxygengine-input]
 version = "0.2"
 path = "./oxygengine-input"
+optional = true
+
+[dependencies.oxygengine-input-device-web]
+version = "0.2"
+path = "./oxygengine-input-device-web"
 optional = true
 
 [dependencies.oxygengine-composite-renderer]
@@ -55,6 +61,7 @@ members = [
   "oxygengine-core",
   "oxygengine-backend-web",
   "oxygengine-input",
+  "oxygengine-input-device-web",
   "oxygengine-composite-renderer",
   "oxygengine-composite-renderer-backend-web",
 ]
