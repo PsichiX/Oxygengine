@@ -7,10 +7,7 @@ pub mod states;
 pub mod systems;
 
 use crate::states::loading::LoadingState;
-use oxygengine::{
-    composite_renderer::{composite_renderer::*, math::*},
-    prelude::*,
-};
+use oxygengine::prelude::*;
 use wasm_bindgen::prelude::*;
 
 #[cfg(feature = "wee_alloc")]
@@ -24,19 +21,22 @@ pub fn run() -> Result<(), JsValue> {
     let app = App::build()
         .with_bundle(
             oxygengine::core::assets::bundle_installer,
-            (PlatformFetchEngine::default(), |assets| {
+            (WebFetchEngine::default(), |assets| {
                 oxygengine::composite_renderer::protocols_installer(assets);
             }),
         )
         .with_bundle(
             oxygengine::composite_renderer::bundle_installer,
-            PlatformCompositeRenderer::with_state("screen", RenderState::new(Some(Color::black()))),
+            WebCompositeRenderer::with_state(
+                get_canvas_by_id("screen"),
+                RenderState::new(Some(Color::black())),
+            ),
         )
         .with_bundle(oxygengine::input::bundle_installer, |input| {})
         // .with_system(DebugSystem, "debug", &[])
-        .build(LoadingState, PlatformAppTimer::default());
+        .build(LoadingState, WebAppTimer::default());
 
-    AppRunner::new(app).run::<PlatformAppRunner, _>()?;
+    AppRunner::new(app).run::<WebAppRunner, _>()?;
 
     Ok(())
 }

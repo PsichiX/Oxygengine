@@ -20,11 +20,8 @@ pub mod ecs {
 }
 
 pub mod prelude {
-    pub use crate::app::*;
-    pub use crate::assets::*;
-    pub use crate::ecs::*;
-    pub use crate::fetch::*;
-    pub use crate::hierarchy::*;
-    pub use crate::id::*;
-    pub use crate::state::*;
+    pub use crate::{
+        app::*, assets::prelude::*, assets::*, ecs::*, fetch::prelude::*, fetch::*, hierarchy::*,
+        id::*, state::*,
+    };
 }

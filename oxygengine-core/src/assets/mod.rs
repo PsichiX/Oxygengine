@@ -4,6 +4,12 @@ pub mod protocol;
 pub mod protocols;
 pub mod system;
 
+pub mod prelude {
+    pub use super::{
+        asset::*, database::*, protocol::*, protocols::prelude::*, protocols::*, system::*,
+    };
+}
+
 use crate::{
     app::AppBuilder,
     assets::{

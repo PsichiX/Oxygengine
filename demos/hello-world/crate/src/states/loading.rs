@@ -1,5 +1,5 @@
 use crate::states::main::MainState;
-use oxygengine::{core::assets::database::AssetsDatabase, prelude::*};
+use oxygengine::prelude::*;
 
 pub struct LoadingState;
 

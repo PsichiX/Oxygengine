@@ -8,6 +8,13 @@ pub mod png_image_asset_protocol;
 pub mod resource;
 pub mod system;
 
+pub mod prelude {
+    pub use crate::{
+        component::*, composite_renderer::*, math::*, png_image_asset_protocol::*, resource::*,
+        system::*,
+    };
+}
+
 use crate::{
     composite_renderer::CompositeRenderer,
     system::{CompositeRendererSystem, CompositeTransformSystem},

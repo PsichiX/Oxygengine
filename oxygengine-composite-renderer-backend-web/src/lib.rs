@@ -12,6 +12,21 @@ use wasm_bindgen::{prelude::*, Clamped, JsCast};
 use wasm_bindgen_futures::{future_to_promise, JsFuture};
 use web_sys::*;
 
+pub mod prelude {
+    pub use crate::*;
+}
+
+pub fn get_canvas_by_id(id: &str) -> HtmlCanvasElement {
+    let document = window().document().expect("no `window.document` exists");
+    let canvas = document
+        .get_element_by_id(id)
+        .expect(&format!("no `{}` canvas in document", id));
+    canvas
+        .dyn_into::<HtmlCanvasElement>()
+        .map_err(|_| ())
+        .unwrap()
+}
+
 fn window() -> web_sys::Window {
     web_sys::window().expect("no global `window` exists")
 }
@@ -29,15 +44,7 @@ unsafe impl Send for WebCompositeRenderer {}
 unsafe impl Sync for WebCompositeRenderer {}
 
 impl WebCompositeRenderer {
-    pub fn new(canvas_id: &str) -> Self {
-        let document = window().document().expect("no `window.document` exists");
-        let canvas = document
-            .get_element_by_id(canvas_id)
-            .expect(&format!("no `{}` canvas in document", canvas_id));
-        let canvas: HtmlCanvasElement = canvas
-            .dyn_into::<HtmlCanvasElement>()
-            .map_err(|_| ())
-            .unwrap();
+    pub fn new(canvas: HtmlCanvasElement) -> Self {
         let context = canvas
             .get_context("2d")
             .unwrap()
@@ -54,8 +61,8 @@ impl WebCompositeRenderer {
         }
     }
 
-    pub fn with_state(canvas_id: &str, state: RenderState) -> Self {
-        let mut result = Self::new(canvas_id);
+    pub fn with_state(canvas: HtmlCanvasElement, state: RenderState) -> Self {
+        let mut result = Self::new(canvas);
         *result.state_mut() = state;
         result
     }
