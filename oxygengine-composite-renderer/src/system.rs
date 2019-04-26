@@ -1,19 +1,19 @@
 use crate::{
     component::{
         CompositeCamera, CompositeRenderDepth, CompositeRenderable, CompositeRenderableStroke,
-        CompositeScalingMode, CompositeTag, CompositeTransform,
+        CompositeTransform,
     },
     composite_renderer::{
         Command, CompositeRenderer, Rectangle, Renderable, Stats, Transformation,
     },
-    math::{mul_mat, Scalar, Vec2},
+    math::Mat2d,
     resource::CompositeTransformRes,
 };
 use core::{
     app::AppLifeCycle,
     assets::database::AssetsDatabase,
     ecs::{Entities, Entity, Join, Read, ReadExpect, ReadStorage, System, Write},
-    hierarchy::{HierarchyRes, Parent},
+    hierarchy::{HierarchyRes, Parent, Tag},
 };
 use std::marker::PhantomData;
 
@@ -53,12 +53,12 @@ impl<'s> System<'s> for CompositeTransformSystem {
 fn add_matrix<'s>(
     child: Entity,
     transforms: &ReadStorage<'s, CompositeTransform>,
-    root_matrix: [Scalar; 6],
+    root_matrix: Mat2d,
     hierarchy: &HierarchyRes,
     result: &mut CompositeTransformRes,
 ) {
     if let Some(transform) = transforms.get(child) {
-        let mat = mul_mat(root_matrix, transform.matrix());
+        let mat = root_matrix * transform.matrix();
         result.add(child, mat);
         for child in hierarchy.children(child) {
             add_matrix(*child, transforms, mat, hierarchy, result);
@@ -99,7 +99,7 @@ where
         ReadStorage<'s, CompositeTransform>,
         ReadStorage<'s, CompositeRenderDepth>,
         ReadStorage<'s, CompositeRenderableStroke>,
-        ReadStorage<'s, CompositeTag>,
+        ReadStorage<'s, Tag>,
     );
 
     fn run(
@@ -131,9 +131,6 @@ where
             let r = renderer.viewport();
             (r.x, r.y)
         };
-        let wh = w * 0.5;
-        let hh = h * 0.5;
-        let s = if w > h { h } else { w };
         let mut stats = Stats::default();
 
         if let Some(color) = renderer.state().clear_color {
@@ -161,7 +158,7 @@ where
         sorted_cameras.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
 
         for (_, camera, camera_transform) in sorted_cameras {
-            let mut sorted = (&entities, &renderables, &transform_res)
+            let mut sorted = (&entities, &renderables, transform_res.read())
                 .join()
                 .filter(|(entity, _, _)| {
                     camera.tags.is_empty()
@@ -180,58 +177,20 @@ where
                 .collect::<Vec<_>>();
             sorted.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
 
-            let camera_transforms = match camera.scaling {
-                CompositeScalingMode::None => vec![
-                    Command::Transform(Transformation::Scale(
-                        Vec2::one() / camera_transform.get_scale(),
-                    )),
-                    Command::Transform(Transformation::Rotate(-camera_transform.get_rotation())),
-                    Command::Transform(Transformation::Translate(
-                        -camera_transform.get_translation(),
-                    )),
-                ],
-                CompositeScalingMode::Center => vec![
-                    Command::Transform(Transformation::Translate([wh, hh].into())),
-                    Command::Transform(Transformation::Scale(
-                        Vec2::one() / camera_transform.get_scale(),
-                    )),
-                    Command::Transform(Transformation::Rotate(-camera_transform.get_rotation())),
-                    Command::Transform(Transformation::Translate(
-                        -camera_transform.get_translation(),
-                    )),
-                ],
-                CompositeScalingMode::Aspect => vec![
-                    Command::Transform(Transformation::Scale(
-                        Vec2::new(s, s) / camera_transform.get_scale(),
-                    )),
-                    Command::Transform(Transformation::Rotate(-camera_transform.get_rotation())),
-                    Command::Transform(Transformation::Translate(
-                        -camera_transform.get_translation(),
-                    )),
-                ],
-                CompositeScalingMode::CenterAspect => vec![
-                    Command::Transform(Transformation::Translate([wh, hh].into())),
-                    Command::Transform(Transformation::Scale(
-                        Vec2::new(s, s) / camera_transform.get_scale(),
-                    )),
-                    Command::Transform(Transformation::Rotate(-camera_transform.get_rotation())),
-                    Command::Transform(Transformation::Translate(
-                        -camera_transform.get_translation(),
-                    )),
-                ],
-            };
+            let camera_matrix = camera.view_matrix(&camera_transform, [w, h].into());
             let commands = std::iter::once(Command::Store)
-                .chain(camera_transforms.into_iter())
+                .chain(std::iter::once(Command::Transform({
+                    let [a, b, c, d, e, f] = camera_matrix.0;
+                    Transformation::Transform(a, b, c, d, e, f)
+                })))
                 .chain(
                     sorted
                         .iter()
                         .flat_map(|(_, renderable, transform, entity)| {
-                            let [a, b, c, d, e, f] = transform;
+                            let [a, b, c, d, e, f] = transform.0;
                             vec![
                                 Command::Store,
-                                Command::Transform(Transformation::Transform(
-                                    *a, *b, *c, *d, *e, *f,
-                                )),
+                                Command::Transform(Transformation::Transform(a, b, c, d, e, f)),
                                 if let Some(stroke) = strokes.get(*entity) {
                                     Command::Stroke(stroke.0, renderable.0.clone())
                                 } else {

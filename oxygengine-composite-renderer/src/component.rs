@@ -1,6 +1,6 @@
 use crate::{
     composite_renderer::Renderable,
-    math::{mul_mat, Scalar, Vec2},
+    math::{Mat2d, Scalar, Vec2},
 };
 use core::ecs::{Component, DenseVecStorage, HashMapStorage, VecStorage};
 use std::borrow::Cow;
@@ -30,7 +30,7 @@ pub struct CompositeTransform {
     translation: Vec2,
     rotation: Scalar,
     scale: Vec2,
-    cached: [Scalar; 6],
+    cached: Mat2d,
 }
 
 impl Component for CompositeTransform {
@@ -43,7 +43,7 @@ impl Default for CompositeTransform {
             translation: Vec2::zero(),
             rotation: 0.0,
             scale: Vec2::one(),
-            cached: [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            cached: Default::default(),
         }
     }
 }
@@ -54,7 +54,7 @@ impl CompositeTransform {
             translation,
             rotation,
             scale,
-            cached: [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            cached: Default::default(),
         };
         result.rebuild();
         result
@@ -117,19 +117,15 @@ impl CompositeTransform {
         self.rebuild();
     }
 
-    pub fn matrix(&self) -> [Scalar; 6] {
+    pub fn matrix(&self) -> Mat2d {
         self.cached.clone()
     }
 
     fn rebuild(&mut self) {
-        let (sin, cos) = self.rotation.sin_cos();
-        self.cached = mul_mat(
-            mul_mat(
-                [1.0, 0.0, 0.0, 1.0, self.translation.x, self.translation.y],
-                [cos, sin, -sin, cos, 0.0, 0.0],
-            ),
-            [self.scale.x, 0.0, 0.0, self.scale.y, 0.0, 0.0],
-        );
+        let t = Mat2d::translation(self.translation);
+        let r = Mat2d::rotation(self.rotation);
+        let s = Mat2d::scale(self.scale);
+        self.cached = t * r * s;
     }
 }
 
@@ -180,11 +176,25 @@ impl CompositeCamera {
             tags: vec![],
         }
     }
-}
 
-#[derive(Debug, Clone)]
-pub struct CompositeTag(pub Cow<'static, str>);
-
-impl Component for CompositeTag {
-    type Storage = VecStorage<Self>;
+    pub fn view_matrix(&self, transform: &CompositeTransform, screen_size: Vec2) -> Mat2d {
+        let wh = screen_size.x * 0.5;
+        let hh = screen_size.y * 0.5;
+        let scale = if screen_size.x > screen_size.y {
+            screen_size.y
+        } else {
+            screen_size.x
+        };
+        let s = Mat2d::scale(Vec2::one() / transform.get_scale());
+        let ss = Mat2d::scale(Vec2::new(scale, scale) / transform.get_scale());
+        let r = Mat2d::rotation(-transform.get_rotation());
+        let t = Mat2d::translation(-transform.get_translation());
+        let tt = Mat2d::translation([wh, hh].into());
+        match self.scaling {
+            CompositeScalingMode::None => s * r * t,
+            CompositeScalingMode::Center => tt * s * r * t,
+            CompositeScalingMode::Aspect => ss * r * t,
+            CompositeScalingMode::CenterAspect => tt * ss * r * t,
+        }
+    }
 }

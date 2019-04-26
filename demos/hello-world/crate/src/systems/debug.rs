@@ -4,7 +4,7 @@ use oxygengine::prelude::*;
 pub struct DebugSystem;
 
 impl<'s> System<'s> for DebugSystem {
-    type SystemData = ReadExpect<'s, InputController>;
+    type SystemData = Read<'s, InputController>;
 
     fn run(&mut self, input: Self::SystemData) {
         console_log!("mx: {:?}", input.axis("mouse-x"));

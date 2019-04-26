@@ -20,7 +20,7 @@ web = [
 ]
 input = ["oxygengine-input"]
 composite-renderer = ["oxygengine-composite-renderer"]
-web-game = [
+web-composite-game = [
   "web",
   "input",
   "composite-renderer",

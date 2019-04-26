@@ -200,7 +200,8 @@ impl CompositeRenderer for WebCompositeRenderer {
                                     w: src.w,
                                     h: src.h,
                                 }
-                            };
+                            }
+                            .align(image.alignment);
                             drop(self
                                 .context
                                 .draw_image_with_image_bitmap_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(

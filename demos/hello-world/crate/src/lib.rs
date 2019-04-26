@@ -3,10 +3,11 @@ extern crate oxygengine;
 #[macro_use]
 pub mod macros;
 
+pub mod components;
 pub mod states;
 pub mod systems;
 
-use crate::{states::loading::LoadingState, systems::debug::DebugSystem};
+use crate::{states::loading::LoadingState, systems::follow_mouse::FollowMouseSystem};
 use oxygengine::prelude::*;
 use wasm_bindgen::prelude::*;
 
@@ -19,18 +20,13 @@ pub fn run() -> Result<(), JsValue> {
     set_panic_hook();
 
     let app = App::build()
+        .with_system(FollowMouseSystem, "follow_mouse", &[])
+        // .with_system(DebugSystem, "debug", &[])
         .with_bundle(
             oxygengine::core::assets::bundle_installer,
             (WebFetchEngine::default(), |assets| {
                 oxygengine::composite_renderer::protocols_installer(assets);
             }),
-        )
-        .with_bundle(
-            oxygengine::composite_renderer::bundle_installer,
-            WebCompositeRenderer::with_state(
-                get_canvas_by_id("screen"),
-                RenderState::new(Some(Color::black())),
-            ),
         )
         .with_bundle(oxygengine::input::bundle_installer, |input| {
             input.register(WebMouseInputDevice::new(get_element_by_id("screen")));
@@ -40,7 +36,13 @@ pub fn run() -> Result<(), JsValue> {
             input.map_trigger("mouse-right", "mouse", "right");
             input.map_trigger("mouse-middle", "mouse", "middle");
         })
-        .with_system(DebugSystem, "debug", &[])
+        .with_bundle(
+            oxygengine::composite_renderer::bundle_installer,
+            WebCompositeRenderer::with_state(
+                get_canvas_by_id("screen"),
+                RenderState::new(Some(Color::black())),
+            ),
+        )
         .build(LoadingState, WebAppTimer::default());
 
     AppRunner::new(app).run::<WebAppRunner, _>()?;

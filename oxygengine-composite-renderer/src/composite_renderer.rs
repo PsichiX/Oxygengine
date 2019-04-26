@@ -21,6 +21,13 @@ pub struct Rectangle {
     pub rect: Rect,
 }
 
+impl Rectangle {
+    pub fn align(mut self, factor: Vec2) -> Self {
+        self.rect = self.rect.align(factor);
+        self
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct Text<'a> {
     pub color: Color,
@@ -57,6 +64,7 @@ pub struct Image<'a> {
     pub image: Cow<'a, str>,
     pub source: Option<Rect>,
     pub destination: Option<Rect>,
+    pub alignment: Vec2,
 }
 
 impl<'a> Image<'a> {
@@ -65,7 +73,23 @@ impl<'a> Image<'a> {
             image: image.into(),
             source: None,
             destination: None,
+            alignment: 0.0.into(),
         }
+    }
+
+    pub fn source(mut self, rect: Option<Rect>) -> Self {
+        self.source = rect;
+        self
+    }
+
+    pub fn destination(mut self, rect: Option<Rect>) -> Self {
+        self.destination = rect;
+        self
+    }
+
+    pub fn align(mut self, factor: Vec2) -> Self {
+        self.alignment = factor;
+        self
     }
 }
 

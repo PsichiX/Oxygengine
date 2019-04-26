@@ -1,3 +1,4 @@
+use crate::components::FollowMouseTag;
 use oxygengine::{
     composite_renderer::{component::*, composite_renderer::*, math::*},
     core::assets::{database::AssetsDatabase, protocols::prelude::*},
@@ -27,9 +28,11 @@ impl State for MainState {
         world
             .create_entity()
             .with(CompositeCamera::new(CompositeScalingMode::Aspect))
-            .with(CompositeTransform::scale(800.0.into()))
+            .with(CompositeTransform::scale(480.0.into()))
+            .with(Tag("camera".into()))
             .build();
 
+        // NOTE: Second camera.
         // world
         //     .create_entity()
         //     .with(CompositeCamera {
@@ -41,11 +44,14 @@ impl State for MainState {
 
         world
             .create_entity()
-            .with(CompositeRenderable(Renderable::Rectangle(Rectangle {
-                color: Color::rgba(128, 0, 0, 128),
-                rect: [100.0, 100.0, 500.0, 100.0].into(),
-            })))
-            .with(CompositeTransform::default())
+            .with(CompositeRenderable(
+                Rectangle {
+                    color: Color::rgba(128, 0, 0, 128),
+                    rect: Rect::with_size([500.0, 100.0].into()),
+                }
+                .into(),
+            ))
+            .with(CompositeTransform::translation(100.0.into()))
             .build();
 
         world
@@ -56,12 +62,12 @@ impl State for MainState {
                     font: "Verdana".into(),
                     align: TextAlign::Center,
                     text: text.into(),
-                    position: [100.0 + 250.0, 100.0 + 50.0 + 12.0].into(),
+                    position: 0.0.into(),
                     size: 24.0,
                 }
                 .into(),
             ))
-            .with(CompositeTransform::default())
+            .with(CompositeTransform::translation([350.0, 162.0].into()))
             .build();
 
         world
@@ -70,15 +76,15 @@ impl State for MainState {
                 Path {
                     color: Color::magenta().a(192),
                     elements: vec![
-                        PathElement::MoveTo([300.0, 300.0].into()),
-                        PathElement::LineTo([400.0, 300.0].into()),
-                        PathElement::QuadraticCurveTo([400.0, 400.0].into(), [300.0, 400.0].into()),
-                        PathElement::LineTo([300.0, 300.0].into()),
+                        PathElement::MoveTo([0.0, 0.0].into()),
+                        PathElement::LineTo([100.0, 0.0].into()),
+                        PathElement::QuadraticCurveTo([100.0, 100.0].into(), [0.0, 100.0].into()),
+                        PathElement::LineTo([0.0, 0.0].into()),
                     ],
                 }
                 .into(),
             ))
-            .with(CompositeTransform::default())
+            .with(CompositeTransform::translation(300.0.into()))
             .with(CompositeRenderableStroke(5.0))
             .build();
 
@@ -91,14 +97,17 @@ impl State for MainState {
 
         world
             .create_entity()
-            .with(CompositeRenderable(Image::new("logo.png").into()))
+            .with(FollowMouseTag)
+            .with(CompositeRenderable(
+                Image::new("logo.png").align(0.5.into()).into(),
+            ))
             .with(
                 CompositeTransform::translation([50.0, 100.0].into())
                     .with_scale(0.2.into())
                     .with_rotation(PI * -0.15),
             )
             .with(CompositeRenderDepth(1.0))
-            .with(CompositeTag("ferris".into()))
+            .with(Tag("ferris".into()))
             .build();
 
         self.fps_label = Some(
