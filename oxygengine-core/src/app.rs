@@ -189,7 +189,7 @@ impl<'a, 'b> App<'a, 'b> {
             _ => {}
         }
         {
-            let lifecycle: &mut AppLifeCycle = &mut self.world.write_resource::<AppLifeCycle>();
+            let lifecycle = &mut self.world.write_resource::<AppLifeCycle>();
             lifecycle.timer.tick();
         }
     }

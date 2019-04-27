@@ -7,7 +7,10 @@ pub mod components;
 pub mod states;
 pub mod systems;
 
-use crate::{states::loading::LoadingState, systems::follow_mouse::FollowMouseSystem};
+use crate::{
+    states::loading::LoadingState,
+    systems::{debug::DebugSystem, follow_mouse::FollowMouseSystem},
+};
 use oxygengine::prelude::*;
 use wasm_bindgen::prelude::*;
 

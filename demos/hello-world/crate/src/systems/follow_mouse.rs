@@ -15,14 +15,7 @@ impl<'s> System<'s> for FollowMouseSystem {
 
     fn run(
         &mut self,
-        (
-            input,
-            renderer,
-            tags,
-            cameras,
-            follow_mouse,
-            mut transforms
-        ): Self::SystemData,
+        (input, renderer, tags, cameras, follow_mouse, mut transforms): Self::SystemData,
     ) {
         let view_size = renderer.view_size();
         let screen_pos = Vec2::new(

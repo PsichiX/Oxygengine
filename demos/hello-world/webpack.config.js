@@ -4,9 +4,11 @@ const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 const CopyPlugin = require('copy-webpack-plugin');
 
 const dist = path.resolve(__dirname, "dist");
+const DEBUG = true;
+console.log('BUILD MODE: ' + (DEBUG ? 'DEBUG' : 'RELEASE'));
 
 module.exports = {
-  mode: 'development',
+  mode: DEBUG ? 'development' : 'production',
   entry: "./js/index.js",
   output: {
     path: dist,
@@ -24,8 +26,7 @@ module.exports = {
     ]),
     new WasmPackPlugin({
       crateDirectory: path.resolve(__dirname, "crate"),
-      // WasmPackPlugin defaults to compiling in "dev" profile. To change that, use forceMode: 'release':
-      // forceMode: 'release',
+      forceMode: DEBUG ? 'dev' : 'release',
     }),
   ]
 };

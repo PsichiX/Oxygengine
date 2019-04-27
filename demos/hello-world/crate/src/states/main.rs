@@ -32,16 +32,6 @@ impl State for MainState {
             .with(Tag("camera".into()))
             .build();
 
-        // NOTE: Second camera.
-        // world
-        //     .create_entity()
-        //     .with(CompositeCamera {
-        //         scaling: CompositeScalingMode::Aspect,
-        //         tags: vec!["ferris".into()],
-        //     })
-        //     .with(CompositeTransform::scale(800.0.into()).with_translation((-300.0).into()))
-        //     .build();
-
         world
             .create_entity()
             .with(CompositeRenderable(
@@ -131,11 +121,11 @@ impl State for MainState {
     }
 
     fn on_process(&mut self, world: &mut World) -> StateChange {
-        let fps = {
-            let lifecycle = &world.read_resource::<AppLifeCycle>();
-            format!("FPS: {:?}", (1.0 / lifecycle.delta_time_seconds()) as isize)
-        };
         if let Some(fps_label) = self.fps_label {
+            let fps = {
+                let lifecycle = &world.read_resource::<AppLifeCycle>();
+                format!("FPS: {:?}", (1.0 / lifecycle.delta_time_seconds()) as isize)
+            };
             if let Some(renderable) = world
                 .write_storage::<CompositeRenderable>()
                 .get_mut(fps_label)

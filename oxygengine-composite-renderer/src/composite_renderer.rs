@@ -126,21 +126,13 @@ impl<'a> From<Image<'a>> for Renderable<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub enum Transformation {
-    Translate(Vec2),
-    Rotate(Scalar),
-    Scale(Vec2),
-    /// (a, b, c, d, e, f)
-    Transform(Scalar, Scalar, Scalar, Scalar, Scalar, Scalar),
-}
-
-#[derive(Debug, Clone)]
 pub enum Command<'a> {
     None,
     Draw(Renderable<'a>),
     /// (line width, renderable)
     Stroke(Scalar, Renderable<'a>),
-    Transform(Transformation),
+    /// (a, b, c, d, e, f)
+    Transform(Scalar, Scalar, Scalar, Scalar, Scalar, Scalar),
     Store,
     Restore,
 }

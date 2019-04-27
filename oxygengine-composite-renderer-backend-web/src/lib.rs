@@ -1,3 +1,4 @@
+extern crate base64;
 extern crate oxygengine_composite_renderer as renderer;
 extern crate oxygengine_core as core;
 
@@ -5,11 +6,9 @@ use core::{
     assets::{asset::AssetID, database::AssetsDatabase},
     error::*,
 };
-use futures::{future, Future};
 use renderer::{composite_renderer::*, math::*, png_image_asset_protocol::PngImageAsset};
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-use wasm_bindgen::{prelude::*, Clamped, JsCast};
-use wasm_bindgen_futures::{future_to_promise, JsFuture};
+use std::collections::HashMap;
+use wasm_bindgen::JsCast;
 use web_sys::*;
 
 pub mod prelude {
@@ -36,8 +35,8 @@ pub struct WebCompositeRenderer {
     view_size: Vec2,
     canvas: HtmlCanvasElement,
     context: CanvasRenderingContext2d,
-    images_cache: Rc<RefCell<HashMap<String, ImageBitmap>>>,
-    images_table: Rc<RefCell<HashMap<AssetID, String>>>,
+    images_cache: HashMap<String, HtmlImageElement>,
+    images_table: HashMap<AssetID, String>,
 }
 
 unsafe impl Send for WebCompositeRenderer {}
@@ -180,15 +179,15 @@ impl CompositeRenderer for WebCompositeRenderer {
                     }
                     Renderable::Image(image) => {
                         let path: &str = &image.image;
-                        if let Some(bitmap) = self.images_cache.borrow().get(path) {
+                        if let Some(elm) = self.images_cache.get(path) {
                             let src = if let Some(src) = image.source {
                                 src
                             } else {
                                 Rect {
                                     x: 0.0,
                                     y: 0.0,
-                                    w: bitmap.width() as Scalar,
-                                    h: bitmap.height() as Scalar,
+                                    w: elm.width() as Scalar,
+                                    h: elm.height() as Scalar,
                                 }
                             };
                             let dst = if let Some(dst) = image.destination {
@@ -204,8 +203,8 @@ impl CompositeRenderer for WebCompositeRenderer {
                             .align(image.alignment);
                             drop(self
                                 .context
-                                .draw_image_with_image_bitmap_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                                    bitmap,
+                                .draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                                    elm,
                                     src.x.into(),
                                     src.y.into(),
                                     src.w.into(),
@@ -333,31 +332,17 @@ impl CompositeRenderer for WebCompositeRenderer {
                         );
                     }
                 },
-                Command::Transform(transform) => match transform {
-                    Transformation::Translate(pos) => {
-                        drop(self.context.translate(pos.x.into(), pos.y.into()));
-                        render_ops += 1;
-                    }
-                    Transformation::Rotate(rot) => {
-                        drop(self.context.rotate(rot.into()));
-                        render_ops += 1;
-                    }
-                    Transformation::Scale(scl) => {
-                        drop(self.context.scale(scl.x.into(), scl.y.into()));
-                        render_ops += 1;
-                    }
-                    Transformation::Transform(a, b, c, d, e, f) => {
-                        drop(self.context.transform(
-                            a.into(),
-                            b.into(),
-                            c.into(),
-                            d.into(),
-                            e.into(),
-                            f.into(),
-                        ));
-                        render_ops += 1;
-                    }
-                },
+                Command::Transform(a, b, c, d, e, f) => {
+                    drop(self.context.transform(
+                        a.into(),
+                        b.into(),
+                        c.into(),
+                        d.into(),
+                        e.into(),
+                        f.into(),
+                    ));
+                    render_ops += 1;
+                }
                 Command::Store => {
                     self.context.save();
                     render_ops += 1;
@@ -404,28 +389,17 @@ impl CompositeRenderer for WebCompositeRenderer {
             let asset = asset
                 .get::<PngImageAsset>()
                 .expect("trying to use non-png asset");
-            let pixels = asset.pixels();
             let width = asset.width() as u32;
             let height = asset.height() as u32;
-            #[allow(mutable_transmutes)]
-            let pixels = unsafe { std::mem::transmute::<&[u8], &mut [u8]>(pixels) };
-            let data = ImageData::new_with_u8_clamped_array_and_sh(Clamped(pixels), width, height)
-                .unwrap();
-            let promise = window().create_image_bitmap_with_image_data(&data).unwrap();
-            let ic = self.images_cache.clone();
-            let it = self.images_table.clone();
-            let future = JsFuture::from(promise).and_then(move |data| {
-                assert!(data.is_instance_of::<ImageBitmap>());
-                let data: ImageBitmap = data.dyn_into().unwrap();
-                ic.borrow_mut().insert(path.clone(), data);
-                it.borrow_mut().insert(id, path);
-                future::ok(JsValue::null())
-            });
-            future_to_promise(future);
+            let elm = HtmlImageElement::new_with_width_and_height(width, height).unwrap();
+            let hex = base64::encode(asset.bytes());
+            elm.set_src(&format!("data:image/png;base64,{}", hex));
+            self.images_cache.insert(path.clone(), elm);
+            self.images_table.insert(id, path);
         }
         for id in assets.lately_unloaded_protocol("png") {
-            if let Some(path) = self.images_table.borrow_mut().remove(id) {
-                self.images_cache.borrow_mut().remove(&path);
+            if let Some(path) = self.images_table.remove(id) {
+                self.images_cache.remove(&path);
             }
         }
     }

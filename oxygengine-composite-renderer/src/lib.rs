@@ -1,5 +1,4 @@
 extern crate oxygengine_core as core;
-extern crate png;
 
 pub mod component;
 pub mod composite_renderer;

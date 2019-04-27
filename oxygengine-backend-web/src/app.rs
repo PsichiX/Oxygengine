@@ -27,7 +27,7 @@ pub struct WebAppTimer {
 impl Default for WebAppTimer {
     fn default() -> Self {
         Self {
-            timer: performance().now(),
+            timer: performance().now() * 0.001,
             delta_time: Duration::default(),
             delta_time_seconds: 0.0,
         }
@@ -36,12 +36,11 @@ impl Default for WebAppTimer {
 
 impl AppTimer for WebAppTimer {
     fn tick(&mut self) {
-        let t = performance().now();
-        let d = (t - self.timer) * 0.001;
+        let t = performance().now() * 0.001;
+        let d = t - self.timer;
         self.timer = t;
-        let d = Duration::new(d as u64, (d.fract() * 1e9) as u32);
-        self.delta_time = d;
-        self.delta_time_seconds = d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9;
+        self.delta_time = Duration::new(d as u64, (d.fract() * 1e9) as u32);
+        self.delta_time_seconds = d;
     }
 
     fn delta_time(&self) -> Duration {

@@ -3,9 +3,7 @@ use crate::{
         CompositeCamera, CompositeRenderDepth, CompositeRenderable, CompositeRenderableStroke,
         CompositeTransform,
     },
-    composite_renderer::{
-        Command, CompositeRenderer, Rectangle, Renderable, Stats, Transformation,
-    },
+    composite_renderer::{Command, CompositeRenderer, Rectangle, Renderable, Stats},
     math::Mat2d,
     resource::CompositeTransformRes,
 };
@@ -179,10 +177,10 @@ where
 
             let camera_matrix = camera.view_matrix(&camera_transform, [w, h].into());
             let commands = std::iter::once(Command::Store)
-                .chain(std::iter::once(Command::Transform({
+                .chain(std::iter::once({
                     let [a, b, c, d, e, f] = camera_matrix.0;
-                    Transformation::Transform(a, b, c, d, e, f)
-                })))
+                    Command::Transform(a, b, c, d, e, f)
+                }))
                 .chain(
                     sorted
                         .iter()
@@ -190,7 +188,7 @@ where
                             let [a, b, c, d, e, f] = transform.0;
                             vec![
                                 Command::Store,
-                                Command::Transform(Transformation::Transform(a, b, c, d, e, f)),
+                                Command::Transform(a, b, c, d, e, f),
                                 if let Some(stroke) = strokes.get(*entity) {
                                     Command::Stroke(stroke.0, renderable.0.clone())
                                 } else {
