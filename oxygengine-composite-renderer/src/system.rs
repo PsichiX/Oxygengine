@@ -128,7 +128,7 @@ where
         }
         renderer.update_state();
         let (w, h) = {
-            let r = renderer.viewport();
+            let r = renderer.view_size();
             (r.x, r.y)
         };
         let mut stats = Stats::default();
