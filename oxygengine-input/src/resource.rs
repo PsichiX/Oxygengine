@@ -9,6 +9,18 @@ pub enum TriggerState {
     Released,
 }
 
+impl TriggerState {
+    #[inline]
+    pub fn is_on(&self) -> bool {
+        *self == TriggerState::Pressed || *self == TriggerState::Hold
+    }
+
+    #[inline]
+    pub fn is_off(&self) -> bool {
+        !self.is_on()
+    }
+}
+
 #[derive(Default)]
 pub struct InputController {
     devices: HashMap<String, Box<InputDevice>>,

@@ -1,4 +1,4 @@
-use crate::components::FollowMouseTag;
+use crate::components::{FollowMouseTag, KeyboardMovementTag, Speed};
 use oxygengine::{
     composite_renderer::{component::*, composite_renderer::*, math::*},
     core::assets::{database::AssetsDatabase, protocols::prelude::*},
@@ -98,6 +98,17 @@ impl State for MainState {
             )
             .with(CompositeRenderDepth(1.0))
             .with(Tag("ferris".into()))
+            .build();
+
+        world
+            .create_entity()
+            .with(KeyboardMovementTag)
+            .with(Speed(100.0))
+            .with(CompositeRenderable(
+                Image::new("wasm.png").align(0.5.into()).into(),
+            ))
+            .with(CompositeTransform::translation([200.0, 100.0].into()).with_scale(0.1.into()))
+            .with(CompositeRenderDepth(0.5))
             .build();
 
         self.fps_label = Some(

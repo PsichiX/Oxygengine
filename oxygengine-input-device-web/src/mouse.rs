@@ -3,18 +3,6 @@ use std::{cell::Cell, rc::Rc};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::*;
 
-pub fn get_element_by_id(id: &str) -> EventTarget {
-    let document = window().document().expect("no `window.document` exists");
-    let element = document
-        .get_element_by_id(id)
-        .expect(&format!("no `{}` element in document", id));
-    element.dyn_into::<EventTarget>().map_err(|_| ()).unwrap()
-}
-
-fn window() -> web_sys::Window {
-    web_sys::window().expect("no global `window` exists")
-}
-
 pub struct WebMouseInputDevice {
     element: EventTarget,
     position: Rc<Cell<(Scalar, Scalar)>>,

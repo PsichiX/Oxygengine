@@ -9,7 +9,10 @@ pub mod systems;
 
 use crate::{
     states::loading::LoadingState,
-    systems::{debug::DebugSystem, follow_mouse::FollowMouseSystem},
+    systems::{
+        debug::DebugSystem, follow_mouse::FollowMouseSystem,
+        keyboard_movement::KeyboardMovementSystem,
+    },
 };
 use oxygengine::prelude::*;
 use wasm_bindgen::prelude::*;
@@ -24,6 +27,7 @@ pub fn run() -> Result<(), JsValue> {
 
     let app = App::build()
         .with_system(FollowMouseSystem, "follow_mouse", &[])
+        .with_system(KeyboardMovementSystem, "keyboard_movement", &[])
         // .with_system(DebugSystem, "debug", &[])
         .with_bundle(
             oxygengine::core::assets::bundle_installer,
@@ -32,12 +36,17 @@ pub fn run() -> Result<(), JsValue> {
             }),
         )
         .with_bundle(oxygengine::input::bundle_installer, |input| {
-            input.register(WebMouseInputDevice::new(get_element_by_id("screen")));
+            input.register(WebMouseInputDevice::new(get_event_target_by_id("screen")));
+            input.register(WebKeyboardInputDevice::new(get_event_target_document()));
             input.map_axis("mouse-x", "mouse", "x");
             input.map_axis("mouse-y", "mouse", "y");
             input.map_trigger("mouse-left", "mouse", "left");
             input.map_trigger("mouse-right", "mouse", "right");
             input.map_trigger("mouse-middle", "mouse", "middle");
+            input.map_axis("move-up", "keyboard", "KeyW");
+            input.map_axis("move-down", "keyboard", "KeyS");
+            input.map_axis("move-left", "keyboard", "KeyA");
+            input.map_axis("move-right", "keyboard", "KeyD");
         })
         .with_bundle(
             oxygengine::composite_renderer::bundle_installer,
