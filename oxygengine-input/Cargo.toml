@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-input"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Input module for Oxygen Engine"
@@ -10,4 +10,4 @@ repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine-input"
 
 [dependencies]
-oxygengine-core = { version = "0.2", path = "../oxygengine-core" }
+oxygengine-core = { version = "0.3", path = "../oxygengine-core" }

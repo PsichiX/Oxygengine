@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygen Engine"
@@ -29,30 +29,30 @@ web-composite-game = [
 ]
 
 [dependencies]
-oxygengine-core = { version = "0.2", path = "./oxygengine-core" }
+oxygengine-core = { version = "0.3", path = "./oxygengine-core" }
 
 [dependencies.oxygengine-backend-web]
-version = "0.2"
+version = "0.3"
 path = "./oxygengine-backend-web"
 optional = true
 
 [dependencies.oxygengine-input]
-version = "0.2"
+version = "0.3"
 path = "./oxygengine-input"
 optional = true
 
 [dependencies.oxygengine-input-device-web]
-version = "0.2"
+version = "0.3"
 path = "./oxygengine-input-device-web"
 optional = true
 
 [dependencies.oxygengine-composite-renderer]
-version = "0.2"
+version = "0.3"
 path = "./oxygengine-composite-renderer"
 optional = true
 
 [dependencies.oxygengine-composite-renderer-backend-web]
-version = "0.2"
+version = "0.3"
 path = "./oxygengine-composite-renderer-backend-web"
 optional = true
 
