@@ -1,7 +1,7 @@
 use crate::{
     component::{
-        CompositeCamera, CompositeRenderDepth, CompositeRenderable, CompositeRenderableStroke,
-        CompositeTransform,
+        CompositeCamera, CompositeEffect, CompositeRenderDepth, CompositeRenderable,
+        CompositeRenderableStroke, CompositeTransform,
     },
     composite_renderer::{Command, CompositeRenderer, Rectangle, Renderable, Stats},
     math::Mat2d,
@@ -97,6 +97,7 @@ where
         ReadStorage<'s, CompositeTransform>,
         ReadStorage<'s, CompositeRenderDepth>,
         ReadStorage<'s, CompositeRenderableStroke>,
+        ReadStorage<'s, CompositeEffect>,
         ReadStorage<'s, Tag>,
     );
 
@@ -113,6 +114,7 @@ where
             transforms,
             depths,
             strokes,
+            effects,
             tags,
         ): Self::SystemData,
     ) {
@@ -189,6 +191,11 @@ where
                             vec![
                                 Command::Store,
                                 Command::Transform(a, b, c, d, e, f),
+                                if let Some(effect) = effects.get(*entity) {
+                                    Command::Effect(effect.0)
+                                } else {
+                                    Command::None
+                                },
                                 if let Some(stroke) = strokes.get(*entity) {
                                     Command::Stroke(stroke.0, renderable.0.clone())
                                 } else {

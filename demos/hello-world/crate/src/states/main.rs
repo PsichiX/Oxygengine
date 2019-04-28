@@ -105,6 +105,7 @@ impl State for MainState {
             ))
             .with(CompositeTransform::translation([200.0, 100.0].into()).with_scale(0.1.into()))
             .with(CompositeRenderDepth(0.5))
+            .with(CompositeEffect(Effect::Screen))
             .build();
 
         self.fps_label = Some(

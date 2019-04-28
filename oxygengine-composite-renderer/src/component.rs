@@ -1,5 +1,5 @@
 use crate::{
-    composite_renderer::Renderable,
+    composite_renderer::{Effect, Renderable},
     math::{Mat2d, Scalar, Vec2},
 };
 use core::ecs::{Component, DenseVecStorage, HashMapStorage, VecStorage};
@@ -133,6 +133,13 @@ impl CompositeTransform {
 pub struct CompositeRenderDepth(pub Scalar);
 
 impl Component for CompositeRenderDepth {
+    type Storage = VecStorage<Self>;
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct CompositeEffect(pub Effect);
+
+impl Component for CompositeEffect {
     type Storage = VecStorage<Self>;
 }
 

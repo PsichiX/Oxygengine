@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine"
-version = "0.3.2"
+version = "0.3.3"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygen Engine"
@@ -10,6 +10,7 @@ repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine"
 exclude = [
   "demos/**",
+  "media/**",
 ]
 
 [features]

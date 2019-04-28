@@ -125,6 +125,77 @@ impl<'a> From<Image<'a>> for Renderable<'a> {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Effect {
+    SourceOver,
+    SourceIn,
+    SourceOut,
+    SourceAtop,
+    DestinationOver,
+    DestinationIn,
+    DestinationOut,
+    DestinationAtop,
+    Lighter,
+    Copy,
+    Xor,
+    Multiply,
+    Screen,
+    Overlay,
+    Darken,
+    Lighten,
+    ColorDodge,
+    ColorBurn,
+    HardLight,
+    SoftLight,
+    Difference,
+    Exclusion,
+    Hue,
+    Saturation,
+    Color,
+    Luminosity,
+}
+
+impl Default for Effect {
+    fn default() -> Self {
+        Effect::SourceOver
+    }
+}
+
+impl ToString for Effect {
+    fn to_string(&self) -> String {
+        use Effect::*;
+        match self {
+            SourceOver => "source-over",
+            SourceIn => "source-in",
+            SourceOut => "source-out",
+            SourceAtop => "source-atop",
+            DestinationOver => "source-over",
+            DestinationIn => "source-in",
+            DestinationOut => "source-out",
+            DestinationAtop => "source-atop",
+            Lighter => "lighter",
+            Copy => "copy",
+            Xor => "xor",
+            Multiply => "multiply",
+            Screen => "screen",
+            Overlay => "overlay",
+            Darken => "darken",
+            Lighten => "lighten",
+            ColorDodge => "color-dodge",
+            ColorBurn => "color-burn",
+            HardLight => "hard-light",
+            SoftLight => "soft-light",
+            Difference => "difference",
+            Exclusion => "exclusion",
+            Hue => "hue",
+            Saturation => "saturation",
+            Color => "color",
+            Luminosity => "luminosity",
+        }
+        .to_owned()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Command<'a> {
     None,
@@ -133,6 +204,7 @@ pub enum Command<'a> {
     Stroke(Scalar, Renderable<'a>),
     /// (a, b, c, d, e, f)
     Transform(Scalar, Scalar, Scalar, Scalar, Scalar, Scalar),
+    Effect(Effect),
     Store,
     Restore,
 }
@@ -148,6 +220,7 @@ pub struct Stats {
 #[derive(Debug, Clone)]
 pub struct RenderState {
     pub clear_color: Option<Color>,
+    pub image_smoothing: bool,
     stats: Stats,
 }
 
@@ -155,6 +228,7 @@ impl Default for RenderState {
     fn default() -> Self {
         Self {
             clear_color: Some(Color::black()),
+            image_smoothing: true,
             stats: Stats::default(),
         }
     }
@@ -164,6 +238,15 @@ impl RenderState {
     pub fn new(clear_color: Option<Color>) -> Self {
         Self {
             clear_color,
+            image_smoothing: true,
+            stats: Stats::default(),
+        }
+    }
+
+    pub fn with_image_smoothing(clear_color: Option<Color>, image_smoothing: bool) -> Self {
+        Self {
+            clear_color,
+            image_smoothing,
             stats: Stats::default(),
         }
     }

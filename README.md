@@ -57,6 +57,11 @@ npm start
 ```bash
 npm run build
 ```
+- Build just crate instead of running dev env:
+```bash
+cd /crate
+cargo build --all --target wasm32-unknown-unknown
+```
 
 ## Roadmap
 - Hardware renderer

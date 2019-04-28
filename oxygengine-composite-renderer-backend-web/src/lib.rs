@@ -37,6 +37,7 @@ pub struct WebCompositeRenderer {
     context: CanvasRenderingContext2d,
     images_cache: HashMap<String, HtmlImageElement>,
     images_table: HashMap<AssetID, String>,
+    cached_image_smoothing: Option<bool>,
 }
 
 unsafe impl Send for WebCompositeRenderer {}
@@ -57,6 +58,7 @@ impl WebCompositeRenderer {
             context,
             images_cache: Default::default(),
             images_table: Default::default(),
+            cached_image_smoothing: None,
         }
     }
 
@@ -343,6 +345,13 @@ impl CompositeRenderer for WebCompositeRenderer {
                     ));
                     render_ops += 1;
                 }
+                Command::Effect(effect) => {
+                    drop(
+                        self.context
+                            .set_global_composite_operation(&effect.to_string()),
+                    );
+                    render_ops += 1;
+                }
                 Command::Store => {
                     self.context.save();
                     render_ops += 1;
@@ -376,6 +385,13 @@ impl CompositeRenderer for WebCompositeRenderer {
             self.canvas.set_width(w as u32);
             self.canvas.set_height(h as u32);
             self.view_size = Vec2::new(w as Scalar, h as Scalar);
+        }
+        if self.cached_image_smoothing.is_none()
+            || self.cached_image_smoothing.unwrap() != self.state.image_smoothing
+        {
+            self.context
+                .set_image_smoothing_enabled(self.state.image_smoothing);
+            self.cached_image_smoothing = Some(self.state.image_smoothing);
         }
     }
 
