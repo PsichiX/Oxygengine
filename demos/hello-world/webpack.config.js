@@ -26,7 +26,7 @@ module.exports = {
     ]),
     new WasmPackPlugin({
       crateDirectory: path.resolve(__dirname, "crate"),
-      forceMode: DEBUG ? 'dev' : 'release',
+      forceMode: DEBUG ? undefined : 'release',
     }),
   ]
 };

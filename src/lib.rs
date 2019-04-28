@@ -1,17 +1,3 @@
-#[cfg(feature = "web")]
-extern crate oxygengine_backend_web;
-#[cfg(feature = "composite-renderer")]
-extern crate oxygengine_composite_renderer;
-#[cfg(feature = "web")]
-#[cfg(feature = "composite-renderer")]
-extern crate oxygengine_composite_renderer_backend_web;
-extern crate oxygengine_core;
-#[cfg(feature = "input")]
-extern crate oxygengine_input;
-#[cfg(feature = "web")]
-#[cfg(feature = "input")]
-extern crate oxygengine_input_device_web;
-
 pub mod core {
     pub use oxygengine_core::*;
 }
@@ -27,11 +13,17 @@ pub mod backend {
         pub use oxygengine_composite_renderer_backend_web::*;
         #[cfg(feature = "input")]
         pub use oxygengine_input_device_web::*;
+        #[cfg(feature = "network")]
+        pub use oxygengine_network_backend_web::*;
     }
 }
 #[cfg(feature = "composite-renderer")]
 pub mod composite_renderer {
     pub use oxygengine_composite_renderer::*;
+}
+#[cfg(feature = "network")]
+pub mod network {
+    pub use oxygengine_network::*;
 }
 
 pub mod prelude {
@@ -48,4 +40,9 @@ pub mod prelude {
     #[cfg(feature = "web")]
     #[cfg(feature = "input")]
     pub use oxygengine_input_device_web::prelude::*;
+    #[cfg(feature = "network")]
+    pub use oxygengine_network::prelude::*;
+    #[cfg(feature = "web")]
+    #[cfg(feature = "network")]
+    pub use oxygengine_network_backend_web::prelude::*;
 }

@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygen Engine"
@@ -20,12 +20,15 @@ web = [
 ]
 input = ["oxygengine-input"]
 composite-renderer = ["oxygengine-composite-renderer"]
+network = ["oxygengine-network"]
 web-composite-game = [
   "web",
-  "input",
   "composite-renderer",
-  "oxygengine-input-device-web",
+  "input",
+  "network",
   "oxygengine-composite-renderer-backend-web",
+  "oxygengine-input-device-web",
+  "oxygengine-network-backend-web",
 ]
 
 [dependencies]
@@ -56,6 +59,16 @@ version = "0.3"
 path = "./oxygengine-composite-renderer-backend-web"
 optional = true
 
+[dependencies.oxygengine-network]
+version = "0.3"
+path = "./oxygengine-network"
+optional = true
+
+[dependencies.oxygengine-network-backend-web]
+version = "0.3"
+path = "./oxygengine-network-backend-web"
+optional = true
+
 [workspace]
 members = [
   "oxygengine-core",
@@ -64,6 +77,8 @@ members = [
   "oxygengine-input-device-web",
   "oxygengine-composite-renderer",
   "oxygengine-composite-renderer-backend-web",
+  "oxygengine-network",
+  "oxygengine-network-backend-web",
 ]
 exclude = [
   "demos/hello-world",

@@ -177,7 +177,7 @@ impl RenderState {
     }
 }
 
-pub trait CompositeRenderer {
+pub trait CompositeRenderer: Send + Sync {
     fn execute<'a, I>(&mut self, commands: I) -> Result<(usize, usize)>
     // (render ops, renderables)
     where

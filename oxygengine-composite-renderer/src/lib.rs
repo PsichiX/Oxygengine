@@ -20,9 +20,9 @@ use crate::{
 };
 use core::{app::AppBuilder, assets::database::AssetsDatabase};
 
-pub fn bundle_installer<'a, 'b, CR: 'static>(builder: &mut AppBuilder<'a, 'b>, data: CR)
+pub fn bundle_installer<'a, 'b, CR>(builder: &mut AppBuilder<'a, 'b>, data: CR)
 where
-    CR: CompositeRenderer + Send + Sync,
+    CR: CompositeRenderer + 'static,
 {
     builder.install_resource(data);
     builder.install_system(CompositeTransformSystem, "transform", &[]);

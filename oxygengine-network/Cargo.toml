@@ -1,13 +1,13 @@
 [package]
-name = "oxygengine-input"
+name = "oxygengine-network"
 version = "0.3.2"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
-description = "Input module for Oxygen Engine"
+description = "Network module for Oxygen Engine"
 license = "MIT"
 homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
-documentation = "https://docs.rs/oxygengine-input"
+documentation = "https://docs.rs/oxygengine-network"
 
 [dependencies]
 oxygengine-core = { version = "0.3", path = "../oxygengine-core" }

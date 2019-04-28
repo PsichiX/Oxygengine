@@ -1,9 +1,5 @@
 use crate::components::{FollowMouseTag, KeyboardMovementTag, Speed};
-use oxygengine::{
-    composite_renderer::{component::*, composite_renderer::*, math::*},
-    core::assets::{database::AssetsDatabase, protocols::prelude::*},
-    prelude::*,
-};
+use oxygengine::prelude::*;
 use std::f32::consts::PI;
 
 #[derive(Default)]
