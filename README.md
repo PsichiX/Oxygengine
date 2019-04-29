@@ -15,14 +15,14 @@
 1. Make sure that you have latest `wasm-pack` toolset installed (https://rustwasm.github.io/wasm-pack/installer/)
 
 ## Project Setup
-1. Create Rust + WASM project with
+Create Rust + WASM project with
 ```bash
 npm init rust-webpack <path>
 ```
 where `path` is path to empty folder where your project will be created by this
 command.
 
-1. Then add this record into your `/crate/Cargo.toml` file:
+Then add this record into your `/crate/Cargo.toml` file:
 ```toml
 [dependencies]
 oxygengine = { version = "0.3", features = ["web-composite-game"] }
