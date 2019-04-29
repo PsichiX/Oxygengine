@@ -37,7 +37,7 @@ impl AppTimer for StandardAppTimer {
         let d = self.timer.elapsed();
         self.timer = Instant::now();
         self.delta_time = d;
-        self.delta_time_seconds = d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9;
+        self.delta_time_seconds = d.as_secs() as f64 + f64::from(d.subsec_nanos()) * 1e-9;
     }
 
     fn delta_time(&self) -> Duration {
@@ -143,7 +143,7 @@ impl<'a, 'b> App<'a, 'b> {
             state.on_process_background(&mut self.world);
         }
         let change = self.states.last_mut().unwrap().on_process(&mut self.world);
-        self.dispatcher.dispatch(&mut self.world.res);
+        self.dispatcher.dispatch(&self.world.res);
         self.world.maintain();
         {
             let entities = {

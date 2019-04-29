@@ -1,3 +1,5 @@
+#![allow(clippy::many_single_char_names)]
+
 use crate::{
     component::{
         CompositeCamera, CompositeEffect, CompositeRenderDepth, CompositeRenderable,
@@ -86,6 +88,7 @@ impl<'s, CR> System<'s> for CompositeRendererSystem<CR>
 where
     CR: CompositeRenderer + Send + Sync + 'static,
 {
+    #[allow(clippy::type_complexity)]
     type SystemData = (
         Option<Write<'s, CR>>,
         Entities<'s>,

@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-input"
-version = "0.3.2"
+version = "0.3.4"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Input module for Oxygen Engine"

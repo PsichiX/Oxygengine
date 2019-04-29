@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine"
-version = "0.3.3"
+version = "0.3.4"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygen Engine"
@@ -19,6 +19,7 @@ web = [
   "oxygengine-backend-web",
   "oxygengine-core/web",
 ]
+desktop = ["parallel"]
 input = ["oxygengine-input"]
 composite-renderer = ["oxygengine-composite-renderer"]
 network = ["oxygengine-network"]
@@ -30,6 +31,11 @@ web-composite-game = [
   "oxygengine-composite-renderer-backend-web",
   "oxygengine-input-device-web",
   "oxygengine-network-backend-web",
+]
+desktop-game = [
+  "desktop",
+  "network",
+  "oxygengine-network-backend-desktop",
 ]
 
 [dependencies]
@@ -68,6 +74,11 @@ optional = true
 [dependencies.oxygengine-network-backend-web]
 version = "0.3"
 path = "./oxygengine-network-backend-web"
+optional = true
+
+[dependencies.oxygengine-network-backend-desktop]
+version = "0.3"
+path = "./oxygengine-network-backend-desktop"
 optional = true
 
 [workspace]

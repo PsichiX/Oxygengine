@@ -1,3 +1,5 @@
+#![allow(clippy::many_single_char_names)]
+
 extern crate base64;
 extern crate oxygengine_composite_renderer as renderer;
 extern crate oxygengine_core as core;
@@ -19,7 +21,7 @@ pub fn get_canvas_by_id(id: &str) -> HtmlCanvasElement {
     let document = window().document().expect("no `window.document` exists");
     let canvas = document
         .get_element_by_id(id)
-        .expect(&format!("no `{}` canvas in document", id));
+        .unwrap_or_else(|| panic!("no `{}` canvas in document", id));
     canvas
         .dyn_into::<HtmlCanvasElement>()
         .map_err(|_| ())

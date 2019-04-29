@@ -73,7 +73,7 @@ impl Not for Mat2d {
 
     fn not(self) -> Option<Self> {
         let det = self.0[0] * self.0[3] - self.0[1] * self.0[2];
-        if !(det > 0.0 || det < 0.0) {
+        if det != 0.0 {
             return None;
         }
         let det = 1.0 / det;
@@ -198,28 +198,24 @@ impl Color {
         }
     }
 
-    pub fn r(&self, value: u8) -> Self {
-        let mut result = *self;
-        result.r = value;
-        result
+    pub fn r(mut self, value: u8) -> Self {
+        self.r = value;
+        self
     }
 
-    pub fn g(&self, value: u8) -> Self {
-        let mut result = *self;
-        result.g = value;
-        result
+    pub fn g(mut self, value: u8) -> Self {
+        self.g = value;
+        self
     }
 
-    pub fn b(&self, value: u8) -> Self {
-        let mut result = *self;
-        result.b = value;
-        result
+    pub fn b(mut self, value: u8) -> Self {
+        self.b = value;
+        self
     }
 
-    pub fn a(&self, value: u8) -> Self {
-        let mut result = *self;
-        result.a = value;
-        result
+    pub fn a(mut self, value: u8) -> Self {
+        self.a = value;
+        self
     }
 }
 
@@ -252,7 +248,7 @@ impl ToString for Color {
             self.r,
             self.g,
             self.b,
-            self.a as f32 / 255.0
+            f32::from(self.a) / 255.0
         )
     }
 }
@@ -276,19 +272,19 @@ impl Vec2 {
         Self { x: 1.0, y: 1.0 }
     }
 
-    pub fn sqr_magnitude(&self) -> Scalar {
+    pub fn sqr_magnitude(self) -> Scalar {
         self.x * self.x + self.y * self.y
     }
 
-    pub fn magnitude(&self) -> Scalar {
+    pub fn magnitude(self) -> Scalar {
         self.sqr_magnitude().sqrt()
     }
 
-    pub fn normalized(&self) -> Self {
-        *self / self.magnitude()
+    pub fn normalized(self) -> Self {
+        self / self.magnitude()
     }
 
-    pub fn dot(&self, other: Self) -> Scalar {
+    pub fn dot(self, other: Self) -> Scalar {
         self.x * other.x + self.y * other.y
     }
 }

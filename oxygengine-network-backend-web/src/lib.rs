@@ -25,6 +25,7 @@ pub struct WebClient {
     id: ClientID,
     history_size: Rc<Cell<usize>>,
     state: Rc<Cell<ClientState>>,
+    #[allow(clippy::type_complexity)]
     messages: Rc<RefCell<VecDeque<(MessageID, Vec<u8>)>>>,
 }
 

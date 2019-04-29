@@ -13,28 +13,28 @@ impl CompositeTransformRes {
         Self::default()
     }
 
-    pub fn read<'a>(&'a self) -> CompositeTransformJoinable<'a> {
+    pub fn read(&self) -> CompositeTransformJoinable {
         CompositeTransformJoinable {
             mask: &self.mask,
             storage: &self.inner,
         }
     }
 
-    pub fn write<'a>(&'a mut self) -> CompositeTransformJoinableMut<'a> {
+    pub fn write(&mut self) -> CompositeTransformJoinableMut {
         CompositeTransformJoinableMut {
             mask: &self.mask,
             storage: &mut self.inner,
         }
     }
 
-    pub fn read_inverse<'a>(&'a self) -> CompositeTransformJoinable<'a> {
+    pub fn read_inverse(&self) -> CompositeTransformJoinable {
         CompositeTransformJoinable {
             mask: &self.mask,
             storage: &self.inner_inverse,
         }
     }
 
-    pub fn write_inverse<'a>(&'a mut self) -> CompositeTransformJoinableMut<'a> {
+    pub fn write_inverse(&mut self) -> CompositeTransformJoinableMut {
         CompositeTransformJoinableMut {
             mask: &self.mask,
             storage: &mut self.inner_inverse,

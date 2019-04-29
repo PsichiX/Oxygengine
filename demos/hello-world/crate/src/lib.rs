@@ -48,7 +48,7 @@ pub fn run() -> Result<(), JsValue> {
             input.map_axis("move-left", "keyboard", "KeyA");
             input.map_axis("move-right", "keyboard", "KeyD");
         })
-        .with_bundle(oxygengine::network::bundle_installer::<WebClient>, 0)
+        .with_bundle(oxygengine::network::bundle_installer::<WebClient, ()>, 0)
         .with_bundle(
             oxygengine::composite_renderer::bundle_installer,
             WebCompositeRenderer::with_state(

@@ -11,12 +11,12 @@ pub enum TriggerState {
 
 impl TriggerState {
     #[inline]
-    pub fn is_on(&self) -> bool {
-        *self == TriggerState::Pressed || *self == TriggerState::Hold
+    pub fn is_on(self) -> bool {
+        self == TriggerState::Pressed || self == TriggerState::Hold
     }
 
     #[inline]
-    pub fn is_off(&self) -> bool {
+    pub fn is_off(self) -> bool {
         !self.is_on()
     }
 }
@@ -76,7 +76,7 @@ impl InputController {
     }
 
     pub fn axis(&self, name: &str) -> Option<Scalar> {
-        self.axes.get(name).map(|v| *v)
+        self.axes.get(name).cloned()
     }
 
     pub fn axis_or_default(&self, name: &str) -> Scalar {
@@ -88,7 +88,7 @@ impl InputController {
     }
 
     pub fn trigger(&self, name: &str) -> Option<TriggerState> {
-        self.triggers.get(name).map(|v| *v)
+        self.triggers.get(name).cloned()
     }
 
     pub fn trigger_or_default(&self, name: &str) -> TriggerState {

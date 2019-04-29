@@ -33,7 +33,7 @@ impl AssetProtocol for SetAssetProtocol {
             .enumerate()
             .filter_map(|(i, line)| {
                 let path = line.trim();
-                if path.is_empty() || path.starts_with("#") {
+                if path.is_empty() || path.starts_with('#') {
                     None
                 } else {
                     Some((i.to_string(), path.to_owned()))

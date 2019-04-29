@@ -146,6 +146,7 @@ pub trait FetchEngine: Send + Sync {
     fn fetch(&mut self, path: &str) -> Result<Box<FetchProcessReader>, FetchStatus>;
 
     fn cancel(&mut self, reader: Box<FetchProcessReader>) {
+        #[allow(clippy::cast_ptr_alignment)]
         let ptr = Box::into_raw(reader) as *mut FetchProcess;
         unsafe {
             (*ptr).cancel(FetchCancelReason::User);

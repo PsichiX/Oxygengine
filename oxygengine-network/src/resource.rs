@@ -1,5 +1,90 @@
-use crate::client::{Client, ClientID, ClientState, MessageID};
+use crate::{
+    client::{Client, ClientID, ClientState, MessageID},
+    server::{Server, ServerID, ServerState},
+};
 use std::{collections::HashMap, ops::Range};
+
+pub struct NetworkHost<S>
+where
+    S: Server,
+{
+    servers: HashMap<ServerID, S>,
+    messages: HashMap<ServerID, Vec<(ClientID, MessageID, Vec<u8>)>>,
+}
+
+impl<S> Default for NetworkHost<S>
+where
+    S: Server,
+{
+    fn default() -> Self {
+        Self {
+            servers: Default::default(),
+            messages: Default::default(),
+        }
+    }
+}
+
+impl<S> NetworkHost<S>
+where
+    S: Server,
+{
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn open_server(&mut self, url: &str) -> Option<ServerID> {
+        if let Some(server) = S::open(url) {
+            let id = server.id();
+            self.servers.insert(id, server);
+            Some(id)
+        } else {
+            None
+        }
+    }
+
+    pub fn close_server(&mut self, id: ServerID) -> bool {
+        if let Some(server) = self.servers.remove(&id) {
+            server.close();
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn server(&self, id: ServerID) -> Option<&S> {
+        self.servers.get(&id)
+    }
+
+    pub fn server_mut(&mut self, id: ServerID) -> Option<&mut S> {
+        self.servers.get_mut(&id)
+    }
+
+    pub fn has_server(&self, id: ServerID) -> bool {
+        self.servers.contains_key(&id)
+    }
+
+    pub fn send_all(&mut self, id: ServerID, msg_id: MessageID, data: &[u8]) {
+        if let Some(server) = self.servers.get_mut(&id) {
+            server.send_all(msg_id, data);
+        }
+    }
+
+    pub fn process(&mut self) {
+        self.messages.clear();
+        for (id, server) in &mut self.servers {
+            server.listen();
+            if server.state() == ServerState::Open {
+                let mut messages = vec![];
+                while let Some((client, mid, data)) = server.receive_all() {
+                    messages.push((client, mid, data));
+                }
+                self.messages.insert(*id, messages);
+            }
+        }
+        self.servers
+            .retain(|_, server| server.state() != ServerState::Closed);
+    }
+}
 
 pub struct Network<C>
 where

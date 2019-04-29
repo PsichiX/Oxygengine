@@ -2,19 +2,28 @@ extern crate oxygengine_core as core;
 
 pub mod client;
 pub mod resource;
+pub mod server;
 pub mod system;
 
 pub mod prelude {
-    pub use crate::{client::*, resource::*, system::*};
+    pub use crate::{client::*, resource::*, server::*, system::*};
 }
 
-use crate::{client::Client, resource::Network, system::NetworkSystem};
+use crate::{
+    client::Client,
+    resource::{Network, NetworkHost},
+    server::Server,
+    system::{NetworkHostSystem, NetworkSystem},
+};
 use core::app::AppBuilder;
 
-pub fn bundle_installer<'a, 'b, C>(builder: &mut AppBuilder<'a, 'b>, version: u32)
+pub fn bundle_installer<'a, 'b, C, S>(builder: &mut AppBuilder<'a, 'b>, version: u32)
 where
     C: Client + 'static,
+    S: Server + 'static,
 {
     builder.install_resource(Network::<C>::new(version));
+    builder.install_resource(NetworkHost::<S>::default());
     builder.install_system(NetworkSystem::<C>::default(), "network", &[]);
+    builder.install_system(NetworkHostSystem::<S>::default(), "network_host", &[]);
 }

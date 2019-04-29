@@ -20,6 +20,7 @@ pub struct AssetsDatabase {
     assets: HashMap<AssetID, (String, Asset)>,
     table: HashMap<String, AssetID>,
     loading: HashMap<String, (String, Box<FetchProcessReader>)>,
+    #[allow(clippy::type_complexity)]
     yielded: HashMap<String, (String, Meta, Vec<(String, String)>)>,
     lately_loaded: Vec<(String, AssetID)>,
     lately_unloaded: Vec<(String, AssetID)>,
@@ -105,7 +106,7 @@ impl AssetsDatabase {
         result
     }
 
-    pub fn lately_loaded<'a>(&'a self) -> impl Iterator<Item = &'a AssetID> {
+    pub fn lately_loaded(&self) -> impl Iterator<Item = &AssetID> {
         self.lately_loaded.iter().map(|(_, id)| id)
     }
 
@@ -118,7 +119,7 @@ impl AssetsDatabase {
             .filter_map(move |(prot, id)| if protocol == prot { Some(id) } else { None })
     }
 
-    pub fn lately_unloaded<'a>(&'a self) -> impl Iterator<Item = &'a AssetID> {
+    pub fn lately_unloaded(&self) -> impl Iterator<Item = &AssetID> {
         self.lately_unloaded.iter().map(|(_, id)| id)
     }
 
@@ -157,11 +158,13 @@ impl AssetsDatabase {
         }
     }
 
-    pub fn fetch_engine(&self) -> &Box<FetchEngine> {
+    #[allow(clippy::borrowed_box)]
+    pub fn fetch_engine(&self) -> &Box<dyn FetchEngine> {
         self.fetch_engines.last().unwrap()
     }
 
-    pub fn fetch_engine_mut(&mut self) -> &mut Box<FetchEngine> {
+    #[allow(clippy::borrowed_box)]
+    pub fn fetch_engine_mut(&mut self) -> &mut Box<dyn FetchEngine> {
         self.fetch_engines.last_mut().unwrap()
     }
 
@@ -265,10 +268,10 @@ impl AssetsDatabase {
     }
 
     pub fn id_by_path(&self, path: &str) -> Option<AssetID> {
-        self.table.get(path).map(|id| *id)
+        self.table.get(path).cloned()
     }
 
-    pub fn path_by_id<'a>(&'a self, id: AssetID) -> Option<&'a str> {
+    pub fn path_by_id(&self, id: AssetID) -> Option<&str> {
         self.assets.get(&id).map(|(path, _)| path.as_str())
     }
 
@@ -342,8 +345,8 @@ impl AssetsDatabase {
                     let list = list
                         .iter()
                         .map(|(key, path)| unsafe {
-                            let asset = &(&*ptr).table[path];
-                            let asset = &(&*ptr).assets[asset].1;
+                            let asset = &(*ptr).table[path];
+                            let asset = &(*ptr).assets[asset].1;
                             (key.as_str(), asset)
                         })
                         .collect::<Vec<_>>();

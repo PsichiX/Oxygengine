@@ -118,7 +118,7 @@ impl CompositeTransform {
     }
 
     pub fn matrix(&self) -> Mat2d {
-        self.cached.clone()
+        self.cached
     }
 
     fn rebuild(&mut self) {

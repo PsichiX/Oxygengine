@@ -5,7 +5,7 @@ pub fn get_event_target_by_id(id: &str) -> EventTarget {
     let document = window().document().expect("no `window.document` exists");
     let canvas = document
         .get_element_by_id(id)
-        .expect(&format!("no `{}` event target in document", id));
+        .unwrap_or_else(|| panic!("no `{}` event target in document", id));
     canvas.dyn_into::<EventTarget>().map_err(|_| ()).unwrap()
 }
 

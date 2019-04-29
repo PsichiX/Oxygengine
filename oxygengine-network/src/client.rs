@@ -9,11 +9,11 @@ impl MessageID {
         Self(id, version)
     }
 
-    pub fn id(&self) -> u32 {
+    pub fn id(self) -> u32 {
         self.0
     }
 
-    pub fn version(&self) -> u32 {
+    pub fn version(self) -> u32 {
         self.1
     }
 }
@@ -46,4 +46,30 @@ pub trait Client: Send + Sync + Sized {
     fn state(&self) -> ClientState;
     fn send(&mut self, id: MessageID, data: &[u8]) -> Option<Range<usize>>;
     fn receive(&mut self) -> Option<(MessageID, Vec<u8>)>;
+}
+
+impl Client for () {
+    fn open(_: &str) -> Option<Self> {
+        Some(())
+    }
+
+    fn close(self) -> Self {
+        self
+    }
+
+    fn id(&self) -> ClientID {
+        Default::default()
+    }
+
+    fn state(&self) -> ClientState {
+        ClientState::Closed
+    }
+
+    fn send(&mut self, _: MessageID, _: &[u8]) -> Option<Range<usize>> {
+        None
+    }
+
+    fn receive(&mut self) -> Option<(MessageID, Vec<u8>)> {
+        None
+    }
 }
