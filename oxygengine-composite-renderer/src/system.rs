@@ -3,7 +3,7 @@
 use crate::{
     component::{
         CompositeCamera, CompositeEffect, CompositeRenderDepth, CompositeRenderable,
-        CompositeRenderableStroke, CompositeTransform,
+        CompositeRenderableStroke, CompositeTransform, CompositeVisibility,
     },
     composite_renderer::{Command, CompositeRenderer, Rectangle, Renderable, Stats},
     math::Mat2d,
@@ -96,6 +96,7 @@ where
         Option<Read<'s, AssetsDatabase>>,
         Read<'s, CompositeTransformRes>,
         ReadStorage<'s, CompositeCamera>,
+        ReadStorage<'s, CompositeVisibility>,
         ReadStorage<'s, CompositeRenderable>,
         ReadStorage<'s, CompositeTransform>,
         ReadStorage<'s, CompositeRenderDepth>,
@@ -113,6 +114,7 @@ where
             assets,
             transform_res,
             cameras,
+            visibilities,
             renderables,
             transforms,
             depths,
@@ -149,13 +151,22 @@ where
 
         let mut sorted_cameras = (&entities, &cameras, &transforms)
             .join()
-            .map(|(entity, camera, transform)| {
-                let depth = if let Some(depth) = depths.get(entity) {
-                    depth.0
+            .filter_map(|(entity, camera, transform)| {
+                let visible = if let Some(visibility) = visibilities.get(entity) {
+                    visibility.0
                 } else {
-                    0.0
+                    true
                 };
-                (depth, camera, transform)
+                if visible {
+                    let depth = if let Some(depth) = depths.get(entity) {
+                        depth.0
+                    } else {
+                        0.0
+                    };
+                    Some((depth, camera, transform))
+                } else {
+                    None
+                }
             })
             .collect::<Vec<_>>();
         sorted_cameras.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
@@ -169,13 +180,22 @@ where
                             .get(*entity)
                             .map_or(false, |tag| camera.tags.contains(&tag.0))
                 })
-                .map(|(entity, renderable, transform)| {
-                    let depth = if let Some(depth) = depths.get(entity) {
-                        depth.0
+                .filter_map(|(entity, renderable, transform)| {
+                    let visible = if let Some(visibility) = visibilities.get(entity) {
+                        visibility.0
                     } else {
-                        0.0
+                        true
                     };
-                    (depth, renderable, transform, entity)
+                    if visible {
+                        let depth = if let Some(depth) = depths.get(entity) {
+                            depth.0
+                        } else {
+                            0.0
+                        };
+                        Some((depth, renderable, transform, entity))
+                    } else {
+                        None
+                    }
                 })
                 .collect::<Vec<_>>();
             sorted.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());

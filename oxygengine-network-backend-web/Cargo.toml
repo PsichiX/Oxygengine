@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-network-backend-web"
-version = "0.3.4"
+version = "0.3.5"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Network Web backend module for Oxygen Engine"

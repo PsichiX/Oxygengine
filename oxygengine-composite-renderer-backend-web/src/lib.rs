@@ -222,6 +222,11 @@ impl CompositeRenderer for WebCompositeRenderer {
                             renderables += 1;
                         }
                     }
+                    Renderable::Commands(commands) => {
+                        let (o, r) = self.execute(commands.into_iter())?;
+                        render_ops += o;
+                        renderables += r;
+                    }
                 },
                 Command::Stroke(line_width, renderable) => match renderable {
                     Renderable::Rectangle(rectangle) => {
@@ -329,12 +334,14 @@ impl CompositeRenderer for WebCompositeRenderer {
                         render_ops += 4 + ops;
                         renderables += 1;
                     }
-                    Renderable::Image(image) => {
-                        panic!(
-                            "[Oxygengine] Trying to render image as stroke: {}",
-                            image.image
-                        );
-                    }
+                    Renderable::Image(image) => panic!(
+                        "[Oxygengine] Trying to render stroked image: {}",
+                        image.image
+                    ),
+                    Renderable::Commands(commands) => panic!(
+                        "[Oxygengine] Trying to render stroked subcommands: {:#?}",
+                        commands
+                    ),
                 },
                 Command::Transform(a, b, c, d, e, f) => {
                     drop(self.context.transform(

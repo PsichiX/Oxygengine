@@ -5,6 +5,13 @@ use crate::{
 use core::ecs::{Component, DenseVecStorage, HashMapStorage, VecStorage};
 use std::borrow::Cow;
 
+#[derive(Debug, Copy, Clone)]
+pub struct CompositeVisibility(pub bool);
+
+impl Component for CompositeVisibility {
+    type Storage = VecStorage<Self>;
+}
+
 #[derive(Debug, Clone)]
 pub struct CompositeRenderable(pub Renderable<'static>);
 

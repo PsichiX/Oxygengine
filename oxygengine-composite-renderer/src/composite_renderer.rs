@@ -99,6 +99,7 @@ pub enum Renderable<'a> {
     Text(Text<'a>),
     Path(Path),
     Image(Image<'a>),
+    Commands(Vec<Command<'a>>),
 }
 
 impl<'a> From<Rectangle> for Renderable<'a> {
