@@ -2,8 +2,8 @@
 
 use crate::{
     component::{
-        CompositeCamera, CompositeEffect, CompositeRenderDepth, CompositeRenderable,
-        CompositeRenderableStroke, CompositeTransform, CompositeVisibility,
+        CompositeCamera, CompositeEffect, CompositeRenderAlpha, CompositeRenderDepth,
+        CompositeRenderable, CompositeRenderableStroke, CompositeTransform, CompositeVisibility,
     },
     composite_renderer::{Command, CompositeRenderer, Rectangle, Renderable, Stats},
     math::Mat2d,
@@ -100,6 +100,7 @@ where
         ReadStorage<'s, CompositeRenderable>,
         ReadStorage<'s, CompositeTransform>,
         ReadStorage<'s, CompositeRenderDepth>,
+        ReadStorage<'s, CompositeRenderAlpha>,
         ReadStorage<'s, CompositeRenderableStroke>,
         ReadStorage<'s, CompositeEffect>,
         ReadStorage<'s, Tag>,
@@ -118,6 +119,7 @@ where
             renderables,
             transforms,
             depths,
+            alphas,
             strokes,
             effects,
             tags,
@@ -216,6 +218,11 @@ where
                                 Command::Transform(a, b, c, d, e, f),
                                 if let Some(effect) = effects.get(*entity) {
                                     Command::Effect(effect.0)
+                                } else {
+                                    Command::None
+                                },
+                                if let Some(alpha) = alphas.get(*entity) {
+                                    Command::Alpha(alpha.0)
                                 } else {
                                     Command::None
                                 },

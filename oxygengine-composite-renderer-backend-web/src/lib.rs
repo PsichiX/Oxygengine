@@ -361,6 +361,10 @@ impl CompositeRenderer for WebCompositeRenderer {
                     );
                     render_ops += 1;
                 }
+                Command::Alpha(alpha) => {
+                    self.context.set_global_alpha(alpha.into());
+                    render_ops += 1;
+                }
                 Command::Store => {
                     self.context.save();
                     render_ops += 1;

@@ -1,7 +1,7 @@
 #![cfg(test)]
 use super::{
     app::{App, AppLifeCycle, AppRunner, StandardAppTimer, SyncAppRunner},
-    hierarchy::Parent,
+    hierarchy::{hierarchy_find, Name, Parent},
     state::{State, StateChange},
 };
 use specs::prelude::*;
@@ -11,12 +11,6 @@ struct Counter {
 }
 
 impl Component for Counter {
-    type Storage = VecStorage<Self>;
-}
-
-struct Name(pub String);
-
-impl Component for Name {
     type Storage = VecStorage<Self>;
 }
 
@@ -57,12 +51,12 @@ impl State for Example {
     fn on_enter(&mut self, world: &mut World) {
         world.create_entity().with(Counter { times: 10 }).build();
 
-        let root = world.create_entity().with(Name("root".to_owned())).build();
+        let root = world.create_entity().with(Name("root".into())).build();
 
         world
             .create_entity()
             .with(Parent(root))
-            .with(Name("child".to_owned()))
+            .with(Name("child".into()))
             .build();
 
         self.root = Some(root);
@@ -85,5 +79,55 @@ fn test_general() {
         .build(Example::default(), StandardAppTimer::default());
 
     let mut runner = AppRunner::new(app);
-    drop(runner.run::<SyncAppRunner, ()>());
+    drop(runner.run(SyncAppRunner::default()));
+}
+
+#[test]
+fn test_hierarchy_find() {
+    let mut app = App::build().build_empty(StandardAppTimer::default());
+    let root = app
+        .world_mut()
+        .create_entity()
+        .with(Name("root".into()))
+        .build();
+    let child_a = app
+        .world_mut()
+        .create_entity()
+        .with(Name("a".into()))
+        .with(Parent(root))
+        .build();
+    let child_b = app
+        .world_mut()
+        .create_entity()
+        .with(Name("b".into()))
+        .with(Parent(child_a))
+        .build();
+    let child_c = app
+        .world_mut()
+        .create_entity()
+        .with(Name("c".into()))
+        .with(Parent(root))
+        .build();
+    app.process();
+    assert_eq!(hierarchy_find(root, "", app.world()), Some(root));
+    assert_eq!(hierarchy_find(root, ".", app.world()), Some(root));
+    assert_eq!(hierarchy_find(root, "..", app.world()), None);
+    assert_eq!(hierarchy_find(root, "a", app.world()), Some(child_a));
+    assert_eq!(hierarchy_find(root, "a/", app.world()), Some(child_a));
+    assert_eq!(hierarchy_find(root, "a/.", app.world()), Some(child_a));
+    assert_eq!(hierarchy_find(root, "a/..", app.world()), Some(root));
+    assert_eq!(hierarchy_find(root, "a/../..", app.world()), None);
+    assert_eq!(hierarchy_find(root, "b", app.world()), None);
+    assert_eq!(hierarchy_find(root, "c", app.world()), Some(child_c));
+    assert_eq!(hierarchy_find(root, "c/", app.world()), Some(child_c));
+    assert_eq!(hierarchy_find(root, "c/.", app.world()), Some(child_c));
+    assert_eq!(hierarchy_find(root, "c/..", app.world()), Some(root));
+    assert_eq!(hierarchy_find(root, "c/../..", app.world()), None);
+    assert_eq!(hierarchy_find(root, "a/b", app.world()), Some(child_b));
+    assert_eq!(hierarchy_find(root, "a/b/", app.world()), Some(child_b));
+    assert_eq!(hierarchy_find(root, "a/b/", app.world()), Some(child_b));
+    assert_eq!(hierarchy_find(root, "a/b/..", app.world()), Some(child_a));
+    assert_eq!(hierarchy_find(root, "a/b/../..", app.world()), Some(root));
+    assert_eq!(hierarchy_find(root, "a/b/../../..", app.world()), None);
+    assert_eq!(hierarchy_find(root, "a/b/../../..", app.world()), None);
 }

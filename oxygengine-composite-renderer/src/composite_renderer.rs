@@ -206,6 +206,7 @@ pub enum Command<'a> {
     /// (a, b, c, d, e, f)
     Transform(Scalar, Scalar, Scalar, Scalar, Scalar, Scalar),
     Effect(Effect),
+    Alpha(Scalar),
     Store,
     Restore,
 }

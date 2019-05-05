@@ -19,6 +19,4 @@ pub trait State {
     fn on_process_background(&mut self, _world: &mut World) {}
 }
 
-pub struct EmptyState;
-
-impl State for EmptyState {}
+impl State for () {}

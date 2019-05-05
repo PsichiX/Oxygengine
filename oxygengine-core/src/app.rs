@@ -1,8 +1,8 @@
 use crate::{
-    hierarchy::{HierarchyRes, Parent},
-    state::{EmptyState, State, StateChange},
+    hierarchy::{HierarchyRes, Name, Parent, Tag},
+    state::{State, StateChange},
 };
-use specs::{Component, Dispatcher, DispatcherBuilder, ReaderId, RunNow, System, World};
+use specs::{Component, Dispatcher, DispatcherBuilder, Entity, ReaderId, RunNow, System, World};
 use specs_hierarchy::{HierarchyEvent, HierarchySystem};
 use std::{
     cell::RefCell,
@@ -82,27 +82,46 @@ impl<'a, 'b> AppRunner<'a, 'b> {
         }
     }
 
-    pub fn run<BAR, E>(&mut self) -> Result<(), E>
+    pub fn run<BAR, E>(&mut self, mut backend_app_runner: BAR) -> Result<(), E>
     where
         BAR: BackendAppRunner<'a, 'b, E>,
     {
-        BAR::run(self.app.clone())
+        backend_app_runner.run(self.app.clone())
     }
 }
 
 pub trait BackendAppRunner<'a, 'b, E> {
-    fn run(app: Rc<RefCell<App<'a, 'b>>>) -> Result<(), E> {
+    fn run(&mut self, app: Rc<RefCell<App<'a, 'b>>>) -> Result<(), E>;
+}
+
+#[derive(Default)]
+pub struct SyncAppRunner {
+    pub sleep_time: Option<Duration>,
+}
+
+impl SyncAppRunner {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_sleep_time(value: Duration) -> Self {
+        Self {
+            sleep_time: Some(value),
+        }
+    }
+}
+
+impl<'a, 'b> BackendAppRunner<'a, 'b, ()> for SyncAppRunner {
+    fn run(&mut self, app: Rc<RefCell<App<'a, 'b>>>) -> Result<(), ()> {
         while app.borrow().world().read_resource::<AppLifeCycle>().running {
             app.borrow_mut().process();
+            if let Some(sleep_time) = self.sleep_time {
+                std::thread::sleep(sleep_time);
+            }
         }
         Ok(())
     }
 }
-
-#[derive(Default)]
-pub struct SyncAppRunner;
-
-impl<'a, 'b> BackendAppRunner<'a, 'b, ()> for SyncAppRunner {}
 
 pub struct App<'a, 'b> {
     world: World,
@@ -110,6 +129,8 @@ pub struct App<'a, 'b> {
     dispatcher: Dispatcher<'a, 'b>,
     setup: bool,
     hierarchy_change_event: ReaderId<HierarchyEvent>,
+    cached_hierarchy_added: Vec<Entity>,
+    cached_hierarchy_removed: Vec<Entity>,
 }
 
 impl<'a, 'b> App<'a, 'b> {
@@ -126,6 +147,16 @@ impl<'a, 'b> App<'a, 'b> {
     #[inline]
     pub fn world_mut(&mut self) -> &mut World {
         &mut self.world
+    }
+
+    #[inline]
+    pub fn hierarchy_added(&self) -> &[Entity] {
+        &self.cached_hierarchy_added
+    }
+
+    #[inline]
+    pub fn hierarchy_removed(&self) -> &[Entity] {
+        &self.cached_hierarchy_removed
     }
 
     #[inline]
@@ -146,23 +177,22 @@ impl<'a, 'b> App<'a, 'b> {
         self.dispatcher.dispatch(&self.world.res);
         self.world.maintain();
         {
-            let entities = {
-                let hierarchy = &self.world.read_resource::<HierarchyRes>();
-                hierarchy
-                    .changed()
-                    .read(&mut self.hierarchy_change_event)
-                    .filter_map(|event| {
-                        if let HierarchyEvent::Removed(entity) = event {
-                            Some(*entity)
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<_>>()
-            };
-            for entity in entities {
-                drop(self.world.delete_entity(entity));
+            self.cached_hierarchy_added.clear();
+            self.cached_hierarchy_removed.clear();
+            let hierarchy = &self.world.read_resource::<HierarchyRes>();
+            for event in hierarchy.changed().read(&mut self.hierarchy_change_event) {
+                match event {
+                    HierarchyEvent::Modified(entity) => {
+                        self.cached_hierarchy_added.push(*entity);
+                    }
+                    HierarchyEvent::Removed(entity) => {
+                        self.cached_hierarchy_removed.push(*entity);
+                    }
+                }
             }
+        }
+        for entity in &self.cached_hierarchy_removed {
+            drop(self.world.delete_entity(*entity));
         }
         match change {
             StateChange::Push(mut state) => {
@@ -327,6 +357,9 @@ impl<'a, 'b> AppBuilder<'a, 'b> {
     {
         self.world
             .add_resource(AppLifeCycle::new(Box::new(app_timer)));
+        self.world.register::<Parent>();
+        self.world.register::<Name>();
+        self.world.register::<Tag>();
         let mut dispatcher = self.dispatcher_builder.build();
         dispatcher.setup(&mut self.world.res);
         let hierarchy_change_event = {
@@ -339,6 +372,8 @@ impl<'a, 'b> AppBuilder<'a, 'b> {
             dispatcher,
             setup: true,
             hierarchy_change_event,
+            cached_hierarchy_added: vec![],
+            cached_hierarchy_removed: vec![],
         }
     }
 
@@ -346,6 +381,6 @@ impl<'a, 'b> AppBuilder<'a, 'b> {
     where
         AT: AppTimer + 'static,
     {
-        self.build(EmptyState, app_timer)
+        self.build((), app_timer)
     }
 }

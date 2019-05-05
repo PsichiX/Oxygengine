@@ -52,10 +52,11 @@ impl AppTimer for WebAppTimer {
     }
 }
 
+#[derive(Default)]
 pub struct WebAppRunner;
 
 impl BackendAppRunner<'static, 'static, JsValue> for WebAppRunner {
-    fn run(app: Rc<RefCell<App<'static, 'static>>>) -> Result<(), JsValue> {
+    fn run(&mut self, app: Rc<RefCell<App<'static, 'static>>>) -> Result<(), JsValue> {
         let f = Rc::new(RefCell::new(None));
         let g = f.clone();
         *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {

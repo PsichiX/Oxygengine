@@ -143,6 +143,13 @@ impl Component for CompositeRenderDepth {
     type Storage = VecStorage<Self>;
 }
 
+#[derive(Debug, Default, Clone, PartialEq, PartialOrd)]
+pub struct CompositeRenderAlpha(pub Scalar);
+
+impl Component for CompositeRenderAlpha {
+    type Storage = VecStorage<Self>;
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct CompositeEffect(pub Effect);
 
