@@ -8,6 +8,7 @@ license = "MIT"
 homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine-core"
+readme = "../README.md"
 
 [features]
 web = ["uuid/wasm-bindgen"]

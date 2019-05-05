@@ -8,6 +8,7 @@ license = "MIT"
 homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine-network-backend-desktop"
+readme = "../README.md"
 
 [dependencies]
 oxygengine-core = { version = "0.3", path = "../oxygengine-core" }

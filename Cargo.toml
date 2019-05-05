@@ -12,6 +12,7 @@ exclude = [
   "demos/**",
   "media/**",
 ]
+readme = "README.md"
 
 [features]
 parallel = ["oxygengine-core/parallel"]
