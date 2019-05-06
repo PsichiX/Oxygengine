@@ -1,6 +1,6 @@
 use specs::{Component, Entity, FlaggedStorage, VecStorage, World};
 use specs_hierarchy::Hierarchy;
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashSet};
 
 pub fn hierarchy_find(mut root: Entity, path: &str, world: &World) -> Option<Entity> {
     let hierarchy = world.read_resource::<HierarchyRes>();
@@ -39,6 +39,25 @@ pub fn hierarchy_find(mut root: Entity, path: &str, world: &World) -> Option<Ent
 }
 
 pub type HierarchyRes = Hierarchy<Parent>;
+
+#[derive(Default)]
+pub struct HierarchyChangeRes {
+    pub(crate) entities: HashSet<Entity>,
+    pub(crate) added: Vec<Entity>,
+    pub(crate) removed: Vec<Entity>,
+}
+
+impl HierarchyChangeRes {
+    #[inline]
+    pub fn added(&self) -> &[Entity] {
+        &self.added
+    }
+
+    #[inline]
+    pub fn removed(&self) -> &[Entity] {
+        &self.removed
+    }
+}
 
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Parent(pub Entity);

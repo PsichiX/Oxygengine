@@ -131,3 +131,33 @@ fn test_hierarchy_find() {
     assert_eq!(hierarchy_find(root, "a/b/../../..", app.world()), None);
     assert_eq!(hierarchy_find(root, "a/b/../../..", app.world()), None);
 }
+
+#[test]
+fn test_hierarchy_add_remove() {
+    fn sorted(container: &[Entity]) -> Vec<Entity> {
+        let mut result = container.to_vec();
+        result.sort();
+        result
+    }
+
+    let mut app = App::build().build_empty(StandardAppTimer::default());
+    assert_eq!(app.hierarchy_added(), &[]);
+    assert_eq!(app.hierarchy_removed(), &[]);
+    let root = app
+        .world_mut()
+        .create_entity()
+        .with(Name("root".into()))
+        .build();
+    let e1 = app.world_mut().create_entity().with(Parent(root)).build();
+    app.process();
+    assert_eq!(sorted(app.hierarchy_added()), sorted(&[root, e1]));
+    assert_eq!(app.hierarchy_removed(), &[]);
+    app.process();
+    assert_eq!(app.hierarchy_added(), &[]);
+    assert_eq!(app.hierarchy_removed(), &[]);
+    app.world_mut().delete_entity(root).unwrap();
+    app.world_mut().delete_entity(e1).unwrap();
+    app.process();
+    assert_eq!(app.hierarchy_added(), &[]);
+    assert_eq!(sorted(app.hierarchy_removed()), sorted(&[root, e1]));
+}
