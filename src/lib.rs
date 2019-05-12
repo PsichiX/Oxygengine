@@ -54,3 +54,31 @@ pub mod prelude {
     #[cfg(feature = "network")]
     pub use oxygengine_network_backend_web::prelude::*;
 }
+
+#[macro_export]
+macro_rules! log {
+    ($lvl:expr, $($arg:tt)+) => ({
+        $crate::core::log::logger_log($lvl, format!(
+            "[{}: {} | {}]: {}",
+            file!(),
+            line!(),
+            module_path!(),
+            format_args!($($arg)+)
+        ))
+    })
+}
+
+#[macro_export]
+macro_rules! info {
+    ($($arg:tt)*) => (log!($crate::core::log::Log::Info, $($arg)*))
+}
+
+#[macro_export]
+macro_rules! warn {
+    ($($arg:tt)*) => (log!($crate::core::log::Log::Warning, $($arg)*))
+}
+
+#[macro_export]
+macro_rules! error {
+    ($($arg:tt)*) => (log!($crate::core::log::Log::Error, $($arg)*))
+}

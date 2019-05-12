@@ -285,7 +285,7 @@ pub fn run() -> Result<(), JsValue> {
         .build(GameState, WebAppTimer::default());
 
     // Application run phase - spawn runner that ticks our app.
-    AppRunner::new(app).run::<WebAppRunner, _>()?;
+    AppRunner::new(app).run(WebAppRunner)?;
 
     Ok(())
 }

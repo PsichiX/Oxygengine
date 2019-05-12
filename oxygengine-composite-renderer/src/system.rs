@@ -3,19 +3,22 @@
 use crate::{
     component::{
         CompositeCamera, CompositeEffect, CompositeRenderAlpha, CompositeRenderDepth,
-        CompositeRenderable, CompositeRenderableStroke, CompositeTransform, CompositeVisibility,
+        CompositeRenderable, CompositeRenderableStroke, CompositeSprite, CompositeTilemap,
+        CompositeTransform, CompositeVisibility, TileCell,
     },
-    composite_renderer::{Command, CompositeRenderer, Rectangle, Renderable, Stats},
-    math::Mat2d,
+    composite_renderer::{Command, CompositeRenderer, Image, Rectangle, Renderable, Stats},
+    math::{Grid2d, Mat2d, Rect},
     resource::CompositeTransformRes,
+    sprite_sheet_asset_protocol::SpriteSheetAsset,
+    tileset_asset_protocol::{TilesetAsset, TilesetInfo},
 };
 use core::{
     app::AppLifeCycle,
-    assets::database::AssetsDatabase,
-    ecs::{Entities, Entity, Join, Read, ReadExpect, ReadStorage, System, Write},
+    assets::{asset::AssetID, database::AssetsDatabase},
+    ecs::{Entities, Entity, Join, Read, ReadExpect, ReadStorage, System, Write, WriteStorage},
     hierarchy::{HierarchyRes, Parent, Tag},
 };
-use std::marker::PhantomData;
+use std::{collections::HashMap, marker::PhantomData};
 
 pub struct CompositeTransformSystem;
 
@@ -245,5 +248,168 @@ where
         stats.delta_time = lifecycle.delta_time_seconds();
         stats.fps = 1.0 / stats.delta_time;
         renderer.state_mut().set_stats(stats);
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct CompositeSpriteSheetSystem {
+    images_cache: HashMap<String, String>,
+    atlas_table: HashMap<AssetID, String>,
+    frames_cache: HashMap<String, HashMap<String, Rect>>,
+}
+
+impl<'s> System<'s> for CompositeSpriteSheetSystem {
+    type SystemData = (
+        ReadExpect<'s, AssetsDatabase>,
+        WriteStorage<'s, CompositeRenderable>,
+        WriteStorage<'s, CompositeSprite>,
+    );
+
+    fn run(&mut self, (assets, mut renderables, mut sprites): Self::SystemData) {
+        for id in assets.lately_loaded_protocol("atlas") {
+            let id = *id;
+            let asset = assets
+                .asset_by_id(id)
+                .expect("trying to use not loaded atlas asset");
+            let path = asset.path().to_owned();
+            let asset = asset
+                .get::<SpriteSheetAsset>()
+                .expect("trying to use non-atlas asset");
+            let image = asset.info().meta.image_name();
+            let frames = asset
+                .info()
+                .frames
+                .iter()
+                .map(|(k, v)| (k.to_owned(), v.frame))
+                .collect();
+            self.images_cache.insert(path.clone(), image);
+            self.atlas_table.insert(id, path.clone());
+            self.frames_cache.insert(path, frames);
+        }
+        for id in assets.lately_unloaded_protocol("atlas") {
+            if let Some(path) = self.atlas_table.remove(id) {
+                self.images_cache.remove(&path);
+                self.frames_cache.remove(&path);
+            }
+        }
+
+        for (renderable, sprite) in (&mut renderables, &mut sprites).join() {
+            if sprite.dirty {
+                if let Some((sheet, frame)) = sprite.sheet_frame() {
+                    if let Renderable::Image(image) = &mut renderable.0 {
+                        if let Some(name) = self.images_cache.get(sheet) {
+                            if let Some(frames) = self.frames_cache.get(sheet) {
+                                image.image = name.clone().into();
+                                if let Some(frame) = frames.get(frame) {
+                                    image.source = Some(*frame);
+                                }
+                                sprite.dirty = false;
+                            }
+                        }
+                    }
+                } else {
+                    sprite.dirty = false;
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct CompositeTilemapSystem {
+    images_cache: HashMap<String, String>,
+    atlas_table: HashMap<AssetID, String>,
+    infos_cache: HashMap<String, TilesetInfo>,
+}
+
+impl<'s> System<'s> for CompositeTilemapSystem {
+    type SystemData = (
+        ReadExpect<'s, AssetsDatabase>,
+        WriteStorage<'s, CompositeRenderable>,
+        WriteStorage<'s, CompositeTilemap>,
+    );
+
+    fn run(&mut self, (assets, mut renderables, mut tilemaps): Self::SystemData) {
+        for id in assets.lately_loaded_protocol("tiles") {
+            let id = *id;
+            let asset = assets
+                .asset_by_id(id)
+                .expect("trying to use not loaded tileset asset");
+            let path = asset.path().to_owned();
+            let asset = asset
+                .get::<TilesetAsset>()
+                .expect("trying to use non-tileset asset");
+            let image = asset.info().image_name();
+            let info = asset.info().clone();
+            self.images_cache.insert(path.clone(), image);
+            self.atlas_table.insert(id, path.clone());
+            self.infos_cache.insert(path, info);
+        }
+        for id in assets.lately_unloaded_protocol("tiles") {
+            if let Some(path) = self.atlas_table.remove(id) {
+                self.images_cache.remove(&path);
+                self.infos_cache.remove(&path);
+            }
+        }
+
+        for (renderable, tilemap) in (&mut renderables, &mut tilemaps).join() {
+            if tilemap.dirty {
+                if let Some(tileset) = tilemap.tileset() {
+                    if let Renderable::Commands(commands) = &mut renderable.0 {
+                        if let Some(name) = self.images_cache.get(tileset) {
+                            *commands = if let Some(info) = self.infos_cache.get(tileset) {
+                                Self::build_commands(name, info, tilemap.grid())
+                            } else {
+                                vec![]
+                            };
+                            tilemap.dirty = false;
+                        }
+                    }
+                } else {
+                    tilemap.dirty = false;
+                }
+            }
+        }
+    }
+}
+
+impl CompositeTilemapSystem {
+    fn build_commands<'a>(
+        name: &str,
+        info: &TilesetInfo,
+        grid: &Grid2d<TileCell>,
+    ) -> Vec<Command<'a>> {
+        let mut result = Vec::with_capacity(2 + grid.len());
+        result.push(Command::Store);
+        for row in 0..grid.rows() {
+            for col in 0..grid.cols() {
+                if let Some(cell) = grid.get(col, row) {
+                    if !cell.visible {
+                        continue;
+                    }
+                    if let Some(frame) = info.frame(cell.col, cell.row) {
+                        if cell.is_abnormal() {
+                            let (a, b, c, d, e, f) = cell.matrix().into();
+                            result.push(Command::Store);
+                            result.push(Command::Transform(a, b, c, d, e, f));
+                        }
+                        result.push(Command::Draw(
+                            Image {
+                                image: name.to_owned().into(),
+                                source: Some(frame),
+                                destination: Some(cell.destination(col, row, frame.w, frame.h)),
+                                alignment: 0.0.into(),
+                            }
+                            .into(),
+                        ));
+                        if cell.is_abnormal() {
+                            result.push(Command::Restore);
+                        }
+                    }
+                }
+            }
+        }
+        result.push(Command::Restore);
+        result
     }
 }

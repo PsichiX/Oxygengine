@@ -5,18 +5,23 @@ pub mod composite_renderer;
 pub mod math;
 pub mod png_image_asset_protocol;
 pub mod resource;
+pub mod sprite_sheet_asset_protocol;
 pub mod system;
+pub mod tileset_asset_protocol;
 
 pub mod prelude {
     pub use crate::{
         component::*, composite_renderer::*, math::*, png_image_asset_protocol::*, resource::*,
-        system::*,
+        sprite_sheet_asset_protocol::*, system::*, tileset_asset_protocol::*,
     };
 }
 
 use crate::{
     composite_renderer::CompositeRenderer,
-    system::{CompositeRendererSystem, CompositeTransformSystem},
+    system::{
+        CompositeRendererSystem, CompositeSpriteSheetSystem, CompositeTilemapSystem,
+        CompositeTransformSystem,
+    },
 };
 use core::{app::AppBuilder, assets::database::AssetsDatabase};
 
@@ -26,9 +31,13 @@ where
 {
     builder.install_resource(data);
     builder.install_system(CompositeTransformSystem, "transform", &[]);
+    builder.install_system(CompositeSpriteSheetSystem::default(), "sprite_sheet", &[]);
+    builder.install_system(CompositeTilemapSystem::default(), "tilemap", &[]);
     builder.install_thread_local_system(CompositeRendererSystem::<CR>::default());
 }
 
 pub fn protocols_installer(database: &mut AssetsDatabase) {
     database.register(png_image_asset_protocol::PngImageAssetProtocol);
+    database.register(sprite_sheet_asset_protocol::SpriteSheetAssetProtocol);
+    database.register(tileset_asset_protocol::TilesetAssetProtocol);
 }

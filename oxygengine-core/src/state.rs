@@ -1,3 +1,4 @@
+use crate::id::ID;
 use specs::World;
 
 pub enum StateChange {
@@ -20,3 +21,5 @@ pub trait State {
 }
 
 impl State for () {}
+
+pub type StateToken = ID<()>;

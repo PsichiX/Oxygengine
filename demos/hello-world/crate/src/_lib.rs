@@ -1,3 +1,4 @@
+#[macro_use]
 extern crate oxygengine;
 
 use oxygengine::prelude::*;
@@ -120,6 +121,8 @@ impl State for GameState {
 #[wasm_bindgen]
 pub fn run() -> Result<(), JsValue> {
     set_panic_hook();
+
+    logger_setup(WebLogger);
 
     // Application build phase - install all systems and resources and setup them.
     let app = App::build()

@@ -1,7 +1,9 @@
 #![cfg(test)]
+
 use super::{
     app::{App, AppLifeCycle, AppRunner, StandardAppTimer, SyncAppRunner},
-    hierarchy::{hierarchy_find, Name, Parent},
+    hierarchy::{hierarchy_find, HierarchyChangeRes, Name, Parent},
+    log::{logger_setup, DefaultLogger},
     state::{State, StateChange},
 };
 use specs::prelude::*;
@@ -141,8 +143,11 @@ fn test_hierarchy_add_remove() {
     }
 
     let mut app = App::build().build_empty(StandardAppTimer::default());
-    assert_eq!(app.hierarchy_added(), &[]);
-    assert_eq!(app.hierarchy_removed(), &[]);
+    {
+        let changes = app.world().read_resource::<HierarchyChangeRes>();
+        assert_eq!(changes.added(), &[]);
+        assert_eq!(changes.removed(), &[]);
+    }
     let root = app
         .world_mut()
         .create_entity()
@@ -150,14 +155,31 @@ fn test_hierarchy_add_remove() {
         .build();
     let e1 = app.world_mut().create_entity().with(Parent(root)).build();
     app.process();
-    assert_eq!(sorted(app.hierarchy_added()), sorted(&[root, e1]));
-    assert_eq!(app.hierarchy_removed(), &[]);
+    {
+        let changes = app.world().read_resource::<HierarchyChangeRes>();
+        assert_eq!(sorted(changes.added()), sorted(&[root, e1]));
+        assert_eq!(changes.removed(), &[]);
+    }
     app.process();
-    assert_eq!(app.hierarchy_added(), &[]);
-    assert_eq!(app.hierarchy_removed(), &[]);
+    {
+        let changes = app.world().read_resource::<HierarchyChangeRes>();
+        assert_eq!(changes.added(), &[]);
+        assert_eq!(changes.removed(), &[]);
+    }
     app.world_mut().delete_entity(root).unwrap();
     app.world_mut().delete_entity(e1).unwrap();
     app.process();
-    assert_eq!(app.hierarchy_added(), &[]);
-    assert_eq!(sorted(app.hierarchy_removed()), sorted(&[root, e1]));
+    {
+        let changes = app.world().read_resource::<HierarchyChangeRes>();
+        assert_eq!(changes.added(), &[]);
+        assert_eq!(sorted(changes.removed()), sorted(&[root, e1]));
+    }
+}
+
+#[test]
+fn test_logger() {
+    logger_setup(DefaultLogger);
+    info!("my logger {}", "info");
+    warn!("my logger {}", "warn");
+    error!("my logger {}", "error");
 }

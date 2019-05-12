@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
 pub type Scalar = f32;
@@ -17,7 +18,7 @@ pub fn unlerp(a: Scalar, b: Scalar, v: Scalar) -> Scalar {
     (v - a) / (b - a)
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Mat2d(pub [Scalar; 6]);
 
 impl Default for Mat2d {
@@ -94,13 +95,27 @@ impl From<[Scalar; 6]> for Mat2d {
     }
 }
 
+impl From<(Scalar, Scalar, Scalar, Scalar, Scalar, Scalar)> for Mat2d {
+    fn from((a, b, c, d, e, f): (Scalar, Scalar, Scalar, Scalar, Scalar, Scalar)) -> Self {
+        Self([a, b, c, d, e, f])
+    }
+}
+
 impl Into<[Scalar; 6]> for Mat2d {
     fn into(self) -> [Scalar; 6] {
         self.0
     }
 }
 
-#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
+impl Into<(Scalar, Scalar, Scalar, Scalar, Scalar, Scalar)> for Mat2d {
+    fn into(self) -> (Scalar, Scalar, Scalar, Scalar, Scalar, Scalar) {
+        (
+            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5],
+        )
+    }
+}
+
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -253,7 +268,7 @@ impl ToString for Color {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Vec2 {
     pub x: Scalar,
     pub y: Scalar,
@@ -423,7 +438,7 @@ impl From<[Scalar; 2]> for Vec2 {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Rect {
     pub x: Scalar,
     pub y: Scalar,
@@ -478,6 +493,86 @@ impl From<[Scalar; 4]> for Rect {
             y: value[1],
             w: value[2],
             h: value[3],
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct Grid2d<T> {
+    cells: Vec<T>,
+    cols: usize,
+    rows: usize,
+}
+
+impl<T> Grid2d<T>
+where
+    T: Clone,
+{
+    pub fn new(cols: usize, rows: usize, fill: T) -> Self {
+        Self {
+            cells: vec![fill; cols * rows],
+            cols,
+            rows,
+        }
+    }
+
+    pub fn with_cells(cols: usize, cells: &[T]) -> Self {
+        let rows = cells.len() / cols;
+        let cells = cells[0..(cols * rows)].to_vec();
+        Self { cells, cols, rows }
+    }
+
+    #[inline]
+    pub fn cols(&self) -> usize {
+        self.cols
+    }
+
+    #[inline]
+    pub fn rows(&self) -> usize {
+        self.rows
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.cols * self.rows
+    }
+
+    #[inline]
+    pub fn cells(&self) -> &[T] {
+        &self.cells
+    }
+
+    #[inline]
+    pub fn cell(&self, col: usize, row: usize) -> Option<&T> {
+        if col <= self.cols && row <= self.rows {
+            Some(&self.cells[row * self.cols + col])
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    pub fn cell_mut(&mut self, col: usize, row: usize) -> Option<&mut T> {
+        if col <= self.cols && row <= self.rows {
+            Some(&mut self.cells[row * self.cols + col])
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    pub fn get(&self, col: usize, row: usize) -> Option<T> {
+        if col <= self.cols && row <= self.rows {
+            Some(self.cells[row * self.cols + col].clone())
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    pub fn set(&mut self, col: usize, row: usize, value: T) {
+        if col <= self.cols && row <= self.rows {
+            self.cells[row * self.cols + col] = value;
         }
     }
 }

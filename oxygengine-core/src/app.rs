@@ -1,6 +1,6 @@
 use crate::{
-    hierarchy::{HierarchyChangeRes, Name, Parent, Tag},
-    state::{State, StateChange},
+    hierarchy::{HierarchyChangeRes, Name, NonPersistent, Parent, Tag},
+    state::{State, StateChange, StateToken},
 };
 use specs::{
     world::EntitiesRes, Component, Dispatcher, DispatcherBuilder, Entity, Join, RunNow, System,
@@ -56,6 +56,7 @@ impl AppTimer for StandardAppTimer {
 pub struct AppLifeCycle {
     pub running: bool,
     pub(crate) timer: Box<dyn AppTimer>,
+    pub(crate) states_tokens: Vec<StateToken>,
 }
 
 impl AppLifeCycle {
@@ -63,6 +64,7 @@ impl AppLifeCycle {
         Self {
             running: true,
             timer,
+            states_tokens: vec![StateToken::new()],
         }
     }
 
@@ -72,6 +74,14 @@ impl AppLifeCycle {
 
     pub fn delta_time_seconds(&self) -> f64 {
         self.timer.delta_time_seconds()
+    }
+
+    pub fn current_state_token(&self) -> StateToken {
+        if let Some(token) = self.states_tokens.last() {
+            *token
+        } else {
+            StateToken::new()
+        }
     }
 }
 
@@ -166,6 +176,42 @@ impl<'a, 'b> App<'a, 'b> {
         }
         let change = self.states.last_mut().unwrap().on_process(&mut self.world);
         self.dispatcher.dispatch(&self.world.res);
+        match &change {
+            StateChange::Pop | StateChange::Swap(_) => {
+                let token = {
+                    self.world
+                        .read_resource::<AppLifeCycle>()
+                        .current_state_token()
+                };
+                let to_delete = {
+                    let entities = self.world.read_resource::<EntitiesRes>();
+                    let non_persistents = self.world.read_storage::<NonPersistent>();
+                    (&entities, &non_persistents)
+                        .join()
+                        .filter_map(
+                            |(entity, pers)| if pers.0 == token { Some(entity) } else { None },
+                        )
+                        .collect::<Vec<_>>()
+                };
+                for entity in to_delete {
+                    drop(self.world.delete_entity(entity));
+                }
+            }
+            StateChange::Quit => {
+                let to_delete = {
+                    let entities = self.world.read_resource::<EntitiesRes>();
+                    let non_persistents = self.world.read_storage::<NonPersistent>();
+                    (&entities, &non_persistents)
+                        .join()
+                        .map(|(entity, _)| entity)
+                        .collect::<Vec<_>>()
+                };
+                for entity in to_delete {
+                    drop(self.world.delete_entity(entity));
+                }
+            }
+            _ => {}
+        }
         self.world.maintain();
         {
             let mut changes = self.world.write_resource::<HierarchyChangeRes>();
@@ -193,23 +239,40 @@ impl<'a, 'b> App<'a, 'b> {
         match change {
             StateChange::Push(mut state) => {
                 self.states.last_mut().unwrap().on_pause(&mut self.world);
+                self.world
+                    .write_resource::<AppLifeCycle>()
+                    .states_tokens
+                    .push(StateToken::new());
                 state.on_enter(&mut self.world);
                 self.states.push(state);
             }
             StateChange::Pop => {
                 self.states.pop().unwrap().on_exit(&mut self.world);
+                self.world
+                    .write_resource::<AppLifeCycle>()
+                    .states_tokens
+                    .pop();
                 if let Some(state) = self.states.last_mut() {
                     state.on_resume(&mut self.world);
                 }
             }
             StateChange::Swap(mut state) => {
                 self.states.pop().unwrap().on_exit(&mut self.world);
+                {
+                    let lifecycle = &mut self.world.write_resource::<AppLifeCycle>();
+                    lifecycle.states_tokens.pop();
+                    lifecycle.states_tokens.push(StateToken::new());
+                }
                 state.on_enter(&mut self.world);
                 self.states.push(state);
             }
             StateChange::Quit => {
                 while let Some(mut state) = self.states.pop() {
                     state.on_exit(&mut self.world);
+                    self.world
+                        .write_resource::<AppLifeCycle>()
+                        .states_tokens
+                        .pop();
                 }
             }
             _ => {}
@@ -357,6 +420,7 @@ impl<'a, 'b> AppBuilder<'a, 'b> {
         self.world.register::<Parent>();
         self.world.register::<Name>();
         self.world.register::<Tag>();
+        self.world.register::<NonPersistent>();
         let mut dispatcher = self.dispatcher_builder.build();
         dispatcher.setup(&mut self.world.res);
         App {

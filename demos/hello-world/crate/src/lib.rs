@@ -1,7 +1,5 @@
-extern crate oxygengine;
-
 #[macro_use]
-pub mod macros;
+extern crate oxygengine;
 
 pub mod components;
 pub mod states;
@@ -24,6 +22,8 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[wasm_bindgen]
 pub fn run() -> Result<(), JsValue> {
     set_panic_hook();
+
+    logger_setup(WebLogger);
 
     let app = App::build()
         .with_system(FollowMouseSystem, "follow_mouse", &[])

@@ -1,3 +1,4 @@
+use crate::state::StateToken;
 use specs::{Component, Entity, FlaggedStorage, VecStorage, World};
 use specs_hierarchy::Hierarchy;
 use std::{borrow::Cow, collections::HashSet};
@@ -83,5 +84,12 @@ impl Component for Tag {
 pub struct Name(pub Cow<'static, str>);
 
 impl Component for Name {
+    type Storage = VecStorage<Self>;
+}
+
+#[derive(Debug, Clone)]
+pub struct NonPersistent(pub StateToken);
+
+impl Component for NonPersistent {
     type Storage = VecStorage<Self>;
 }
