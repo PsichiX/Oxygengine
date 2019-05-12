@@ -96,6 +96,7 @@ impl From<[Scalar; 6]> for Mat2d {
 }
 
 impl From<(Scalar, Scalar, Scalar, Scalar, Scalar, Scalar)> for Mat2d {
+    #[allow(clippy::many_single_char_names)]
     fn from((a, b, c, d, e, f): (Scalar, Scalar, Scalar, Scalar, Scalar, Scalar)) -> Self {
         Self([a, b, c, d, e, f])
     }
@@ -535,6 +536,11 @@ where
     #[inline]
     pub fn len(&self) -> usize {
         self.cols * self.rows
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.cols == 0 && self.rows == 0
     }
 
     #[inline]

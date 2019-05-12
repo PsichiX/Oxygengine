@@ -2,12 +2,12 @@
 
 use crate::{
     component::{
-        CompositeCamera, CompositeEffect, CompositeRenderAlpha, CompositeRenderDepth,
-        CompositeRenderable, CompositeRenderableStroke, CompositeSprite, CompositeTilemap,
-        CompositeTransform, CompositeVisibility, TileCell,
+        CompositeAnimation, CompositeCamera, CompositeEffect, CompositeRenderAlpha,
+        CompositeRenderDepth, CompositeRenderable, CompositeRenderableStroke, CompositeSprite,
+        CompositeTilemap, CompositeTransform, CompositeVisibility, TileCell,
     },
     composite_renderer::{Command, CompositeRenderer, Image, Rectangle, Renderable, Stats},
-    math::{Grid2d, Mat2d, Rect},
+    math::{Grid2d, Mat2d, Rect, Scalar},
     resource::CompositeTransformRes,
     sprite_sheet_asset_protocol::SpriteSheetAsset,
     tileset_asset_protocol::{TilesetAsset, TilesetInfo},
@@ -411,5 +411,32 @@ impl CompositeTilemapSystem {
         }
         result.push(Command::Restore);
         result
+    }
+}
+
+pub struct CompositeAnimationSystem;
+
+impl<'s> System<'s> for CompositeAnimationSystem {
+    type SystemData = (
+        ReadExpect<'s, AppLifeCycle>,
+        WriteStorage<'s, CompositeSprite>,
+        WriteStorage<'s, CompositeAnimation>,
+    );
+
+    fn run(&mut self, (lifecycle, mut sprites, mut animations): Self::SystemData) {
+        let dt = lifecycle.delta_time_seconds() as Scalar;
+        for (sprite, animation) in (&mut sprites, &mut animations).join() {
+            if animation.dirty {
+                animation.dirty = false;
+                if let Some((name, phase, _, _)) = &animation.current {
+                    if let Some(anim) = animation.animations.get(name) {
+                        if let Some(frame) = anim.frames.get(*phase as usize) {
+                            sprite.set_sheet_frame(Some((anim.sheet.clone(), frame.clone())));
+                        }
+                    }
+                }
+            }
+            animation.process(dt);
+        }
     }
 }

@@ -3,7 +3,7 @@ use crate::{
     math::{Grid2d, Mat2d, Rect, Scalar, Vec2},
 };
 use core::ecs::{Component, DenseVecStorage, HashMapStorage, VecStorage};
-use std::{borrow::Cow, f32::consts::PI};
+use std::{borrow::Cow, collections::HashMap, f32::consts::PI};
 
 #[derive(Debug, Copy, Clone)]
 pub struct CompositeVisibility(pub bool);
@@ -298,6 +298,145 @@ impl CompositeSprite {
 }
 
 impl Component for CompositeSprite {
+    type Storage = VecStorage<Self>;
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct Animation {
+    pub sheet: Cow<'static, str>,
+    pub frames: Vec<Cow<'static, str>>,
+}
+
+impl Animation {
+    pub fn new(sheet: Cow<'static, str>, frames: Vec<Cow<'static, str>>) -> Self {
+        Self { sheet, frames }
+    }
+}
+
+impl From<(Cow<'static, str>, Vec<Cow<'static, str>>)> for Animation {
+    fn from((sheet, frames): (Cow<'static, str>, Vec<Cow<'static, str>>)) -> Self {
+        Self::new(sheet, frames)
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct CompositeAnimation {
+    pub animations: HashMap<Cow<'static, str>, Animation>,
+    // (name, phase, speed, looped)
+    pub(crate) current: Option<(Cow<'static, str>, Scalar, Scalar, bool)>,
+    pub(crate) dirty: bool,
+}
+
+impl CompositeAnimation {
+    pub fn new(animations: HashMap<Cow<'static, str>, Animation>) -> Self {
+        Self {
+            animations,
+            current: None,
+            dirty: false,
+        }
+    }
+
+    #[allow(clippy::should_implement_trait)]
+    pub fn from_iter<I>(animations: I) -> Self
+    where
+        I: IntoIterator<Item = (Cow<'static, str>, Animation)>,
+    {
+        Self {
+            animations: animations.into_iter().collect::<HashMap<_, _>>(),
+            current: None,
+            dirty: false,
+        }
+    }
+
+    pub fn play(&mut self, name: &str, speed: Scalar, looped: bool) -> bool {
+        if self.animations.contains_key(name) {
+            self.current = Some((name.to_owned().into(), 0.0, speed, looped));
+            self.dirty = true;
+            true
+        } else {
+            self.current = None;
+            false
+        }
+    }
+
+    pub fn stop(&mut self) {
+        self.current = None;
+    }
+
+    pub fn phase(&self) -> Option<Scalar> {
+        if let Some((_, phase, _, _)) = &self.current {
+            Some(*phase)
+        } else {
+            None
+        }
+    }
+
+    pub fn set_phase(&mut self, value: Scalar) -> bool {
+        if let Some((_, phase, _, _)) = &mut self.current {
+            *phase = value.max(0.0);
+            self.dirty = true;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn speed(&self) -> Option<Scalar> {
+        if let Some((_, _, speed, _)) = &self.current {
+            Some(*speed)
+        } else {
+            None
+        }
+    }
+
+    pub fn set_speed(&mut self, value: Scalar) -> bool {
+        if let Some((_, _, speed, _)) = &mut self.current {
+            *speed = value;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn looped(&self) -> Option<bool> {
+        if let Some((_, _, _, looped)) = &self.current {
+            Some(*looped)
+        } else {
+            None
+        }
+    }
+
+    pub fn set_looped(&mut self, value: bool) -> bool {
+        if let Some((_, _, _, looped)) = &mut self.current {
+            *looped = value;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub(crate) fn process(&mut self, delta_time: Scalar) {
+        if let Some((name, phase, speed, looped)) = &mut self.current {
+            if let Some(animation) = self.animations.get(name) {
+                let prev = phase.max(0.0) as usize;
+                *phase += *speed * delta_time;
+                let next = phase.max(0.0) as usize;
+                if next >= animation.frames.len() {
+                    if *looped {
+                        *phase = 0.0;
+                        self.dirty = true;
+                    } else {
+                        self.current = None;
+                    }
+                } else if prev != next {
+                    self.dirty = true;
+                }
+            }
+        }
+    }
+}
+
+impl Component for CompositeAnimation {
     type Storage = VecStorage<Self>;
 }
 

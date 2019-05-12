@@ -20,8 +20,9 @@ pub struct DefaultLogger;
 impl Logger for DefaultLogger {
     fn log(&mut self, mode: Log, message: String) {
         match mode {
-            Log::Info => println!("[{}] {}", "INFO", message),
-            Log::Warning | Log::Error => eprintln!("[{}] {}", "INFO", message),
+            Log::Info => println!("[INFO] {}", message),
+            Log::Warning => eprintln!("[WARNING] {}", message),
+            Log::Error => eprintln!("[ERROR] {}", message),
         }
     }
 }

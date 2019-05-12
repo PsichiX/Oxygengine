@@ -19,8 +19,8 @@ pub mod prelude {
 use crate::{
     composite_renderer::CompositeRenderer,
     system::{
-        CompositeRendererSystem, CompositeSpriteSheetSystem, CompositeTilemapSystem,
-        CompositeTransformSystem,
+        CompositeAnimationSystem, CompositeRendererSystem, CompositeSpriteSheetSystem,
+        CompositeTilemapSystem, CompositeTransformSystem,
     },
 };
 use core::{app::AppBuilder, assets::database::AssetsDatabase};
@@ -31,7 +31,12 @@ where
 {
     builder.install_resource(data);
     builder.install_system(CompositeTransformSystem, "transform", &[]);
-    builder.install_system(CompositeSpriteSheetSystem::default(), "sprite_sheet", &[]);
+    builder.install_system(CompositeAnimationSystem, "animation", &[]);
+    builder.install_system(
+        CompositeSpriteSheetSystem::default(),
+        "sprite_sheet",
+        &["animation"],
+    );
     builder.install_system(CompositeTilemapSystem::default(), "tilemap", &[]);
     builder.install_thread_local_system(CompositeRendererSystem::<CR>::default());
 }
