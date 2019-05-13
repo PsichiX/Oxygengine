@@ -2,9 +2,10 @@
 
 use crate::{
     component::{
-        CompositeAnimation, CompositeCamera, CompositeEffect, CompositeRenderAlpha,
-        CompositeRenderDepth, CompositeRenderable, CompositeRenderableStroke, CompositeSprite,
-        CompositeTilemap, CompositeTransform, CompositeVisibility, TileCell,
+        CompositeCamera, CompositeEffect, CompositeRenderAlpha, CompositeRenderDepth,
+        CompositeRenderable, CompositeRenderableStroke, CompositeSprite, CompositeSpriteAnimation,
+        CompositeSurfaceCache, CompositeTilemap, CompositeTilemapAnimation, CompositeTransform,
+        CompositeVisibility, TileCell,
     },
     composite_renderer::{Command, CompositeRenderer, Image, Rectangle, Renderable, Stats},
     math::{Grid2d, Mat2d, Rect, Scalar},
@@ -15,7 +16,10 @@ use crate::{
 use core::{
     app::AppLifeCycle,
     assets::{asset::AssetID, database::AssetsDatabase},
-    ecs::{Entities, Entity, Join, Read, ReadExpect, ReadStorage, System, Write, WriteStorage},
+    ecs::{
+        storage::ComponentEvent, Entities, Entity, Join, Read, ReadExpect, ReadStorage, ReaderId,
+        Resources, System, Write, WriteStorage,
+    },
     hierarchy::{HierarchyRes, Parent, Tag},
 };
 use std::{collections::HashMap, marker::PhantomData};
@@ -296,15 +300,16 @@ impl<'s> System<'s> for CompositeSpriteSheetSystem {
         for (renderable, sprite) in (&mut renderables, &mut sprites).join() {
             if sprite.dirty {
                 if let Some((sheet, frame)) = sprite.sheet_frame() {
-                    if let Renderable::Image(image) = &mut renderable.0 {
-                        if let Some(name) = self.images_cache.get(sheet) {
-                            if let Some(frames) = self.frames_cache.get(sheet) {
-                                image.image = name.clone().into();
-                                if let Some(frame) = frames.get(frame) {
-                                    image.source = Some(*frame);
-                                }
-                                sprite.dirty = false;
+                    if let Some(name) = self.images_cache.get(sheet) {
+                        if let Some(frames) = self.frames_cache.get(sheet) {
+                            renderable.0 = Image {
+                                image: name.clone().into(),
+                                source: frames.get(frame).map(|frame| *frame),
+                                destination: None,
+                                alignment: sprite.alignment,
                             }
+                            .into();
+                            sprite.dirty = false;
                         }
                     }
                 } else {
@@ -355,15 +360,14 @@ impl<'s> System<'s> for CompositeTilemapSystem {
         for (renderable, tilemap) in (&mut renderables, &mut tilemaps).join() {
             if tilemap.dirty {
                 if let Some(tileset) = tilemap.tileset() {
-                    if let Renderable::Commands(commands) = &mut renderable.0 {
-                        if let Some(name) = self.images_cache.get(tileset) {
-                            *commands = if let Some(info) = self.infos_cache.get(tileset) {
-                                Self::build_commands(name, info, tilemap.grid())
-                            } else {
-                                vec![]
-                            };
-                            tilemap.dirty = false;
-                        }
+                    if let Some(name) = self.images_cache.get(tileset) {
+                        let commands = if let Some(info) = self.infos_cache.get(tileset) {
+                            Self::build_commands(name, info, tilemap.grid())
+                        } else {
+                            vec![]
+                        };
+                        renderable.0 = Renderable::Commands(commands);
+                        tilemap.dirty = false;
                     }
                 } else {
                     tilemap.dirty = false;
@@ -379,8 +383,7 @@ impl CompositeTilemapSystem {
         info: &TilesetInfo,
         grid: &Grid2d<TileCell>,
     ) -> Vec<Command<'a>> {
-        let mut result = Vec::with_capacity(2 + grid.len());
-        result.push(Command::Store);
+        let mut result = Vec::with_capacity(grid.len() * 4);
         for row in 0..grid.rows() {
             for col in 0..grid.cols() {
                 if let Some(cell) = grid.get(col, row) {
@@ -388,55 +391,187 @@ impl CompositeTilemapSystem {
                         continue;
                     }
                     if let Some(frame) = info.frame(cell.col, cell.row) {
-                        if cell.is_abnormal() {
-                            let (a, b, c, d, e, f) = cell.matrix().into();
-                            result.push(Command::Store);
-                            result.push(Command::Transform(a, b, c, d, e, f));
-                        }
+                        let (a, b, c, d, e, f) = cell.matrix(col, row, frame.w, frame.h).into();
+                        result.push(Command::Store);
+                        result.push(Command::Transform(a, b, c, d, e, f));
                         result.push(Command::Draw(
                             Image {
                                 image: name.to_owned().into(),
                                 source: Some(frame),
-                                destination: Some(cell.destination(col, row, frame.w, frame.h)),
+                                destination: None,
                                 alignment: 0.0.into(),
                             }
                             .into(),
                         ));
-                        if cell.is_abnormal() {
-                            result.push(Command::Restore);
-                        }
+                        result.push(Command::Restore);
                     }
                 }
             }
         }
-        result.push(Command::Restore);
         result
     }
 }
 
-pub struct CompositeAnimationSystem;
+pub struct CompositeSpriteAnimationSystem;
 
-impl<'s> System<'s> for CompositeAnimationSystem {
+impl<'s> System<'s> for CompositeSpriteAnimationSystem {
     type SystemData = (
         ReadExpect<'s, AppLifeCycle>,
+        Entities<'s>,
         WriteStorage<'s, CompositeSprite>,
-        WriteStorage<'s, CompositeAnimation>,
+        WriteStorage<'s, CompositeSpriteAnimation>,
+        WriteStorage<'s, CompositeSurfaceCache>,
     );
 
-    fn run(&mut self, (lifecycle, mut sprites, mut animations): Self::SystemData) {
+    fn run(
+        &mut self,
+        (lifecycle, entities, mut sprites, mut animations, mut caches): Self::SystemData,
+    ) {
         let dt = lifecycle.delta_time_seconds() as Scalar;
-        for (sprite, animation) in (&mut sprites, &mut animations).join() {
+        for (entity, sprite, animation) in (&entities, &mut sprites, &mut animations).join() {
             if animation.dirty {
                 animation.dirty = false;
                 if let Some((name, phase, _, _)) = &animation.current {
                     if let Some(anim) = animation.animations.get(name) {
                         if let Some(frame) = anim.frames.get(*phase as usize) {
                             sprite.set_sheet_frame(Some((anim.sheet.clone(), frame.clone())));
+                            if let Some(cache) = caches.get_mut(entity) {
+                                cache.rebuild();
+                            }
                         }
                     }
                 }
             }
             animation.process(dt);
+        }
+    }
+}
+
+pub struct CompositeTilemapAnimationSystem;
+
+impl<'s> System<'s> for CompositeTilemapAnimationSystem {
+    type SystemData = (
+        ReadExpect<'s, AppLifeCycle>,
+        Entities<'s>,
+        WriteStorage<'s, CompositeTilemap>,
+        WriteStorage<'s, CompositeTilemapAnimation>,
+        WriteStorage<'s, CompositeSurfaceCache>,
+    );
+
+    fn run(
+        &mut self,
+        (lifecycle, entities, mut tilemaps, mut animations, mut caches): Self::SystemData,
+    ) {
+        let dt = lifecycle.delta_time_seconds() as Scalar;
+        for (entity, tilemap, animation) in (&entities, &mut tilemaps, &mut animations).join() {
+            if animation.dirty {
+                animation.dirty = false;
+                if let Some((name, phase, _, _)) = &animation.current {
+                    if let Some(anim) = animation.animations.get(name) {
+                        if let Some(frame) = anim.frames.get(*phase as usize) {
+                            tilemap.set_tileset(Some(anim.tileset.clone()));
+                            tilemap.set_grid(frame.clone());
+                            if let Some(cache) = caches.get_mut(entity) {
+                                cache.rebuild();
+                            }
+                        }
+                    }
+                }
+            }
+            animation.process(dt);
+        }
+    }
+}
+
+pub struct CompositeSurfaceCacheSystem<CR>
+where
+    CR: CompositeRenderer,
+{
+    cached_surfaces: HashMap<Entity, String>,
+    reader_id: Option<ReaderId<ComponentEvent>>,
+    _phantom: PhantomData<CR>,
+}
+
+impl<CR> Default for CompositeSurfaceCacheSystem<CR>
+where
+    CR: CompositeRenderer,
+{
+    fn default() -> Self {
+        Self {
+            cached_surfaces: Default::default(),
+            reader_id: None,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<'s, CR> System<'s> for CompositeSurfaceCacheSystem<CR>
+where
+    CR: CompositeRenderer + Send + Sync + 'static,
+{
+    type SystemData = (
+        Entities<'s>,
+        Option<Write<'s, CR>>,
+        WriteStorage<'s, CompositeSurfaceCache>,
+        WriteStorage<'s, CompositeRenderable>,
+    );
+
+    fn setup(&mut self, res: &mut Resources) {
+        use core::ecs::SystemData;
+        Self::SystemData::setup(res);
+        self.reader_id = Some(WriteStorage::<CompositeSurfaceCache>::fetch(&res).register_reader());
+    }
+
+    fn run(&mut self, (entities, renderer, mut caches, mut renderables): Self::SystemData) {
+        if renderer.is_none() {
+            return;
+        }
+
+        let renderer: &mut CR = &mut renderer.unwrap();
+
+        let events = caches.channel().read(self.reader_id.as_mut().unwrap());
+        for event in events {
+            if let ComponentEvent::Removed(index) = event {
+                if let Some(name) = self.cached_surfaces.iter().find_map(|(entity, name)| {
+                    if entity.id() == *index {
+                        Some(name)
+                    } else {
+                        None
+                    }
+                }) {
+                    renderer.destroy_surface(name);
+                }
+            }
+        }
+
+        for (entity, cache, renderable) in (&entities, &mut caches, &mut renderables).join() {
+            if cache.dirty {
+                cache.dirty = false;
+                if !renderer.has_surface(cache.name()) {
+                    renderer.create_surface(cache.name(), cache.width(), cache.height());
+                    self.cached_surfaces.insert(entity, cache.name().to_owned());
+                } else if let Some((width, height)) = renderer.get_surface_size(cache.name()) {
+                    if width != cache.width() || height != cache.height() {
+                        renderer.destroy_surface(cache.name());
+                        renderer.create_surface(cache.name(), cache.width(), cache.height());
+                        self.cached_surfaces.insert(entity, cache.name().to_owned());
+                    }
+                }
+                let commands = vec![
+                    Command::Store,
+                    Command::Draw(renderable.0.clone()),
+                    Command::Restore,
+                ];
+                if let Ok(_) = renderer.update_surface(cache.name(), commands) {
+                    renderable.0 = Image {
+                        image: cache.name().to_owned().into(),
+                        source: None,
+                        destination: None,
+                        alignment: 0.0.into(),
+                    }
+                    .into();
+                }
+            }
         }
     }
 }

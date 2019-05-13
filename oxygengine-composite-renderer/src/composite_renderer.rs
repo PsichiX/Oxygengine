@@ -263,8 +263,8 @@ impl RenderState {
 }
 
 pub trait CompositeRenderer: Send + Sync {
+    // -> (render ops, renderables)
     fn execute<'a, I>(&mut self, commands: I) -> Result<(usize, usize)>
-    // (render ops, renderables)
     where
         I: IntoIterator<Item = Command<'a>>;
 
@@ -277,4 +277,16 @@ pub trait CompositeRenderer: Send + Sync {
     fn update_state(&mut self) {}
 
     fn update_cache(&mut self, _assets: &AssetsDatabase) {}
+
+    fn create_surface(&mut self, name: &str, width: usize, height: usize) -> bool;
+
+    fn destroy_surface(&mut self, name: &str) -> bool;
+
+    fn has_surface(&mut self, name: &str) -> bool;
+
+    fn get_surface_size(&self, name: &str) -> Option<(usize, usize)>;
+
+    fn update_surface<'a, I>(&mut self, name: &str, commands: I) -> Result<(usize, usize)>
+    where
+        I: IntoIterator<Item = Command<'a>>;
 }

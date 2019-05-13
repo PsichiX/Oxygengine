@@ -2,6 +2,7 @@
 
 extern crate base64;
 extern crate oxygengine_composite_renderer as renderer;
+#[macro_use]
 extern crate oxygengine_core as core;
 
 use core::{
@@ -40,6 +41,7 @@ pub struct WebCompositeRenderer {
     images_cache: HashMap<String, HtmlImageElement>,
     images_table: HashMap<AssetID, String>,
     cached_image_smoothing: Option<bool>,
+    surfaces_cache: HashMap<String, (HtmlCanvasElement, CanvasRenderingContext2d)>,
 }
 
 unsafe impl Send for WebCompositeRenderer {}
@@ -61,6 +63,7 @@ impl WebCompositeRenderer {
             images_cache: Default::default(),
             images_table: Default::default(),
             cached_image_smoothing: None,
+            surfaces_cache: Default::default(),
         }
     }
 
@@ -69,10 +72,12 @@ impl WebCompositeRenderer {
         *result.state_mut() = state;
         result
     }
-}
 
-impl CompositeRenderer for WebCompositeRenderer {
-    fn execute<'a, I>(&mut self, commands: I) -> Result<(usize, usize)>
+    fn execute_with<'a, I>(
+        &self,
+        context: &CanvasRenderingContext2d,
+        commands: I,
+    ) -> Result<(usize, usize)>
     where
         I: IntoIterator<Item = Command<'a>>,
     {
@@ -82,9 +87,8 @@ impl CompositeRenderer for WebCompositeRenderer {
             match command {
                 Command::Draw(renderable) => match renderable {
                     Renderable::Rectangle(rectangle) => {
-                        self.context
-                            .set_fill_style(&rectangle.color.to_string().into());
-                        self.context.fill_rect(
+                        context.set_fill_style(&rectangle.color.to_string().into());
+                        context.fill_rect(
                             rectangle.rect.x.into(),
                             rectangle.rect.y.into(),
                             rectangle.rect.w.into(),
@@ -94,15 +98,14 @@ impl CompositeRenderer for WebCompositeRenderer {
                         renderables += 1;
                     }
                     Renderable::Text(text) => {
-                        self.context.set_fill_style(&text.color.to_string().into());
-                        self.context
-                            .set_font(&format!("{}px {}", text.size, &text.font));
-                        self.context.set_text_align(match text.align {
+                        context.set_fill_style(&text.color.to_string().into());
+                        context.set_font(&format!("{}px {}", text.size, &text.font));
+                        context.set_text_align(match text.align {
                             TextAlign::Left => "left",
                             TextAlign::Center => "center",
                             TextAlign::Right => "right",
                         });
-                        drop(self.context.fill_text(
+                        drop(context.fill_text(
                             &text.text,
                             text.position.x.into(),
                             text.position.y.into(),
@@ -112,19 +115,19 @@ impl CompositeRenderer for WebCompositeRenderer {
                     }
                     Renderable::Path(path) => {
                         let mut ops = 0;
-                        self.context.begin_path();
+                        context.begin_path();
                         for element in &path.elements {
                             match element {
                                 PathElement::MoveTo(pos) => {
-                                    self.context.move_to(pos.x.into(), pos.y.into());
+                                    context.move_to(pos.x.into(), pos.y.into());
                                     ops += 1;
                                 }
                                 PathElement::LineTo(pos) => {
-                                    self.context.line_to(pos.x.into(), pos.y.into());
+                                    context.line_to(pos.x.into(), pos.y.into());
                                     ops += 1;
                                 }
                                 PathElement::BezierCurveTo(cpa, cpb, pos) => {
-                                    self.context.bezier_curve_to(
+                                    context.bezier_curve_to(
                                         cpa.x.into(),
                                         cpa.y.into(),
                                         cpb.x.into(),
@@ -135,7 +138,7 @@ impl CompositeRenderer for WebCompositeRenderer {
                                     ops += 1;
                                 }
                                 PathElement::QuadraticCurveTo(cp, pos) => {
-                                    self.context.quadratic_curve_to(
+                                    context.quadratic_curve_to(
                                         cp.x.into(),
                                         cp.y.into(),
                                         pos.x.into(),
@@ -144,7 +147,7 @@ impl CompositeRenderer for WebCompositeRenderer {
                                     ops += 1;
                                 }
                                 PathElement::Arc(pos, r, a) => {
-                                    drop(self.context.arc(
+                                    drop(context.arc(
                                         pos.x.into(),
                                         pos.y.into(),
                                         (*r).into(),
@@ -154,7 +157,7 @@ impl CompositeRenderer for WebCompositeRenderer {
                                     ops += 1;
                                 }
                                 PathElement::Ellipse(pos, r, rot, a) => {
-                                    drop(self.context.ellipse(
+                                    drop(context.ellipse(
                                         pos.x.into(),
                                         pos.y.into(),
                                         r.x.into(),
@@ -166,7 +169,7 @@ impl CompositeRenderer for WebCompositeRenderer {
                                     ops += 1;
                                 }
                                 PathElement::Rectangle(rect) => {
-                                    self.context.rect(
+                                    context.rect(
                                         rect.x.into(),
                                         rect.y.into(),
                                         rect.w.into(),
@@ -176,8 +179,8 @@ impl CompositeRenderer for WebCompositeRenderer {
                                 }
                             }
                         }
-                        self.context.set_fill_style(&path.color.to_string().into());
-                        self.context.fill();
+                        context.set_fill_style(&path.color.to_string().into());
+                        context.fill();
                         render_ops += 3 + ops;
                         renderables += 1;
                     }
@@ -205,9 +208,44 @@ impl CompositeRenderer for WebCompositeRenderer {
                                 }
                             }
                             .align(image.alignment);
-                            drop(self
-                                .context
+                            drop(context
                                 .draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                                    elm,
+                                    src.x.into(),
+                                    src.y.into(),
+                                    src.w.into(),
+                                    src.h.into(),
+                                    dst.x.into(),
+                                    dst.y.into(),
+                                    dst.w.into(),
+                                    dst.h.into(),
+                                ));
+                            render_ops += 1;
+                            renderables += 1;
+                        } else if let Some((elm, _)) = self.surfaces_cache.get(path) {
+                            let src = if let Some(src) = image.source {
+                                src
+                            } else {
+                                Rect {
+                                    x: 0.0,
+                                    y: 0.0,
+                                    w: elm.width() as Scalar,
+                                    h: elm.height() as Scalar,
+                                }
+                            };
+                            let dst = if let Some(dst) = image.destination {
+                                dst
+                            } else {
+                                Rect {
+                                    x: 0.0,
+                                    y: 0.0,
+                                    w: src.w,
+                                    h: src.h,
+                                }
+                            }
+                            .align(image.alignment);
+                            drop(context
+                                .draw_image_with_html_canvas_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
                                     elm,
                                     src.x.into(),
                                     src.y.into(),
@@ -223,17 +261,16 @@ impl CompositeRenderer for WebCompositeRenderer {
                         }
                     }
                     Renderable::Commands(commands) => {
-                        let (o, r) = self.execute(commands.into_iter())?;
+                        let (o, r) = self.execute_with(context, commands.into_iter())?;
                         render_ops += o;
                         renderables += r;
                     }
                 },
                 Command::Stroke(line_width, renderable) => match renderable {
                     Renderable::Rectangle(rectangle) => {
-                        self.context
-                            .set_stroke_style(&rectangle.color.to_string().into());
-                        self.context.set_line_width(line_width.into());
-                        self.context.stroke_rect(
+                        context.set_stroke_style(&rectangle.color.to_string().into());
+                        context.set_line_width(line_width.into());
+                        context.stroke_rect(
                             rectangle.rect.x.into(),
                             rectangle.rect.y.into(),
                             rectangle.rect.w.into(),
@@ -243,17 +280,15 @@ impl CompositeRenderer for WebCompositeRenderer {
                         renderables += 1;
                     }
                     Renderable::Text(text) => {
-                        self.context
-                            .set_stroke_style(&text.color.to_string().into());
-                        self.context.set_line_width(line_width.into());
-                        self.context
-                            .set_font(&format!("{}px {}", text.size, &text.font));
-                        self.context.set_text_align(match text.align {
+                        context.set_stroke_style(&text.color.to_string().into());
+                        context.set_line_width(line_width.into());
+                        context.set_font(&format!("{}px {}", text.size, &text.font));
+                        context.set_text_align(match text.align {
                             TextAlign::Left => "left",
                             TextAlign::Center => "center",
                             TextAlign::Right => "right",
                         });
-                        drop(self.context.stroke_text(
+                        drop(context.stroke_text(
                             &text.text,
                             text.position.x.into(),
                             text.position.y.into(),
@@ -263,19 +298,19 @@ impl CompositeRenderer for WebCompositeRenderer {
                     }
                     Renderable::Path(path) => {
                         let mut ops = 0;
-                        self.context.begin_path();
+                        context.begin_path();
                         for element in &path.elements {
                             match element {
                                 PathElement::MoveTo(pos) => {
-                                    self.context.move_to(pos.x.into(), pos.y.into());
+                                    context.move_to(pos.x.into(), pos.y.into());
                                     ops += 1;
                                 }
                                 PathElement::LineTo(pos) => {
-                                    self.context.line_to(pos.x.into(), pos.y.into());
+                                    context.line_to(pos.x.into(), pos.y.into());
                                     ops += 1;
                                 }
                                 PathElement::BezierCurveTo(cpa, cpb, pos) => {
-                                    self.context.bezier_curve_to(
+                                    context.bezier_curve_to(
                                         cpa.x.into(),
                                         cpa.y.into(),
                                         cpb.x.into(),
@@ -286,7 +321,7 @@ impl CompositeRenderer for WebCompositeRenderer {
                                     ops += 1;
                                 }
                                 PathElement::QuadraticCurveTo(cp, pos) => {
-                                    self.context.quadratic_curve_to(
+                                    context.quadratic_curve_to(
                                         cp.x.into(),
                                         cp.y.into(),
                                         pos.x.into(),
@@ -295,7 +330,7 @@ impl CompositeRenderer for WebCompositeRenderer {
                                     ops += 1;
                                 }
                                 PathElement::Arc(pos, r, a) => {
-                                    drop(self.context.arc(
+                                    drop(context.arc(
                                         pos.x.into(),
                                         pos.y.into(),
                                         (*r).into(),
@@ -305,7 +340,7 @@ impl CompositeRenderer for WebCompositeRenderer {
                                     ops += 1;
                                 }
                                 PathElement::Ellipse(pos, r, rot, a) => {
-                                    drop(self.context.ellipse(
+                                    drop(context.ellipse(
                                         pos.x.into(),
                                         pos.y.into(),
                                         r.x.into(),
@@ -317,7 +352,7 @@ impl CompositeRenderer for WebCompositeRenderer {
                                     ops += 1;
                                 }
                                 PathElement::Rectangle(rect) => {
-                                    self.context.rect(
+                                    context.rect(
                                         rect.x.into(),
                                         rect.y.into(),
                                         rect.w.into(),
@@ -327,24 +362,21 @@ impl CompositeRenderer for WebCompositeRenderer {
                                 }
                             }
                         }
-                        self.context
-                            .set_stroke_style(&path.color.to_string().into());
-                        self.context.set_line_width(line_width.into());
-                        self.context.stroke();
+                        context.set_stroke_style(&path.color.to_string().into());
+                        context.set_line_width(line_width.into());
+                        context.stroke();
                         render_ops += 4 + ops;
                         renderables += 1;
                     }
-                    Renderable::Image(image) => panic!(
-                        "[Oxygengine] Trying to render stroked image: {}",
-                        image.image
-                    ),
-                    Renderable::Commands(commands) => panic!(
-                        "[Oxygengine] Trying to render stroked subcommands: {:#?}",
-                        commands
-                    ),
+                    Renderable::Image(image) => {
+                        error!("Trying to render stroked image: {}", image.image)
+                    }
+                    Renderable::Commands(commands) => {
+                        error!("Trying to render stroked subcommands: {:#?}", commands)
+                    }
                 },
                 Command::Transform(a, b, c, d, e, f) => {
-                    drop(self.context.transform(
+                    drop(context.transform(
                         a.into(),
                         b.into(),
                         c.into(),
@@ -355,28 +387,34 @@ impl CompositeRenderer for WebCompositeRenderer {
                     render_ops += 1;
                 }
                 Command::Effect(effect) => {
-                    drop(
-                        self.context
-                            .set_global_composite_operation(&effect.to_string()),
-                    );
+                    drop(context.set_global_composite_operation(&effect.to_string()));
                     render_ops += 1;
                 }
                 Command::Alpha(alpha) => {
-                    self.context.set_global_alpha(alpha.into());
+                    context.set_global_alpha(alpha.into());
                     render_ops += 1;
                 }
                 Command::Store => {
-                    self.context.save();
+                    context.save();
                     render_ops += 1;
                 }
                 Command::Restore => {
-                    self.context.restore();
+                    context.restore();
                     render_ops += 1;
                 }
                 _ => {}
             }
         }
         Ok((render_ops, renderables))
+    }
+}
+
+impl CompositeRenderer for WebCompositeRenderer {
+    fn execute<'a, I>(&mut self, commands: I) -> Result<(usize, usize)>
+    where
+        I: IntoIterator<Item = Command<'a>>,
+    {
+        self.execute_with(&self.context, commands)
     }
 
     fn state(&self) -> &RenderState {
@@ -398,6 +436,7 @@ impl CompositeRenderer for WebCompositeRenderer {
             self.canvas.set_width(w as u32);
             self.canvas.set_height(h as u32);
             self.view_size = Vec2::new(w as Scalar, h as Scalar);
+            self.cached_image_smoothing = None;
         }
         if self.cached_image_smoothing.is_none()
             || self.cached_image_smoothing.unwrap() != self.state.image_smoothing
@@ -430,6 +469,57 @@ impl CompositeRenderer for WebCompositeRenderer {
             if let Some(path) = self.images_table.remove(id) {
                 self.images_cache.remove(&path);
             }
+        }
+    }
+
+    fn create_surface(&mut self, name: &str, width: usize, height: usize) -> bool {
+        let document = window().document().unwrap();
+        let canvas = document
+            .create_element("canvas")
+            .expect("could not create canvas element")
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .unwrap();
+        canvas.set_width(width as u32);
+        canvas.set_height(height as u32);
+        let context = canvas
+            .get_context("2d")
+            .unwrap()
+            .unwrap()
+            .dyn_into::<CanvasRenderingContext2d>()
+            .unwrap();
+        self.surfaces_cache
+            .insert(name.to_owned(), (canvas, context));
+        true
+    }
+
+    fn destroy_surface(&mut self, name: &str) -> bool {
+        if let Some((canvas, _)) = self.surfaces_cache.remove(name) {
+            canvas.remove();
+            true
+        } else {
+            false
+        }
+    }
+
+    fn has_surface(&mut self, name: &str) -> bool {
+        self.surfaces_cache.contains_key(name)
+    }
+
+    fn get_surface_size(&self, name: &str) -> Option<(usize, usize)> {
+        self.surfaces_cache
+            .get(name)
+            .map(|(canvas, _)| (canvas.width() as usize, canvas.height() as usize))
+    }
+
+    fn update_surface<'a, I>(&mut self, name: &str, commands: I) -> Result<(usize, usize)>
+    where
+        I: IntoIterator<Item = Command<'a>>,
+    {
+        if let Some((canvas, context)) = self.surfaces_cache.get(name) {
+            context.clear_rect(0.0, 0.0, canvas.width().into(), canvas.height().into());
+            self.execute_with(context, commands)
+        } else {
+            Err(Error::Message(format!("There is no '{}' surface", name)))
         }
     }
 }

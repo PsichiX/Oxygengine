@@ -1,8 +1,8 @@
 use crate::{
     composite_renderer::{Effect, Renderable},
-    math::{Grid2d, Mat2d, Rect, Scalar, Vec2},
+    math::{Grid2d, Mat2d, Scalar, Vec2},
 };
-use core::ecs::{Component, DenseVecStorage, HashMapStorage, VecStorage};
+use core::ecs::{Component, DenseVecStorage, FlaggedStorage, HashMapStorage, VecStorage};
 use std::{borrow::Cow, collections::HashMap, f32::consts::PI};
 
 #[derive(Debug, Copy, Clone)]
@@ -10,6 +10,49 @@ pub struct CompositeVisibility(pub bool);
 
 impl Component for CompositeVisibility {
     type Storage = VecStorage<Self>;
+}
+
+#[derive(Debug, Clone)]
+pub struct CompositeSurfaceCache {
+    name: Cow<'static, str>,
+    width: usize,
+    height: usize,
+    pub(crate) dirty: bool,
+}
+
+impl CompositeSurfaceCache {
+    pub fn new(name: Cow<'static, str>, width: usize, height: usize) -> Self {
+        Self {
+            name,
+            width,
+            height,
+            dirty: true,
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn height(&self) -> usize {
+        self.height
+    }
+
+    pub fn rebuild(&mut self) {
+        self.dirty = true;
+    }
+
+    pub fn is_cached(&self) -> bool {
+        !self.dirty
+    }
+}
+
+impl Component for CompositeSurfaceCache {
+    type Storage = FlaggedStorage<Self, VecStorage<Self>>;
 }
 
 #[derive(Debug, Clone)]
@@ -222,6 +265,7 @@ impl CompositeCamera {
 
 #[derive(Debug, Clone)]
 pub struct CompositeSprite {
+    pub alignment: Vec2,
     sheet_frame: Option<(Cow<'static, str>, Cow<'static, str>)>,
     pub(crate) dirty: bool,
 }
@@ -229,6 +273,7 @@ pub struct CompositeSprite {
 impl Default for CompositeSprite {
     fn default() -> Self {
         Self {
+            alignment: 0.0.into(),
             sheet_frame: None,
             dirty: false,
         }
@@ -238,9 +283,15 @@ impl Default for CompositeSprite {
 impl CompositeSprite {
     pub fn new(sheet: Cow<'static, str>, frame: Cow<'static, str>) -> Self {
         Self {
+            alignment: 0.0.into(),
             sheet_frame: Some((sheet, frame)),
             dirty: true,
         }
+    }
+
+    pub fn align(mut self, value: Vec2) -> Self {
+        self.alignment = value;
+        self
     }
 
     pub fn sheet_frame(&self) -> Option<(&str, &str)> {
@@ -302,33 +353,33 @@ impl Component for CompositeSprite {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct Animation {
+pub struct SpriteAnimation {
     pub sheet: Cow<'static, str>,
     pub frames: Vec<Cow<'static, str>>,
 }
 
-impl Animation {
+impl SpriteAnimation {
     pub fn new(sheet: Cow<'static, str>, frames: Vec<Cow<'static, str>>) -> Self {
         Self { sheet, frames }
     }
 }
 
-impl From<(Cow<'static, str>, Vec<Cow<'static, str>>)> for Animation {
+impl From<(Cow<'static, str>, Vec<Cow<'static, str>>)> for SpriteAnimation {
     fn from((sheet, frames): (Cow<'static, str>, Vec<Cow<'static, str>>)) -> Self {
         Self::new(sheet, frames)
     }
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct CompositeAnimation {
-    pub animations: HashMap<Cow<'static, str>, Animation>,
+pub struct CompositeSpriteAnimation {
+    pub animations: HashMap<Cow<'static, str>, SpriteAnimation>,
     // (name, phase, speed, looped)
     pub(crate) current: Option<(Cow<'static, str>, Scalar, Scalar, bool)>,
     pub(crate) dirty: bool,
 }
 
-impl CompositeAnimation {
-    pub fn new(animations: HashMap<Cow<'static, str>, Animation>) -> Self {
+impl CompositeSpriteAnimation {
+    pub fn new(animations: HashMap<Cow<'static, str>, SpriteAnimation>) -> Self {
         Self {
             animations,
             current: None,
@@ -339,7 +390,7 @@ impl CompositeAnimation {
     #[allow(clippy::should_implement_trait)]
     pub fn from_iter<I>(animations: I) -> Self
     where
-        I: IntoIterator<Item = (Cow<'static, str>, Animation)>,
+        I: IntoIterator<Item = (Cow<'static, str>, SpriteAnimation)>,
     {
         Self {
             animations: animations.into_iter().collect::<HashMap<_, _>>(),
@@ -436,7 +487,7 @@ impl CompositeAnimation {
     }
 }
 
-impl Component for CompositeAnimation {
+impl Component for CompositeSpriteAnimation {
     type Storage = VecStorage<Self>;
 }
 
@@ -492,42 +543,23 @@ impl TileCell {
         self
     }
 
-    pub fn is_abnormal(&self) -> bool {
-        self.flip_x || self.flip_y || self.rotate != TileRotate::Degrees0
-    }
-
-    pub fn matrix(&self) -> Mat2d {
-        match self.rotate {
+    #[allow(clippy::many_single_char_names)]
+    pub fn matrix(&self, col: usize, row: usize, width: Scalar, height: Scalar) -> Mat2d {
+        let hw = width * 0.5;
+        let hh = height * 0.5;
+        let a = Mat2d::translation([-hw, -hh].into());
+        let sx = if self.flip_x { -1.0 } else { 1.0 };
+        let sy = if self.flip_y { -1.0 } else { 1.0 };
+        let b = Mat2d::scale([sx, sy].into());
+        let c = match self.rotate {
             TileRotate::Degrees0 => Mat2d::default(),
             TileRotate::Degrees90 => Mat2d::rotation(PI * 0.5),
             TileRotate::Degrees180 => Mat2d::rotation(PI),
             TileRotate::Degrees270 => Mat2d::rotation(PI * 1.5),
-        }
-    }
-
-    pub fn destination(&self, col: usize, row: usize, width: Scalar, height: Scalar) -> Rect {
-        match self.rotate {
-            TileRotate::Degrees0 => {
-                let x = col as Scalar;
-                let y = row as Scalar;
-                [x * width, y * height, width, height].into()
-            }
-            TileRotate::Degrees90 => {
-                let x = row as Scalar;
-                let y = -(col as Scalar + 1.0);
-                [x * width, y * height, width, height].into()
-            }
-            TileRotate::Degrees180 => {
-                let x = -(col as Scalar + 1.0);
-                let y = -(row as Scalar + 1.0);
-                [x * width, y * height, width, height].into()
-            }
-            TileRotate::Degrees270 => {
-                let x = -(row as Scalar + 1.0);
-                let y = col as Scalar;
-                [x * width, y * height, width, height].into()
-            }
-        }
+        };
+        let d = Mat2d::translation([hw, hh].into());
+        let e = Mat2d::translation([col as Scalar * width, row as Scalar * height].into());
+        e * d * c * b * a
     }
 }
 
@@ -639,5 +671,144 @@ impl CompositeTilemap {
 }
 
 impl Component for CompositeTilemap {
+    type Storage = VecStorage<Self>;
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct TilemapAnimation {
+    pub tileset: Cow<'static, str>,
+    pub frames: Vec<Grid2d<TileCell>>,
+}
+
+impl TilemapAnimation {
+    pub fn new(tileset: Cow<'static, str>, frames: Vec<Grid2d<TileCell>>) -> Self {
+        Self { tileset, frames }
+    }
+}
+
+impl From<(Cow<'static, str>, Vec<Grid2d<TileCell>>)> for TilemapAnimation {
+    fn from((tileset, frames): (Cow<'static, str>, Vec<Grid2d<TileCell>>)) -> Self {
+        Self::new(tileset, frames)
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct CompositeTilemapAnimation {
+    pub animations: HashMap<Cow<'static, str>, TilemapAnimation>,
+    // (name, phase, speed, looped)
+    pub(crate) current: Option<(Cow<'static, str>, Scalar, Scalar, bool)>,
+    pub(crate) dirty: bool,
+}
+
+impl CompositeTilemapAnimation {
+    pub fn new(animations: HashMap<Cow<'static, str>, TilemapAnimation>) -> Self {
+        Self {
+            animations,
+            current: None,
+            dirty: false,
+        }
+    }
+
+    #[allow(clippy::should_implement_trait)]
+    pub fn from_iter<I>(animations: I) -> Self
+    where
+        I: IntoIterator<Item = (Cow<'static, str>, TilemapAnimation)>,
+    {
+        Self {
+            animations: animations.into_iter().collect::<HashMap<_, _>>(),
+            current: None,
+            dirty: false,
+        }
+    }
+
+    pub fn play(&mut self, name: &str, speed: Scalar, looped: bool) -> bool {
+        if self.animations.contains_key(name) {
+            self.current = Some((name.to_owned().into(), 0.0, speed, looped));
+            self.dirty = true;
+            true
+        } else {
+            self.current = None;
+            false
+        }
+    }
+
+    pub fn stop(&mut self) {
+        self.current = None;
+    }
+
+    pub fn phase(&self) -> Option<Scalar> {
+        if let Some((_, phase, _, _)) = &self.current {
+            Some(*phase)
+        } else {
+            None
+        }
+    }
+
+    pub fn set_phase(&mut self, value: Scalar) -> bool {
+        if let Some((_, phase, _, _)) = &mut self.current {
+            *phase = value.max(0.0);
+            self.dirty = true;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn speed(&self) -> Option<Scalar> {
+        if let Some((_, _, speed, _)) = &self.current {
+            Some(*speed)
+        } else {
+            None
+        }
+    }
+
+    pub fn set_speed(&mut self, value: Scalar) -> bool {
+        if let Some((_, _, speed, _)) = &mut self.current {
+            *speed = value;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn looped(&self) -> Option<bool> {
+        if let Some((_, _, _, looped)) = &self.current {
+            Some(*looped)
+        } else {
+            None
+        }
+    }
+
+    pub fn set_looped(&mut self, value: bool) -> bool {
+        if let Some((_, _, _, looped)) = &mut self.current {
+            *looped = value;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub(crate) fn process(&mut self, delta_time: Scalar) {
+        if let Some((name, phase, speed, looped)) = &mut self.current {
+            if let Some(animation) = self.animations.get(name) {
+                let prev = phase.max(0.0) as usize;
+                *phase += *speed * delta_time;
+                let next = phase.max(0.0) as usize;
+                if next >= animation.frames.len() {
+                    if *looped {
+                        *phase = 0.0;
+                        self.dirty = true;
+                    } else {
+                        self.current = None;
+                    }
+                } else if prev != next {
+                    self.dirty = true;
+                }
+            }
+        }
+    }
+}
+
+impl Component for CompositeTilemapAnimation {
     type Storage = VecStorage<Self>;
 }
