@@ -1,6 +1,6 @@
 use crate::{
     composite_renderer::{Effect, Renderable},
-    math::{Grid2d, Mat2d, Scalar, Vec2},
+    math::{Grid2d, Mat2d, Rect, Scalar, Vec2},
 };
 use core::ecs::{Component, DenseVecStorage, FlaggedStorage, HashMapStorage, VecStorage};
 use std::{borrow::Cow, collections::HashMap, f32::consts::PI};
@@ -241,6 +241,11 @@ impl CompositeCamera {
         }
     }
 
+    pub fn tags(mut self, tags: Vec<Cow<'static, str>>) -> Self {
+        self.tags = tags;
+        self
+    }
+
     pub fn view_matrix(&self, transform: &CompositeTransform, screen_size: Vec2) -> Mat2d {
         let wh = screen_size.x * 0.5;
         let hh = screen_size.y * 0.5;
@@ -259,6 +264,20 @@ impl CompositeCamera {
             CompositeScalingMode::Center => tt * s * r * t,
             CompositeScalingMode::Aspect => ss * r * t,
             CompositeScalingMode::CenterAspect => tt * ss * r * t,
+        }
+    }
+
+    pub fn view_box(&self, transform: &CompositeTransform, screen_size: Vec2) -> Option<Rect> {
+        if let Some(inv_mat) = !self.view_matrix(transform, screen_size) {
+            let points = &[
+                Vec2::zero() * inv_mat,
+                Vec2::new(screen_size.x, 0.0) * inv_mat,
+                screen_size * inv_mat,
+                Vec2::new(0.0, screen_size.y) * inv_mat,
+            ];
+            Rect::bounding(points)
+        } else {
+            None
         }
     }
 }

@@ -63,7 +63,10 @@ cd /crate
 cargo build --all --target wasm32-unknown-unknown
 ```
 
-## Roadmap
+## TODO / Roadmap
+- UI widgets
+- Prefabs (loading scenes from asset)
+- Packed assets fetch engine
 - Hardware renderer
 - WebGL hardware renderer backend
 - 2D physics

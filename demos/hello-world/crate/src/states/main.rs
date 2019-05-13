@@ -25,7 +25,7 @@ impl State for MainState {
             .create_entity()
             .with(CompositeCamera::new(CompositeScalingMode::Aspect))
             .with(CompositeTransform::scale(480.0.into()))
-            .with(Tag("camera".into()))
+            .with(Name("main-camera".into()))
             .build();
 
         world

@@ -213,10 +213,13 @@ pub enum Command<'a> {
 
 #[derive(Debug, Default, Clone)]
 pub struct Stats {
+    pub view_size: Vec2,
     pub render_ops: usize,
     pub renderables: usize,
     pub fps: f64,
     pub delta_time: f64,
+    pub images_count: usize,
+    pub surfaces_count: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -267,6 +270,14 @@ pub trait CompositeRenderer: Send + Sync {
     fn execute<'a, I>(&mut self, commands: I) -> Result<(usize, usize)>
     where
         I: IntoIterator<Item = Command<'a>>;
+
+    fn images_count(&self) -> usize {
+        0
+    }
+
+    fn surfaces_count(&self) -> usize {
+        0
+    }
 
     fn state(&self) -> &RenderState;
 

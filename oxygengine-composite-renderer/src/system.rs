@@ -146,6 +146,9 @@ where
             (r.x, r.y)
         };
         let mut stats = Stats::default();
+        stats.view_size = renderer.view_size();
+        stats.images_count = renderer.images_count();
+        stats.surfaces_count = renderer.surfaces_count();
 
         if let Some(color) = renderer.state().clear_color {
             let result = renderer.execute(vec![Command::Draw(Renderable::Rectangle(Rectangle {

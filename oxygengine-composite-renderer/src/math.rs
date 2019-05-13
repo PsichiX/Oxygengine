@@ -74,7 +74,7 @@ impl Not for Mat2d {
 
     fn not(self) -> Option<Self> {
         let det = self.0[0] * self.0[3] - self.0[1] * self.0[2];
-        if det != 0.0 {
+        if det == 0.0 {
             return None;
         }
         let det = 1.0 / det;
@@ -303,6 +303,30 @@ impl Vec2 {
     pub fn dot(self, other: Self) -> Scalar {
         self.x * other.x + self.y * other.y
     }
+
+    pub fn lerp(self, other: Vec2, factor: Scalar) -> Self {
+        Self {
+            x: lerp(self.x, other.x, factor),
+            y: lerp(self.y, other.y, factor),
+        }
+    }
+
+    pub fn lerp_clamped(self, other: Vec2, factor: Scalar) -> Self {
+        Self {
+            x: lerp_clamped(self.x, other.x, factor),
+            y: lerp_clamped(self.y, other.y, factor),
+        }
+    }
+
+    pub fn project_distance(self, from: Vec2, to: Vec2) -> Scalar {
+        let u = self - from;
+        let v = to - from;
+        u.dot(v) / v.sqr_magnitude()
+    }
+
+    pub fn project(self, from: Vec2, to: Vec2) -> Vec2 {
+        (to - from) * self.project_distance(from, to)
+    }
 }
 
 impl Add for Vec2 {
@@ -466,12 +490,85 @@ impl Rect {
         }
     }
 
+    pub fn bounding(points: &[Vec2]) -> Option<Self> {
+        points.iter().fold(None, |a, v| {
+            if let Some(a) = a {
+                Some(a.include(*v))
+            } else {
+                Some(Rect::new(*v, Vec2::zero()))
+            }
+        })
+    }
+
     pub fn align(&self, factor: Vec2) -> Self {
         Self {
             x: self.x - self.w * factor.x,
             y: self.y - self.h * factor.y,
             w: self.w,
             h: self.h,
+        }
+    }
+
+    pub fn expand(&self, thickness: Scalar) -> Self {
+        let tt = thickness * 2.0;
+        let mut result = Self {
+            x: self.x - thickness,
+            y: self.y - thickness,
+            w: self.w + tt,
+            h: self.h + tt,
+        };
+        result.validate();
+        result
+    }
+
+    pub fn include(&self, point: Vec2) -> Self {
+        let (x, w) = if point.x < self.x {
+            (point.x, self.w + self.x - point.x)
+        } else if point.x > self.x + self.w {
+            (self.x, point.x - self.x)
+        } else {
+            (self.x, self.w)
+        };
+        let (y, h) = if point.y < self.y {
+            (point.y, self.h + self.y - point.y)
+        } else if point.y > self.y + self.h {
+            (self.y, point.y - self.y)
+        } else {
+            (self.y, self.h)
+        };
+        Self { x, y, w, h }
+    }
+
+    pub fn validate(&mut self) {
+        if self.w < 0.0 {
+            self.x += self.w;
+            self.w = -self.w;
+        }
+        if self.h < 0.0 {
+            self.y += self.h;
+            self.h = -self.h;
+        }
+    }
+}
+
+impl From<(Scalar, Scalar)> for Rect {
+    fn from(value: (Scalar, Scalar)) -> Self {
+        Self {
+            x: 0.0,
+            y: 0.0,
+            w: value.0,
+            h: value.1,
+        }
+    }
+}
+
+impl From<[Scalar; 2]> for Rect {
+    fn from(value: [Scalar; 2]) -> Self {
+        Self {
+            x: 0.0,
+            y: 0.0,
+            w: value[0],
+            h: value[1],
         }
     }
 }

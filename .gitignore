@@ -3,4 +3,4 @@
 Cargo.lock
 /*.sh
 /*.bat
-/demos/game
+/demos/rouglike

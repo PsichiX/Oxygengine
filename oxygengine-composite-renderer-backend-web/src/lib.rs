@@ -417,6 +417,14 @@ impl CompositeRenderer for WebCompositeRenderer {
         self.execute_with(&self.context, commands)
     }
 
+    fn images_count(&self) -> usize {
+        self.images_cache.len()
+    }
+
+    fn surfaces_count(&self) -> usize {
+        self.surfaces_cache.len()
+    }
+
     fn state(&self) -> &RenderState {
         &self.state
     }
