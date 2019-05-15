@@ -1,6 +1,9 @@
 pub mod core {
     pub use oxygengine_core::*;
 }
+pub mod utils {
+    pub use oxygengine_utils::*;
+}
 #[cfg(feature = "input")]
 pub mod input {
     pub use oxygengine_input::*;
@@ -30,6 +33,10 @@ pub mod composite_renderer {
 pub mod network {
     pub use oxygengine_network::*;
 }
+#[cfg(feature = "procedural")]
+pub mod procedural {
+    pub use oxygengine_procedural::*;
+}
 
 pub mod prelude {
     #[cfg(feature = "web")]
@@ -53,13 +60,16 @@ pub mod prelude {
     #[cfg(feature = "web")]
     #[cfg(feature = "network")]
     pub use oxygengine_network_backend_web::prelude::*;
+    #[cfg(feature = "procedural")]
+    pub use oxygengine_procedural::prelude::*;
+    pub use oxygengine_utils::prelude::*;
 }
 
 #[macro_export]
 macro_rules! log {
     ($lvl:expr, $($arg:tt)+) => ({
         $crate::core::log::logger_log($lvl, format!(
-            "[{}: {} | {}]: {}",
+            "[{}: {} | {}]:\n{}",
             file!(),
             line!(),
             module_path!(),

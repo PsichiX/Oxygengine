@@ -8,7 +8,7 @@ use crate::{
         CompositeVisibility, TileCell,
     },
     composite_renderer::{Command, CompositeRenderer, Image, Rectangle, Renderable, Stats},
-    math::{Grid2d, Mat2d, Rect, Scalar},
+    math::{Mat2d, Rect, Scalar},
     resource::CompositeTransformRes,
     sprite_sheet_asset_protocol::SpriteSheetAsset,
     tileset_asset_protocol::{TilesetAsset, TilesetInfo},
@@ -23,6 +23,7 @@ use core::{
     hierarchy::{HierarchyRes, Parent, Tag},
 };
 use std::{collections::HashMap, marker::PhantomData};
+use utils::grid_2d::Grid2d;
 
 pub struct CompositeTransformSystem;
 

@@ -24,6 +24,7 @@ desktop = ["parallel"]
 input = ["oxygengine-input"]
 composite-renderer = ["oxygengine-composite-renderer"]
 network = ["oxygengine-network"]
+procedural = ["oxygengine-procedural"]
 web-composite-game = [
   "web",
   "composite-renderer",
@@ -41,6 +42,7 @@ desktop-game = [
 
 [dependencies]
 oxygengine-core = { version = "0.3", path = "./oxygengine-core" }
+oxygengine-utils = { version = "0.3", path = "./oxygengine-utils" }
 
 [dependencies.oxygengine-backend-web]
 version = "0.3"
@@ -82,9 +84,15 @@ version = "0.3"
 path = "./oxygengine-network-backend-desktop"
 optional = true
 
+[dependencies.oxygengine-procedural]
+version = "0.3"
+path = "./oxygengine-procedural"
+optional = true
+
 [workspace]
 members = [
   "oxygengine-core",
+  "oxygengine-utils",
   "oxygengine-backend-web",
   "oxygengine-input",
   "oxygengine-input-device-web",
@@ -92,6 +100,7 @@ members = [
   "oxygengine-composite-renderer-backend-web",
   "oxygengine-network",
   "oxygengine-network-backend-web",
+  "oxygengine-procedural",
 ]
 exclude = [
   "demos/hello-world",

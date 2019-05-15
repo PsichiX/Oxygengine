@@ -1,9 +1,10 @@
 use crate::{
     composite_renderer::{Effect, Renderable},
-    math::{Grid2d, Mat2d, Rect, Scalar, Vec2},
+    math::{Mat2d, Rect, Scalar, Vec2},
 };
 use core::ecs::{Component, DenseVecStorage, FlaggedStorage, HashMapStorage, VecStorage};
 use std::{borrow::Cow, collections::HashMap, f32::consts::PI};
+use utils::grid_2d::Grid2d;
 
 #[derive(Debug, Copy, Clone)]
 pub struct CompositeVisibility(pub bool);

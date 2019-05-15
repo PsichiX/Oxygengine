@@ -48,7 +48,7 @@ pub fn logger_log(mode: Log, message: String) {
 macro_rules! log {
     ($lvl:expr, $($arg:tt)+) => ({
         $crate::log::logger_log($lvl, format!(
-            "[{}: {} | {}]: {}",
+            "[{}: {} | {}]:\n{}",
             file!(),
             line!(),
             module_path!(),
