@@ -1,5 +1,10 @@
 use serde::{Deserialize, Serialize};
-use std::ops::{Index, IndexMut, Range};
+use std::ops::{Add, Div, Index, IndexMut, Mul, Neg, Range, Sub};
+
+#[derive(Debug, Clone)]
+pub enum Grid2dError {
+    DifferentDimensions((usize, usize), (usize, usize)),
+}
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Grid2d<T> {
@@ -134,10 +139,32 @@ where
         Self::with_cells(cols, result)
     }
 
+    pub fn get_view(&self, mut range: Range<(usize, usize)>) -> Grid2d<&T> {
+        range.end.0 = range.end.0.min(self.cols);
+        range.end.1 = range.end.1.min(self.rows);
+        range.start.0 = range.start.0.min(range.end.0);
+        range.start.1 = range.start.1.min(range.end.1);
+        let cols = range.end.0 - range.start.0;
+        let rows = range.end.1 - range.start.1;
+        let mut result = Vec::with_capacity(cols * rows);
+        for row in range.start.1..range.end.1 {
+            for col in range.start.0..range.end.0 {
+                result.push(&self.cells[row * self.cols + col]);
+            }
+        }
+        Grid2d::with_cells(cols, result)
+    }
+
     pub fn sample(&self, (col, row): (usize, usize), margin: usize) -> Self {
         let min = (col.max(margin) - margin, row.max(margin) - margin);
-        let max = (col + margin, row + margin);
+        let max = (col + margin + 1, row + margin + 1);
         self.get_part(min..max)
+    }
+
+    pub fn view_sample(&self, (col, row): (usize, usize), margin: usize) -> Grid2d<&T> {
+        let min = (col.max(margin) - margin, row.max(margin) - margin);
+        let max = (col + margin + 1, row + margin + 1);
+        self.get_view(min..max)
     }
 
     pub fn map<F, R>(&self, mut f: F) -> Grid2d<R>
@@ -153,6 +180,86 @@ where
                 .map(|(i, v)| f(i % self.cols, i / self.cols, v))
                 .collect(),
         )
+    }
+
+    pub fn with<F>(&mut self, mut f: F)
+    where
+        F: FnMut(usize, usize, &T) -> T,
+    {
+        for (i, v) in self.cells.iter_mut().enumerate() {
+            *v = f(i % self.cols, i / self.cols, v);
+        }
+    }
+
+    pub fn iter(&self) -> ::std::slice::Iter<T> {
+        self.cells.iter()
+    }
+
+    pub fn iter_view(
+        &self,
+        mut range: Range<(usize, usize)>,
+    ) -> impl Iterator<Item = (usize, usize, &T)> {
+        range.end.0 = range.end.0.min(self.cols);
+        range.end.1 = range.end.1.min(self.rows);
+        range.start.0 = range.start.0.min(range.end.0);
+        range.start.1 = range.start.1.min(range.end.1);
+        let cols = range.end.0 - range.start.0;
+        let rows = range.end.1 - range.start.1;
+        (0..(cols * rows)).map(move |i| {
+            let lc = i % cols;
+            let lr = i / cols;
+            let gc = range.start.0 + lc;
+            let gr = range.start.1 + lr;
+            (gc, gr, &self.cells[gr * self.cols + gc])
+        })
+    }
+
+    pub fn iter_sample<'a>(
+        &'a self,
+        mut range: Range<(usize, usize)>,
+        margin: usize,
+    ) -> impl Iterator<Item = (usize, usize, Grid2d<&T>)> + 'a {
+        range.end.0 = range.end.0.min(self.cols);
+        range.end.1 = range.end.1.min(self.rows);
+        range.start.0 = range.start.0.min(range.end.0);
+        range.start.1 = range.start.1.min(range.end.1);
+        let cols = range.end.0 - range.start.0;
+        let rows = range.end.1 - range.start.1;
+        (0..(cols * rows)).map(move |i| {
+            let lc = i % cols;
+            let lr = i / cols;
+            let gc = range.start.0 + lc;
+            let gr = range.start.1 + lr;
+            (gc, gr, self.view_sample((gc, gr), margin))
+        })
+    }
+
+    pub fn iter_mut(&mut self) -> ::std::slice::IterMut<T> {
+        self.cells.iter_mut()
+    }
+
+    pub fn iter_view_mut(
+        &mut self,
+        mut range: Range<(usize, usize)>,
+    ) -> impl Iterator<Item = (usize, usize, &mut T)> {
+        range.end.0 = range.end.0.min(self.cols);
+        range.end.1 = range.end.1.min(self.rows);
+        range.start.0 = range.start.0.min(range.end.0);
+        range.start.1 = range.start.1.min(range.end.1);
+        let cols = self.cols;
+        self.cells.iter_mut().enumerate().filter_map(move |(i, v)| {
+            let c = i % cols;
+            let r = i / cols;
+            if c >= range.start.0 && c < range.end.0 && r >= range.start.1 && r < range.end.1 {
+                Some((c, r, v))
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn into_inner(self) -> (usize, usize, Vec<T>) {
+        (self.cols, self.rows, self.cells)
     }
 }
 
@@ -193,5 +300,153 @@ where
 {
     fn index_mut(&mut self, [col, row]: [usize; 2]) -> &mut T {
         self.cell_mut(col, row).unwrap()
+    }
+}
+
+impl<T> Add for &Grid2d<T>
+where
+    T: Clone + Add<Output = T>,
+{
+    type Output = Result<Grid2d<T>, Grid2dError>;
+
+    fn add(self, other: &Grid2d<T>) -> Self::Output {
+        if self.cols() == other.cols() && self.rows() == other.rows() {
+            let cells = self
+                .cells
+                .iter()
+                .zip(other.cells.iter())
+                .map(|(a, b)| a.clone() + b.clone())
+                .collect::<Vec<T>>();
+            Ok(Grid2d::with_cells(self.cols(), cells))
+        } else {
+            Err(Grid2dError::DifferentDimensions(
+                (self.cols(), self.rows()),
+                (other.cols(), other.rows()),
+            ))
+        }
+    }
+}
+
+impl<T> Sub for &Grid2d<T>
+where
+    T: Clone + Sub<Output = T>,
+{
+    type Output = Result<Grid2d<T>, Grid2dError>;
+
+    fn sub(self, other: &Grid2d<T>) -> Self::Output {
+        if self.cols() == other.cols() && self.rows() == other.rows() {
+            let cells = self
+                .cells
+                .iter()
+                .zip(other.cells.iter())
+                .map(|(a, b)| a.clone() - b.clone())
+                .collect::<Vec<T>>();
+            Ok(Grid2d::with_cells(self.cols(), cells))
+        } else {
+            Err(Grid2dError::DifferentDimensions(
+                (self.cols(), self.rows()),
+                (other.cols(), other.rows()),
+            ))
+        }
+    }
+}
+
+impl<T> Mul for &Grid2d<T>
+where
+    T: Clone + Mul<Output = T>,
+{
+    type Output = Result<Grid2d<T>, Grid2dError>;
+
+    fn mul(self, other: &Grid2d<T>) -> Self::Output {
+        if self.cols() == other.cols() && self.rows() == other.rows() {
+            let cells = self
+                .cells
+                .iter()
+                .zip(other.cells.iter())
+                .map(|(a, b)| a.clone() * b.clone())
+                .collect::<Vec<T>>();
+            Ok(Grid2d::with_cells(self.cols(), cells))
+        } else {
+            Err(Grid2dError::DifferentDimensions(
+                (self.cols(), self.rows()),
+                (other.cols(), other.rows()),
+            ))
+        }
+    }
+}
+
+impl<T> Div for &Grid2d<T>
+where
+    T: Clone + Div<Output = T>,
+{
+    type Output = Result<Grid2d<T>, Grid2dError>;
+
+    fn div(self, other: &Grid2d<T>) -> Self::Output {
+        if self.cols() == other.cols() && self.rows() == other.rows() {
+            let cells = self
+                .cells
+                .iter()
+                .zip(other.cells.iter())
+                .map(|(a, b)| a.clone() / b.clone())
+                .collect::<Vec<T>>();
+            Ok(Grid2d::with_cells(self.cols(), cells))
+        } else {
+            Err(Grid2dError::DifferentDimensions(
+                (self.cols(), self.rows()),
+                (other.cols(), other.rows()),
+            ))
+        }
+    }
+}
+
+impl<T> Neg for &Grid2d<T>
+where
+    T: Clone + Neg<Output = T>,
+{
+    type Output = Grid2d<T>;
+
+    fn neg(self) -> Self::Output {
+        let cells = self.cells.iter().map(|v| -v.clone()).collect::<Vec<T>>();
+        Grid2d::with_cells(self.cols(), cells)
+    }
+}
+
+impl<T> IntoIterator for Grid2d<T>
+where
+    T: Clone,
+{
+    type Item = T;
+    type IntoIter = ::std::vec::IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.cells.into_iter()
+    }
+}
+
+impl<I, T> From<(usize, I)> for Grid2d<T>
+where
+    I: Iterator<Item = T>,
+    T: Clone,
+{
+    fn from((cols, iter): (usize, I)) -> Self {
+        Self::with_cells(cols, iter.collect::<Vec<T>>())
+    }
+}
+
+impl<T> Into<Vec<T>> for Grid2d<T>
+where
+    T: Clone,
+{
+    fn into(self) -> Vec<T> {
+        self.cells
+    }
+}
+
+impl<T> Into<(usize, usize, Vec<T>)> for Grid2d<T>
+where
+    T: Clone,
+{
+    fn into(self) -> (usize, usize, Vec<T>) {
+        self.into_inner()
     }
 }

@@ -105,4 +105,5 @@ members = [
 exclude = [
   "demos/hello-world",
   "demos/rouglike",
+  "demos/procedural-world-simulation",
 ]
