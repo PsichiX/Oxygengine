@@ -1,12 +1,21 @@
 extern crate oxygengine_procedural as procedural;
 
+mod data_aggregator;
+
+use data_aggregator::*;
 use minifb::{Key, KeyRepeat, MouseMode, Scale, Window, WindowOptions};
 use procedural::prelude::*;
 
-const SIZE: usize = 60;
+const SIZE: usize = 100;
 const ALTITUDE_LIMIT: f64 = 200.0;
+const HUMIDITY_LIMIT: f64 = 0.25;
 const TEMPERATURE_LIMIT: f64 = 100.0;
 const WATER_LIMIT: f64 = 30.0;
+const VELOCITY_LIMIT: f64 = 1.0;
+const DIVERGENCE_LIMIT: f64 = 1.0;
+const PRESSURE_LIMIT: f64 = 1.0;
+const SLOPENESS_LIMIT: f64 = 0.5;
+const STEPS_LIMIT: usize = 0;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum VisualisationMode {
@@ -15,18 +24,33 @@ enum VisualisationMode {
     Humidity,
     SurfaceLevel,
     Biome,
-    Landmass,
-    Combined,
+    Velocity,
+    Divergence,
+    Pressure,
+    Slopeness,
 }
 
 fn build_world(altitude_seed: u32) -> World2d {
     println!("BUILD WORLD");
     let simulation = {
         let mut config = World2dClimateSimulationConfig::default();
+        config.full_year_steps = 364 * 5;
         config.water_capacity = WATER_LIMIT;
+        config.altitude_range = 0.0..ALTITUDE_LIMIT;
         config.temperature_range = 0.0..TEMPERATURE_LIMIT;
-        config.full_year_steps = 100;
-        config.world_axis_angle = 10.0 * ::std::f64::consts::PI / 180.0;
+        config.world_axis_angle = 0.0 * ::std::f64::consts::PI / 180.0;
+        config.mass_diffuse_factor = 0.00001;
+        // config.mass_diffuse_factor = 1.0;
+        // config.viscosity_factor = 0.00001;
+        config.viscosity_factor = 1.0;
+        config.viscosity_iterations = 10;
+        config.poisson_pressure_iterations = 10;
+        config.world_core_heating = 0.0;
+        config.sun_heating = 0.0;
+        config.thermal_radiation = 0.1;
+        config.sun_heating_adaptive_correction_factor = 1.0;
+        config.currents_flow_gain_factor = 1.0;
+        // config.coriolis_factor = 0.025;
         World2dClimateSimulation::new(config)
     };
     let mut config = World2dConfig::default();
@@ -38,10 +62,36 @@ fn build_world(altitude_seed: u32) -> World2d {
     config.temperature_seed = rand::random();
     config.humidity_seed = rand::random();
     World2d::new(&config, Box::new(simulation))
+
+    // World2d::generate(
+    //     SIZE,
+    //     Box::new(simulation),
+    //     |_, _| 0.0,
+    //     // |col, row| {
+    //     //     let dx = 74.0 - col as f64;
+    //     //     let dy = 44.0 - row as f64;
+    //     //     let f = ((dx * dx + dy * dy) / (10.0 * 10.0)).max(0.0).min(1.0);
+    //     //     ALTITUDE_LIMIT * (0.9 + 0.1 * (1.0 - f * f * f * f * f * f))
+    //     // },
+    //     // |col, row| {
+    //     //     let f = 1.0 - (0.5 + col as f64 / SIZE as f64 - row as f64 / SIZE as f64).max(0.0).min(1.0);
+    //     //     ALTITUDE_LIMIT * f
+    //     // },
+    //     // |col, row| if col - 25 > row { 0.0 } else { ALTITUDE_LIMIT },
+    //     // |col, row| if col - 25 > row { ALTITUDE_LIMIT } else { 0.0 },
+    //     // |col, row| ALTITUDE_LIMIT * col as f64 / SIZE as f64,
+    //     // |col, _| if col < SIZE - 20 { 0.0 } else { ALTITUDE_LIMIT },
+    //     |col, row| if col % 2 == 0 { TEMPERATURE_LIMIT * row as f64 / SIZE as f64 } else { 0.0 },
+    //     // |_, _| rand::random::<f64>() * TEMPERATURE_LIMIT,
+    //     |_, _| 0.0,
+    //     |_, _| 0.0,
+    // )
 }
 
 fn main() {
-    let mut mode = VisualisationMode::Combined;
+    let mut steps = 0;
+    let mut auto = false;
+    let mut mode = VisualisationMode::Temperature;
     let mut altitude_seed = if let Some(seed) = ::std::env::args().skip(1).last() {
         if let Ok(seed) = seed.parse() {
             seed
@@ -51,6 +101,8 @@ fn main() {
     } else {
         rand::random()
     };
+    let mut data_aggregator = DataAggregator::new("resources/data.txt");
+    data_aggregator.set_auto_flush(Some(100));
 
     println!("SEED: {}", altitude_seed);
     println!("CREATE WINDOW");
@@ -59,11 +111,7 @@ fn main() {
     options.resize = false;
     let mut window = Window::new(
         &format!("Procedural World Simulation - {:?}", mode),
-        if mode == VisualisationMode::Combined {
-            SIZE * 3
-        } else {
-            SIZE
-        },
+        SIZE,
         SIZE,
         options,
     )
@@ -74,7 +122,6 @@ fn main() {
     window.update_with_buffer(&buffer).unwrap();
 
     println!("LOOP START");
-    let mut last_combined = mode == VisualisationMode::Combined;
     while window.is_open() && !window.is_key_down(Key::Escape) {
         let mut dirty = false;
         if window.is_key_pressed(Key::R, KeyRepeat::No) {
@@ -98,40 +145,52 @@ fn main() {
             mode = VisualisationMode::Biome;
             dirty = true;
         } else if window.is_key_pressed(Key::Key6, KeyRepeat::No) {
-            mode = VisualisationMode::Landmass;
+            mode = VisualisationMode::Velocity;
             dirty = true;
         } else if window.is_key_pressed(Key::Key7, KeyRepeat::No) {
-            mode = VisualisationMode::Combined;
+            mode = VisualisationMode::Divergence;
+            dirty = true;
+        } else if window.is_key_pressed(Key::Key8, KeyRepeat::No) {
+            mode = VisualisationMode::Pressure;
+            dirty = true;
+        } else if window.is_key_pressed(Key::Key9, KeyRepeat::No) {
+            mode = VisualisationMode::Slopeness;
+            dirty = true;
+        } else if window.is_key_pressed(Key::P, KeyRepeat::No) {
+            auto = !auto;
             dirty = true;
         }
-        if window.is_key_pressed(Key::Space, KeyRepeat::No) || window.is_key_down(Key::Enter) {
+        if auto
+            || window.is_key_pressed(Key::Space, KeyRepeat::No)
+            || window.is_key_down(Key::Enter)
+        {
+            // let timer = ::std::time::Instant::now();
             world.process();
+            // println!("PROCESSED IN: {:?}", timer.elapsed());
             dirty = true;
+            let sun_heating = &world
+                .as_simulation::<World2dClimateSimulation>()
+                .unwrap()
+                .config()
+                .sun_heating;
+            data_aggregator.push(*sun_heating);
+            steps += 1;
+            if STEPS_LIMIT > 0 && steps >= STEPS_LIMIT {
+                break;
+            }
         }
         if window.is_key_pressed(Key::I, KeyRepeat::No) {
             if let Some((x, y)) = window.get_mouse_pos(MouseMode::Clamp) {
-                show_cell_info(&world, x as usize, y as usize);
+                show_cell_info(&world, x as usize % SIZE, y as usize % SIZE);
             }
         }
+        if window.is_key_pressed(Key::S, KeyRepeat::No) {
+            println!("WORLD STATS: {:#?}", world.stats());
+            let sim = world.as_simulation::<World2dClimateSimulation>().unwrap();
+            println!("SUN HEATING: {}", sim.config().sun_heating);
+            println!("STEP: {}", steps);
+        }
         if dirty {
-            if (mode == VisualisationMode::Combined) != last_combined {
-                last_combined = mode == VisualisationMode::Combined;
-                println!("CREATE WINDOW");
-                let mut options = WindowOptions::default();
-                options.scale = Scale::X8;
-                options.resize = false;
-                window = Window::new(
-                    &format!("Procedural World Simulation - {:?}", mode),
-                    if mode == VisualisationMode::Combined {
-                        SIZE * 3
-                    } else {
-                        SIZE
-                    },
-                    SIZE,
-                    options,
-                )
-                .unwrap();
-            }
             let (year, day) = {
                 let sim = world.as_simulation::<World2dClimateSimulation>().unwrap();
                 (sim.years(), sim.steps())
@@ -156,9 +215,18 @@ fn show_cell_info(world: &World2d, x: usize, y: usize) {
     let temperature = world.temperature()[(x, y)];
     let humidity = world.humidity()[(x, y)];
     let surface_water = world.surface_water()[(x, y)];
+    let velocity = if let Some(velocity) = world
+        .as_simulation::<World2dClimateSimulation>()
+        .unwrap()
+        .velocity()
+    {
+        velocity[(x, y)].into()
+    } else {
+        (0.0, 0.0)
+    };
     println!(
-        "CELL INFO {} x {}\n- altitude: {}\n- temperature: {}\n- humidity: {}\n- surface water: {}",
-        x, y, altitude, temperature, humidity, surface_water
+        "CELL INFO {} x {}\n- altitude: {}\n- temperature: {}\n- humidity: {}\n- surface water: {}\n- velocity: {:?}",
+        x, y, altitude, temperature, humidity, surface_water, velocity
     );
 }
 
@@ -193,7 +261,7 @@ fn world_to_buffer(mode: VisualisationMode, world: &World2d) -> Vec<u32> {
             .into(),
         VisualisationMode::Humidity => world
             .remap_region((0, 0)..(SIZE, SIZE), |_, _, _, _, humidity, _| {
-                let v = (255.0 * humidity).max(0.0).min(255.0) as u8;
+                let v = (255.0 * humidity / HUMIDITY_LIMIT).max(0.0).min(255.0) as u8;
                 let v = v as u32;
                 v | v << 8 | v << 16
             })
@@ -214,18 +282,28 @@ fn world_to_buffer(mode: VisualisationMode, world: &World2d) -> Vec<u32> {
             .remap_region(
                 (0, 0)..(SIZE, SIZE),
                 |_, _, altitude, temperature, _, surface_water| {
-                    let s = if surface_water < 10.0 {
-                        temperature < 55.0
+                    let t = if surface_water < 10.0 {
+                        if temperature < 40.0 {
+                            0
+                        } else if temperature < 90.0 {
+                            1
+                        } else {
+                            2
+                        }
                     } else {
-                        temperature < 30.0
+                        if temperature < 15.0 {
+                            0
+                        } else {
+                            1
+                        }
                     };
-                    if s {
+                    if t == 0 {
                         let g = (128.0 + 127.0 * altitude / ALTITUDE_LIMIT)
                             .max(0.0)
                             .min(255.0) as u8;
                         let g = g as u32;
                         g | g << 8 | g << 16
-                    } else {
+                    } else if t == 1 {
                         let g = (55.0 + 200.0 * altitude / ALTITUDE_LIMIT)
                             .max(0.0)
                             .min(255.0) as u8;
@@ -235,48 +313,111 @@ fn world_to_buffer(mode: VisualisationMode, world: &World2d) -> Vec<u32> {
                         let w = (192.0 * swf).max(0.0).min(255.0) as u8;
                         let w = w as u32;
                         w | g << 8
+                    } else {
+                        let g = (92.0 + 127.0 * altitude / ALTITUDE_LIMIT)
+                            .max(0.0)
+                            .min(255.0) as u8;
+                        let g = g as u32;
+                        0x30 | g << 8 | g << 16
                     }
                 },
             )
             .into(),
-        VisualisationMode::Landmass => world
-            .remap_region((0, 0)..(SIZE, SIZE), |_, _, _, _, _, surface_water| {
-                if surface_water < 10.0 {
-                    0x00FFFFFF
-                } else {
-                    0
-                }
-            })
-            .into(),
-        VisualisationMode::Combined => {
-            let temperature = world_to_buffer(VisualisationMode::Temperature, &world);
-            let biome = world_to_buffer(VisualisationMode::Biome, &world);
-            let surface = world_to_buffer(VisualisationMode::SurfaceLevel, &world);
-            let mut buffer = vec![0; SIZE * 3 * SIZE];
-            for row in 0..SIZE {
-                let from = row * SIZE * 3;
-                let to = from + SIZE;
-                let dst = &mut buffer[from..to];
-                let from = row * SIZE;
-                let to = from + SIZE;
-                let src = &temperature[from..to];
-                dst.copy_from_slice(src);
-                let from = row * SIZE * 3 + SIZE;
-                let to = from + SIZE;
-                let dst = &mut buffer[from..to];
-                let from = row * SIZE;
-                let to = from + SIZE;
-                let src = &biome[from..to];
-                dst.copy_from_slice(src);
-                let from = row * SIZE * 3 + SIZE * 2;
-                let to = from + SIZE;
-                let dst = &mut buffer[from..to];
-                let from = row * SIZE;
-                let to = from + SIZE;
-                let src = &surface[from..to];
-                dst.copy_from_slice(src);
+        VisualisationMode::Velocity => {
+            if let Some(velocity) = world
+                .as_simulation::<World2dClimateSimulation>()
+                .unwrap()
+                .velocity()
+            {
+                velocity
+                    .cells()
+                    .iter()
+                    .map(|vel| {
+                        let x = (((vel.0 / VELOCITY_LIMIT) + 1.0) * 0.5 * 255.0)
+                            .max(0.0)
+                            .min(255.0) as u8;
+                        let x = x as u32;
+                        let y = (((vel.1 / VELOCITY_LIMIT) + 1.0) * 0.5 * 255.0)
+                            .max(0.0)
+                            .min(255.0) as u8;
+                        let y = y as u32;
+                        y | x << 16
+                    })
+                    .collect::<Vec<_>>()
+            } else {
+                vec![0x00880088; SIZE * SIZE]
             }
-            buffer
+        }
+        VisualisationMode::Divergence => {
+            if let Some(divergence) = world
+                .as_simulation::<World2dClimateSimulation>()
+                .unwrap()
+                .divergence()
+            {
+                divergence
+                    .cells()
+                    .iter()
+                    .map(|div| {
+                        let p = (div / DIVERGENCE_LIMIT).max(0.0);
+                        let n = -(div / DIVERGENCE_LIMIT).min(0.0);
+                        let vp = (p * 255.0).max(0.0).min(255.0) as u8;
+                        let vp = vp as u32;
+                        let vn = (n * 255.0).max(0.0).min(255.0) as u8;
+                        let vn = vn as u32;
+                        vn | vp << 16
+                    })
+                    .collect::<Vec<_>>()
+            } else {
+                vec![0x00000000; SIZE * SIZE]
+            }
+        }
+        VisualisationMode::Pressure => {
+            if let Some(pressure) = world
+                .as_simulation::<World2dClimateSimulation>()
+                .unwrap()
+                .pressure()
+            {
+                pressure
+                    .cells()
+                    .iter()
+                    .map(|pres| {
+                        let p = (pres / PRESSURE_LIMIT).max(0.0);
+                        let n = -(pres / PRESSURE_LIMIT).min(0.0);
+                        let vp = (p * 255.0).max(0.0).min(255.0) as u8;
+                        let vp = vp as u32;
+                        let vn = (n * 255.0).max(0.0).min(255.0) as u8;
+                        let vn = vn as u32;
+                        vn | vp << 16
+                    })
+                    .collect::<Vec<_>>()
+            } else {
+                vec![0x00000000; SIZE * SIZE]
+            }
+        }
+        VisualisationMode::Slopeness => {
+            if let Some(slopeness) = world
+                .as_simulation::<World2dClimateSimulation>()
+                .unwrap()
+                .slopeness()
+            {
+                slopeness
+                    .cells()
+                    .iter()
+                    .map(|vel| {
+                        let x = ((vel.0 / SLOPENESS_LIMIT + 1.0) * 0.5 * 255.0)
+                            .max(0.0)
+                            .min(255.0) as u8;
+                        let x = x as u32;
+                        let y = ((vel.1 / SLOPENESS_LIMIT + 1.0) * 0.5 * 255.0)
+                            .max(0.0)
+                            .min(255.0) as u8;
+                        let y = y as u32;
+                        y | x << 16
+                    })
+                    .collect::<Vec<_>>()
+            } else {
+                vec![0x00880088; SIZE * SIZE]
+            }
         }
     }
 }

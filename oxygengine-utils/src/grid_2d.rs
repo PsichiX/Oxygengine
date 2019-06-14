@@ -123,6 +123,29 @@ where
         }
     }
 
+    pub fn copy_part(
+        &self,
+        mut range: Range<(usize, usize)>,
+        result: &mut Self,
+    ) -> Option<(usize, usize)> {
+        range.end.0 = range.end.0.min(self.cols);
+        range.end.1 = range.end.1.min(self.rows);
+        range.start.0 = range.start.0.min(range.end.0);
+        range.start.1 = range.start.1.min(range.end.1);
+        let cols = range.end.0 - range.start.0;
+        let rows = range.end.1 - range.start.1;
+        if cols > result.cols() || rows > result.rows() {
+            for row in range.start.1..range.end.1 {
+                for col in range.start.0..range.end.0 {
+                    result.set(col, row, self.cells[row * self.cols + col].clone());
+                }
+            }
+            Some((cols, rows))
+        } else {
+            None
+        }
+    }
+
     pub fn get_part(&self, mut range: Range<(usize, usize)>) -> Self {
         range.end.0 = range.end.0.min(self.cols);
         range.end.1 = range.end.1.min(self.rows);
@@ -137,6 +160,29 @@ where
             }
         }
         Self::with_cells(cols, result)
+    }
+
+    pub fn copy_view<'a>(
+        &'a self,
+        mut range: Range<(usize, usize)>,
+        result: &mut Grid2d<&'a T>,
+    ) -> Option<(usize, usize)> {
+        range.end.0 = range.end.0.min(self.cols);
+        range.end.1 = range.end.1.min(self.rows);
+        range.start.0 = range.start.0.min(range.end.0);
+        range.start.1 = range.start.1.min(range.end.1);
+        let cols = range.end.0 - range.start.0;
+        let rows = range.end.1 - range.start.1;
+        if cols > result.cols() || rows > result.rows() {
+            for row in range.start.1..range.end.1 {
+                for col in range.start.0..range.end.0 {
+                    result.set(col, row, &self.cells[row * self.cols + col]);
+                }
+            }
+            Some((cols, rows))
+        } else {
+            None
+        }
     }
 
     pub fn get_view(&self, mut range: Range<(usize, usize)>) -> Grid2d<&T> {
@@ -155,10 +201,32 @@ where
         Grid2d::with_cells(cols, result)
     }
 
+    pub fn copy_sample(
+        &self,
+        (col, row): (usize, usize),
+        margin: usize,
+        result: &mut Self,
+    ) -> Option<(usize, usize)> {
+        let min = (col.max(margin) - margin, row.max(margin) - margin);
+        let max = (col + margin + 1, row + margin + 1);
+        self.copy_part(min..max, result)
+    }
+
     pub fn sample(&self, (col, row): (usize, usize), margin: usize) -> Self {
         let min = (col.max(margin) - margin, row.max(margin) - margin);
         let max = (col + margin + 1, row + margin + 1);
         self.get_part(min..max)
+    }
+
+    pub fn copy_view_sample<'a>(
+        &'a self,
+        (col, row): (usize, usize),
+        margin: usize,
+        result: &mut Grid2d<&'a T>,
+    ) -> Option<(usize, usize)> {
+        let min = (col.max(margin) - margin, row.max(margin) - margin);
+        let max = (col + margin + 1, row + margin + 1);
+        self.copy_view(min..max, result)
     }
 
     pub fn view_sample(&self, (col, row): (usize, usize), margin: usize) -> Grid2d<&T> {

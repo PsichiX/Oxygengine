@@ -101,9 +101,9 @@ members = [
   "oxygengine-network",
   "oxygengine-network-backend-web",
   "oxygengine-procedural",
+  "demos/procedural-world-simulation",
 ]
 exclude = [
   "demos/hello-world",
   "demos/rouglike",
-  "demos/procedural-world-simulation",
 ]
