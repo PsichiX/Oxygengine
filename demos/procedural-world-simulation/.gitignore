@@ -1,3 +1,4 @@
 /target
 **/*.rs.bk
 Cargo.lock
+/resources/data.txt

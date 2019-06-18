@@ -236,7 +236,7 @@ impl World2d {
     where
         // (col, row, altitude, temperature, humidity, surface water)
         F: FnMut(usize, usize, f64, f64, f64, f64) -> T,
-        T: Clone,
+        T: Clone + Send + Sync,
     {
         range.end.0 = range.end.0.min(self.size);
         range.end.1 = range.end.1.min(self.size);
@@ -266,7 +266,7 @@ impl World2d {
     where
         // (col, row, altitude, temperature, humidity, surface water)
         F: FnMut(usize, usize, Grid2d<&f64>, Grid2d<&f64>, Grid2d<&f64>, Grid2d<&f64>) -> T,
-        T: Clone,
+        T: Clone + Send + Sync,
     {
         range.end.0 = range.end.0.min(self.size);
         range.end.1 = range.end.1.min(self.size);

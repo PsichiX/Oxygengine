@@ -44,13 +44,12 @@ fn build_world(altitude_seed: u32) -> World2d {
         // config.viscosity_factor = 0.00001;
         config.viscosity_factor = 1.0;
         config.viscosity_iterations = 10;
+        // config.mass_diffuse_iterations = 10;
         config.poisson_pressure_iterations = 10;
         config.world_core_heating = 0.0;
         config.sun_heating = 0.0;
         config.thermal_radiation = 0.1;
         config.sun_heating_adaptive_correction_factor = 1.0;
-        config.currents_flow_gain_factor = 1.0;
-        // config.coriolis_factor = 0.025;
         World2dClimateSimulation::new(config)
     };
     let mut config = World2dConfig::default();
@@ -164,9 +163,9 @@ fn main() {
             || window.is_key_pressed(Key::Space, KeyRepeat::No)
             || window.is_key_down(Key::Enter)
         {
-            // let timer = ::std::time::Instant::now();
+            let timer = ::std::time::Instant::now();
             world.process();
-            // println!("PROCESSED IN: {:?}", timer.elapsed());
+            println!("PROCESSED IN: {:?}", timer.elapsed());
             dirty = true;
             let sun_heating = &world
                 .as_simulation::<World2dClimateSimulation>()

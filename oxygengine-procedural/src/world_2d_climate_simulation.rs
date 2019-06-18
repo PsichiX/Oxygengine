@@ -1,6 +1,8 @@
 use crate::world_2d::{World2dField, World2dSimulation};
-use oxygengine_utils::grid_2d::Grid2d;
+use oxygengine_utils::grid_2d::{Grid2d, Grid2dNeighborSample};
 use psyche_utils::switch::Switch;
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 use std::{
     any::Any,
     f64::consts::{E, PI},
@@ -160,9 +162,6 @@ pub struct World2dClimateSimulationConfig {
     pub humidity_limit_range: Range<f64>,
     pub rainfall_factor: f64,
     pub evaporation_factor: f64,
-    pub currents_flow_gain_factor: f64,
-    pub coriolis_velocity_range: Range<f64>,
-    pub coriolis_factor: f64,
     pub world_core_heating: f64,
     pub sun_heating: f64,
     pub sun_heating_adaptive_correction_factor: f64,
@@ -188,9 +187,6 @@ impl Default for World2dClimateSimulationConfig {
             humidity_limit_range: 0.05..0.2,
             rainfall_factor: 0.1,
             evaporation_factor: 0.05,
-            currents_flow_gain_factor: 1.0,
-            coriolis_velocity_range: 1.0..5.0,
-            coriolis_factor: 0.01,
             world_core_heating: 1.0,
             sun_heating: 0.0,
             sun_heating_adaptive_correction_factor: 1.0,
@@ -306,60 +302,14 @@ impl World2dClimateSimulation {
             value + world_core_heating + sun_value - thermal_radiation
         });
         let size = cols * rows;
-        let average_temp = temperature.iter().fold(0.0, |a, v| a + *v) / size;
-        // let dtemp = (target_average_temp - average_temp) + thermal_radiation - world_core_heating;
-        let dtemp = target_average_temp - average_temp;
-        // let dtemp = (logistic_sigmoid(dtemp.abs()) - 0.5) * 2.0 * dtemp;
-        // let dtemp = (logistic_sigmoid(dtemp) - 0.5) * 2.0;
+        #[cfg(not(feature = "parallel"))]
+        let average_temp = temperature.iter().sum::<f64>() / size;
+        #[cfg(feature = "parallel")]
+        let average_temp = temperature.par_iter().sum::<f64>() / size;
+        let dtemp = logistic_sigmoid_simple_signed(target_average_temp - average_temp);
         let f = self.config.sun_heating_adaptive_correction_factor;
         self.config.sun_heating = (self.config.sun_heating + dtemp * f).max(0.0);
     }
-
-    // fn process_currents(&mut self, temperature: &Grid2d<f64>) {
-    //     if let Some(velocity) = &mut self.velocity {
-    //         let velocity = velocity.iterate().unwrap();
-    //         let velocity_prev = velocity.0;
-    //         let velocity_next = velocity.1;
-    //         let cols = velocity_prev.cols();
-    //         let rows = velocity_prev.rows();
-    //         let gain_factor = self.config.currents_flow_gain_factor;
-    //         velocity_next.with(|col, row, _| {
-    //             if col == 0 || col == cols - 1 || row == 0 || row == rows - 1 {
-    //                 (0.0, 0.0).into()
-    //             } else {
-    //                 let vel = velocity_prev[(col, row)];
-    //                 let left = temperature[(col - 1, row)];
-    //                 let right = temperature[(col + 1, row)];
-    //                 let top = temperature[(col, row - 1)];
-    //                 let bottom = temperature[(col, row + 1)];
-    //                 let dx = right - left;
-    //                 let dy = bottom - top;
-    //                 // let dx = logistic_sigmoid_advanced_signed(dx, 1.0, 0.0, 0.1);
-    //                 // let dy = logistic_sigmoid_advanced_signed(dy, 1.0, 0.0, 0.1);
-    //                 let dx = if dx.abs() > 5.0 { dx } else { 0.0 };
-    //                 let dy = if dy.abs() > 5.0 { dy } else { 0.0 };
-    //                 let x = vel.0 - dx * gain_factor;
-    //                 let y = vel.1 - dy * gain_factor;
-    //                 (x, y).into()
-    //             }
-    //         });
-    //         apply_mirror_boundaries(velocity_next);
-    //     }
-    // }
-
-    // fn coriolis_effect(&mut self) {
-    //     if let Some(velocity) = &mut self.velocity {
-    //         let velocity = velocity.get_mut().unwrap();
-    //         let rows = velocity.rows() as f64;
-    //         let velocity_range = self.config.coriolis_velocity_range.clone();
-    //         let factor = self.config.coriolis_factor;
-    //         let diff = velocity_range.end - velocity_range.start;
-    //         velocity.with(|col, row, vel| {
-    //             let f = 1.0 - (PI * ((row as f64 + 0.5) / rows)).sin().abs();
-    //             (vel.0 + (velocity_range.start + diff * f) * factor, vel.1).into()
-    //         });
-    //     }
-    // }
 
     fn surface_water_transfer(&self, altitude: &Grid2d<f64>, surface_water: &mut World2dField) {
         let surface_water = surface_water.iterate().unwrap();
@@ -377,29 +327,59 @@ impl World2dClimateSimulation {
         }
         let surface_water = surface_water.iterate().unwrap();
         let humidity = humidity.iterate().unwrap();
-        let it = surface_water
-            .0
-            .iter()
-            .zip(surface_water.1.iter_mut())
-            .zip(humidity.0.iter())
-            .zip(humidity.1.iter_mut())
-            .zip(temperature.iter());
-        for ((((swp, swn), hp), hn), t) in it {
-            let limit = remap_in_ranges(
-                *t,
-                self.config.temperature_range.clone(),
-                self.config.humidity_limit_range.clone(),
-            );
-            let h = *hp - limit;
-            let h = if h > 0.0 {
-                h * self.config.rainfall_factor
-            } else {
-                h * self.config.evaporation_factor
-            };
-            let w = (h * self.config.water_capacity).max(-swp);
-            let h = w / self.config.water_capacity;
-            *hn = hp - h;
-            *swn = swp + w;
+        #[cfg(not(feature = "parallel"))]
+        {
+            let it = surface_water
+                .0
+                .iter()
+                .zip(surface_water.1.iter_mut())
+                .zip(humidity.0.iter())
+                .zip(humidity.1.iter_mut())
+                .zip(temperature.iter());
+            for ((((swp, swn), hp), hn), t) in it {
+                let limit = remap_in_ranges(
+                    *t,
+                    self.config.temperature_range.clone(),
+                    self.config.humidity_limit_range.clone(),
+                );
+                let h = *hp - limit;
+                let h = if h > 0.0 {
+                    h * self.config.rainfall_factor
+                } else {
+                    h * self.config.evaporation_factor
+                };
+                let w = (h * self.config.water_capacity).max(-swp);
+                let h = w / self.config.water_capacity;
+                *hn = hp - h;
+                *swn = swp + w;
+            }
+        }
+        #[cfg(feature = "parallel")]
+        {
+            surface_water
+                .0
+                .par_iter()
+                .zip(surface_water.1.par_iter_mut())
+                .zip(humidity.0.par_iter())
+                .zip(humidity.1.par_iter_mut())
+                .zip(temperature.par_iter())
+                .for_each(|((((swp, swn), hp), hn), t)| {
+                    let limit = remap_in_ranges(
+                        *t,
+                        self.config.temperature_range.clone(),
+                        self.config.humidity_limit_range.clone(),
+                    );
+                    let h = *hp - limit;
+                    let h = if h > 0.0 {
+                        h * self.config.rainfall_factor
+                    } else {
+                        h * self.config.evaporation_factor
+                    };
+                    let w = (h * self.config.water_capacity).max(-swp);
+                    let h = w / self.config.water_capacity;
+                    *hn = hp - h;
+                    *swn = swp + w;
+                });
         }
     }
 }
@@ -465,8 +445,6 @@ impl World2dSimulation for World2dClimateSimulation {
             * self.config.world_axis_angle.sin();
 
         self.heat_exchange(temperature, surface_water.get().unwrap(), seasons_phase);
-        // self.coriolis_effect();
-        // self.process_currents(temperature.get().unwrap());
         self.surface_water_transfer(altitude.get().unwrap(), surface_water);
         self.rainfall_and_evaporation(surface_water, humidity, temperature.get().unwrap());
 
@@ -517,20 +495,6 @@ impl World2dSimulation for World2dClimateSimulation {
             if let Some(velocity) = &mut self.velocity {
                 if let Some(divergence) = &mut self.divergence {
                     if let Some(pressure) = &mut self.pressure {
-                        // TODO: remove.
-                        // {
-                        //     let velocity = velocity.get_mut().unwrap();
-                        //     velocity[(19, 19)] = World2dClimateSimulationVector(5.0, 0.0);
-                        //     // velocity[(49, 50)] = World2dClimateSimulationVector(15.0, 0.0);
-                        //     // velocity[(89, 9)] = World2dClimateSimulationVector(-20.0, 0.0);
-                        //     // velocity[(89, 89)] = World2dClimateSimulationVector(-6.0, 0.0);
-                        //     // for row in 30..70 {
-                        //     //     velocity[(45, row)] = World2dClimateSimulationVector(5.0, 0.0);
-                        //     // }
-                        //     // for row in 45..55 {
-                        //     //     velocity[(55, row)] = World2dClimateSimulationVector(-5.0, 0.0);
-                        //     // }
-                        // }
                         // modify velocities by slopeness
                         if self.config.slopeness_refraction_power > 0.0 {
                             if let Some(slopeness) = &self.slopeness {
@@ -873,9 +837,9 @@ fn diffuse_with_barriers(
     let levels = (barriers + field_prev).unwrap();
     field_next.with(|col, row, _| {
         let sample_coord = (if col == 0 { 0 } else { 1 }, if row == 0 { 0 } else { 1 });
-        let barriers_sample = barriers.sample((col, row), 1);
-        let values_sample = field_prev.sample((col, row), 1);
-        let levels_sample = levels.sample((col, row), 1);
+        let barriers_sample = barriers.neighbor_sample((col, row));
+        let values_sample = field_prev.neighbor_sample((col, row));
+        let levels_sample = levels.neighbor_sample((col, row));
         let levels_min = *levels_sample
             .iter()
             .min_by(|a, b| a.partial_cmp(b).unwrap())
@@ -885,16 +849,16 @@ fn diffuse_with_barriers(
             .max_by(|a, b| a.partial_cmp(b).unwrap())
             .unwrap();
         let capacity_sample = barriers_sample.map(|_, _, v| levels_max - v.max(levels_min));
-        let capacity = capacity_sample.iter().fold(0.0, |a, v| a + v);
+        let capacity = capacity_sample.iter().sum::<f64>();
         if capacity > 0.0 {
-            let energy_sample = Grid2d::from((
+            let energy_sample = Grid2dNeighborSample::from((
                 levels_sample.cols(),
                 levels_sample
                     .iter()
                     .zip(barriers_sample.iter())
                     .map(|(v, b)| *v - b.max(levels_min)),
             ));
-            let energy = energy_sample.iter().fold(0.0, |a, v| a + v);
+            let energy = energy_sample.iter().sum::<f64>();
             let amount = energy * capacity_sample[sample_coord] / capacity;
             values_sample[sample_coord] - energy_sample[sample_coord] + amount
         } else {
@@ -902,8 +866,14 @@ fn diffuse_with_barriers(
         }
     });
     // error correction.
-    let before = field_prev.iter().fold(0.0, |a, v| a + v);
-    let after = field_next.iter().fold(0.0, |a, v| a + v);
+    #[cfg(not(feature = "parallel"))]
+    let before = field_prev.iter().sum::<f64>();
+    #[cfg(feature = "parallel")]
+    let before = field_prev.par_iter().sum::<f64>();
+    #[cfg(not(feature = "parallel"))]
+    let after = field_next.iter().sum::<f64>();
+    #[cfg(feature = "parallel")]
+    let after = field_next.par_iter().sum::<f64>();
     let diff = (before - after) / field_prev.len() as f64;
     field_next.with(|_, _, value| *value + diff);
 }

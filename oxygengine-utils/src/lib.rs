@@ -1,3 +1,5 @@
+#[cfg(feature = "parallel")]
+extern crate rayon;
 extern crate serde;
 
 pub mod grid_2d;
