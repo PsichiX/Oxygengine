@@ -1,5 +1,6 @@
 use oxygengine_utils::{grid_2d::Grid2d, noise_map_generator::NoiseMapGenerator};
 use psyche_utils::switch::Switch;
+use serde::{Deserialize, Serialize};
 use std::{any::Any, borrow::Borrow, ops::Range};
 
 pub type World2dField = Switch<Grid2d<f64>>;
@@ -345,5 +346,51 @@ impl World2d {
                 });
             (min, max, accum / self.altitude.get().unwrap().len() as f64)
         };
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct World2dData<S>
+where
+    S: World2dSimulation,
+{
+    size: usize,
+    altitude: Grid2d<f64>,
+    temperature: Grid2d<f64>,
+    humidity: Grid2d<f64>,
+    surface_water: Grid2d<f64>,
+    simulation: S,
+}
+
+impl<S> From<&World2d> for World2dData<S>
+where
+    S: World2dSimulation + Clone,
+{
+    fn from(world: &World2d) -> Self {
+        Self {
+            size: world.size,
+            altitude: world.altitude.get().unwrap().clone(),
+            temperature: world.temperature.get().unwrap().clone(),
+            humidity: world.humidity.get().unwrap().clone(),
+            surface_water: world.surface_water.get().unwrap().clone(),
+            simulation: world.as_simulation::<S>().unwrap().clone(),
+        }
+    }
+}
+
+impl<S> From<&World2dData<S>> for World2d
+where
+    S: World2dSimulation + Clone,
+{
+    fn from(data: &World2dData<S>) -> Self {
+        Self {
+            size: data.size,
+            altitude: Switch::new(2, data.altitude.clone()),
+            temperature: Switch::new(2, data.temperature.clone()),
+            humidity: Switch::new(2, data.humidity.clone()),
+            surface_water: Switch::new(2, data.surface_water.clone()),
+            simulation: Box::new(data.simulation.clone()),
+            stats: Default::default(),
+        }
     }
 }

@@ -17,3 +17,4 @@ parallel = ["oxygengine-utils/parallel", "rayon"]
 oxygengine-utils = { version = "0.3", path = "../oxygengine-utils" }
 psyche-utils = "0.2"
 rayon = { version = "1.0", optional = true }
+serde = { version = "1.0", features = ["derive"] }

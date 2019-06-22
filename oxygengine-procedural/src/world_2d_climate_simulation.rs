@@ -3,13 +3,14 @@ use oxygengine_utils::grid_2d::{Grid2d, Grid2dNeighborSample};
 use psyche_utils::switch::Switch;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::{
     any::Any,
     f64::consts::{E, PI},
     ops::{Add, Div, Mul, Neg, Range, Sub},
 };
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct World2dClimateSimulationVector(pub f64, pub f64);
 
 impl World2dClimateSimulationVector {
@@ -145,7 +146,7 @@ impl Div<f64> for World2dClimateSimulationVector {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct World2dClimateSimulationConfig {
     pub world_axis_angle: f64,
     pub full_year_steps: usize,
@@ -560,6 +561,28 @@ impl World2dSimulation for World2dClimateSimulation {
     }
 }
 
+impl From<&World2dClimateSimulationData> for World2dClimateSimulation {
+    fn from(data: &World2dClimateSimulationData) -> Self {
+        Self {
+            config: data.config.clone(),
+            steps: data.steps,
+            years: data.years,
+            velocity: if let Some(ref velocity) = data.velocity {
+                Some(Switch::new(2, velocity.clone()))
+            } else {
+                None
+            },
+            divergence: data.divergence.clone(),
+            pressure: if let Some(ref pressure) = data.pressure {
+                Some(Switch::new(2, pressure.clone()))
+            } else {
+                None
+            },
+            slopeness: data.slopeness.clone(),
+        }
+    }
+}
+
 fn apply_duplicate_boundaries(field: &mut Grid2d<f64>) {
     let cols = field.cols();
     let rows = field.rows();
@@ -925,4 +948,37 @@ fn logistic_sigmoid_advanced_signed(
     (logistic_sigmoid_advanced(value.abs(), curve_max, midpoint, logistic_growth) - 0.5)
         * 2.0
         * value
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct World2dClimateSimulationData {
+    config: World2dClimateSimulationConfig,
+    steps: usize,
+    years: usize,
+    velocity: Option<Grid2d<World2dClimateSimulationVector>>,
+    divergence: Option<Grid2d<f64>>,
+    pressure: Option<Grid2d<f64>>,
+    slopeness: Option<Grid2d<World2dClimateSimulationVector>>,
+}
+
+impl From<&World2dClimateSimulation> for World2dClimateSimulationData {
+    fn from(sim: &World2dClimateSimulation) -> Self {
+        Self {
+            config: sim.config.clone(),
+            steps: sim.steps,
+            years: sim.years,
+            velocity: if let Some(ref velocity) = sim.velocity {
+                Some(velocity.get().unwrap().clone())
+            } else {
+                None
+            },
+            divergence: sim.divergence.clone(),
+            pressure: if let Some(ref pressure) = sim.pressure {
+                Some(pressure.get().unwrap().clone())
+            } else {
+                None
+            },
+            slopeness: sim.slopeness.clone(),
+        }
+    }
 }
