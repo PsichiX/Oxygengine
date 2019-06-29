@@ -1,10 +1,13 @@
-# You must change these to your own details.
 [package]
 name = "oxygengine-chat-client"
-description = "Oxygengine Chat Demo"
 version = "0.3.12"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
+description = "Oxygengine Chat Demo"
+license = "MIT"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine"
 
 [lib]
 crate-type = ["cdylib"]
