@@ -41,11 +41,26 @@ pub enum ClientState {
 
 pub trait Client: Send + Sync + Sized {
     fn open(url: &str) -> Option<Self>;
+
     fn close(self) -> Self;
+
     fn id(&self) -> ClientID;
+
     fn state(&self) -> ClientState;
+
     fn send(&mut self, id: MessageID, data: &[u8]) -> Option<Range<usize>>;
-    fn receive(&mut self) -> Option<(MessageID, Vec<u8>)>;
+
+    fn read(&mut self) -> Option<(MessageID, Vec<u8>)>;
+
+    fn read_all(&mut self) -> Vec<(MessageID, Vec<u8>)> {
+        let mut result = vec![];
+        while let Some(msg) = self.read() {
+            result.push(msg);
+        }
+        result
+    }
+
+    fn process(&mut self) {}
 }
 
 impl Client for () {
@@ -69,7 +84,11 @@ impl Client for () {
         None
     }
 
-    fn receive(&mut self) -> Option<(MessageID, Vec<u8>)> {
+    fn read(&mut self) -> Option<(MessageID, Vec<u8>)> {
         None
+    }
+
+    fn read_all(&mut self) -> Vec<(MessageID, Vec<u8>)> {
+        vec![]
     }
 }

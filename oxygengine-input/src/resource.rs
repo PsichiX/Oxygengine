@@ -1,5 +1,5 @@
 use crate::{device::InputDevice, Scalar};
-use std::collections::HashMap;
+use std::{borrow::Borrow, collections::HashMap};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum TriggerState {
@@ -23,7 +23,7 @@ impl TriggerState {
 
 #[derive(Default)]
 pub struct InputController {
-    devices: HashMap<String, Box<InputDevice>>,
+    devices: HashMap<String, Box<dyn InputDevice>>,
     mapping_axes: HashMap<String, (String, String)>,
     mapping_triggers: HashMap<String, (String, String)>,
     axes: HashMap<String, Scalar>,
@@ -48,6 +48,25 @@ impl InputController {
         if let Some(mut device) = self.devices.remove(name) {
             device.on_unregister();
             Some(device)
+        } else {
+            None
+        }
+    }
+
+    pub fn device(&self, id: &str) -> Option<&dyn InputDevice> {
+        if let Some(device) = self.devices.get(id) {
+            Some(device.borrow())
+        } else {
+            None
+        }
+    }
+
+    pub fn as_device<T>(&self, id: &str) -> Option<&T>
+    where
+        T: InputDevice,
+    {
+        if let Some(device) = self.devices.get(id) {
+            device.as_any().downcast_ref::<T>()
         } else {
             None
         }

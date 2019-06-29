@@ -1,5 +1,5 @@
 use input::{device::InputDevice, Scalar};
-use std::{cell::RefCell, collections::HashSet, rc::Rc};
+use std::{any::Any, cell::RefCell, collections::HashSet, rc::Rc};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::*;
 
@@ -44,10 +44,12 @@ impl InputDevice for WebKeyboardInputDevice {
                 let code = event.code();
                 let key = event.key();
                 keys.borrow_mut().insert(code.clone());
-                if let Some(value) = key.chars().next() {
-                    if key.len() == 1 && (value.is_alphanumeric() || value.is_whitespace()) {
-                        sequence.borrow_mut().push((value, code));
-                    }
+                if key.len() > 1 {
+                    sequence.borrow_mut().push((0 as char, code));
+                } else if key.len() == 1 {
+                    sequence
+                        .borrow_mut()
+                        .push((key.chars().next().unwrap(), code));
                 }
             }) as Box<dyn FnMut(_)>);
             self.element
@@ -72,7 +74,8 @@ impl InputDevice for WebKeyboardInputDevice {
     }
 
     fn process(&mut self) {
-        self.last_sequence = self.sequence.borrow_mut().drain(..).collect();
+        self.last_sequence.clear();
+        self.last_sequence.append(&mut self.sequence.borrow_mut());
     }
 
     fn query_axis(&self, name: &str) -> Option<Scalar> {
@@ -85,5 +88,9 @@ impl InputDevice for WebKeyboardInputDevice {
 
     fn query_trigger(&self, name: &str) -> Option<bool> {
         Some(self.keys.borrow().contains(name))
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

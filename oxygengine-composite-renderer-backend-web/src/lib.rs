@@ -105,12 +105,15 @@ impl WebCompositeRenderer {
                             TextAlign::Center => "center",
                             TextAlign::Right => "right",
                         });
-                        drop(context.fill_text(
-                            &text.text,
-                            text.position.x.into(),
-                            text.position.y.into(),
-                        ));
-                        render_ops += 4;
+                        for (i, line) in text.text.lines().enumerate() {
+                            drop(context.fill_text(
+                                line,
+                                text.position.x.into(),
+                                (text.position.y + text.size * i as Scalar).into(),
+                            ));
+                            render_ops += 1;
+                        }
+                        render_ops += 3;
                         renderables += 1;
                     }
                     Renderable::Path(path) => {
@@ -288,12 +291,15 @@ impl WebCompositeRenderer {
                             TextAlign::Center => "center",
                             TextAlign::Right => "right",
                         });
-                        drop(context.stroke_text(
-                            &text.text,
-                            text.position.x.into(),
-                            text.position.y.into(),
-                        ));
-                        render_ops += 5;
+                        for (i, line) in text.text.lines().enumerate() {
+                            drop(context.stroke_text(
+                                line,
+                                text.position.x.into(),
+                                (text.position.y + text.size * i as Scalar).into(),
+                            ));
+                            render_ops += 1;
+                        }
+                        render_ops += 4;
                         renderables += 1;
                     }
                     Renderable::Path(path) => {

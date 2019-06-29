@@ -13,16 +13,17 @@
 ## Installation
 1. Make sure that you have latest `node.js` with `npm` tools installed (https://nodejs.org/)
 1. Make sure that you have latest `wasm-pack` toolset installed (https://rustwasm.github.io/wasm-pack/installer/)
+1. Make sure that you have latest `create-rust-webpack` nodejs package installed (`npm install -g create-rust-webpack`)
 
 ## Project Setup
-Create Rust + WASM project with
+Create Rust + WASM project with `create-rust-webpack`:
 ```bash
-npm init rust-webpack <path>
+create-rust-webpack <path>
 ```
 where `path` is path to empty folder where your project will be created by this
 command.
 
-Then add this record into your `/crate/Cargo.toml` file:
+Then add this record into your `/Cargo.toml` file:
 ```toml
 [dependencies]
 oxygengine = { version = "0.3", features = ["web-composite-game"] }
@@ -57,10 +58,18 @@ npm start
 ```bash
 npm run build
 ```
-- Build just crate instead of running dev env:
+- Build crate without of running dev env:
 ```bash
-cd /crate
 cargo build --all --target wasm32-unknown-unknown
+```
+or build with default target set to `wasm32-unknown-unknown`:
+```bash
+cargo build --all
+```
+with `/.cargo/config` file:
+```toml
+[build]
+target = "wasm32-unknown-unknown"
 ```
 
 ## TODO / Roadmap
@@ -75,9 +84,8 @@ cargo build --all --target wasm32-unknown-unknown
 `/webpack.config.js`
 ```js
 const path = require("path");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
+const CopyPlugin = require("copy-webpack-plugin");
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
-const CopyPlugin = require('copy-webpack-plugin');
 
 const dist = path.resolve(__dirname, "dist");
 const DEBUG = true;
@@ -85,52 +93,52 @@ console.log('BUILD MODE: ' + (DEBUG ? 'DEBUG' : 'RELEASE'));
 
 module.exports = {
   mode: DEBUG ? 'development' : 'production',
-  entry: "./js/index.js",
+  entry: {
+    index: "./js/index.js"
+  },
   output: {
     path: dist,
-    filename: "bundle.js"
+    filename: "[name].js"
   },
   devServer: {
     contentBase: dist,
   },
   plugins: [
-    new HtmlWebpackPlugin({
-      template: 'index.html',
-    }),
     new CopyPlugin([
-      { from: 'static' },
+      path.resolve(__dirname, "static")
     ]),
+
     new WasmPackPlugin({
-      crateDirectory: path.resolve(__dirname, "crate"),
+      crateDirectory: __dirname,
+      extraArgs: "--out-name index",
       forceMode: DEBUG ? undefined : 'release',
     }),
   ]
 };
 ```
 
-`/index.html`:
+`/static/index.html`:
 ```html
 <!DOCTYPE html>
 <html>
   <head>
     <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
-    <title>Oxygen Engine demo</title>
+    <title>Oxygen Engine Game</title>
   </head>
   <body style="margin: 0; padding: 0;">
     <canvas
       id="screen"
       style="margin: 0; padding: 0; position: absolute; width: 100%; height: 100%;"
     ></canvas>
+    <script src="index.js"></script>
   </body>
 </html>
 ```
 where `screen` canvas is our target fullpage game screen where game will be
 rendered onto.
 
-`/crate/src/lib.rs`:
+`/src/lib.rs`:
 ```rust
-extern crate oxygengine;
-
 use oxygengine::prelude::*;
 use wasm_bindgen::prelude::*;
 
@@ -248,9 +256,10 @@ impl State for GameState {
     }
 }
 
-#[wasm_bindgen]
-pub fn run() -> Result<(), JsValue> {
-    set_panic_hook();
+#[wasm_bindgen(start)]
+pub fn main_js() -> Result<(), JsValue> {
+    #[cfg(debug_assertions)]
+    console_error_panic_hook::set_once();
 
     // Application build phase - install all systems and resources and setup them.
     let app = App::build()
@@ -291,10 +300,5 @@ pub fn run() -> Result<(), JsValue> {
     AppRunner::new(app).run(WebAppRunner)?;
 
     Ok(())
-}
-
-fn set_panic_hook() {
-    #[cfg(feature = "console_error_panic_hook")]
-    console_error_panic_hook::set_once();
 }
 ```

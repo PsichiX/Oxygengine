@@ -19,6 +19,8 @@ pub mod prelude {
     pub use crate::*;
 }
 
+type MsgData = (MessageID, Vec<u8>);
+
 #[derive(Clone)]
 pub struct WebClient {
     socket: WebSocket,
@@ -26,7 +28,7 @@ pub struct WebClient {
     history_size: Rc<Cell<usize>>,
     state: Rc<Cell<ClientState>>,
     #[allow(clippy::type_complexity)]
-    messages: Rc<RefCell<VecDeque<(MessageID, Vec<u8>)>>>,
+    messages: Rc<RefCell<VecDeque<MsgData>>>,
 }
 
 unsafe impl Send for WebClient {}
@@ -84,7 +86,7 @@ impl Client for WebClient {
                                 let history_size = history_size2.get();
                                 if history_size > 0 {
                                     while messages.len() > history_size {
-                                        messages.pop_back();
+                                        messages.pop_front();
                                     }
                                 }
                             }
@@ -138,7 +140,14 @@ impl Client for WebClient {
         None
     }
 
-    fn receive(&mut self) -> Option<(MessageID, Vec<u8>)> {
-        self.messages.borrow_mut().pop_back()
+    fn read(&mut self) -> Option<MsgData> {
+        self.messages.borrow_mut().pop_front()
+    }
+
+    fn read_all(&mut self) -> Vec<MsgData> {
+        let mut messages = self.messages.borrow_mut();
+        let result = messages.iter().cloned().collect();
+        messages.clear();
+        result
     }
 }

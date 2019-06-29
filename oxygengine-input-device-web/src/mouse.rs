@@ -1,5 +1,5 @@
 use input::{device::InputDevice, Scalar};
-use std::{cell::Cell, rc::Rc};
+use std::{any::Any, cell::Cell, rc::Rc};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::*;
 
@@ -95,5 +95,9 @@ impl InputDevice for WebMouseInputDevice {
             "middle" => Some(self.middle_button.get()),
             _ => None,
         }
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

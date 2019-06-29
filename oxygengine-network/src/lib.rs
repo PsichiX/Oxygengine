@@ -17,12 +17,12 @@ use crate::{
 };
 use core::app::AppBuilder;
 
-pub fn bundle_installer<'a, 'b, C, S>(builder: &mut AppBuilder<'a, 'b>, version: u32)
+pub fn bundle_installer<'a, 'b, C, S>(builder: &mut AppBuilder<'a, 'b>, _: ())
 where
     C: Client + 'static,
     S: Server + 'static,
 {
-    builder.install_resource(Network::<C>::new(version));
+    builder.install_resource(Network::<C>::default());
     builder.install_resource(NetworkHost::<S>::default());
     builder.install_system(NetworkSystem::<C>::default(), "network", &[]);
     builder.install_system(NetworkHostSystem::<S>::default(), "network_host", &[]);

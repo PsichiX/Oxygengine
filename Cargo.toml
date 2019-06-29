@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine"
-version = "0.3.10"
+version = "0.3.12"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygen Engine"
@@ -34,7 +34,7 @@ web-composite-game = [
   "oxygengine-input-device-web",
   "oxygengine-network-backend-web",
 ]
-desktop-game = [
+desktop-headless-game = [
   "desktop",
   "network",
   "oxygengine-network-backend-desktop",
@@ -102,8 +102,10 @@ members = [
   "oxygengine-network-backend-web",
   "oxygengine-procedural",
   "demos/procedural-world-simulation",
+  "demos/chat/chat-server",
 ]
 exclude = [
   "demos/hello-world",
   "demos/rouglike",
+  "demos/chat/chat-client",
 ]

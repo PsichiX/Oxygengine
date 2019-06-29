@@ -201,7 +201,7 @@ impl Component for CompositeEffect {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompositeScalingMode {
     None,
     Center,
@@ -215,9 +215,23 @@ impl Default for CompositeScalingMode {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CompositeScalingTarget {
+    Width,
+    Height,
+    Both,
+}
+
+impl Default for CompositeScalingTarget {
+    fn default() -> Self {
+        CompositeScalingTarget::Both
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct CompositeCamera {
     pub scaling: CompositeScalingMode,
+    pub scaling_target: CompositeScalingTarget,
     pub tags: Vec<Cow<'static, str>>,
 }
 
@@ -228,7 +242,8 @@ impl Component for CompositeCamera {
 impl Default for CompositeCamera {
     fn default() -> Self {
         Self {
-            scaling: CompositeScalingMode::None,
+            scaling: CompositeScalingMode::default(),
+            scaling_target: CompositeScalingTarget::default(),
             tags: vec![],
         }
     }
@@ -238,6 +253,18 @@ impl CompositeCamera {
     pub fn new(scaling: CompositeScalingMode) -> Self {
         Self {
             scaling,
+            scaling_target: CompositeScalingTarget::default(),
+            tags: vec![],
+        }
+    }
+
+    pub fn with_scaling_target(
+        scaling: CompositeScalingMode,
+        target: CompositeScalingTarget,
+    ) -> Self {
+        Self {
+            scaling,
+            scaling_target: target,
             tags: vec![],
         }
     }
@@ -250,10 +277,16 @@ impl CompositeCamera {
     pub fn view_matrix(&self, transform: &CompositeTransform, screen_size: Vec2) -> Mat2d {
         let wh = screen_size.x * 0.5;
         let hh = screen_size.y * 0.5;
-        let scale = if screen_size.x > screen_size.y {
-            screen_size.y
-        } else {
-            screen_size.x
+        let scale = match self.scaling_target {
+            CompositeScalingTarget::Width => screen_size.x,
+            CompositeScalingTarget::Height => screen_size.y,
+            CompositeScalingTarget::Both => {
+                if screen_size.x > screen_size.y {
+                    screen_size.y
+                } else {
+                    screen_size.x
+                }
+            }
         };
         let s = Mat2d::scale(Vec2::one() / transform.get_scale());
         let ss = Mat2d::scale(Vec2::new(scale, scale) / transform.get_scale());

@@ -1,0 +1,25 @@
+{
+  "author": "Patryk 'PsichiX' Budzynski <psichix@gmail.com>",
+  "name": "oxygengine-hello-world",
+  "version": "0.3.12",
+  "repository": "https://github.com/PsichiX/oxygengine",
+  "license": "MIT",
+  "scripts": {
+    "start": "webpack-dev-server -d",
+    "build": "webpack",
+    "build-prod": "webpack -p",
+    "ws-server": "node ./scripts/ws-server.js"
+  },
+  "bin": {
+    "create-rust-webpack": ".bin/create-rust-webpack.js"
+  },
+  "devDependencies": {
+    "@wasm-tool/wasm-pack-plugin": "0.2.7",
+    "copy-webpack-plugin": "^5.0.2",
+    "html-webpack-plugin": "^3.2.0",
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.3.0",
+    "webpack-dev-server": "^3.2.1",
+    "ws": "^6.2.1"
+  }
+}
