@@ -39,6 +39,11 @@ desktop-headless-game = [
   "network",
   "oxygengine-network-backend-desktop",
 ]
+desktop-native-headless-game = [
+  "desktop",
+  "network",
+  "oxygengine-network-backend-native",
+]
 
 [dependencies]
 oxygengine-core = { version = "0.3", path = "./oxygengine-core" }
@@ -84,6 +89,11 @@ version = "0.3"
 path = "./oxygengine-network-backend-desktop"
 optional = true
 
+[dependencies.oxygengine-network-backend-native]
+version = "0.3"
+path = "./oxygengine-network-backend-native"
+optional = true
+
 [dependencies.oxygengine-procedural]
 version = "0.3"
 path = "./oxygengine-procedural"
@@ -100,6 +110,8 @@ members = [
   "oxygengine-composite-renderer-backend-web",
   "oxygengine-network",
   "oxygengine-network-backend-web",
+  "oxygengine-network-backend-desktop",
+  "oxygengine-network-backend-native",
   "oxygengine-procedural",
   "demos/procedural-world-simulation",
   "demos/chat/chat-server",

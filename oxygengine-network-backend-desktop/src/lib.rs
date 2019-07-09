@@ -88,9 +88,12 @@ impl Drop for DesktopServer {
 
 impl DesktopServer {
     fn cleanup(&mut self) {
-        *self.state.lock().unwrap() = ServerState::Closed;
-        if let Some(ws) = self.ws.lock().unwrap().deref_mut() {
-            ws.shutdown().unwrap();
+        {
+            *self.state.lock().unwrap() = ServerState::Closed;
+            if let Some(ws) = self.ws.lock().unwrap().deref_mut() {
+                ws.shutdown().unwrap();
+            }
+            *self.ws.lock().unwrap() = None;
         }
         let thread = replace(&mut self.thread, None);
         if let Some(thread) = thread {
@@ -226,13 +229,13 @@ impl Server for DesktopServer {
 
     fn process(&mut self) {
         let mut clients = self.clients.lock().unwrap();
+        for client in clients.values() {
+            self.messages.append(&mut client.lock().unwrap().messages);
+        }
         clients.retain(|_, client| client.lock().unwrap().state != ClientState::Closed);
         self.clients_ids_cached.clear();
         for id in clients.keys() {
             self.clients_ids_cached.push(*id);
-        }
-        for client in clients.values() {
-            self.messages.append(&mut client.lock().unwrap().messages);
         }
     }
 }
