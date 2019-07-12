@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::{fs::File, io::Write, path::Path};
 
 pub trait DataAggregatorRenderer {

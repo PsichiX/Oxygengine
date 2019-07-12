@@ -308,7 +308,7 @@ impl<'s> System<'s> for CompositeSpriteSheetSystem {
                         if let Some(frames) = self.frames_cache.get(sheet) {
                             renderable.0 = Image {
                                 image: name.clone().into(),
-                                source: frames.get(frame).map(|frame| *frame),
+                                source: frames.get(frame).copied(),
                                 destination: None,
                                 alignment: sprite.alignment,
                             }
@@ -566,7 +566,7 @@ where
                     Command::Draw(renderable.0.clone()),
                     Command::Restore,
                 ];
-                if let Ok(_) = renderer.update_surface(cache.name(), commands) {
+                if renderer.update_surface(cache.name(), commands).is_ok() {
                     renderable.0 = Image {
                         image: cache.name().to_owned().into(),
                         source: None,

@@ -2,6 +2,9 @@ extern crate byteorder;
 extern crate oxygengine_core as core;
 extern crate oxygengine_network as network;
 
+#[cfg(test)]
+mod tests;
+
 pub mod client;
 pub mod server;
 

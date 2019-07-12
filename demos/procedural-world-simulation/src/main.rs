@@ -1,3 +1,5 @@
+#![allow(clippy::absurd_extreme_comparisons)]
+
 extern crate oxygengine_procedural as procedural;
 
 mod data_aggregator;
@@ -234,7 +236,7 @@ fn world_to_buffer(mode: VisualisationMode, world: &World2d) -> Vec<u32> {
         VisualisationMode::Altitude => world
             .remap_region((0, 0)..(SIZE, SIZE), |_, _, altitude, _, _, _| {
                 let v = (255.0 * altitude / ALTITUDE_LIMIT).max(0.0).min(255.0) as u8;
-                let v = v as u32;
+                let v = u32::from(v);
                 v | v << 8 | v << 16
             })
             .into(),
@@ -244,16 +246,16 @@ fn world_to_buffer(mode: VisualisationMode, world: &World2d) -> Vec<u32> {
                 if f >= 0.5 {
                     let f = (f - 0.5) * 2.0;
                     let rv = (255.0 * f).max(0.0).min(255.0) as u8;
-                    let rv = rv as u32;
+                    let rv = u32::from(rv);
                     let gv = (255.0 * (1.0 - f)).max(0.0).min(255.0) as u8;
-                    let gv = gv as u32;
+                    let gv = u32::from(gv);
                     rv << 16 | gv << 8
                 } else {
                     let f = f * 2.0;
                     let gv = (255.0 * f).max(0.0).min(255.0) as u8;
-                    let gv = gv as u32;
+                    let gv = u32::from(gv);
                     let bv = (255.0 * (1.0 - f)).max(0.0).min(255.0) as u8;
-                    let bv = bv as u32;
+                    let bv = u32::from(bv);
                     gv << 8 | bv
                 }
             })
@@ -261,7 +263,7 @@ fn world_to_buffer(mode: VisualisationMode, world: &World2d) -> Vec<u32> {
         VisualisationMode::Humidity => world
             .remap_region((0, 0)..(SIZE, SIZE), |_, _, _, _, humidity, _| {
                 let v = (255.0 * humidity / HUMIDITY_LIMIT).max(0.0).min(255.0) as u8;
-                let v = v as u32;
+                let v = u32::from(v);
                 v | v << 8 | v << 16
             })
             .into(),
@@ -272,7 +274,7 @@ fn world_to_buffer(mode: VisualisationMode, world: &World2d) -> Vec<u32> {
                     let v = (255.0 * (altitude + surface_water) / ALTITUDE_LIMIT)
                         .max(0.0)
                         .min(255.0) as u8;
-                    let v = v as u32;
+                    let v = u32::from(v);
                     v | v << 8 | v << 16
                 },
             )
@@ -289,34 +291,32 @@ fn world_to_buffer(mode: VisualisationMode, world: &World2d) -> Vec<u32> {
                         } else {
                             2
                         }
+                    } else if temperature < 15.0 {
+                        0
                     } else {
-                        if temperature < 15.0 {
-                            0
-                        } else {
-                            1
-                        }
+                        1
                     };
                     if t == 0 {
                         let g = (128.0 + 127.0 * altitude / ALTITUDE_LIMIT)
                             .max(0.0)
                             .min(255.0) as u8;
-                        let g = g as u32;
+                        let g = u32::from(g);
                         g | g << 8 | g << 16
                     } else if t == 1 {
                         let g = (55.0 + 200.0 * altitude / ALTITUDE_LIMIT)
                             .max(0.0)
                             .min(255.0) as u8;
-                        let g = g as u32;
+                        let g = u32::from(g);
                         let swf = 1.0 - surface_water / WATER_LIMIT;
                         let swf = 1.0 - swf * swf * swf;
                         let w = (192.0 * swf).max(0.0).min(255.0) as u8;
-                        let w = w as u32;
+                        let w = u32::from(w);
                         w | g << 8
                     } else {
                         let g = (92.0 + 127.0 * altitude / ALTITUDE_LIMIT)
                             .max(0.0)
                             .min(255.0) as u8;
-                        let g = g as u32;
+                        let g = u32::from(g);
                         0x30 | g << 8 | g << 16
                     }
                 },
@@ -335,16 +335,16 @@ fn world_to_buffer(mode: VisualisationMode, world: &World2d) -> Vec<u32> {
                         let x = (((vel.0 / VELOCITY_LIMIT) + 1.0) * 0.5 * 255.0)
                             .max(0.0)
                             .min(255.0) as u8;
-                        let x = x as u32;
+                        let x = u32::from(x);
                         let y = (((vel.1 / VELOCITY_LIMIT) + 1.0) * 0.5 * 255.0)
                             .max(0.0)
                             .min(255.0) as u8;
-                        let y = y as u32;
+                        let y = u32::from(y);
                         y | x << 16
                     })
                     .collect::<Vec<_>>()
             } else {
-                vec![0x00880088; SIZE * SIZE]
+                vec![0x0088_0088; SIZE * SIZE]
             }
         }
         VisualisationMode::Divergence => {
@@ -360,14 +360,14 @@ fn world_to_buffer(mode: VisualisationMode, world: &World2d) -> Vec<u32> {
                         let p = (div / DIVERGENCE_LIMIT).max(0.0);
                         let n = -(div / DIVERGENCE_LIMIT).min(0.0);
                         let vp = (p * 255.0).max(0.0).min(255.0) as u8;
-                        let vp = vp as u32;
+                        let vp = u32::from(vp);
                         let vn = (n * 255.0).max(0.0).min(255.0) as u8;
-                        let vn = vn as u32;
+                        let vn = u32::from(vn);
                         vn | vp << 16
                     })
                     .collect::<Vec<_>>()
             } else {
-                vec![0x00000000; SIZE * SIZE]
+                vec![0x0000_0000; SIZE * SIZE]
             }
         }
         VisualisationMode::Pressure => {
@@ -383,14 +383,14 @@ fn world_to_buffer(mode: VisualisationMode, world: &World2d) -> Vec<u32> {
                         let p = (pres / PRESSURE_LIMIT).max(0.0);
                         let n = -(pres / PRESSURE_LIMIT).min(0.0);
                         let vp = (p * 255.0).max(0.0).min(255.0) as u8;
-                        let vp = vp as u32;
+                        let vp = u32::from(vp);
                         let vn = (n * 255.0).max(0.0).min(255.0) as u8;
-                        let vn = vn as u32;
+                        let vn = u32::from(vn);
                         vn | vp << 16
                     })
                     .collect::<Vec<_>>()
             } else {
-                vec![0x00000000; SIZE * SIZE]
+                vec![0x0000_0000; SIZE * SIZE]
             }
         }
         VisualisationMode::Slopeness => {
@@ -406,16 +406,16 @@ fn world_to_buffer(mode: VisualisationMode, world: &World2d) -> Vec<u32> {
                         let x = ((vel.0 / SLOPENESS_LIMIT + 1.0) * 0.5 * 255.0)
                             .max(0.0)
                             .min(255.0) as u8;
-                        let x = x as u32;
+                        let x = u32::from(x);
                         let y = ((vel.1 / SLOPENESS_LIMIT + 1.0) * 0.5 * 255.0)
                             .max(0.0)
                             .min(255.0) as u8;
-                        let y = y as u32;
+                        let y = u32::from(y);
                         y | x << 16
                     })
                     .collect::<Vec<_>>()
             } else {
-                vec![0x00880088; SIZE * SIZE]
+                vec![0x0088_0088; SIZE * SIZE]
             }
         }
     }
