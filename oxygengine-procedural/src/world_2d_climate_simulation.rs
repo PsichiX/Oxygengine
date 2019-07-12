@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::world_2d::{World2dField, World2dSimulation};
 use oxygengine_utils::grid_2d::{Grid2d, Grid2dNeighborSample};
 use psyche_utils::switch::Switch;

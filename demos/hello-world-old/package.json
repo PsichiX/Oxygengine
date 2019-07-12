@@ -1,7 +1,7 @@
 {
   "author": "Patryk 'PsichiX' Budzynski <psichix@gmail.com>",
   "name": "oxygengine-hello-world",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "repository": "https://github.com/PsichiX/oxygengine",
   "license": "MIT",
   "scripts": {

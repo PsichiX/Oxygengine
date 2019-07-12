@@ -24,6 +24,11 @@ pub mod backend {
         #[cfg(feature = "network")]
         pub use oxygengine_network_backend_desktop::*;
     }
+    #[cfg(feature = "native")]
+    pub mod desktop {
+        #[cfg(feature = "network")]
+        pub use oxygengine_network_backend_native::*;
+    }
 }
 #[cfg(feature = "composite-renderer")]
 pub mod composite_renderer {
@@ -57,6 +62,9 @@ pub mod prelude {
     #[cfg(feature = "desktop")]
     #[cfg(feature = "network")]
     pub use oxygengine_network_backend_desktop::prelude::*;
+    #[cfg(feature = "native")]
+    #[cfg(feature = "network")]
+    pub use oxygengine_network_backend_native::prelude::*;
     #[cfg(feature = "web")]
     #[cfg(feature = "network")]
     pub use oxygengine_network_backend_web::prelude::*;
