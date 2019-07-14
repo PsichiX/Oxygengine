@@ -1,4 +1,4 @@
-use crate::client::NativeClient;
+use crate::{client::NativeClient, utils::DoOnDrop};
 use network::{
     client::{Client, ClientID, ClientState, MessageID},
     server::{Server, ServerID, ServerState},
@@ -57,6 +57,8 @@ impl Server for NativeServer {
             ThreadBuilder::new()
                 .name(format!("Server: {:?}", sid))
                 .spawn(move || {
+                    let state3 = state2.clone();
+                    let _ = DoOnDrop::new(move || *state3.lock().unwrap() = ServerState::Closed);
                     let listener = TcpListener::bind(&url).unwrap();
                     listener.set_nonblocking(true).unwrap_or_else(|_| {
                         panic!(

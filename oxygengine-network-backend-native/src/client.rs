@@ -1,3 +1,4 @@
+use crate::utils::DoOnDrop;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use network::client::{Client, ClientID, ClientState, MessageID};
 use std::{
@@ -77,6 +78,8 @@ impl From<TcpStream> for NativeClient {
             ThreadBuilder::new()
                 .name(format!("Client: {:?}", id))
                 .spawn(move || {
+                    let state3 = state2.clone();
+                    let _ = DoOnDrop::new(move || *state3.lock().unwrap() = ClientState::Closed);
                     stream.set_nonblocking(true).unwrap_or_else(|_| {
                         panic!(
                             "Client {:?} cannot set non-blocking streaming on: {}",
@@ -195,6 +198,8 @@ impl Client for NativeClient {
             ThreadBuilder::new()
                 .name(format!("Client: {:?}", id))
                 .spawn(move || {
+                    let state3 = state2.clone();
+                    let _ = DoOnDrop::new(move || *state3.lock().unwrap() = ClientState::Closed);
                     let mut stream = TcpStream::connect(&url)
                         .unwrap_or_else(|_| panic!("Client {:?} cannot connect to: {}", id, &url));
                     stream.set_nonblocking(true).unwrap_or_else(|_| {

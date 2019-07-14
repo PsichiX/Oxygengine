@@ -7,6 +7,7 @@ mod tests;
 
 pub mod client;
 pub mod server;
+mod utils;
 
 pub mod prelude {
     pub use crate::client::*;
