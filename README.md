@@ -12,7 +12,7 @@
 ## Installation
 1. Make sure that you have latest `node.js` with `npm` tools installed (https://nodejs.org/)
 1. Make sure that you have latest `wasm-pack` toolset installed (https://rustwasm.github.io/wasm-pack/installer/)
-1. Make sure that you have latest `oxygengine-ignite` cargo package installed (`cargo install --force oxygengine-ignite`)
+1. Make sure that you have latest `oxygengine-ignite` application installed (from project repository releases)
 
 ## Project Setup
 Create Oxygen Engine project with `oxygengine-ignite`:
