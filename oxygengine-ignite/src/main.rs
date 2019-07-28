@@ -3,7 +3,7 @@ use clap::{App, Arg, SubCommand};
 use serde::Deserialize;
 use std::{
     collections::HashMap,
-    env::{current_dir, vars},
+    env::{current_dir, current_exe, vars},
     fs::{copy, create_dir_all, read_dir, read_to_string, write},
     io::{Error, ErrorKind, Result},
     path::Path,
@@ -87,18 +87,21 @@ impl Actions {
 }
 
 fn main() -> Result<()> {
-    let meta = MetadataCommand::new().exec().unwrap();
-    let mut root_path = meta
-        .packages
-        .iter()
-        .find_map(|p| {
-            if p.name == env!("CARGO_PKG_NAME") {
-                Some(p.manifest_path.clone())
-            } else {
-                None
-            }
-        })
-        .unwrap();
+    let meta = MetadataCommand::new().exec();
+    let mut root_path = if let Ok(meta) = meta {
+        meta.packages
+            .iter()
+            .find_map(|p| {
+                if p.name == env!("CARGO_PKG_NAME") {
+                    Some(p.manifest_path.clone())
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_else(|| current_exe().unwrap())
+    } else {
+        current_exe()?
+    };
     root_path.pop();
     let presets_path = root_path.join("presets");
     let presets_list = read_dir(&presets_path)?
