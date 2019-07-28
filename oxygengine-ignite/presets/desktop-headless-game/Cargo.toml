@@ -1,0 +1,13 @@
+[package]
+# name = "~%IGNITE_ID%~"
+name = "desktop-headless-game"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+
+[dependencies.oxygengine]
+version = "0.3"
+features = ["desktop-headless-game"]
+
+[workspace]

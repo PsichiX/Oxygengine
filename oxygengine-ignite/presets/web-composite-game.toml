@@ -1,0 +1,2 @@
+[notes]
+postbuild = "NOTE: Go to '~%IGNITE_DESTINATION_PATH%~' and run `npm install` before working with project!"

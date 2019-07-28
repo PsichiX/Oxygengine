@@ -15,6 +15,10 @@ pub fn main_js() -> Result<(), JsValue> {
     #[cfg(debug_assertions)]
     console_error_panic_hook::set_once();
 
+    // initialize logger to see logs in web browser (debug only).
+    #[cfg(debug_assertions)]
+    logger_setup(WebLogger);
+
     // Application build phase - install all systems and resources and setup them.
     let app = App::build()
         // install core module assets managment.
