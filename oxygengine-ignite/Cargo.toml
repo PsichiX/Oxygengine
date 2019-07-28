@@ -1,14 +1,15 @@
 [package]
-name = "oxygengine-input"
+name = "oxygengine-ignite"
 version = "0.3.15"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
-description = "Input module for Oxygen Engine"
+description = "CLI app used to setup new Oxygen Engine project"
 license = "MIT"
 homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
-documentation = "https://docs.rs/oxygengine-input"
+documentation = "https://docs.rs/oxygengine-ignite"
 readme = "../README.md"
 
 [dependencies]
-oxygengine-core = { version = "0.3", path = "../oxygengine-core" }
+clap = "2.33"
+cargo_metadata = "0.8"

@@ -1,13 +1,7 @@
 [package]
-name = "oxygengine-chat-client"
-version = "0.3.15"
-authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+name = "~%IGNITE_ID%~"
+version = "0.1.0"
 edition = "2018"
-description = "Oxygengine Chat Demo"
-license = "MIT"
-homepage = "https://github.com/PsichiX/oxygengine"
-repository = "https://github.com/PsichiX/oxygengine"
-documentation = "https://docs.rs/oxygengine"
 
 [lib]
 crate-type = ["cdylib"]
@@ -22,20 +16,16 @@ lto = true
 #default = ["wee_alloc"]
 
 [dependencies]
-oxygengine = { version = "0.3", path = "../../..", features = ["web-composite-game"] }
-bincode = "1.1"
-
-# The `wasm-bindgen` crate provides the bare minimum functionality needed
-# to interact with JavaScript.
 wasm-bindgen = "0.2.45"
-
 # `wee_alloc` is a tiny allocator for wasm that is only ~1K in code size
 # compared to the default allocator's ~10K. However, it is slower than the default
 # allocator, so it's not enabled by default.
 wee_alloc = { version = "0.4.2", optional = true }
 
-# The `web-sys` crate allows you to interact with the various browser APIs,
-# like the DOM.
+[dependencies.oxygengine]
+version = "0.3"
+features = ["web-composite-game"]
+
 [dependencies.web-sys]
 version = "0.3.22"
 features = ["console"]
@@ -53,3 +43,5 @@ wasm-bindgen-test = "0.2.45"
 futures = "0.1.27"
 js-sys = "0.3.22"
 wasm-bindgen-futures = "0.3.22"
+
+[workspace]

@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine"
-version = "0.3.14"
+version = "0.3.15"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygen Engine"
@@ -101,6 +101,7 @@ optional = true
 
 [workspace]
 members = [
+  "oxygengine-ignite",
   "oxygengine-core",
   "oxygengine-utils",
   "oxygengine-backend-web",

@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-pws"
-version = "0.3.14"
+version = "0.3.15"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygen Engine procedural world simulation"
