@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-ignite"
-version = "0.3.15"
+version = "0.3.16"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "CLI app used to setup new Oxygen Engine project"

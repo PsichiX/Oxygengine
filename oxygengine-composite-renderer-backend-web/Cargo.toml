@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-composite-renderer-backend-web"
-version = "0.3.15"
+version = "0.3.16"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Composite renderer Web backend module for Oxygen Engine"

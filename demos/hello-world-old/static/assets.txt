@@ -1,5 +1,0 @@
-txt://a.txt
-txt://b.txt
-png://wasm.png
-png://logo.png
-png://web.png

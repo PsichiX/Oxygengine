@@ -1,6 +1,5 @@
 [package]
-# name = "~%IGNITE_ID%~"
-name = "desktop-headless-game"
+name = "~%IGNITE_ID%~"
 version = "0.1.0"
 edition = "2018"
 
