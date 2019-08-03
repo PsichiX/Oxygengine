@@ -25,11 +25,13 @@ input = ["oxygengine-input"]
 composite-renderer = ["oxygengine-composite-renderer"]
 network = ["oxygengine-network"]
 procedural = ["oxygengine-procedural"]
+navigation = ["oxygengine-navigation"]
 web-composite-game = [
   "web",
   "composite-renderer",
   "input",
   "network",
+  "navigation",
   "oxygengine-composite-renderer-backend-web",
   "oxygengine-input-device-web",
   "oxygengine-network-backend-web",
@@ -37,11 +39,13 @@ web-composite-game = [
 desktop-headless-game = [
   "desktop",
   "network",
+  "navigation",
   "oxygengine-network-backend-desktop",
 ]
 desktop-native-headless-game = [
   "desktop",
   "network",
+  "navigation",
   "oxygengine-network-backend-native",
 ]
 
@@ -99,6 +103,11 @@ version = "0.3"
 path = "./oxygengine-procedural"
 optional = true
 
+[dependencies.oxygengine-navigation]
+version = "0.3"
+path = "./oxygengine-navigation"
+optional = true
+
 [workspace]
 members = [
   "oxygengine-ignite",
@@ -114,6 +123,7 @@ members = [
   "oxygengine-network-backend-desktop",
   "oxygengine-network-backend-native",
   "oxygengine-procedural",
+  "oxygengine-navigation",
   "demos/procedural-world-simulation",
   "demos/chat/chat-server",
   "demos/chat/chat-client",

@@ -276,34 +276,42 @@ pub struct Vec2 {
 }
 
 impl Vec2 {
+    #[inline]
     pub fn new(x: Scalar, y: Scalar) -> Self {
         Self { x, y }
     }
 
+    #[inline]
     pub fn zero() -> Self {
         Self { x: 0.0, y: 0.0 }
     }
 
+    #[inline]
     pub fn one() -> Self {
         Self { x: 1.0, y: 1.0 }
     }
 
+    #[inline]
     pub fn sqr_magnitude(self) -> Scalar {
         self.x * self.x + self.y * self.y
     }
 
+    #[inline]
     pub fn magnitude(self) -> Scalar {
         self.sqr_magnitude().sqrt()
     }
 
+    #[inline]
     pub fn normalized(self) -> Self {
         self / self.magnitude()
     }
 
+    #[inline]
     pub fn dot(self, other: Self) -> Scalar {
         self.x * other.x + self.y * other.y
     }
 
+    #[inline]
     pub fn lerp(self, other: Vec2, factor: Scalar) -> Self {
         Self {
             x: lerp(self.x, other.x, factor),
@@ -311,6 +319,7 @@ impl Vec2 {
         }
     }
 
+    #[inline]
     pub fn lerp_clamped(self, other: Vec2, factor: Scalar) -> Self {
         Self {
             x: lerp_clamped(self.x, other.x, factor),
@@ -318,12 +327,14 @@ impl Vec2 {
         }
     }
 
+    #[inline]
     pub fn project_distance(self, from: Vec2, to: Vec2) -> Scalar {
         let u = self - from;
         let v = to - from;
         u.dot(v) / v.sqr_magnitude()
     }
 
+    #[inline]
     pub fn project(self, from: Vec2, to: Vec2) -> Vec2 {
         (to - from) * self.project_distance(from, to)
     }
@@ -333,7 +344,7 @@ impl Add for Vec2 {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
-        Vec2 {
+        Self {
             x: self.x + other.x,
             y: self.y + other.y,
         }
@@ -344,7 +355,7 @@ impl Add<Scalar> for Vec2 {
     type Output = Self;
 
     fn add(self, other: Scalar) -> Self {
-        Vec2 {
+        Self {
             x: self.x + other,
             y: self.y + other,
         }
@@ -355,7 +366,7 @@ impl Sub for Vec2 {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self {
-        Vec2 {
+        Self {
             x: self.x - other.x,
             y: self.y - other.y,
         }
@@ -366,7 +377,7 @@ impl Sub<Scalar> for Vec2 {
     type Output = Self;
 
     fn sub(self, other: Scalar) -> Self {
-        Vec2 {
+        Self {
             x: self.x - other,
             y: self.y - other,
         }
@@ -377,7 +388,7 @@ impl Mul for Vec2 {
     type Output = Self;
 
     fn mul(self, other: Self) -> Self {
-        Vec2 {
+        Self {
             x: self.x * other.x,
             y: self.y * other.y,
         }
@@ -388,7 +399,7 @@ impl Mul<Scalar> for Vec2 {
     type Output = Self;
 
     fn mul(self, other: Scalar) -> Self {
-        Vec2 {
+        Self {
             x: self.x * other,
             y: self.y * other,
         }
@@ -399,7 +410,7 @@ impl Mul<Mat2d> for Vec2 {
     type Output = Self;
 
     fn mul(self, other: Mat2d) -> Self {
-        Vec2 {
+        Self {
             x: other.0[0] * self.x + other.0[2] * self.y + other.0[4],
             y: other.0[1] * self.x + other.0[3] * self.y + other.0[5],
         }
@@ -410,7 +421,7 @@ impl Div for Vec2 {
     type Output = Self;
 
     fn div(self, other: Self) -> Self {
-        Vec2 {
+        Self {
             x: self.x / other.x,
             y: self.y / other.y,
         }
@@ -421,7 +432,7 @@ impl Div<Scalar> for Vec2 {
     type Output = Self;
 
     fn div(self, other: Scalar) -> Self {
-        Vec2 {
+        Self {
             x: self.x / other,
             y: self.y / other,
         }
@@ -432,7 +443,7 @@ impl Neg for Vec2 {
     type Output = Self;
 
     fn neg(self) -> Self {
-        Vec2 {
+        Self {
             x: -self.x,
             y: -self.y,
         }

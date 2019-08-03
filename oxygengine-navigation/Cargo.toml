@@ -1,0 +1,16 @@
+[package]
+name = "oxygengine-navigation"
+version = "0.3.17"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+edition = "2018"
+description = "Navigation module for Oxygen Engine"
+license = "MIT"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine-navigation"
+readme = "../README.md"
+
+[dependencies]
+oxygengine-core = { version = "0.3", path = "../oxygengine-core" }
+petgraph = "0.4"
+spade = "1.0"
