@@ -160,6 +160,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[cfg(not(feature = "web"))]
     fn test_general() {
         let mut engine = engines::fs::FsFetchEngine::new(&".");
         let reader = engine.fetch("Cargo.toml").unwrap();
