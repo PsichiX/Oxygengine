@@ -9,6 +9,7 @@ use core::{
 
 #[derive(Debug, Clone)]
 pub struct NavAgent {
+    id: ID<NavAgent>,
     pub position: NavVec3,
     pub direction: NavVec3,
     pub speed: Scalar,
@@ -25,6 +26,7 @@ impl Component for NavAgent {
 impl Default for NavAgent {
     fn default() -> Self {
         Self {
+            id: ID::default(),
             position: NavVec3::default(),
             direction: NavVec3::default(),
             speed: 10.0,
@@ -39,6 +41,7 @@ impl Default for NavAgent {
 impl NavAgent {
     pub fn new(position: NavVec3) -> Self {
         Self {
+            id: ID::default(),
             position,
             direction: NavVec3::default(),
             speed: 10.0,
@@ -51,6 +54,7 @@ impl NavAgent {
 
     pub fn new_with_direction(position: NavVec3, direction: NavVec3) -> Self {
         Self {
+            id: ID::default(),
             position,
             direction,
             speed: 10.0,
@@ -59,6 +63,10 @@ impl NavAgent {
             path: None,
             dirty_path: false,
         }
+    }
+
+    pub fn id(&self) -> ID<NavAgent> {
+        self.id
     }
 
     pub fn destination(&self) -> Option<NavVec3> {
@@ -102,7 +110,7 @@ impl NavAgent {
         }
     }
 
-    pub(crate) fn process(&mut self, meshes: &NavMeshesRes, delta_time: Scalar) {
+    pub fn process(&mut self, meshes: &NavMeshesRes, delta_time: Scalar) {
         if self.dirty_path {
             self.dirty_path = false;
             if let Some((destination, query, mode, id)) = self.destination {
