@@ -15,7 +15,15 @@ exclude = [
 readme = "README.md"
 
 [features]
-parallel = ["oxygengine-core/parallel"]
+parallel = [
+  "oxygengine-core/parallel",
+  "oxygengine-composite-renderer/parallel",
+  "oxygengine-input/parallel",
+  "oxygengine-navigation/parallel",
+  "oxygengine-network/parallel",
+  "oxygengine-network-backend-desktop/parallel",
+  "oxygengine-network-backend-native/parallel",
+]
 web = [
   "oxygengine-backend-web",
   "oxygengine-core/web",

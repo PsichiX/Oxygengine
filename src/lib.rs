@@ -42,6 +42,10 @@ pub mod network {
 pub mod procedural {
     pub use oxygengine_procedural::*;
 }
+#[cfg(feature = "navigation")]
+pub mod navigation {
+    pub use oxygengine_navigation::*;
+}
 
 pub mod prelude {
     #[cfg(feature = "web")]
@@ -57,6 +61,8 @@ pub mod prelude {
     #[cfg(feature = "web")]
     #[cfg(feature = "input")]
     pub use oxygengine_input_device_web::prelude::*;
+    #[cfg(feature = "navigation")]
+    pub use oxygengine_navigation::prelude::*;
     #[cfg(feature = "network")]
     pub use oxygengine_network::prelude::*;
     #[cfg(feature = "desktop")]

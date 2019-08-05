@@ -10,5 +10,8 @@ repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine-network"
 readme = "../README.md"
 
+[features]
+parallel = ["oxygengine-core/parallel"]
+
 [dependencies]
 oxygengine-core = { version = "0.3", path = "../oxygengine-core" }
