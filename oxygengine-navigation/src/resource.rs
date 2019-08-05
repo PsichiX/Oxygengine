@@ -442,23 +442,35 @@ pub enum NavQuery {
 pub enum NavPathMode {
     Accuracy,
     MidPoints,
-    CenterPoints,
 }
 
 #[derive(Debug, Default)]
 pub struct NavMeshesRes(pub(crate) HashMap<ID<NavMesh>, NavMesh>);
 
 impl NavMeshesRes {
+    #[inline]
     pub fn register(&mut self, mesh: NavMesh) {
         self.0.insert(mesh.id(), mesh);
     }
 
+    #[inline]
     pub fn unregister(&mut self, id: ID<NavMesh>) -> bool {
         self.0.remove(&id).is_some()
     }
 
+    #[inline]
     pub fn meshes_iter(&self) -> impl Iterator<Item = &NavMesh> {
         self.0.values()
+    }
+
+    #[inline]
+    pub fn find_mesh(&self, id: ID<NavMesh>) -> Option<&NavMesh> {
+        self.0.get(&id)
+    }
+
+    #[inline]
+    pub fn find_mesh_mut(&mut self, id: ID<NavMesh>) -> Option<&mut NavMesh> {
+        self.0.get_mut(&id)
     }
 
     pub fn closest_point(&self, point: NavVec3, query: NavQuery) -> Option<(ID<NavMesh>, NavVec3)> {
@@ -755,18 +767,30 @@ impl NavMesh {
                                             let old_last_second = last_second;
                                             last_first = first;
                                             last_second = second;
-                                            if hard_edges.iter().any(|(a, b)| {
+                                            let first = hard_edges.iter().any(|(a, b)| {
                                                 NavVec3::line_intersects_segment(
                                                     start, first, *a, *b, normal,
                                                 )
-                                            }) {
-                                                start = old_last_first;
-                                                return Some(old_last_first);
-                                            } else if hard_edges.iter().any(|(a, b)| {
+                                            });
+                                            let second = hard_edges.iter().any(|(a, b)| {
                                                 NavVec3::line_intersects_segment(
                                                     start, second, *a, *b, normal,
                                                 )
-                                            }) {
+                                            });
+                                            if first && second {
+                                                let df = (old_last_first - start).sqr_magnitude();
+                                                let ds = (old_last_second - start).sqr_magnitude();
+                                                if df < ds {
+                                                    start = old_last_first;
+                                                    return Some(old_last_first);
+                                                } else {
+                                                    start = old_last_second;
+                                                    return Some(old_last_second);
+                                                }
+                                            } else if first {
+                                                start = old_last_first;
+                                                return Some(old_last_first);
+                                            } else if second {
                                                 start = old_last_second;
                                                 return Some(old_last_second);
                                             }
@@ -822,30 +846,6 @@ impl NavMesh {
                                         None
                                     }),
                             )
-                            .chain(std::iter::once(to))
-                            .collect(),
-                    );
-                }
-                NavPathMode::CenterPoints => {
-                    let mut start = from;
-                    let mut last = from;
-                    return Some(
-                        std::iter::once(from)
-                            .chain(triangles.iter().filter_map(|triangle| {
-                                if let Some(hard_edges) = self.hard_edges.get(triangle) {
-                                    let center = self.areas[*triangle].center;
-                                    let normal = self.spatials[*triangle].normal();
-                                    let old_last = last;
-                                    last = center;
-                                    if hard_edges.iter().any(|(a, b)| {
-                                        NavVec3::lines_intersects(start, center, *a, *b, normal)
-                                    }) {
-                                        start = old_last;
-                                        return Some(old_last);
-                                    }
-                                }
-                                None
-                            }))
                             .chain(std::iter::once(to))
                             .collect(),
                     );
@@ -1042,24 +1042,6 @@ mod tests {
                     (0.0, 0.0, 0.0).into(),
                     (2.0, 0.0, 0.0).into(),
                     NavQuery::Accuracy,
-                    NavPathMode::CenterPoints,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(0, 0, 0), (20, 0, 0),]
-            );
-            let path = mesh
-                .find_path(
-                    (0.0, 0.0, 0.0).into(),
-                    (2.0, 0.0, 0.0).into(),
-                    NavQuery::Accuracy,
                     NavPathMode::MidPoints,
                 )
                 .unwrap();
@@ -1093,24 +1075,6 @@ mod tests {
             );
         }
         {
-            let path = mesh
-                .find_path(
-                    (2.0, 0.0, 0.0).into(),
-                    (0.0, 2.0, 0.0).into(),
-                    NavQuery::Accuracy,
-                    NavPathMode::CenterPoints,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(20, 0, 0), (0, 20, 0),]
-            );
             let path = mesh
                 .find_path(
                     (2.0, 0.0, 0.0).into(),
@@ -1154,24 +1118,6 @@ mod tests {
                     (2.0, 1.0, 0.0).into(),
                     (1.0, 2.0, 0.0).into(),
                     NavQuery::Accuracy,
-                    NavPathMode::CenterPoints,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(20, 10, 0), (3, 6, 0), (10, 20, 0),]
-            );
-            let path = mesh
-                .find_path(
-                    (2.0, 1.0, 0.0).into(),
-                    (1.0, 2.0, 0.0).into(),
-                    NavQuery::Accuracy,
                     NavPathMode::MidPoints,
                 )
                 .unwrap();
@@ -1210,24 +1156,6 @@ mod tests {
                     (0.5, 0.0, 0.0).into(),
                     (0.5, 2.0, 0.0).into(),
                     NavQuery::Accuracy,
-                    NavPathMode::CenterPoints,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(5, 0, 0), (5, 20, 0),]
-            );
-            let path = mesh
-                .find_path(
-                    (0.5, 0.0, 0.0).into(),
-                    (0.5, 2.0, 0.0).into(),
-                    NavQuery::Accuracy,
                     NavPathMode::MidPoints,
                 )
                 .unwrap();
@@ -1258,6 +1186,62 @@ mod tests {
                     ))
                     .collect::<Vec<_>>(),
                 vec![(5, 0, 0), (5, 20, 0),]
+            );
+        }
+
+        let vertices = vec![
+            (0.0, 0.0, 0.0).into(), // 0
+            (2.0, 0.0, 0.0).into(), // 1
+            (2.0, 1.0, 0.0).into(), // 2
+            (1.0, 1.0, 0.0).into(), // 3
+            (0.0, 2.0, 0.0).into(), // 4
+        ];
+        let triangles = vec![
+            (0, 3, 4).into(), // 0
+            (0, 1, 3).into(), // 1
+            (1, 2, 3).into(), // 2
+        ];
+        let mesh = NavMesh::new(vertices.clone(), triangles.clone()).unwrap();
+        {
+            let path = mesh.find_path_triangles(0, 2).unwrap().0;
+            assert_eq!(path, vec![0, 1, 2]);
+        }
+        {
+            let path = mesh
+                .find_path(
+                    (2.0, 1.0, 0.0).into(),
+                    (0.0, 2.0, 0.0).into(),
+                    NavQuery::Accuracy,
+                    NavPathMode::MidPoints,
+                )
+                .unwrap();
+            assert_eq!(
+                path.into_iter()
+                    .map(|v| (
+                        (v.x * 10.0) as i32,
+                        (v.y * 10.0) as i32,
+                        (v.z * 10.0) as i32,
+                    ))
+                    .collect::<Vec<_>>(),
+                vec![(20, 10, 0), (5, 5, 0), (0, 20, 0),]
+            );
+            let path = mesh
+                .find_path(
+                    (2.0, 1.0, 0.0).into(),
+                    (0.0, 2.0, 0.0).into(),
+                    NavQuery::Accuracy,
+                    NavPathMode::Accuracy,
+                )
+                .unwrap();
+            assert_eq!(
+                path.into_iter()
+                    .map(|v| (
+                        (v.x * 10.0) as i32,
+                        (v.y * 10.0) as i32,
+                        (v.z * 10.0) as i32,
+                    ))
+                    .collect::<Vec<_>>(),
+                vec![(20, 10, 0), (10, 10, 0), (0, 20, 0),]
             );
         }
     }
