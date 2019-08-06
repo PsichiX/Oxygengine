@@ -459,6 +459,11 @@ impl NavMeshesRes {
     }
 
     #[inline]
+    pub fn unregister_all(&mut self) {
+        self.0.clear()
+    }
+
+    #[inline]
     pub fn meshes_iter(&self) -> impl Iterator<Item = &NavMesh> {
         self.0.values()
     }
