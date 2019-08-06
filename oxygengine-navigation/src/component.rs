@@ -25,38 +25,20 @@ impl Component for NavAgent {
 
 impl Default for NavAgent {
     fn default() -> Self {
-        Self {
-            id: ID::default(),
-            position: NavVec3::default(),
-            direction: NavVec3::default(),
-            speed: 10.0,
-            min_target_distance: 1.0,
-            destination: None,
-            path: None,
-            dirty_path: false,
-        }
+        Self::new(Default::default())
     }
 }
 
 impl NavAgent {
     pub fn new(position: NavVec3) -> Self {
-        Self {
-            id: ID::default(),
-            position,
-            direction: NavVec3::default(),
-            speed: 10.0,
-            min_target_distance: 1.0,
-            destination: None,
-            path: None,
-            dirty_path: false,
-        }
+        Self::new_with_direction(position, Default::default())
     }
 
     pub fn new_with_direction(position: NavVec3, direction: NavVec3) -> Self {
         Self {
             id: ID::default(),
             position,
-            direction,
+            direction: direction.normalize(),
             speed: 10.0,
             min_target_distance: 1.0,
             destination: None,
