@@ -1,15 +1,16 @@
-use crate::Scalar;
+use crate::{
+    resource::{NavVec3, ZERO_TRESHOLD},
+    Scalar,
+};
 use core::id::ID;
 use petgraph::{algo::astar, graph::NodeIndex, visit::EdgeRef, Graph, Undirected};
-use spade::{rtree::RTree, BoundingRect, PointN, SpatialObject};
+use serde::{Deserialize, Serialize};
+use spade::{rtree::RTree, BoundingRect, SpatialObject};
 use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
-    ops::{Add, Div, Mul, Sub},
     result::Result as StdResult,
 };
-
-pub(crate) const ZERO_TRESHOLD: Scalar = 1e-6;
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -20,257 +21,7 @@ pub enum Error {
 pub type NavResult<T> = StdResult<T, Error>;
 
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone, PartialEq)]
-pub struct NavVec3 {
-    pub x: Scalar,
-    pub y: Scalar,
-    pub z: Scalar,
-}
-
-impl NavVec3 {
-    #[inline]
-    pub fn new(x: Scalar, y: Scalar, z: Scalar) -> Self {
-        Self { x, y, z }
-    }
-
-    #[inline]
-    pub fn sqr_magnitude(self) -> Scalar {
-        self.x * self.x + self.y * self.y + self.z * self.z
-    }
-
-    #[inline]
-    pub fn magnitude(self) -> Scalar {
-        self.sqr_magnitude().sqrt()
-    }
-
-    #[inline]
-    pub fn cross(self, other: Self) -> Self {
-        Self {
-            x: (self.y * other.z) - (self.z * other.y),
-            y: (self.z * other.x) - (self.x * other.z),
-            z: (self.x * other.y) - (self.y * other.x),
-        }
-    }
-
-    #[inline]
-    pub fn dot(self, other: Self) -> Scalar {
-        self.x * other.x + self.y * other.y + self.z * other.z
-    }
-
-    #[inline]
-    pub fn normalize(self) -> Self {
-        let len = self.magnitude();
-        if len < ZERO_TRESHOLD {
-            Self::new(0.0, 0.0, 0.0)
-        } else {
-            Self::new(self.x / len, self.y / len, self.z / len)
-        }
-    }
-
-    #[inline]
-    pub fn project(self, from: Self, to: Self) -> Scalar {
-        let diff = to - from;
-        (self - from).dot(diff) / diff.sqr_magnitude()
-    }
-
-    #[inline]
-    pub fn unproject(from: Self, to: Self, t: Scalar) -> Self {
-        let diff = to - from;
-        from + Self::new(diff.x * t, diff.y * t, diff.z * t)
-    }
-
-    #[inline]
-    pub fn is_above_plane(self, origin: Self, normal: Self) -> bool {
-        normal.dot(self - origin) > -ZERO_TRESHOLD
-    }
-
-    pub fn project_on_plane(self, origin: Self, normal: Self) -> Self {
-        let v = self - origin;
-        let n = normal.normalize();
-        let dot = v.dot(n);
-        let d = NavVec3::new(normal.x * dot, normal.y * dot, normal.z * dot);
-        self - d
-    }
-
-    pub fn lines_intersects(
-        a_from: Self,
-        a_to: Self,
-        b_from: Self,
-        b_to: Self,
-        normal: Self,
-    ) -> bool {
-        let a = a_to - a_from;
-        let b = b_to - b_from;
-        let an = a.cross(normal);
-        let bn = b.cross(normal);
-        let afs = Self::side(bn.dot(a_from - b_from));
-        let ats = Self::side(bn.dot(a_to - b_from));
-        let bfs = Self::side(an.dot(b_from - a_from));
-        let bts = Self::side(an.dot(b_to - a_from));
-        let normal = normal.cross(b_to - b_from);
-        Self::different_sides(afs, ats)
-            && Self::different_sides(bfs, bts)
-            && (a_from.is_above_plane(b_from, normal) != a_to.is_above_plane(b_from, normal))
-    }
-
-    fn side(v: Scalar) -> i8 {
-        if v.abs() < ZERO_TRESHOLD {
-            0
-        } else {
-            v.signum() as i8
-        }
-    }
-
-    fn different_sides(a: i8, b: i8) -> bool {
-        (a < 0 && b >= 0) || (a > 0 && b <= 0)
-    }
-}
-
-impl From<(Scalar, Scalar, Scalar)> for NavVec3 {
-    fn from(value: (Scalar, Scalar, Scalar)) -> Self {
-        Self {
-            x: value.0,
-            y: value.1,
-            z: value.2,
-        }
-    }
-}
-
-impl Add for NavVec3 {
-    type Output = Self;
-
-    #[inline]
-    fn add(self, other: Self) -> Self {
-        Self {
-            x: self.x + other.x,
-            y: self.y + other.y,
-            z: self.z + other.z,
-        }
-    }
-}
-
-impl Add<Scalar> for NavVec3 {
-    type Output = Self;
-
-    #[inline]
-    fn add(self, other: Scalar) -> Self {
-        Self {
-            x: self.x + other,
-            y: self.y + other,
-            z: self.z + other,
-        }
-    }
-}
-
-impl Sub for NavVec3 {
-    type Output = Self;
-
-    #[inline]
-    fn sub(self, other: Self) -> Self {
-        Self {
-            x: self.x - other.x,
-            y: self.y - other.y,
-            z: self.z - other.z,
-        }
-    }
-}
-
-impl Sub<Scalar> for NavVec3 {
-    type Output = Self;
-
-    #[inline]
-    fn sub(self, other: Scalar) -> Self {
-        Self {
-            x: self.x - other,
-            y: self.y - other,
-            z: self.z - other,
-        }
-    }
-}
-
-impl Mul for NavVec3 {
-    type Output = Self;
-
-    #[inline]
-    fn mul(self, other: Self) -> Self {
-        Self {
-            x: self.x * other.x,
-            y: self.y * other.y,
-            z: self.z * other.z,
-        }
-    }
-}
-
-impl Mul<Scalar> for NavVec3 {
-    type Output = Self;
-
-    #[inline]
-    fn mul(self, other: Scalar) -> Self {
-        Self {
-            x: self.x * other,
-            y: self.y * other,
-            z: self.z * other,
-        }
-    }
-}
-
-impl Div for NavVec3 {
-    type Output = Self;
-
-    #[inline]
-    fn div(self, other: Self) -> Self {
-        Self {
-            x: self.x / other.x,
-            y: self.y / other.y,
-            z: self.z / other.z,
-        }
-    }
-}
-
-impl Div<Scalar> for NavVec3 {
-    type Output = Self;
-
-    #[inline]
-    fn div(self, other: Scalar) -> Self {
-        Self {
-            x: self.x / other,
-            y: self.y / other,
-            z: self.z / other,
-        }
-    }
-}
-
-impl PointN for NavVec3 {
-    type Scalar = Scalar;
-
-    fn dimensions() -> usize {
-        3
-    }
-
-    fn nth(&self, index: usize) -> &Self::Scalar {
-        match index {
-            0 => &self.x,
-            1 => &self.y,
-            2 => &self.z,
-            _ => unreachable!(),
-        }
-    }
-    fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
-        match index {
-            0 => &mut self.x,
-            1 => &mut self.y,
-            2 => &mut self.z,
-            _ => unreachable!(),
-        }
-    }
-
-    fn from_value(value: Self::Scalar) -> Self {
-        NavVec3::new(value, value, value)
-    }
-}
-
-#[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct NavTriangle {
     pub first: u32,
     pub second: u32,
@@ -288,7 +39,7 @@ impl From<(u32, u32, u32)> for NavTriangle {
 }
 
 #[repr(C)]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct NavArea {
     pub triangle: u32,
     pub size: Scalar,
@@ -314,7 +65,7 @@ impl NavArea {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone, Eq)]
+#[derive(Debug, Default, Copy, Clone, Eq, Serialize, Deserialize)]
 struct NavConnection(pub u32, pub u32);
 
 impl Hash for NavConnection {
@@ -336,8 +87,8 @@ impl PartialEq for NavConnection {
     }
 }
 
-#[derive(Debug, Clone)]
-struct NavSpatialObject {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct NavSpatialObject {
     pub index: usize,
     pub a: NavVec3,
     pub b: NavVec3,
@@ -423,14 +174,14 @@ impl SpatialObject for NavSpatialObject {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum NavQuery {
     Accuracy,
     Closest,
     ClosestFirst,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum NavPathMode {
     Accuracy,
     MidPoints,
@@ -908,450 +659,60 @@ impl NavMesh {
                 .map(|(_, t)| t.index),
         }
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_lines_intersection() {
-        assert_eq!(
-            false,
-            NavVec3::lines_intersects(
-                (-3.0, -1.0, 0.0).into(),
-                (-1.0, 1.0, 0.0).into(),
-                (-1.0, 0.0, 0.0).into(),
-                (1.0, 0.0, 0.0).into(),
-                (0.0, 0.0, 1.0).into(),
-            )
-        );
-        assert_eq!(
-            true,
-            NavVec3::lines_intersects(
-                (-1.0, -1.0, 0.0).into(),
-                (1.0, 1.0, 0.0).into(),
-                (-1.0, 0.0, 0.0).into(),
-                (1.0, 0.0, 0.0).into(),
-                (0.0, 0.0, 1.0).into(),
-            )
-        );
-        assert_eq!(
-            false,
-            NavVec3::lines_intersects(
-                (1.0, -1.0, 0.0).into(),
-                (3.0, 1.0, 0.0).into(),
-                (-1.0, 0.0, 0.0).into(),
-                (1.0, 0.0, 0.0).into(),
-                (0.0, 0.0, 1.0).into(),
-            )
-        );
-        assert_eq!(
-            false,
-            NavVec3::lines_intersects(
-                (-2.0, -2.0, 0.0).into(),
-                (2.0, 2.0, 0.0).into(),
-                (0.0, -1.0, 0.0).into(),
-                (2.0, -1.0, 0.0).into(),
-                (0.0, 0.0, 1.0).into(),
-            )
-        );
-        assert_eq!(
-            false,
-            NavVec3::lines_intersects(
-                (-2.0, -2.0, 0.0).into(),
-                (2.0, 2.0, 0.0).into(),
-                (0.0, 0.0, 0.0).into(),
-                (2.0, 0.0, 0.0).into(),
-                (0.0, 0.0, 1.0).into(),
-            )
-        );
+    pub fn path_target_point(
+        path: &[NavVec3],
+        point: NavVec3,
+        offset: Scalar,
+    ) -> (NavVec3, Scalar) {
+        match path.len() {
+            0 => (point, 0.0),
+            1 => (path[0], 0.0),
+            2 => Self::point_on_line(path[0], path[1], point, offset),
+            _ => path
+                .windows(2)
+                .scan(0.0, |state, pair| {
+                    let s = *state;
+                    *state += (pair[1] - pair[0]).magnitude();
+                    Some((s, pair))
+                })
+                .map(|(dist, pair)| {
+                    let (p, d) = Self::point_on_line(pair[0], pair[1], point, offset);
+                    (p, dist + d)
+                })
+                .min_by(|(_, a), (_, b)| b.partial_cmp(&a).unwrap())
+                .unwrap(),
+        }
     }
 
-    #[test]
-    fn test_spatials() {
-        let vertices = vec![
-            (1.0, 2.0, 0.0).into(),
-            (2.0, 2.0, 0.0).into(),
-            (2.0, 3.0, 0.0).into(),
-            (1.0, 3.0, 0.0).into(),
-        ];
-
-        let s = NavSpatialObject::new(0, vertices[0], vertices[1], vertices[2]);
-        assert_eq!(s.closest_point(vertices[0]), vertices[0]);
-        assert_eq!(s.closest_point(vertices[1]), vertices[1]);
-        assert_eq!(s.closest_point(vertices[2]), vertices[2]);
-        assert_eq!(
-            s.closest_point((1.75, 2.25, 0.0).into()),
-            (1.75, 2.25, 0.0).into()
-        );
-        assert_eq!(
-            s.closest_point((1.5, 1.0, 0.0).into()),
-            (1.5, 2.0, 0.0).into()
-        );
-        assert_eq!(
-            s.closest_point((3.0, 2.5, 0.0).into()),
-            (2.0, 2.5, 0.0).into()
-        );
-        assert_eq!(
-            s.closest_point((1.0, 3.0, 0.0).into()),
-            (1.5, 2.5, 0.0).into()
-        );
-
-        let s = NavSpatialObject::new(0, vertices[2], vertices[3], vertices[0]);
-        assert_eq!(s.closest_point(vertices[2]), vertices[2]);
-        assert_eq!(s.closest_point(vertices[3]), vertices[3]);
-        assert_eq!(s.closest_point(vertices[0]), vertices[0]);
-        assert_eq!(
-            s.closest_point((1.25, 2.75, 0.0).into()),
-            (1.25, 2.75, 0.0).into()
-        );
-        assert_eq!(
-            s.closest_point((2.0, 2.0, 0.0).into()),
-            (1.5, 2.5, 0.0).into()
-        );
-        assert_eq!(
-            s.closest_point((1.5, 4.0, 0.0).into()),
-            (1.5, 3.0, 0.0).into()
-        );
-        assert_eq!(
-            s.closest_point((0.0, 2.5, 0.0).into()),
-            (1.0, 2.5, 0.0).into()
-        );
+    pub fn path_length(path: &[NavVec3]) -> Scalar {
+        match path.len() {
+            0 | 1 => 0.0,
+            2 => (path[1] - path[0]).sqr_magnitude(),
+            _ => path
+                .windows(2)
+                .fold(0.0, |a, pair| a + (pair[1] - pair[0]).sqr_magnitude()),
+        }
+        .sqrt()
     }
 
-    #[test]
-    fn test_general() {
-        let vertices = vec![
-            (0.0, 0.0, 0.0).into(), // 0
-            (1.0, 0.0, 0.0).into(), // 1
-            (2.0, 0.0, 0.0).into(), // 2
-            (0.0, 1.0, 0.0).into(), // 3
-            (1.0, 1.0, 0.0).into(), // 4
-            (2.0, 1.0, 0.0).into(), // 5
-            (0.0, 2.0, 0.0).into(), // 6
-            (1.0, 2.0, 0.0).into(), // 7
-        ];
-        let triangles = vec![
-            (0, 1, 4).into(), // 0
-            (4, 3, 0).into(), // 1
-            (1, 2, 5).into(), // 2
-            (5, 4, 1).into(), // 3
-            (3, 4, 7).into(), // 4
-            (7, 6, 3).into(), // 5
-        ];
-        let mesh = NavMesh::new(vertices.clone(), triangles.clone()).unwrap();
-        {
-            let path = mesh.find_path_triangles(0, 0).unwrap().0;
-            assert_eq!(path, vec![0]);
+    fn point_on_line(
+        from: NavVec3,
+        to: NavVec3,
+        point: NavVec3,
+        offset: Scalar,
+    ) -> (NavVec3, Scalar) {
+        let d = (to - from).magnitude();
+        if d < ZERO_TRESHOLD {
+            return (from, 0.0);
         }
-        {
-            let path = mesh.find_path_triangles(2, 5).unwrap().0;
-            assert_eq!(path, vec![2, 3, 0, 1, 4, 5]);
-        }
-        {
-            let path = mesh
-                .find_path(
-                    (0.0, 0.0, 0.0).into(),
-                    (2.0, 0.0, 0.0).into(),
-                    NavQuery::Accuracy,
-                    NavPathMode::MidPoints,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(0, 0, 0), (20, 0, 0),]
-            );
-            let path = mesh
-                .find_path(
-                    (0.0, 0.0, 0.0).into(),
-                    (2.0, 0.0, 0.0).into(),
-                    NavQuery::Accuracy,
-                    NavPathMode::Accuracy,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(0, 0, 0), (20, 0, 0),]
-            );
-        }
-        {
-            let path = mesh
-                .find_path(
-                    (2.0, 0.0, 0.0).into(),
-                    (0.0, 2.0, 0.0).into(),
-                    NavQuery::Accuracy,
-                    NavPathMode::MidPoints,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(20, 0, 0), (0, 20, 0),]
-            );
-            let path = mesh
-                .find_path(
-                    (2.0, 0.0, 0.0).into(),
-                    (0.0, 2.0, 0.0).into(),
-                    NavQuery::Accuracy,
-                    NavPathMode::Accuracy,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(20, 0, 0), (10, 10, 0), (0, 20, 0),]
-            );
-        }
-        {
-            let path = mesh
-                .find_path(
-                    (2.0, 1.0, 0.0).into(),
-                    (1.0, 2.0, 0.0).into(),
-                    NavQuery::Accuracy,
-                    NavPathMode::MidPoints,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(20, 10, 0), (5, 10, 0), (10, 20, 0),]
-            );
-            let path = mesh
-                .find_path(
-                    (2.0, 1.0, 0.0).into(),
-                    (1.0, 2.0, 0.0).into(),
-                    NavQuery::Accuracy,
-                    NavPathMode::Accuracy,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(20, 10, 0), (10, 10, 0), (10, 20, 0),]
-            );
-        }
-        {
-            let path = mesh
-                .find_path(
-                    (0.5, 0.0, 0.0).into(),
-                    (0.5, 2.0, 0.0).into(),
-                    NavQuery::Accuracy,
-                    NavPathMode::MidPoints,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(5, 0, 0), (5, 20, 0),]
-            );
-            let path = mesh
-                .find_path(
-                    (0.5, 0.0, 0.0).into(),
-                    (0.5, 2.0, 0.0).into(),
-                    NavQuery::Accuracy,
-                    NavPathMode::Accuracy,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(5, 0, 0), (5, 20, 0),]
-            );
-        }
-
-        let vertices = vec![
-            (0.0, 0.0, 0.0).into(), // 0
-            (2.0, 0.0, 0.0).into(), // 1
-            (2.0, 1.0, 0.0).into(), // 2
-            (1.0, 1.0, 0.0).into(), // 3
-            (0.0, 2.0, 0.0).into(), // 4
-        ];
-        let triangles = vec![
-            (0, 3, 4).into(), // 0
-            (0, 1, 3).into(), // 1
-            (1, 2, 3).into(), // 2
-        ];
-        let mesh = NavMesh::new(vertices.clone(), triangles.clone()).unwrap();
-        {
-            let path = mesh.find_path_triangles(0, 2).unwrap().0;
-            assert_eq!(path, vec![0, 1, 2]);
-        }
-        {
-            let path = mesh
-                .find_path(
-                    (2.0, 1.0, 0.0).into(),
-                    (0.0, 2.0, 0.0).into(),
-                    NavQuery::Accuracy,
-                    NavPathMode::MidPoints,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(20, 10, 0), (5, 5, 0), (0, 20, 0),]
-            );
-            let path = mesh
-                .find_path(
-                    (2.0, 1.0, 0.0).into(),
-                    (0.0, 2.0, 0.0).into(),
-                    NavQuery::Accuracy,
-                    NavPathMode::Accuracy,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(20, 10, 0), (10, 10, 0), (0, 20, 0),]
-            );
-        }
-
-        let vertices = vec![
-            (0.0, 0.0, 0.0).into(), // 0
-            (1.0, 0.0, 0.0).into(), // 1
-            (2.0, 0.0, 1.0).into(), // 2
-            (0.0, 1.0, 0.0).into(), // 3
-            (1.0, 1.0, 0.0).into(), // 4
-            (2.0, 1.0, 1.0).into(), // 5
-        ];
-        let triangles = vec![
-            (0, 1, 4).into(), // 0
-            (4, 3, 0).into(), // 1
-            (1, 2, 5).into(), // 2
-            (5, 4, 1).into(), // 3
-        ];
-        let mesh = NavMesh::new(vertices.clone(), triangles.clone()).unwrap();
-        {
-            let path = mesh.find_path_triangles(1, 2).unwrap().0;
-            assert_eq!(path, vec![1, 0, 3, 2]);
-        }
-        {
-            let path = mesh
-                .find_path(
-                    (0.0, 0.5, 0.0).into(),
-                    (2.0, 0.5, 1.0).into(),
-                    NavQuery::Accuracy,
-                    NavPathMode::MidPoints,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(0, 5, 0), (10, 5, 0), (20, 5, 10),]
-            );
-            let path = mesh
-                .find_path(
-                    (0.0, 0.5, 0.0).into(),
-                    (2.0, 0.5, 1.0).into(),
-                    NavQuery::Accuracy,
-                    NavPathMode::Accuracy,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(0, 5, 0), (10, 5, 0), (20, 5, 10),]
-            );
-        }
-        {
-            let path = mesh
-                .find_path(
-                    (0.0, 0.0, 0.0).into(),
-                    (2.0, 1.0, 1.0).into(),
-                    NavQuery::Accuracy,
-                    NavPathMode::MidPoints,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(0, 0, 0), (10, 5, 0), (20, 10, 10),]
-            );
-            let path = mesh
-                .find_path(
-                    (0.0, 0.0, 0.0).into(),
-                    (2.0, 1.0, 1.0).into(),
-                    NavQuery::Accuracy,
-                    NavPathMode::Accuracy,
-                )
-                .unwrap();
-            assert_eq!(
-                path.into_iter()
-                    .map(|v| (
-                        (v.x * 10.0) as i32,
-                        (v.y * 10.0) as i32,
-                        (v.z * 10.0) as i32,
-                    ))
-                    .collect::<Vec<_>>(),
-                vec![(0, 0, 0), (10, 5, 0), (20, 10, 10),]
-            );
+        let p = point.project(from, to) + offset / d;
+        if p <= 0.0 {
+            (from, 0.0)
+        } else if p >= 1.0 {
+            (to, d)
+        } else {
+            (NavVec3::unproject(from, to, p), p * d)
         }
     }
 }

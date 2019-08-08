@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygen Engine"
@@ -11,6 +11,7 @@ documentation = "https://docs.rs/oxygengine"
 exclude = [
   "demos/**",
   "media/**",
+  "oxygengine-ignite",
 ]
 readme = "README.md"
 
@@ -135,4 +136,5 @@ members = [
   "demos/procedural-world-simulation",
   "demos/chat/chat-server",
   "demos/chat/chat-client",
+  "demos/amethyst-integration",
 ]

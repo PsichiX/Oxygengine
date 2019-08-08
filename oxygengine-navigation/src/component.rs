@@ -107,57 +107,17 @@ impl NavAgent {
             return;
         }
         if let Some(path) = &self.path {
-            let target = Self::target_point(
+            let target = NavMesh::path_target_point(
                 path,
                 self.position,
-                self.speed.max(self.min_target_distance) * delta_time,
+                self.speed.max(self.min_target_distance.max(0.0)) * delta_time,
             )
             .0;
             let diff = target - self.position;
             let dir = diff.normalize();
-            self.position = self.position + dir * (self.speed * delta_time).min(diff.magnitude());
+            self.position =
+                self.position + dir * (self.speed.max(0.0) * delta_time).min(diff.magnitude());
             self.direction = diff.normalize();
-        }
-    }
-
-    pub fn target_point(path: &[NavVec3], point: NavVec3, offset: Scalar) -> (NavVec3, Scalar) {
-        match path.len() {
-            0 => (point, 0.0),
-            1 => (path[0], 0.0),
-            2 => Self::point_on_line(path[0], path[1], point, offset),
-            _ => path
-                .windows(2)
-                .scan(0.0, |state, pair| {
-                    let s = *state;
-                    *state += (pair[1] - pair[0]).magnitude();
-                    Some((s, pair))
-                })
-                .map(|(dist, pair)| {
-                    let (p, d) = Self::point_on_line(pair[0], pair[1], point, offset);
-                    (p, dist + d)
-                })
-                .min_by(|(_, a), (_, b)| b.partial_cmp(&a).unwrap())
-                .unwrap(),
-        }
-    }
-
-    fn point_on_line(
-        from: NavVec3,
-        to: NavVec3,
-        point: NavVec3,
-        offset: Scalar,
-    ) -> (NavVec3, Scalar) {
-        let d = (to - from).magnitude();
-        if d < ZERO_TRESHOLD {
-            return (from, 0.0);
-        }
-        let p = point.project(from, to) + offset / d;
-        if p <= 0.0 {
-            (from, 0.0)
-        } else if p >= 1.0 {
-            (to, d)
-        } else {
-            (NavVec3::unproject(from, to, p), p * d)
         }
     }
 }

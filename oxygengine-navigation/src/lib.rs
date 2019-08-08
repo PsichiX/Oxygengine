@@ -1,11 +1,12 @@
 extern crate oxygengine_core as core;
 
 pub mod component;
+pub mod nav_mesh_asset_protocol;
 pub mod resource;
 pub mod system;
 
 pub mod prelude {
-    pub use crate::{component::*, resource::*, system::*};
+    pub use crate::{component::*, nav_mesh_asset_protocol::*, resource::*, system::*};
 }
 
 pub type Scalar = f64;
