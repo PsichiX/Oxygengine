@@ -23,7 +23,7 @@ wasm-bindgen = "0.2.45"
 wee_alloc = { version = "0.4.2", optional = true }
 
 [dependencies.oxygengine]
-version = "0.3"
+version = "0.4"
 features = ["web-composite-game"]
 
 [dependencies.web-sys]

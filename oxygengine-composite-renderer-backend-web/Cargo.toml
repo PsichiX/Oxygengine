@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-composite-renderer-backend-web"
-version = "0.3.17"
+version = "0.4.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Composite renderer Web backend module for Oxygen Engine"
@@ -12,11 +12,11 @@ readme = "../README.md"
 
 [dependencies]
 wasm-bindgen = "0.2"
-oxygengine-core = { version = "0.3", path = "../oxygengine-core" }
+oxygengine-core = { version = "0.4", path = "../oxygengine-core" }
 base64 = "0.10"
 
 [dependencies.oxygengine-composite-renderer]
-version = "0.3"
+version = "0.4"
 path = "../oxygengine-composite-renderer"
 
 [dependencies.web-sys]
