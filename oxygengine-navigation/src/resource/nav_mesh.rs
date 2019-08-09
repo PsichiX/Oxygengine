@@ -12,6 +12,8 @@ use std::{
     result::Result as StdResult,
 };
 
+pub type NavMeshID = ID<NavMesh>;
+
 #[derive(Debug, Clone)]
 pub enum Error {
     /// (triangle index, local vertice index, global vertice index)
@@ -188,17 +190,19 @@ pub enum NavPathMode {
 }
 
 #[derive(Debug, Default)]
-pub struct NavMeshesRes(pub(crate) HashMap<ID<NavMesh>, NavMesh>);
+pub struct NavMeshesRes(pub(crate) HashMap<NavMeshID, NavMesh>);
 
 impl NavMeshesRes {
     #[inline]
-    pub fn register(&mut self, mesh: NavMesh) {
-        self.0.insert(mesh.id(), mesh);
+    pub fn register(&mut self, mesh: NavMesh) -> NavMeshID {
+        let id = mesh.id();
+        self.0.insert(id, mesh);
+        id
     }
 
     #[inline]
-    pub fn unregister(&mut self, id: ID<NavMesh>) -> bool {
-        self.0.remove(&id).is_some()
+    pub fn unregister(&mut self, id: NavMeshID) -> Option<NavMesh> {
+        self.0.remove(&id)
     }
 
     #[inline]
@@ -212,16 +216,16 @@ impl NavMeshesRes {
     }
 
     #[inline]
-    pub fn find_mesh(&self, id: ID<NavMesh>) -> Option<&NavMesh> {
+    pub fn find_mesh(&self, id: NavMeshID) -> Option<&NavMesh> {
         self.0.get(&id)
     }
 
     #[inline]
-    pub fn find_mesh_mut(&mut self, id: ID<NavMesh>) -> Option<&mut NavMesh> {
+    pub fn find_mesh_mut(&mut self, id: NavMeshID) -> Option<&mut NavMesh> {
         self.0.get_mut(&id)
     }
 
-    pub fn closest_point(&self, point: NavVec3, query: NavQuery) -> Option<(ID<NavMesh>, NavVec3)> {
+    pub fn closest_point(&self, point: NavVec3, query: NavQuery) -> Option<(NavMeshID, NavVec3)> {
         self.0
             .iter()
             .filter_map(|(id, mesh)| {
@@ -235,7 +239,7 @@ impl NavMeshesRes {
 
 #[derive(Debug, Default, Clone)]
 pub struct NavMesh {
-    id: ID<NavMesh>,
+    id: NavMeshID,
     vertices: Vec<NavVec3>,
     triangles: Vec<NavTriangle>,
     areas: Vec<NavArea>,
@@ -422,7 +426,7 @@ impl NavMesh {
     }
 
     #[inline]
-    pub fn id(&self) -> ID<NavMesh> {
+    pub fn id(&self) -> NavMeshID {
         self.id
     }
 
@@ -483,140 +487,152 @@ impl NavMesh {
             }
             match mode {
                 NavPathMode::Accuracy => {
-                    let mut start = from;
-                    let mut last_first = from;
-                    let mut last_second = from;
-                    let mut last_normal = None;
-                    return Some(
-                        std::iter::once(from)
-                            .chain(
-                                triangles
-                                    .windows(2)
-                                    .map(|pair| {
-                                        let NavConnection(a, b) = self.connections
-                                            [&NavConnection(pair[0] as u32, pair[1] as u32)]
-                                            .1;
-                                        (
-                                            self.vertices[a as usize],
-                                            self.vertices[b as usize],
-                                            self.hard_edges.get(&pair[0]),
-                                            self.spatials[pair[0]].normal(),
-                                        )
-                                    })
-                                    .chain(std::iter::once({
-                                        let triangle = triangles.last().unwrap();
-                                        (
-                                            to,
-                                            to,
-                                            self.hard_edges.get(triangle),
-                                            self.spatials[*triangle].normal(),
-                                        )
-                                    }))
-                                    .filter_map(|(first, second, hard_edges, normal)| {
-                                        if let Some(hard_edges) = hard_edges {
-                                            let old_last_first = last_first;
-                                            let old_last_second = last_second;
-                                            let old_last_normal = last_normal.unwrap_or(normal);
-                                            last_first = first;
-                                            last_second = second;
-                                            last_normal = Some(normal);
-                                            let got_first = hard_edges.iter().any(|(a, b)| {
-                                                NavVec3::lines_intersects(
-                                                    start, first, *a, *b, normal,
-                                                )
-                                            });
-                                            let got_second = hard_edges.iter().any(|(a, b)| {
-                                                NavVec3::lines_intersects(
-                                                    start, second, *a, *b, normal,
-                                                )
-                                            });
-                                            if got_first && got_second {
-                                                let df = (old_last_first - start).sqr_magnitude();
-                                                let ds = (old_last_second - start).sqr_magnitude();
-                                                if df < ds {
-                                                    start = old_last_first;
-                                                    return Some(start);
-                                                } else {
-                                                    start = old_last_second;
-                                                    return Some(start);
-                                                }
-                                            } else if got_first {
-                                                start = old_last_first;
-                                                return Some(start);
-                                            } else if got_second {
-                                                start = old_last_second;
-                                                return Some(start);
-                                            } else if old_last_normal.dot(normal)
-                                                < 1.0 - ZERO_TRESHOLD
-                                            {
-                                                // TODO: fix this.
-                                                start = (old_last_first + old_last_second) * 0.5;
-                                                return Some(start);
-                                            }
-                                        }
-                                        None
-                                    }),
-                            )
-                            .chain(std::iter::once(to))
-                            .collect(),
-                    );
+                    return Some(self.find_path_accuracy(from, to, &triangles));
                 }
                 NavPathMode::MidPoints => {
-                    let mut start = from;
-                    let mut last = from;
-                    let mut last_normal = None;
-                    return Some(
-                        std::iter::once(from)
-                            .chain(
-                                triangles
-                                    .windows(2)
-                                    .map(|pair| {
-                                        let NavConnection(a, b) = self.connections
-                                            [&NavConnection(pair[0] as u32, pair[1] as u32)]
-                                            .1;
-                                        let a = self.vertices[a as usize];
-                                        let b = self.vertices[b as usize];
-                                        (
-                                            (a + b) * 0.5,
-                                            self.hard_edges.get(&pair[0]),
-                                            self.spatials[pair[0]].normal(),
-                                        )
-                                    })
-                                    .chain(std::iter::once({
-                                        let triangle = triangles.last().unwrap();
-                                        (
-                                            to,
-                                            self.hard_edges.get(triangle),
-                                            self.spatials[*triangle].normal(),
-                                        )
-                                    }))
-                                    .filter_map(|(center, hard_edges, normal)| {
-                                        if let Some(hard_edges) = hard_edges {
-                                            let old_last = last;
-                                            let old_last_normal = last_normal.unwrap_or(normal);
-                                            last = center;
-                                            last_normal = Some(normal);
-                                            if old_last_normal.dot(normal) < 1.0 - ZERO_TRESHOLD
-                                                || hard_edges.iter().any(|(a, b)| {
-                                                    NavVec3::lines_intersects(
-                                                        start, center, *a, *b, normal,
-                                                    )
-                                                })
-                                            {
-                                                start = old_last;
-                                                return Some(old_last);
-                                            }
-                                        }
-                                        None
-                                    }),
-                            )
-                            .chain(std::iter::once(to))
-                            .collect(),
-                    );
+                    return Some(self.find_path_midpoints(from, to, &triangles));
                 }
             }
         }
         None
+    }
+
+    fn find_path_accuracy(&self, from: NavVec3, to: NavVec3, triangles: &[usize]) -> Vec<NavVec3> {
+        if triangles.len() == 2 {
+            let NavConnection(a, b) =
+                self.connections[&NavConnection(triangles[0] as u32, triangles[1] as u32)].1;
+            let a = self.vertices[a as usize];
+            let b = self.vertices[b as usize];
+            let n = self.spatials[triangles[0]].normal();
+            let m = self.spatials[triangles[1]].normal();
+            if n.dot(m) < 1.0 - ZERO_TRESHOLD {
+                // TODO: fix this.
+                return vec![from, (a + b) * 0.5, to];
+            } else if !NavVec3::is_line_between_points(from, to, a, b, n) {
+                let da = (from - a).sqr_magnitude();
+                let db = (from - b).sqr_magnitude();
+                let point = if da < db { a } else { b };
+                return vec![from, point, to];
+            } else {
+                return vec![from, to];
+            }
+        }
+        let mut start = from;
+        let mut last_normal = self.spatials[triangles[0]].normal();
+        let mut points = Vec::with_capacity(triangles.len() + 1);
+        points.push(from);
+        for triplets in triangles.windows(3) {
+            let NavConnection(a, b) =
+                self.connections[&NavConnection(triplets[0] as u32, triplets[1] as u32)].1;
+            let a = self.vertices[a as usize];
+            let b = self.vertices[b as usize];
+            let NavConnection(c, d) =
+                self.connections[&NavConnection(triplets[1] as u32, triplets[2] as u32)].1;
+            let c = self.vertices[c as usize];
+            let d = self.vertices[d as usize];
+            let n = self.spatials[triplets[1]].normal();
+            let old_last_normal = last_normal;
+            last_normal = n;
+            if old_last_normal.dot(n) < 1.0 - ZERO_TRESHOLD {
+                // TODO: fix this.
+                start = (a + b) * 0.5;
+                points.push(start);
+            } else if !NavVec3::is_line_between_points(start, c, a, b, n)
+                || !NavVec3::is_line_between_points(start, d, a, b, n)
+            {
+                let da = (start - a).sqr_magnitude();
+                let db = (start - b).sqr_magnitude();
+                start = if da < db { a } else { b };
+                points.push(start);
+            }
+        }
+        {
+            let NavConnection(a, b) = self.connections[&NavConnection(
+                triangles[triangles.len() - 2] as u32,
+                triangles[triangles.len() - 1] as u32,
+            )]
+                .1;
+            let a = self.vertices[a as usize];
+            let b = self.vertices[b as usize];
+            let n = self.spatials[triangles[triangles.len() - 2]].normal();
+            let m = self.spatials[triangles[triangles.len() - 1]].normal();
+            if n.dot(m) < 1.0 - ZERO_TRESHOLD {
+                // TODO: fix this.
+                points.push((a + b) * 0.5);
+            } else if !NavVec3::is_line_between_points(start, to, a, b, n) {
+                let da = (start - a).sqr_magnitude();
+                let db = (start - b).sqr_magnitude();
+                let point = if da < db { a } else { b };
+                points.push(point);
+            }
+        }
+        points.push(to);
+        points.dedup();
+        points
+    }
+
+    fn find_path_midpoints(&self, from: NavVec3, to: NavVec3, triangles: &[usize]) -> Vec<NavVec3> {
+        if triangles.len() == 2 {
+            let NavConnection(a, b) =
+                self.connections[&NavConnection(triangles[0] as u32, triangles[1] as u32)].1;
+            let a = self.vertices[a as usize];
+            let b = self.vertices[b as usize];
+            let n = self.spatials[triangles[0]].normal();
+            let m = self.spatials[triangles[1]].normal();
+            if n.dot(m) < 1.0 - ZERO_TRESHOLD || !NavVec3::is_line_between_points(from, to, a, b, n)
+            {
+                return vec![from, (a + b) * 0.5, to];
+            } else {
+                return vec![from, to];
+            }
+        }
+        let mut start = from;
+        let mut last_normal = self.spatials[triangles[0]].normal();
+        let mut points = Vec::with_capacity(triangles.len() + 1);
+        points.push(from);
+        for triplets in triangles.windows(3) {
+            let NavConnection(a, b) =
+                self.connections[&NavConnection(triplets[0] as u32, triplets[1] as u32)].1;
+            let a = self.vertices[a as usize];
+            let b = self.vertices[b as usize];
+            let point = (a + b) * 0.5;
+            let n = self.spatials[triplets[1]].normal();
+            let old_last_normal = last_normal;
+            last_normal = n;
+            if old_last_normal.dot(n) < 1.0 - ZERO_TRESHOLD {
+                start = point;
+                points.push(start);
+            } else {
+                let NavConnection(c, d) =
+                    self.connections[&NavConnection(triplets[1] as u32, triplets[2] as u32)].1;
+                let c = self.vertices[c as usize];
+                let d = self.vertices[d as usize];
+                let end = (c + d) * 0.5;
+                if !NavVec3::is_line_between_points(start, end, a, b, n) {
+                    start = point;
+                    points.push(start);
+                }
+            }
+        }
+        {
+            let NavConnection(a, b) = self.connections[&NavConnection(
+                triangles[triangles.len() - 2] as u32,
+                triangles[triangles.len() - 1] as u32,
+            )]
+                .1;
+            let a = self.vertices[a as usize];
+            let b = self.vertices[b as usize];
+            let n = self.spatials[triangles[triangles.len() - 2]].normal();
+            let m = self.spatials[triangles[triangles.len() - 1]].normal();
+            if n.dot(m) < 1.0 - ZERO_TRESHOLD
+                || !NavVec3::is_line_between_points(start, to, a, b, n)
+            {
+                points.push((a + b) * 0.5);
+            }
+        }
+        points.push(to);
+        points.dedup();
+        points
     }
 
     #[inline]
@@ -664,49 +680,78 @@ impl NavMesh {
         path: &[NavVec3],
         point: NavVec3,
         offset: Scalar,
-    ) -> (NavVec3, Scalar) {
+    ) -> Option<(NavVec3, Scalar)> {
+        let s = Self::project_on_path(path, point, offset);
+        if let Some(p) = Self::point_on_path(path, s) {
+            Some((p, s))
+        } else {
+            None
+        }
+    }
+
+    pub fn project_on_path(path: &[NavVec3], point: NavVec3, offset: Scalar) -> Scalar {
+        let p = match path.len() {
+            0 | 1 => 0.0,
+            2 => Self::project_on_line(path[0], path[1], point),
+            _ => {
+                path.windows(2)
+                    .scan(0.0, |state, pair| {
+                        let dist = *state;
+                        *state += (pair[1] - pair[0]).magnitude();
+                        Some((dist, pair))
+                    })
+                    .map(|(dist, pair)| {
+                        let (p, s) = Self::point_on_line(pair[0], pair[1], point);
+                        (dist + s, (p - point).sqr_magnitude())
+                    })
+                    .min_by(|(_, a), (_, b)| a.partial_cmp(&b).unwrap())
+                    .unwrap()
+                    .0
+            }
+        };
+        (p + offset).max(0.0).min(Self::path_length(path))
+    }
+
+    pub fn point_on_path(path: &[NavVec3], mut s: Scalar) -> Option<NavVec3> {
         match path.len() {
-            0 => (point, 0.0),
-            1 => (path[0], 0.0),
-            2 => Self::point_on_line(path[0], path[1], point, offset),
-            _ => path
-                .windows(2)
-                .scan(0.0, |state, pair| {
-                    let s = *state;
-                    *state += (pair[1] - pair[0]).magnitude();
-                    Some((s, pair))
-                })
-                .map(|(dist, pair)| {
-                    let (p, d) = Self::point_on_line(pair[0], pair[1], point, offset);
-                    (p, dist + d)
-                })
-                .min_by(|(_, a), (_, b)| b.partial_cmp(&a).unwrap())
-                .unwrap(),
+            0 | 1 => None,
+            2 => Some(NavVec3::unproject(
+                path[0],
+                path[1],
+                s / Self::path_length(path),
+            )),
+            _ => {
+                for pair in path.windows(2) {
+                    let d = (pair[1] - pair[0]).magnitude();
+                    if s <= d {
+                        return Some(NavVec3::unproject(pair[0], pair[1], s / d));
+                    }
+                    s -= d;
+                }
+                None
+            }
         }
     }
 
     pub fn path_length(path: &[NavVec3]) -> Scalar {
         match path.len() {
             0 | 1 => 0.0,
-            2 => (path[1] - path[0]).sqr_magnitude(),
+            2 => (path[1] - path[0]).magnitude(),
             _ => path
                 .windows(2)
-                .fold(0.0, |a, pair| a + (pair[1] - pair[0]).sqr_magnitude()),
+                .fold(0.0, |a, pair| a + (pair[1] - pair[0]).magnitude()),
         }
-        .sqrt()
     }
 
-    fn point_on_line(
-        from: NavVec3,
-        to: NavVec3,
-        point: NavVec3,
-        offset: Scalar,
-    ) -> (NavVec3, Scalar) {
+    fn project_on_line(from: NavVec3, to: NavVec3, point: NavVec3) -> Scalar {
         let d = (to - from).magnitude();
-        if d < ZERO_TRESHOLD {
-            return (from, 0.0);
-        }
-        let p = point.project(from, to) + offset / d;
+        let p = point.project(from, to);
+        d * p
+    }
+
+    fn point_on_line(from: NavVec3, to: NavVec3, point: NavVec3) -> (NavVec3, Scalar) {
+        let d = (to - from).magnitude();
+        let p = point.project(from, to);
         if p <= 0.0 {
             (from, 0.0)
         } else if p >= 1.0 {

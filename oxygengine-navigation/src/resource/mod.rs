@@ -13,56 +13,56 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_lines_intersection() {
+    fn test_line_between_points() {
+        assert_eq!(
+            true,
+            NavVec3::is_line_between_points(
+                (0.0, -1.0, 0.0).into(),
+                (0.0, 1.0, 0.0).into(),
+                (-1.0, 0.0, 0.0).into(),
+                (1.0, 0.0, 0.0).into(),
+                (0.0, 0.0, 1.0).into(),
+            ),
+        );
         assert_eq!(
             false,
-            NavVec3::lines_intersects(
-                (-3.0, -1.0, 0.0).into(),
+            NavVec3::is_line_between_points(
+                (-2.0, -1.0, 0.0).into(),
+                (-2.0, 1.0, 0.0).into(),
+                (-1.0, 0.0, 0.0).into(),
+                (1.0, 0.0, 0.0).into(),
+                (0.0, 0.0, 1.0).into(),
+            ),
+        );
+        assert_eq!(
+            false,
+            NavVec3::is_line_between_points(
+                (2.0, -1.0, 0.0).into(),
+                (2.0, 1.0, 0.0).into(),
+                (-1.0, 0.0, 0.0).into(),
+                (1.0, 0.0, 0.0).into(),
+                (0.0, 0.0, 1.0).into(),
+            ),
+        );
+        assert_eq!(
+            true,
+            NavVec3::is_line_between_points(
+                (-1.0, -1.0, 0.0).into(),
                 (-1.0, 1.0, 0.0).into(),
                 (-1.0, 0.0, 0.0).into(),
                 (1.0, 0.0, 0.0).into(),
                 (0.0, 0.0, 1.0).into(),
-            )
+            ),
         );
         assert_eq!(
             true,
-            NavVec3::lines_intersects(
-                (-1.0, -1.0, 0.0).into(),
+            NavVec3::is_line_between_points(
+                (1.0, -1.0, 0.0).into(),
                 (1.0, 1.0, 0.0).into(),
                 (-1.0, 0.0, 0.0).into(),
                 (1.0, 0.0, 0.0).into(),
                 (0.0, 0.0, 1.0).into(),
-            )
-        );
-        assert_eq!(
-            false,
-            NavVec3::lines_intersects(
-                (1.0, -1.0, 0.0).into(),
-                (3.0, 1.0, 0.0).into(),
-                (-1.0, 0.0, 0.0).into(),
-                (1.0, 0.0, 0.0).into(),
-                (0.0, 0.0, 1.0).into(),
-            )
-        );
-        assert_eq!(
-            false,
-            NavVec3::lines_intersects(
-                (-2.0, -2.0, 0.0).into(),
-                (2.0, 2.0, 0.0).into(),
-                (0.0, -1.0, 0.0).into(),
-                (2.0, -1.0, 0.0).into(),
-                (0.0, 0.0, 1.0).into(),
-            )
-        );
-        assert_eq!(
-            false,
-            NavVec3::lines_intersects(
-                (-2.0, -2.0, 0.0).into(),
-                (2.0, 2.0, 0.0).into(),
-                (0.0, 0.0, 0.0).into(),
-                (2.0, 0.0, 0.0).into(),
-                (0.0, 0.0, 1.0).into(),
-            )
+            ),
         );
     }
 

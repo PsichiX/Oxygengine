@@ -1,5 +1,5 @@
 use crate::{
-    resource::{NavMesh, NavMeshesRes, NavPathMode, NavQuery, NavVec3, ZERO_TRESHOLD},
+    resource::{NavMesh, NavMeshID, NavMeshesRes, NavPathMode, NavQuery, NavVec3, ZERO_TRESHOLD},
     Scalar,
 };
 use core::{
@@ -7,14 +7,16 @@ use core::{
     id::ID,
 };
 
+pub type NavAgentID = ID<NavAgent>;
+
 #[derive(Debug, Clone)]
 pub struct NavAgent {
-    id: ID<NavAgent>,
+    id: NavAgentID,
     pub position: NavVec3,
     pub direction: NavVec3,
     pub speed: Scalar,
     pub min_target_distance: Scalar,
-    destination: Option<(NavVec3, NavQuery, NavPathMode, ID<NavMesh>)>,
+    destination: Option<(NavVec3, NavQuery, NavPathMode, NavMeshID)>,
     path: Option<Vec<NavVec3>>,
     dirty_path: bool,
 }
@@ -36,7 +38,7 @@ impl NavAgent {
 
     pub fn new_with_direction(position: NavVec3, direction: NavVec3) -> Self {
         Self {
-            id: ID::default(),
+            id: Default::default(),
             position,
             direction: direction.normalize(),
             speed: 10.0,
@@ -47,7 +49,7 @@ impl NavAgent {
         }
     }
 
-    pub fn id(&self) -> ID<NavAgent> {
+    pub fn id(&self) -> NavAgentID {
         self.id
     }
 
@@ -64,7 +66,7 @@ impl NavAgent {
         point: NavVec3,
         query: NavQuery,
         mode: NavPathMode,
-        mesh: ID<NavMesh>,
+        mesh: NavMeshID,
     ) {
         self.destination = Some((point, query, mode, mesh));
         self.dirty_path = true;
@@ -107,17 +109,17 @@ impl NavAgent {
             return;
         }
         if let Some(path) = &self.path {
-            let target = NavMesh::path_target_point(
+            if let Some((target, _)) = NavMesh::path_target_point(
                 path,
                 self.position,
                 self.speed.max(self.min_target_distance.max(0.0)) * delta_time,
-            )
-            .0;
-            let diff = target - self.position;
-            let dir = diff.normalize();
-            self.position =
-                self.position + dir * (self.speed.max(0.0) * delta_time).min(diff.magnitude());
-            self.direction = diff.normalize();
+            ) {
+                let diff = target - self.position;
+                let dir = diff.normalize();
+                self.position =
+                    self.position + dir * (self.speed.max(0.0) * delta_time).min(diff.magnitude());
+                self.direction = diff.normalize();
+            }
         }
     }
 }

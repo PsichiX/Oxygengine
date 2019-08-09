@@ -1,0 +1,4 @@
+(
+  title: "Oxygen Engine with Amethyst integration demo",
+  dimensions: Some((800, 600)),
+)

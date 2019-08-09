@@ -76,25 +76,11 @@ impl NavVec3 {
         self - d
     }
 
-    pub fn lines_intersects(
-        a_from: Self,
-        a_to: Self,
-        b_from: Self,
-        b_to: Self,
-        normal: Self,
-    ) -> bool {
-        let a = a_to - a_from;
-        let b = b_to - b_from;
-        let an = a.cross(normal);
-        let bn = b.cross(normal);
-        let afs = Self::side(bn.dot(a_from - b_from));
-        let ats = Self::side(bn.dot(a_to - b_from));
-        let bfs = Self::side(an.dot(b_from - a_from));
-        let bts = Self::side(an.dot(b_to - a_from));
-        let normal = normal.cross(b_to - b_from);
-        Self::different_sides(afs, ats)
-            && Self::different_sides(bfs, bts)
-            && (a_from.is_above_plane(b_from, normal) != a_to.is_above_plane(b_from, normal))
+    pub fn is_line_between_points(from: Self, to: Self, a: Self, b: Self, normal: Self) -> bool {
+        let n = (to - from).cross(normal);
+        let sa = Self::side(n.dot(a - from));
+        let sb = Self::side(n.dot(b - from));
+        sa != sb
     }
 
     fn side(v: Scalar) -> i8 {
@@ -104,10 +90,6 @@ impl NavVec3 {
             v.signum() as i8
         }
     }
-
-    fn different_sides(a: i8, b: i8) -> bool {
-        (a < 0 && b >= 0) || (a > 0 && b <= 0)
-    }
 }
 
 impl From<(Scalar, Scalar, Scalar)> for NavVec3 {
@@ -116,6 +98,16 @@ impl From<(Scalar, Scalar, Scalar)> for NavVec3 {
             x: value.0,
             y: value.1,
             z: value.2,
+        }
+    }
+}
+
+impl From<(Scalar, Scalar)> for NavVec3 {
+    fn from(value: (Scalar, Scalar)) -> Self {
+        Self {
+            x: value.0,
+            y: value.1,
+            z: 0.0,
         }
     }
 }
