@@ -1,13 +1,50 @@
 use crate::{
-    resource::{NavMesh, NavMeshID, NavMeshesRes, NavPathMode, NavQuery, NavVec3, ZERO_TRESHOLD},
+    resource::{NavMeshID, NavPathMode, NavQuery, NavVec3},
     Scalar,
 };
 use core::{
-    ecs::{Component, VecStorage},
+    ecs::{Component, Entity, NullStorage, VecStorage},
     id::ID,
 };
 
 pub type NavAgentID = ID<NavAgent>;
+
+#[derive(Debug, Default, Copy, Clone)]
+pub struct SimpleNavDriverTag;
+
+impl Component for SimpleNavDriverTag {
+    type Storage = NullStorage<Self>;
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum NavAgentTarget {
+    Point(NavVec3),
+    Entity(Entity),
+}
+
+impl NavAgentTarget {
+    pub fn is_point(&self) -> bool {
+        match self {
+            NavAgentTarget::Point(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_entity(&self) -> bool {
+        match self {
+            NavAgentTarget::Entity(_) => true,
+            _ => false,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NavAgentDestination {
+    pub target: NavAgentTarget,
+    pub query: NavQuery,
+    pub mode: NavPathMode,
+    pub mesh: NavMeshID,
+}
 
 #[derive(Debug, Clone)]
 pub struct NavAgent {
@@ -16,9 +53,9 @@ pub struct NavAgent {
     pub direction: NavVec3,
     pub speed: Scalar,
     pub min_target_distance: Scalar,
-    destination: Option<(NavVec3, NavQuery, NavPathMode, NavMeshID)>,
-    path: Option<Vec<NavVec3>>,
-    dirty_path: bool,
+    pub(crate) destination: Option<NavAgentDestination>,
+    pub(crate) path: Option<Vec<NavVec3>>,
+    pub(crate) dirty_path: bool,
 }
 
 impl Component for NavAgent {
@@ -53,9 +90,17 @@ impl NavAgent {
         self.id
     }
 
-    pub fn destination(&self) -> Option<NavVec3> {
-        if let Some((destination, _, _, _)) = &self.destination {
-            Some(*destination)
+    pub fn target(&self) -> Option<NavAgentTarget> {
+        if let Some(destination) = &self.destination {
+            Some(destination.target)
+        } else {
+            None
+        }
+    }
+
+    pub fn destination(&self) -> Option<&NavAgentDestination> {
+        if let Some(destination) = &self.destination {
+            Some(destination)
         } else {
             None
         }
@@ -63,12 +108,17 @@ impl NavAgent {
 
     pub fn set_destination(
         &mut self,
-        point: NavVec3,
+        target: NavAgentTarget,
         query: NavQuery,
         mode: NavPathMode,
         mesh: NavMeshID,
     ) {
-        self.destination = Some((point, query, mode, mesh));
+        self.destination = Some(NavAgentDestination {
+            target,
+            query,
+            mode,
+            mesh,
+        });
         self.dirty_path = true;
     }
 
@@ -76,6 +126,10 @@ impl NavAgent {
         self.destination = None;
         self.dirty_path = false;
         self.path = None;
+    }
+
+    pub fn recalculate_path(&mut self) {
+        self.dirty_path = true;
     }
 
     pub fn path(&self) -> Option<&[NavVec3]> {
@@ -86,40 +140,7 @@ impl NavAgent {
         }
     }
 
-    pub fn destination_reached(&self) -> bool {
-        if let Some((destination, _, _, _)) = &self.destination {
-            (self.position - *destination).sqr_magnitude() < ZERO_TRESHOLD
-        } else {
-            true
-        }
-    }
-
-    pub fn process(&mut self, meshes: &NavMeshesRes, delta_time: Scalar) {
-        if self.dirty_path {
-            self.dirty_path = false;
-            if let Some((destination, query, mode, id)) = self.destination {
-                if let Some(mesh) = meshes.0.get(&id) {
-                    self.path = mesh.find_path(self.position, destination, query, mode);
-                } else {
-                    self.destination = None;
-                }
-            }
-        }
-        if delta_time < 0.0 {
-            return;
-        }
-        if let Some(path) = &self.path {
-            if let Some((target, _)) = NavMesh::path_target_point(
-                path,
-                self.position,
-                self.speed.max(self.min_target_distance.max(0.0)) * delta_time,
-            ) {
-                let diff = target - self.position;
-                let dir = diff.normalize();
-                self.position =
-                    self.position + dir * (self.speed.max(0.0) * delta_time).min(diff.magnitude());
-                self.direction = diff.normalize();
-            }
-        }
+    pub fn set_path(&mut self, path: Vec<NavVec3>) {
+        self.path = Some(path);
     }
 }

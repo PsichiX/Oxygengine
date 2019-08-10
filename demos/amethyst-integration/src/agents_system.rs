@@ -18,16 +18,15 @@ impl<'s> System<'s> for AgentsSystem {
         Read<'s, EntitiesRes>,
         Read<'s, Time>,
         Read<'s, InputHandler<StringBindings>>,
-        WriteStorage<'s, NavAgent>,
         Read<'s, NavMeshesRes>,
+        WriteStorage<'s, NavAgent>,
         WriteStorage<'s, DebugLinesComponent>,
         ReadStorage<'s, PlayerTag>,
-        Read<'s, NavMeshesRes>,
     );
 
     fn run(
         &mut self,
-        (entities, time, input, mut agents, meshes_res, mut debugs, players, meshes): Self::SystemData,
+        (entities, time, input, meshes, mut agents, mut debugs, players): Self::SystemData,
     ) {
         let delta_time = time.delta_seconds();
         self.mouse_left_cooldown = (self.mouse_left_cooldown - delta_time).max(0.0);
@@ -42,7 +41,7 @@ impl<'s> System<'s> for AgentsSystem {
                         let mesh = meshes.meshes_iter().nth(0).unwrap().id();
                         self.mouse_left_cooldown = 0.1;
                         agent.set_destination(
-                            (x as f64, y as f64).into(),
+                            NavAgentTarget::Point((x as f64, y as f64).into()),
                             NavQuery::Accuracy,
                             NavPathMode::Accuracy,
                             mesh,
@@ -61,8 +60,6 @@ impl<'s> System<'s> for AgentsSystem {
                     }
                 }
             }
-
-            agent.process(&meshes_res, delta_time as f64);
 
             debug.clear();
             if let Some(path) = agent.path() {

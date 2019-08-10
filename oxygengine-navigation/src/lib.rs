@@ -11,10 +11,18 @@ pub mod prelude {
 
 pub type Scalar = f64;
 
-use crate::{resource::NavMeshesRes, system::NavigationSystem};
+use crate::{
+    resource::NavMeshesRes,
+    system::{NavAgentMaintainSystem, SimpleNavDriverSystem},
+};
 use core::app::AppBuilder;
 
 pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>) {
     builder.install_resource(NavMeshesRes::default());
-    builder.install_system(NavigationSystem, "navigation", &[]);
+    builder.install_system(NavAgentMaintainSystem, "nav-agent-maintain", &[]);
+    builder.install_system(
+        SimpleNavDriverSystem,
+        "simple-nav-driver",
+        &["nav-agent-maintain"],
+    );
 }
