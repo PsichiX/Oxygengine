@@ -19,7 +19,7 @@ use core::app::AppBuilder;
 
 pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>) {
     builder.install_resource(NavMeshesRes::default());
-    builder.install_system(NavAgentMaintainSystem, "nav-agent-maintain", &[]);
+    builder.install_system(NavAgentMaintainSystem::default(), "nav-agent-maintain", &[]);
     builder.install_system(
         SimpleNavDriverSystem,
         "simple-nav-driver",

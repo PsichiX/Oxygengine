@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub struct HistoryRes {
     pub lines_limit: usize,
     text: String,

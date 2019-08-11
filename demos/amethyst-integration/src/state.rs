@@ -111,6 +111,7 @@ where
     world
         .create_entity()
         .with(agent)
+        .with(SimpleNavDriverTag)
         .with(DebugLinesComponent::default())
         .with(T::default())
         .build();

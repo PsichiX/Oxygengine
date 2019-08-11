@@ -142,5 +142,6 @@ impl NavAgent {
 
     pub fn set_path(&mut self, path: Vec<NavVec3>) {
         self.path = Some(path);
+        self.dirty_path = false;
     }
 }

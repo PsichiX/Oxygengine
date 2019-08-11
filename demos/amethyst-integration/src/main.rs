@@ -1,6 +1,5 @@
 extern crate oxygengine_navigation as nav;
 
-use agents_system::AgentsSystem;
 use amethyst::{
     core::transform::TransformBundle,
     input::{InputBundle, StringBindings},
@@ -12,10 +11,12 @@ use amethyst::{
     },
     utils::application_root_dir,
 };
+use nav::prelude::*;
+use systems::{CommandAgentsSystem, NavDriverSystem, RenderSystem};
 
-mod agents_system;
 mod components;
 mod state;
+mod systems;
 
 fn main() -> amethyst::Result<()> {
     amethyst::start_logger(Default::default());
@@ -36,7 +37,10 @@ fn main() -> amethyst::Result<()> {
                 )
                 .with_plugin(RenderDebugLines::default()),
         )?
-        .with(AgentsSystem::default(), "agents", &[]);
+        .with(NavAgentMaintainSystem::default(), "nav-agent-maintain", &[])
+        .with(CommandAgentsSystem::default(), "command-agents", &[])
+        .with(NavDriverSystem, "nav-driver", &[])
+        .with(RenderSystem, "render", &[]);
 
     let mut game = Application::new(resources, state::MyState, game_data)?;
     game.run();
