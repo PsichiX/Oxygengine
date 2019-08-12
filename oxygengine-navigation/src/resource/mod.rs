@@ -25,6 +25,16 @@ mod tests {
             (0.0, 0.0, 0.0).into(),
         );
         assert_eq!(
+            NavVec3::raycast_plane(
+                (0.0, 0.0, 0.0).into(),
+                (2.0, 1.0, 1.0).into(),
+                (1.0, 0.0, 0.0).into(),
+                (-1.0, 0.0, 0.0).into(),
+            )
+            .unwrap(),
+            (1.0, 0.5, 0.5).into(),
+        );
+        assert_eq!(
             NavVec3::raycast_line(
                 (-1.0, -1.0, 1.0).into(),
                 (1.0, 1.0, 1.0).into(),
@@ -34,6 +44,17 @@ mod tests {
             )
             .unwrap(),
             (0.0, 0.0, 0.0).into(),
+        );
+        assert_eq!(
+            NavVec3::raycast_line(
+                (0.0, 0.0, 0.0).into(),
+                (2.0, 1.0, 1.0).into(),
+                (1.0, 0.0, 0.0).into(),
+                (1.0, 1.0, 0.0).into(),
+                (1.0, 0.0, 0.0).into(),
+            )
+            .unwrap(),
+            (1.0, 0.5, 0.0).into(),
         );
     }
 
@@ -93,54 +114,76 @@ mod tests {
 
     #[test]
     fn test_spatials() {
-        let vertices = vec![
-            (1.0, 2.0, 0.0).into(),
-            (2.0, 2.0, 0.0).into(),
-            (2.0, 3.0, 0.0).into(),
-            (1.0, 3.0, 0.0).into(),
-        ];
+        {
+            let vertices = vec![
+                (0.0, 0.0, 0.0).into(),
+                (2.0, 0.0, 0.0).into(),
+                (0.0, 2.0, 0.0).into(),
+            ];
 
-        let s = NavSpatialObject::new(0, vertices[0], vertices[1], vertices[2]);
-        assert_eq!(s.closest_point(vertices[0]), vertices[0]);
-        assert_eq!(s.closest_point(vertices[1]), vertices[1]);
-        assert_eq!(s.closest_point(vertices[2]), vertices[2]);
-        assert_eq!(
-            s.closest_point((1.75, 2.25, 0.0).into()),
-            (1.75, 2.25, 0.0).into()
-        );
-        assert_eq!(
-            s.closest_point((1.5, 1.0, 0.0).into()),
-            (1.5, 2.0, 0.0).into()
-        );
-        assert_eq!(
-            s.closest_point((3.0, 2.5, 0.0).into()),
-            (2.0, 2.5, 0.0).into()
-        );
-        assert_eq!(
-            s.closest_point((1.0, 3.0, 0.0).into()),
-            (1.5, 2.5, 0.0).into()
-        );
+            let s = NavSpatialObject::new(0, vertices[0], vertices[1], vertices[2]);
+            assert_eq!(s.normal(), (0.0, 0.0, 1.0).into());
+        }
+        {
+            let vertices = vec![
+                (0.0, 0.0, 0.0).into(),
+                (2.0, 0.0, 2.0).into(),
+                (0.0, 2.0, 0.0).into(),
+            ];
 
-        let s = NavSpatialObject::new(0, vertices[2], vertices[3], vertices[0]);
-        assert_eq!(s.closest_point(vertices[2]), vertices[2]);
-        assert_eq!(s.closest_point(vertices[3]), vertices[3]);
-        assert_eq!(s.closest_point(vertices[0]), vertices[0]);
-        assert_eq!(
-            s.closest_point((1.25, 2.75, 0.0).into()),
-            (1.25, 2.75, 0.0).into()
-        );
-        assert_eq!(
-            s.closest_point((2.0, 2.0, 0.0).into()),
-            (1.5, 2.5, 0.0).into()
-        );
-        assert_eq!(
-            s.closest_point((1.5, 4.0, 0.0).into()),
-            (1.5, 3.0, 0.0).into()
-        );
-        assert_eq!(
-            s.closest_point((0.0, 2.5, 0.0).into()),
-            (1.0, 2.5, 0.0).into()
-        );
+            let s = NavSpatialObject::new(0, vertices[0], vertices[1], vertices[2]);
+            assert_eq!(s.normal(), NavVec3::new(-1.0, 0.0, 1.0).normalize());
+        }
+        {
+            let vertices = vec![
+                (1.0, 2.0, 0.0).into(),
+                (2.0, 2.0, 0.0).into(),
+                (2.0, 3.0, 0.0).into(),
+                (1.0, 3.0, 0.0).into(),
+            ];
+
+            let s = NavSpatialObject::new(0, vertices[0], vertices[1], vertices[2]);
+            assert_eq!(s.closest_point(vertices[0]), vertices[0]);
+            assert_eq!(s.closest_point(vertices[1]), vertices[1]);
+            assert_eq!(s.closest_point(vertices[2]), vertices[2]);
+            assert_eq!(
+                s.closest_point((1.75, 2.25, 0.0).into()),
+                (1.75, 2.25, 0.0).into()
+            );
+            assert_eq!(
+                s.closest_point((1.5, 1.0, 0.0).into()),
+                (1.5, 2.0, 0.0).into()
+            );
+            assert_eq!(
+                s.closest_point((3.0, 2.5, 0.0).into()),
+                (2.0, 2.5, 0.0).into()
+            );
+            assert_eq!(
+                s.closest_point((1.0, 3.0, 0.0).into()),
+                (1.5, 2.5, 0.0).into()
+            );
+
+            let s = NavSpatialObject::new(0, vertices[2], vertices[3], vertices[0]);
+            assert_eq!(s.closest_point(vertices[2]), vertices[2]);
+            assert_eq!(s.closest_point(vertices[3]), vertices[3]);
+            assert_eq!(s.closest_point(vertices[0]), vertices[0]);
+            assert_eq!(
+                s.closest_point((1.25, 2.75, 0.0).into()),
+                (1.25, 2.75, 0.0).into()
+            );
+            assert_eq!(
+                s.closest_point((2.0, 2.0, 0.0).into()),
+                (1.5, 2.5, 0.0).into()
+            );
+            assert_eq!(
+                s.closest_point((1.5, 4.0, 0.0).into()),
+                (1.5, 3.0, 0.0).into()
+            );
+            assert_eq!(
+                s.closest_point((0.0, 2.5, 0.0).into()),
+                (1.0, 2.5, 0.0).into()
+            );
+        }
     }
 
     #[test]
@@ -441,8 +484,8 @@ mod tests {
         {
             let path = mesh
                 .find_path(
-                    (0.0, 0.0, 0.0).into(),
-                    (2.0, 1.0, 1.0).into(),
+                    (0.0, 1.0, 0.0).into(),
+                    (2.0, 0.0, 1.0).into(),
                     NavQuery::Accuracy,
                     NavPathMode::MidPoints,
                 )
@@ -455,12 +498,12 @@ mod tests {
                         (v.z * 10.0) as i32,
                     ))
                     .collect::<Vec<_>>(),
-                vec![(0, 0, 0), (10, 5, 0), (20, 10, 10),]
+                vec![(0, 10, 0), (10, 5, 0), (20, 0, 10),]
             );
             let path = mesh
                 .find_path(
-                    (0.0, 0.0, 0.0).into(),
-                    (2.0, 1.0, 1.0).into(),
+                    (0.0, 1.0, 0.0).into(),
+                    (2.0, 0.0, 1.0).into(),
                     NavQuery::Accuracy,
                     NavPathMode::Accuracy,
                 )
@@ -473,7 +516,45 @@ mod tests {
                         (v.z * 10.0) as i32,
                     ))
                     .collect::<Vec<_>>(),
-                vec![(0, 0, 0), (10, 5, 0), (20, 10, 10),]
+                vec![(0, 10, 0), (10, 5, 0), (20, 0, 10),]
+            );
+        }
+        {
+            let path = mesh
+                .find_path(
+                    (0.0, 1.0, 0.0).into(),
+                    (1.5, 0.25, 0.5).into(),
+                    NavQuery::Accuracy,
+                    NavPathMode::MidPoints,
+                )
+                .unwrap();
+            assert_eq!(
+                path.into_iter()
+                    .map(|v| (
+                        (v.x * 10.0) as i32,
+                        (v.y * 10.0) as i32,
+                        (v.z * 10.0) as i32,
+                    ))
+                    .collect::<Vec<_>>(),
+                vec![(0, 10, 0), (10, 5, 0), (15, 2, 5),]
+            );
+            let path = mesh
+                .find_path(
+                    (0.0, 1.0, 0.0).into(),
+                    (1.2, 0.4, 0.2).into(),
+                    NavQuery::Accuracy,
+                    NavPathMode::Accuracy,
+                )
+                .unwrap();
+            assert_eq!(
+                path.into_iter()
+                    .map(|v| (
+                        (v.x * 10.0) as i32,
+                        (v.y * 10.0) as i32,
+                        (v.z * 10.0) as i32,
+                    ))
+                    .collect::<Vec<_>>(),
+                vec![(0, 10, 0), (10, 5, 0), (12, 4, 2),]
             );
         }
     }

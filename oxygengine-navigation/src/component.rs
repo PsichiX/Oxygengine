@@ -7,8 +7,10 @@ use core::{
     id::ID,
 };
 
+/// Nav agent identifier.
 pub type NavAgentID = ID<NavAgent>;
 
+/// Simple nav driver component tag to mark entity to use simple movement on nav mesh.
 #[derive(Debug, Default, Copy, Clone)]
 pub struct SimpleNavDriverTag;
 
@@ -16,9 +18,12 @@ impl Component for SimpleNavDriverTag {
     type Storage = NullStorage<Self>;
 }
 
+/// Nav agent target.
 #[derive(Debug, Clone, Copy)]
 pub enum NavAgentTarget {
+    /// Point in world space.
     Point(NavVec3),
+    /// Entity to follow.
     Entity(Entity),
 }
 
@@ -38,20 +43,33 @@ impl NavAgentTarget {
     }
 }
 
+/// Nav agent destination descriptor.
 #[derive(Debug, Clone)]
 pub struct NavAgentDestination {
+    /// Target.
     pub target: NavAgentTarget,
+    /// Query quality.
     pub query: NavQuery,
+    /// path finding quality.
     pub mode: NavPathMode,
+    /// Nav mesh identifier that agent is moving on.
     pub mesh: NavMeshID,
 }
 
+/// Nav agent component.
 #[derive(Debug, Clone)]
 pub struct NavAgent {
     id: NavAgentID,
+    /// Current agent position in world space.
     pub position: NavVec3,
+    /// Current agent normalized direction.
     pub direction: NavVec3,
+    /// Current speed (units per second).
     pub speed: Scalar,
+    /// Agent sphere radius (used in obstacle and agent avoidance).
+    pub radius: Scalar,
+    /// Mnimal distance to target (affects direction, tells how far look for point to go to in an
+    /// instant).
     pub min_target_distance: Scalar,
     pub(crate) destination: Option<NavAgentDestination>,
     pub(crate) path: Option<Vec<NavVec3>>,
@@ -79,6 +97,7 @@ impl NavAgent {
             position,
             direction: direction.normalize(),
             speed: 10.0,
+            radius: 1.0,
             min_target_distance: 1.0,
             destination: None,
             path: None,
@@ -106,6 +125,13 @@ impl NavAgent {
         }
     }
 
+    /// Sets destination to go to.
+    ///
+    /// # Arguments
+    /// * `target` - target to go to.
+    /// * `query` - query quality.
+    /// * `mode` - path finding quality.
+    /// * `mesh` - nav mesh to move on.
     pub fn set_destination(
         &mut self,
         target: NavAgentTarget,

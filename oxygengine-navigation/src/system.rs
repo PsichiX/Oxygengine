@@ -9,6 +9,7 @@ use core::{
 };
 use std::collections::HashMap;
 
+/// nav agents maintainment system. It's used to find path on nav mesh for agents.
 #[derive(Default)]
 pub struct NavAgentMaintainSystem(HashMap<Entity, Vec<NavVec3>>);
 
@@ -67,9 +68,12 @@ impl<'s> System<'s> for NavAgentMaintainSystem {
     }
 }
 
+/// Simple nav driver system. It's used to apply simple movement of agents with `SimpleNavDriverTag`
+/// component tag on their paths.
 pub struct SimpleNavDriverSystem;
 
 impl SimpleNavDriverSystem {
+    /// Internal system run function.
     pub fn run_impl<'s>(
         delta_time: Scalar,
         (mut agents, drivers): (

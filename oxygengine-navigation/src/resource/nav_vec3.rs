@@ -90,11 +90,8 @@ impl NavVec3 {
 
     pub fn raycast_line(from: Self, to: Self, a: Self, b: Self, normal: Self) -> Option<Self> {
         if let Some(p) = Self::raycast_plane(from, to, a, normal) {
-            Some(Self::unproject(
-                a,
-                b,
-                p.project(a, b).max(0.0).min((b - a).magnitude()),
-            ))
+            let t = p.project(a, b).max(0.0).min((b - a).magnitude());
+            Some(Self::unproject(a, b, t))
         } else {
             None
         }
