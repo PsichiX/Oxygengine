@@ -498,6 +498,13 @@ impl NavMesh {
     }
 
     fn find_path_accuracy(&self, from: NavVec3, to: NavVec3, triangles: &[usize]) -> Vec<NavVec3> {
+        enum Node {
+            Point(NavVec3),
+            // (a, b, normal)
+            LevelChange(NavVec3, NavVec3, NavVec3),
+        }
+
+        // TODO: reduce allocations.
         if triangles.len() == 2 {
             let NavConnection(a, b) =
                 self.connections[&NavConnection(triangles[0] as u32, triangles[1] as u32)].1;
@@ -505,22 +512,22 @@ impl NavMesh {
             let b = self.vertices[b as usize];
             let n = self.spatials[triangles[0]].normal();
             let m = self.spatials[triangles[1]].normal();
-            if n.dot(m) < 1.0 - ZERO_TRESHOLD {
-                // TODO: fix this.
-                return vec![from, (a + b) * 0.5, to];
-            } else if !NavVec3::is_line_between_points(from, to, a, b, n) {
+            if !NavVec3::is_line_between_points(from, to, a, b, n) {
                 let da = (from - a).sqr_magnitude();
                 let db = (from - b).sqr_magnitude();
                 let point = if da < db { a } else { b };
                 return vec![from, point, to];
-            } else {
-                return vec![from, to];
+            } else if n.dot(m) < 1.0 - ZERO_TRESHOLD {
+                let n = (b - a).normalize().cross(n);
+                if let Some(point) = NavVec3::raycast_line(from, to, a, b, n) {
+                    return vec![from, point, to];
+                }
             }
+            return vec![from, to];
         }
         let mut start = from;
         let mut last_normal = self.spatials[triangles[0]].normal();
-        let mut points = Vec::with_capacity(triangles.len() + 1);
-        points.push(from);
+        let mut nodes = Vec::with_capacity(triangles.len() - 1);
         for triplets in triangles.windows(3) {
             let NavConnection(a, b) =
                 self.connections[&NavConnection(triplets[0] as u32, triplets[1] as u32)].1;
@@ -533,17 +540,16 @@ impl NavMesh {
             let n = self.spatials[triplets[1]].normal();
             let old_last_normal = last_normal;
             last_normal = n;
-            if old_last_normal.dot(n) < 1.0 - ZERO_TRESHOLD {
-                // TODO: fix this.
-                start = (a + b) * 0.5;
-                points.push(start);
-            } else if !NavVec3::is_line_between_points(start, c, a, b, n)
+            if !NavVec3::is_line_between_points(start, c, a, b, n)
                 || !NavVec3::is_line_between_points(start, d, a, b, n)
             {
                 let da = (start - a).sqr_magnitude();
                 let db = (start - b).sqr_magnitude();
                 start = if da < db { a } else { b };
-                points.push(start);
+                nodes.push(Node::Point(start));
+            } else if old_last_normal.dot(n) < 1.0 - ZERO_TRESHOLD {
+                let n = (b - a).normalize().cross(n);
+                nodes.push(Node::LevelChange(a, b, n));
             }
         }
         {
@@ -556,14 +562,39 @@ impl NavMesh {
             let b = self.vertices[b as usize];
             let n = self.spatials[triangles[triangles.len() - 2]].normal();
             let m = self.spatials[triangles[triangles.len() - 1]].normal();
-            if n.dot(m) < 1.0 - ZERO_TRESHOLD {
-                // TODO: fix this.
-                points.push((a + b) * 0.5);
-            } else if !NavVec3::is_line_between_points(start, to, a, b, n) {
+            if !NavVec3::is_line_between_points(start, to, a, b, n) {
                 let da = (start - a).sqr_magnitude();
                 let db = (start - b).sqr_magnitude();
                 let point = if da < db { a } else { b };
-                points.push(point);
+                nodes.push(Node::Point(point));
+            } else if n.dot(m) < 1.0 - ZERO_TRESHOLD {
+                let n = (b - a).normalize().cross(n);
+                nodes.push(Node::LevelChange(a, b, n));
+            }
+        }
+
+        let mut points = Vec::with_capacity(nodes.len() + 2);
+        points.push(from);
+        let mut point = from;
+        for i in 0..nodes.len() {
+            match nodes[i] {
+                Node::Point(p) => {
+                    point = p;
+                    points.push(p);
+                }
+                Node::LevelChange(a, b, n) => {
+                    let next = nodes
+                        .iter()
+                        .skip(i + 1)
+                        .find_map(|n| match n {
+                            Node::Point(p) => Some(*p),
+                            _ => None,
+                        })
+                        .unwrap_or(to);
+                    if let Some(p) = NavVec3::raycast_line(point, next, a, b, n) {
+                        points.push(p);
+                    }
+                }
             }
         }
         points.push(to);

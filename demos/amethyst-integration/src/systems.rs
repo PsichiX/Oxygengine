@@ -8,7 +8,7 @@ use amethyst::{
 use nav::prelude::*;
 use winit::MouseButton;
 
-const COMMAND_DELAY: f32 = 0.0;
+const COMMAND_DELAY: f32 = 0.1;
 
 pub struct NavDriverSystem;
 

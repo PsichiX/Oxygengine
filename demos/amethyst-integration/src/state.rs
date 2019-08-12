@@ -38,37 +38,53 @@ impl SimpleState for MyState {
 
 fn init_camera(world: &mut World, dimensions: &ScreenDimensions) {
     let mut transform = Transform::default();
-    transform.set_translation_xyz(dimensions.width() * 0.5, dimensions.height() * 0.5, 1.);
+    let w = dimensions.width();
+    let h = dimensions.height();
+    transform.set_translation_xyz(w * 0.5, h * 0.5, 1.0);
 
     world
         .create_entity()
-        .with(Camera::standard_2d(dimensions.width(), dimensions.height()))
+        .with(Camera::standard_2d(w, h))
         .with(transform)
         .build();
 }
 
 fn init_nav_mesh(world: &mut World) {
+    // let vertices: Vec<NavVec3> = vec![
+    //     (50.0, 50.0).into(),   // 0
+    //     (500.0, 50.0).into(),  // 1
+    //     (500.0, 100.0).into(), // 2
+    //     (100.0, 100.0).into(), // 3
+    //     (100.0, 300.0).into(), // 4
+    //     (700.0, 300.0).into(), // 5
+    //     (700.0, 50.0).into(),  // 6
+    //     (750.0, 50.0).into(),  // 7
+    //     (750.0, 550.0).into(), // 8
+    //     (50.0, 550.0).into(),  // 9
+    // ];
+    // let triangles: Vec<NavTriangle> = vec![
+    //     (1, 2, 3).into(), // 0
+    //     (0, 1, 3).into(), // 1
+    //     (0, 3, 4).into(), // 2
+    //     (0, 4, 9).into(), // 3
+    //     (4, 8, 9).into(), // 4
+    //     (4, 5, 8).into(), // 5
+    //     (5, 7, 8).into(), // 6
+    //     (5, 6, 7).into(), // 7
+    // ];
     let vertices: Vec<NavVec3> = vec![
-        (50.0, 50.0).into(),   // 0
-        (500.0, 50.0).into(),  // 1
-        (500.0, 100.0).into(), // 2
-        (100.0, 100.0).into(), // 3
-        (100.0, 300.0).into(), // 4
-        (700.0, 300.0).into(), // 5
-        (700.0, 50.0).into(),  // 6
-        (750.0, 50.0).into(),  // 7
-        (750.0, 550.0).into(), // 8
-        (50.0, 550.0).into(),  // 9
+        (100.0, 100.0, 0.0).into(), // 0
+        (400.0, 100.0, 0.0).into(), // 1
+        (700.0, 100.0, 1.0).into(), // 2
+        (100.0, 500.0, 0.0).into(), // 3
+        (400.0, 500.0, 0.0).into(), // 4
+        (700.0, 500.0, 1.0).into(), // 5
     ];
     let triangles: Vec<NavTriangle> = vec![
-        (1, 2, 3).into(), // 0
-        (0, 1, 3).into(), // 1
-        (0, 3, 4).into(), // 2
-        (0, 4, 9).into(), // 3
-        (4, 8, 9).into(), // 4
-        (4, 5, 8).into(), // 5
-        (5, 7, 8).into(), // 6
-        (5, 6, 7).into(), // 7
+        (0, 1, 4).into(), // 0
+        (4, 3, 0).into(), // 1
+        (1, 2, 5).into(), // 2
+        (5, 4, 1).into(), // 3
     ];
 
     let mut debug = DebugLinesComponent::default();

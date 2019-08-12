@@ -13,6 +13,31 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_project_point() {
+        assert_eq!(
+            NavVec3::raycast_plane(
+                (-1.0, -1.0, -1.0).into(),
+                (1.0, 1.0, 1.0).into(),
+                (0.0, 0.0, 0.0).into(),
+                (-1.0, 0.0, 0.0).into(),
+            )
+            .unwrap(),
+            (0.0, 0.0, 0.0).into(),
+        );
+        assert_eq!(
+            NavVec3::raycast_line(
+                (-1.0, -1.0, 1.0).into(),
+                (1.0, 1.0, 1.0).into(),
+                (1.0, -1.0, 0.0).into(),
+                (-1.0, 1.0, 0.0).into(),
+                (-1.0, 0.0, 0.0).into(),
+            )
+            .unwrap(),
+            (0.0, 0.0, 0.0).into(),
+        );
+    }
+
+    #[test]
     fn test_line_between_points() {
         assert_eq!(
             true,

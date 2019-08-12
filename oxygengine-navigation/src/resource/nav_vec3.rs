@@ -76,6 +76,30 @@ impl NavVec3 {
         self - d
     }
 
+    pub fn raycast_plane(from: Self, to: Self, origin: Self, normal: Self) -> Option<Self> {
+        let dir = (to - from).normalize();
+        let denom = normal.dot(dir);
+        if denom.abs() > ZERO_TRESHOLD {
+            let t = (origin - from).dot(normal) / denom;
+            if t >= 0.0 && t <= (to - from).magnitude() {
+                return Some(from + dir * t);
+            }
+        }
+        None
+    }
+
+    pub fn raycast_line(from: Self, to: Self, a: Self, b: Self, normal: Self) -> Option<Self> {
+        if let Some(p) = Self::raycast_plane(from, to, a, normal) {
+            Some(Self::unproject(
+                a,
+                b,
+                p.project(a, b).max(0.0).min((b - a).magnitude()),
+            ))
+        } else {
+            None
+        }
+    }
+
     pub fn is_line_between_points(from: Self, to: Self, a: Self, b: Self, normal: Self) -> bool {
         let n = (to - from).cross(normal);
         let sa = Self::side(n.dot(a - from));
