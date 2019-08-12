@@ -467,6 +467,9 @@ impl NavMesh {
         query: NavQuery,
         mode: NavPathMode,
     ) -> Option<Vec<NavVec3>> {
+        if (to - from).sqr_magnitude() < ZERO_TRESHOLD {
+            return None;
+        }
         let start = if let Some(start) = self.find_closest_triangle(from, query) {
             start
         } else {
