@@ -15,11 +15,11 @@ pub enum LoadStatus {
 }
 
 pub struct AssetsDatabase {
-    fetch_engines: Vec<Box<FetchEngine>>,
-    protocols: HashMap<String, Box<AssetProtocol>>,
+    fetch_engines: Vec<Box<dyn FetchEngine>>,
+    protocols: HashMap<String, Box<dyn AssetProtocol>>,
     assets: HashMap<AssetID, (String, Asset)>,
     table: HashMap<String, AssetID>,
-    loading: HashMap<String, (String, Box<FetchProcessReader>)>,
+    loading: HashMap<String, (String, Box<dyn FetchProcessReader>)>,
     #[allow(clippy::type_complexity)]
     yielded: HashMap<String, (String, Meta, Vec<(String, String)>)>,
     lately_loaded: Vec<(String, AssetID)>,
@@ -146,11 +146,11 @@ impl AssetsDatabase {
             .any(|path| !self.table.contains_key(path.as_ref()))
     }
 
-    pub fn push_fetch_engine(&mut self, fetch_engine: Box<FetchEngine>) {
+    pub fn push_fetch_engine(&mut self, fetch_engine: Box<dyn FetchEngine>) {
         self.fetch_engines.push(fetch_engine);
     }
 
-    pub fn pop_fetch_engine(&mut self) -> Option<Box<FetchEngine>> {
+    pub fn pop_fetch_engine(&mut self) -> Option<Box<dyn FetchEngine>> {
         if !self.fetch_engines.is_empty() {
             self.fetch_engines.pop()
         } else {
@@ -170,9 +170,9 @@ impl AssetsDatabase {
 
     pub fn with_fetch_engine<F, R>(&mut self, mut action: F) -> R
     where
-        F: FnMut(&mut FetchEngine) -> R,
+        F: FnMut(&mut dyn FetchEngine) -> R,
     {
-        let fetch_engine: &mut FetchEngine = self.fetch_engine_mut().borrow_mut();
+        let fetch_engine: &mut dyn FetchEngine = self.fetch_engine_mut().borrow_mut();
         action(fetch_engine)
     }
 
@@ -185,7 +185,7 @@ impl AssetsDatabase {
         self.protocols.insert(name, Box::new(protocol));
     }
 
-    pub fn unregister(&mut self, protocol_name: &str) -> Option<Box<AssetProtocol>> {
+    pub fn unregister(&mut self, protocol_name: &str) -> Option<Box<dyn AssetProtocol>> {
         if let Some(mut protocol) = self.protocols.remove(protocol_name) {
             protocol.on_unregister();
             Some(protocol)

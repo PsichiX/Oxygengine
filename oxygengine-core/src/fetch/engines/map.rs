@@ -13,7 +13,7 @@ impl MapFetchEngine {
 }
 
 impl FetchEngine for MapFetchEngine {
-    fn fetch(&mut self, path: &str) -> Result<Box<FetchProcessReader>, FetchStatus> {
+    fn fetch(&mut self, path: &str) -> Result<Box<dyn FetchProcessReader>, FetchStatus> {
         if let Some(bytes) = self.map.get(path) {
             Ok(Box::new(FetchProcess::new_done(bytes.to_vec())))
         } else {

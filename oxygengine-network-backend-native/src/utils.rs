@@ -1,5 +1,5 @@
 pub struct DoOnDrop {
-    executor: Box<FnMut()>,
+    executor: Box<dyn FnMut()>,
 }
 
 impl DoOnDrop {

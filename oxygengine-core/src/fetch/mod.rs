@@ -29,10 +29,10 @@ pub enum FetchStatus {
 pub trait FetchProcessReader: Send + Sync {
     fn status(&self) -> FetchStatus;
     fn read(&self) -> Option<Vec<u8>>;
-    fn box_clone(&self) -> Box<FetchProcessReader>;
+    fn box_clone(&self) -> Box<dyn FetchProcessReader>;
 }
 
-impl Clone for Box<FetchProcessReader> {
+impl Clone for Box<dyn FetchProcessReader> {
     fn clone(&self) -> Self {
         self.box_clone()
     }
@@ -137,15 +137,15 @@ impl FetchProcessReader for FetchProcess {
         None
     }
 
-    fn box_clone(&self) -> Box<FetchProcessReader> {
+    fn box_clone(&self) -> Box<dyn FetchProcessReader> {
         Box::new((*self).clone())
     }
 }
 
 pub trait FetchEngine: Send + Sync {
-    fn fetch(&mut self, path: &str) -> Result<Box<FetchProcessReader>, FetchStatus>;
+    fn fetch(&mut self, path: &str) -> Result<Box<dyn FetchProcessReader>, FetchStatus>;
 
-    fn cancel(&mut self, reader: Box<FetchProcessReader>) {
+    fn cancel(&mut self, reader: Box<dyn FetchProcessReader>) {
         #[allow(clippy::cast_ptr_alignment)]
         let ptr = Box::into_raw(reader) as *mut FetchProcess;
         unsafe {

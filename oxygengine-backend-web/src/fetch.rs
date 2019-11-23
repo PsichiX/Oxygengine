@@ -23,7 +23,7 @@ impl WebFetchEngine {
 }
 
 impl FetchEngine for WebFetchEngine {
-    fn fetch(&mut self, path: &str) -> Result<Box<FetchProcessReader>, FetchStatus> {
+    fn fetch(&mut self, path: &str) -> Result<Box<dyn FetchProcessReader>, FetchStatus> {
         let mut opts = RequestInit::new();
         opts.method("GET");
         opts.mode(RequestMode::Cors);

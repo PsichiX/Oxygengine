@@ -89,7 +89,7 @@ impl AssetProtocol for SpriteSheetAssetProtocol {
     }
 
     fn on_resume(&mut self, payload: Meta, list: &[(&str, &Asset)]) -> AssetLoadResult {
-        let info = *(payload.unwrap() as Box<Any + Send>)
+        let info = *(payload.unwrap() as Box<dyn Any + Send>)
             .downcast::<SpriteSheetInfo>()
             .unwrap();
         let image_asset = list

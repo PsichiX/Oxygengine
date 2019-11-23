@@ -1,11 +1,8 @@
 #[cfg(feature = "parallel")]
 extern crate rayon;
-extern crate serde;
-extern crate specs;
-extern crate specs_hierarchy;
-extern crate uuid;
 #[macro_use]
 extern crate lazy_static;
+extern crate typid;
 
 #[macro_use]
 pub mod log;
@@ -15,11 +12,14 @@ pub mod assets;
 pub mod error;
 pub mod fetch;
 pub mod hierarchy;
-pub mod id;
 pub mod state;
 
 #[cfg(test)]
 mod tests;
+
+pub mod id {
+    pub use typid::*;
+}
 
 pub mod ecs {
     pub use specs::*;
