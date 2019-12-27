@@ -11,6 +11,8 @@ pub mod input {
 pub mod backend {
     #[cfg(feature = "web")]
     pub mod web {
+        #[cfg(feature = "audio")]
+        pub use oxygengine_audio_backend_web::*;
         pub use oxygengine_backend_web::*;
         #[cfg(feature = "composite-renderer")]
         pub use oxygengine_composite_renderer_backend_web::*;
@@ -46,8 +48,17 @@ pub mod procedural {
 pub mod navigation {
     pub use oxygengine_navigation::*;
 }
+#[cfg(feature = "audio")]
+pub mod audio {
+    pub use oxygengine_audio::*;
+}
 
 pub mod prelude {
+    #[cfg(feature = "audio")]
+    pub use oxygengine_audio::prelude::*;
+    #[cfg(feature = "web")]
+    #[cfg(feature = "audio")]
+    pub use oxygengine_audio_backend_web::prelude::*;
     #[cfg(feature = "web")]
     pub use oxygengine_backend_web::prelude::*;
     #[cfg(feature = "composite-renderer")]

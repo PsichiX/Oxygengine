@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-chat-server"
-version = "0.4.5"
+version = "0.4.6"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygengine Chat Demo"

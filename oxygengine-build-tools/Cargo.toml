@@ -1,0 +1,16 @@
+[package]
+name = "oxygengine-build-tools"
+version = "0.4.6"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+edition = "2018"
+description = "Build tools for Oxygen Engine"
+license-file = "../LICENSE"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine-build-tools"
+readme = "../README.md"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+bincode = "1"
+pathdiff = "0.1"

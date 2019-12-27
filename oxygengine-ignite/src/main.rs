@@ -169,6 +169,36 @@ fn main() -> Result<()> {
                         .required(false),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name("pack")
+                .about("Pack assets for Oxygen Engine")
+                .arg(
+                    Arg::with_name("input")
+                        .short("i")
+                        .long("input")
+                        .value_name("PATH")
+                        .help("Assets root folder")
+                        .takes_value(true)
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("output")
+                        .short("o")
+                        .long("output")
+                        .value_name("PATH")
+                        .help("Asset pack output file")
+                        .takes_value(true)
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("quiet")
+                        .short("q")
+                        .long("quiet")
+                        .help("Don't show progress information")
+                        .takes_value(false)
+                        .required(false),
+                ),
+        )
         .get_matches();
 
     if let Some(matches) = matches.subcommand_matches("new") {
@@ -260,6 +290,11 @@ fn main() -> Result<()> {
                 }
             }
         }
+    } else if let Some(matches) = matches.subcommand_matches("pack") {
+        let input = matches.value_of("input").unwrap();
+        let output = matches.value_of("output").unwrap();
+        let quiet = matches.is_present("quiet");
+        oxygengine_build_tools::pack::pack_assets_and_write_to_file(input, output, quiet)?;
     }
     Ok(())
 }

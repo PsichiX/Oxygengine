@@ -1,6 +1,6 @@
 use core::fetch::{FetchEngine, FetchProcess, FetchProcessReader, FetchStatus};
 use futures::{future, Future};
-use js_sys::{ArrayBuffer, Uint8Array};
+use js_sys::*;
 use wasm_bindgen::{prelude::*, JsCast};
 use wasm_bindgen_futures::{future_to_promise, JsFuture};
 use web_sys::*;

@@ -1,0 +1,14 @@
+[package]
+name = "oxygengine-audio"
+version = "0.4.6"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+edition = "2018"
+description = "Audio module for Oxygen Engine"
+license-file = "../LICENSE"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine-audio"
+readme = "../README.md"
+
+[dependencies]
+oxygengine-core = { version = "0.4", path = "../oxygengine-core" }

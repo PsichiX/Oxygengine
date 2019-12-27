@@ -53,7 +53,6 @@ cargo build --all
 ## TODO / Roadmap
 - UI widgets
 - Prefabs (loading scenes from asset)
-- Packed assets fetch engine
 - Hardware renderer
 - WebGL hardware renderer backend
 - 2D physics

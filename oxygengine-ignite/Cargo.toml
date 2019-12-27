@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-ignite"
-version = "0.4.5"
+version = "0.4.6"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "CLI app used to setup new Oxygen Engine project"
@@ -14,4 +14,6 @@ readme = "../README.md"
 clap = "2.33"
 cargo_metadata = "0.8"
 toml = "0.5"
-serde = { version = "1.0", features = ["derive"] }
+bincode = "1"
+serde = { version = "1", features = ["derive"] }
+oxygengine-build-tools = { version = "0.4", path = "../oxygengine-build-tools" }

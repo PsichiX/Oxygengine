@@ -1,4 +1,5 @@
 pub mod asset;
+pub mod asset_pack_preloader;
 pub mod database;
 pub mod protocol;
 pub mod protocols;
@@ -6,7 +7,8 @@ pub mod system;
 
 pub mod prelude {
     pub use super::{
-        asset::*, database::*, protocol::*, protocols::prelude::*, protocols::*, system::*,
+        asset::*, asset_pack_preloader::*, database::*, protocol::*, protocols::prelude::*,
+        protocols::*, system::*,
     };
 }
 
@@ -14,7 +16,10 @@ use crate::{
     app::AppBuilder,
     assets::{
         database::AssetsDatabase,
-        protocols::{binary::BinaryAssetProtocol, set::SetAssetProtocol, text::TextAssetProtocol},
+        protocols::{
+            binary::BinaryAssetProtocol, pack::PackAssetProtocol, set::SetAssetProtocol,
+            text::TextAssetProtocol,
+        },
         system::AssetsSystem,
     },
     fetch::FetchEngine,
@@ -28,6 +33,7 @@ pub fn bundle_installer<'a, 'b, FE: 'static, ADS>(
     ADS: FnMut(&mut AssetsDatabase),
 {
     let mut database = AssetsDatabase::new(fetch_engine);
+    database.register(PackAssetProtocol);
     database.register(BinaryAssetProtocol);
     database.register(TextAssetProtocol);
     database.register(SetAssetProtocol);

@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-core"
-version = "0.4.5"
+version = "0.4.6"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Core module for Oxygen Engine"
@@ -16,7 +16,8 @@ parallel = ["rayon", "specs/parallel", "specs-hierarchy/parallel"]
 
 [dependencies]
 typid = "1"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+bincode = "1"
 rayon = { version = "1.0", optional = true }
 specs = { version = "0.14", default-features = false }
 specs-hierarchy = { version = "0.3", default-features = false }

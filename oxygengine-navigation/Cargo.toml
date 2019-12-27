@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-navigation"
-version = "0.4.5"
+version = "0.4.6"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Navigation module for Oxygen Engine"
@@ -17,6 +17,6 @@ parallel = ["oxygengine-core/parallel", "rayon"]
 oxygengine-core = { version = "0.4", path = "../oxygengine-core" }
 petgraph = "0.4"
 spade = "1.0"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
 bincode = "1.1"
 rayon = { version = "1.0", optional = true }

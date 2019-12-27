@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-procedural"
-version = "0.4.5"
+version = "0.4.6"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Procedural content generation module for Oxygen Engine"
@@ -17,4 +17,4 @@ parallel = ["oxygengine-utils/parallel", "rayon"]
 oxygengine-utils = { version = "0.4", path = "../oxygengine-utils" }
 psyche-utils = "0.2"
 rayon = { version = "1.0", optional = true }
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }

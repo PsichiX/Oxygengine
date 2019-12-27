@@ -511,7 +511,7 @@ where
 
 impl<'s, CR> System<'s> for CompositeSurfaceCacheSystem<CR>
 where
-    CR: CompositeRenderer + Send + Sync + 'static,
+    CR: CompositeRenderer + 'static,
 {
     type SystemData = (
         Entities<'s>,
@@ -532,7 +532,6 @@ where
         }
 
         let renderer: &mut CR = &mut renderer.unwrap();
-
         let events = caches.channel().read(self.reader_id.as_mut().unwrap());
         for event in events {
             if let ComponentEvent::Removed(index) = event {

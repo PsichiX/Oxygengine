@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine"
-version = "0.4.5"
+version = "0.4.6"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygen Engine"
@@ -35,15 +35,18 @@ composite-renderer = ["oxygengine-composite-renderer"]
 network = ["oxygengine-network"]
 procedural = ["oxygengine-procedural"]
 navigation = ["oxygengine-navigation"]
+audio = ["oxygengine-audio"]
 web-composite-game = [
   "web",
   "composite-renderer",
   "input",
   "network",
   "navigation",
+  "audio",
   "oxygengine-composite-renderer-backend-web",
   "oxygengine-input-device-web",
   "oxygengine-network-backend-web",
+  "oxygengine-audio-backend-web",
 ]
 desktop-headless-game = [
   "desktop",
@@ -117,6 +120,16 @@ version = "0.4"
 path = "./oxygengine-navigation"
 optional = true
 
+[dependencies.oxygengine-audio]
+version = "0.4"
+path = "./oxygengine-audio"
+optional = true
+
+[dependencies.oxygengine-audio-backend-web]
+version = "0.4"
+path = "./oxygengine-audio-backend-web"
+optional = true
+
 [workspace]
 members = [
   "oxygengine-ignite",
@@ -133,8 +146,12 @@ members = [
   "oxygengine-network-backend-native",
   "oxygengine-procedural",
   "oxygengine-navigation",
+  "oxygengine-audio",
+  "oxygengine-audio-backend-web",
+  "oxygengine-build-tools",
   "demos/procedural-world-simulation",
   "demos/chat/chat-server",
   "demos/chat/chat-client",
   "demos/amethyst-integration",
+  "demos/basic-web-game",
 ]

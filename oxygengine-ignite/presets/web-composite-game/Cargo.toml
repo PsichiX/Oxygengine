@@ -2,6 +2,7 @@
 name = "~%IGNITE_ID%~"
 version = "0.1.0"
 edition = "2018"
+build = "build.rs"
 
 [lib]
 crate-type = ["cdylib"]
@@ -14,6 +15,9 @@ lto = true
 [features]
 # If you uncomment this line, it will enable `wee_alloc`:
 #default = ["wee_alloc"]
+
+[build-dependencies]
+oxygengine-build-tools = "0.4"
 
 [dependencies]
 wasm-bindgen = "0.2.45"
@@ -43,5 +47,3 @@ wasm-bindgen-test = "0.2.45"
 futures = "0.1.27"
 js-sys = "0.3.22"
 wasm-bindgen-futures = "0.3.22"
-
-[workspace]

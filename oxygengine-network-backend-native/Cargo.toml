@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-network-backend-native"
-version = "0.4.5"
+version = "0.4.6"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Network Native backend module for Oxygen Engine"

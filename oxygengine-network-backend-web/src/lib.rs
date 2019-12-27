@@ -3,7 +3,7 @@ extern crate oxygengine_core as core;
 extern crate oxygengine_network as network;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use js_sys::{ArrayBuffer, Uint8Array};
+use js_sys::*;
 use network::client::{Client, ClientID, ClientState, MessageID};
 use std::{
     cell::{Cell, RefCell},
