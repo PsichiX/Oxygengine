@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-core"
-version = "0.4.6"
+version = "0.4.7"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Core module for Oxygen Engine"

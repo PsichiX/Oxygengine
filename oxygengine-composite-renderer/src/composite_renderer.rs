@@ -95,11 +95,18 @@ impl<'a> Image<'a> {
 
 #[derive(Debug, Clone)]
 pub enum Renderable<'a> {
+    None,
     Rectangle(Rectangle),
     Text(Text<'a>),
     Path(Path),
     Image(Image<'a>),
     Commands(Vec<Command<'a>>),
+}
+
+impl<'a> From<()> for Renderable<'a> {
+    fn from(_: ()) -> Self {
+        Renderable::None
+    }
 }
 
 impl<'a> From<Rectangle> for Renderable<'a> {

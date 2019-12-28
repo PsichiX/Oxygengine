@@ -54,7 +54,7 @@ pub struct SpriteSheetInfoFrame {
     #[serde(alias = "spriteSourceSize")]
     #[serde(default)]
     pub sprite_source_size: Rect,
-    #[serde(alias = "spriteSize")]
+    #[serde(alias = "sourceSize")]
     #[serde(default)]
     pub source_size: SpriteSheetInfoMetaSize,
 }

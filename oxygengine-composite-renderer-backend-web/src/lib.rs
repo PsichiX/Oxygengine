@@ -1,6 +1,5 @@
 #![allow(clippy::many_single_char_names)]
 
-extern crate base64;
 extern crate oxygengine_composite_renderer as renderer;
 #[macro_use]
 extern crate oxygengine_core as core;
@@ -9,9 +8,10 @@ use core::{
     assets::{asset::AssetID, database::AssetsDatabase},
     error::*,
 };
+use js_sys::{Array, Uint8Array};
 use renderer::{composite_renderer::*, math::*, png_image_asset_protocol::PngImageAsset};
 use std::collections::HashMap;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::*;
 
 pub mod prelude {
@@ -86,6 +86,7 @@ impl WebCompositeRenderer {
         for command in commands {
             match command {
                 Command::Draw(renderable) => match renderable {
+                    Renderable::None => {}
                     Renderable::Rectangle(rectangle) => {
                         context.set_fill_style(&rectangle.color.to_string().into());
                         context.fill_rect(
@@ -270,6 +271,7 @@ impl WebCompositeRenderer {
                     }
                 },
                 Command::Stroke(line_width, renderable) => match renderable {
+                    Renderable::None => {}
                     Renderable::Rectangle(rectangle) => {
                         context.set_stroke_style(&rectangle.color.to_string().into());
                         context.set_line_width(line_width.into());
@@ -473,9 +475,13 @@ impl CompositeRenderer for WebCompositeRenderer {
                 .expect("trying to use non-png asset");
             let width = asset.width() as u32;
             let height = asset.height() as u32;
+            let buffer = Uint8Array::from(asset.bytes());
+            let buffer_val: &JsValue = buffer.as_ref();
+            let parts = Array::new_with_length(1);
+            parts.set(0, buffer_val.clone());
+            let blob = Blob::new_with_u8_array_sequence(parts.as_ref()).unwrap();
             let elm = HtmlImageElement::new_with_width_and_height(width, height).unwrap();
-            let hex = base64::encode(asset.bytes());
-            elm.set_src(&format!("data:image/png;base64,{}", hex));
+            elm.set_src(&Url::create_object_url_with_blob(&blob).unwrap());
             self.images_cache.insert(path.clone(), elm);
             self.images_table.insert(id, path);
         }

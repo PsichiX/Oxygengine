@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-composite-renderer-backend-web"
-version = "0.4.6"
+version = "0.4.7"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Composite renderer Web backend module for Oxygen Engine"
@@ -11,9 +11,9 @@ documentation = "https://docs.rs/oxygengine-composite-renderer-backend-web"
 readme = "../README.md"
 
 [dependencies]
+js-sys = "0.3"
 wasm-bindgen = "0.2"
 oxygengine-core = { version = "0.4", path = "../oxygengine-core" }
-base64 = "0.10"
 
 [dependencies.oxygengine-composite-renderer]
 version = "0.4"
@@ -28,4 +28,6 @@ features = [
   'HtmlCanvasElement',
   'HtmlImageElement',
   'Window',
+  'Blob',
+  'Url',
 ]
