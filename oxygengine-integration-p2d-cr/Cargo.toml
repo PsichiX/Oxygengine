@@ -1,5 +1,5 @@
 [package]
-name = "oxygengine-integration-physics-2d-composite-renderer"
+name = "oxygengine-integration-p2d-cr"
 version = "0.5.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
@@ -7,7 +7,7 @@ description = "Integration module of 2D physics and composite rendering for Oxyg
 license-file = "../LICENSE"
 homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
-documentation = "https://docs.rs/oxygengine-integration-physics-2d-composite-renderer"
+documentation = "https://docs.rs/oxygengine-integration-p2d-cr"
 readme = "../README.md"
 
 [features]
