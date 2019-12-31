@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 use core::{
     assets::{asset::AssetID, database::AssetsDatabase},
     ecs::Entity,

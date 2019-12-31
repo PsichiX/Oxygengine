@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-network-backend-native"
-version = "0.4.7"
+version = "0.5.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Network Native backend module for Oxygen Engine"
@@ -14,9 +14,6 @@ readme = "../README.md"
 parallel = ["oxygengine-core/parallel"]
 
 [dependencies]
-oxygengine-core = { version = "0.4", path = "../oxygengine-core" }
+oxygengine-core = { version = "0.5", path = "../oxygengine-core" }
+oxygengine-network = { version = "0.5", path = "../oxygengine-network" }
 byteorder = "1.3"
-
-[dependencies.oxygengine-network]
-version = "0.4"
-path = "../oxygengine-network"

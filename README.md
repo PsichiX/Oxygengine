@@ -55,4 +55,3 @@ cargo build --all
 - Prefabs (loading scenes from asset)
 - Hardware renderer
 - WebGL hardware renderer backend
-- 2D physics

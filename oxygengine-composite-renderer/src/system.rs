@@ -535,14 +535,16 @@ where
         let events = caches.channel().read(self.reader_id.as_mut().unwrap());
         for event in events {
             if let ComponentEvent::Removed(index) = event {
-                if let Some(name) = self.cached_surfaces.iter().find_map(|(entity, name)| {
+                let found = self.cached_surfaces.iter().find_map(|(entity, name)| {
                     if entity.id() == *index {
-                        Some(name)
+                        Some((*entity, name.clone()))
                     } else {
                         None
                     }
-                }) {
-                    renderer.destroy_surface(name);
+                });
+                if let Some((entity, name)) = found {
+                    self.cached_surfaces.remove(&entity);
+                    renderer.destroy_surface(&name);
                 }
             }
         }

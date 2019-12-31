@@ -20,7 +20,7 @@ impl NavMeshAsset {
         &self.triangles
     }
 
-    pub fn into_nav_mesh(&self) -> NavResult<NavMesh> {
+    pub fn build_nav_mesh(&self) -> NavResult<NavMesh> {
         NavMesh::new(self.vertices.clone(), self.triangles.clone())
     }
 }

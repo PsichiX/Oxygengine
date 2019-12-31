@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-chat-server"
-version = "0.4.7"
+version = "0.5.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygengine Chat Demo"
@@ -10,5 +10,5 @@ repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine"
 
 [dependencies]
-oxygengine = { version = "0.4", path = "../../..", features = ["desktop-headless-game"] }
+oxygengine = { version = "0.5", path = "../../..", features = ["desktop-headless-game"] }
 bincode = "1.1"

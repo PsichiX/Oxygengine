@@ -182,7 +182,7 @@ impl Audio for WebAudio {
     }
 
     fn get_asset_id(&self, path: &str) -> Option<AssetID> {
-        self.table_forward.get(path).map(|v| *v)
+        self.table_forward.get(path).copied()
     }
 
     fn update_cache(&mut self, assets: &AssetsDatabase) {

@@ -1,30 +1,19 @@
 [package]
-name = "oxygengine-composite-renderer-backend-web"
+name = "oxygengine-integration-physics-2d-composite-renderer"
 version = "0.5.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
-description = "Composite renderer Web backend module for Oxygen Engine"
+description = "Integration module of 2D physics and composite rendering for Oxygen Engine"
 license-file = "../LICENSE"
 homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
-documentation = "https://docs.rs/oxygengine-composite-renderer-backend-web"
+documentation = "https://docs.rs/oxygengine-integration-physics-2d-composite-renderer"
 readme = "../README.md"
 
-[dependencies]
-js-sys = "0.3"
-wasm-bindgen = "0.2"
-oxygengine-core = { version = "0.5", path = "../oxygengine-core" }
-oxygengine-composite-renderer = { version = "0.5", path = "../oxygengine-composite-renderer" }
+[features]
+web = ["oxygengine-physics-2d/web"]
 
-[dependencies.web-sys]
-version = "0.3"
-features = [
-  'CanvasRenderingContext2d',
-  'Document',
-  'Element',
-  'HtmlCanvasElement',
-  'HtmlImageElement',
-  'Window',
-  'Blob',
-  'Url',
-]
+[dependencies]
+oxygengine-core = { version = "0.5", path = "../oxygengine-core" }
+oxygengine-physics-2d = { version = "0.5", path = "../oxygengine-physics-2d" }
+oxygengine-composite-renderer = { version = "0.5", path = "../oxygengine-composite-renderer" }

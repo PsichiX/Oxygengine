@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-chat-client"
-version = "0.4.7"
+version = "0.5.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygengine Chat Demo"
@@ -22,7 +22,7 @@ lto = true
 #default = ["wee_alloc"]
 
 [dependencies]
-oxygengine = { version = "0.4", path = "../../..", features = ["web-composite-game"] }
+oxygengine = { version = "0.5", path = "../../..", features = ["web-composite-game"] }
 bincode = "1.1"
 
 # The `wasm-bindgen` crate provides the bare minimum functionality needed
