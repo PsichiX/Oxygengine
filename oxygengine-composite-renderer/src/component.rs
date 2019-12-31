@@ -168,6 +168,13 @@ impl CompositeTransform {
         self.rebuild();
     }
 
+    pub fn apply(&mut self, translation: Vec2, rotation: Scalar, scale: Vec2) {
+        self.translation = translation;
+        self.rotation = rotation;
+        self.scale = scale;
+        self.rebuild();
+    }
+
     pub fn matrix(&self) -> Mat2d {
         self.cached
     }

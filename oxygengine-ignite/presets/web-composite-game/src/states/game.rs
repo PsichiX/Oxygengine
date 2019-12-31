@@ -17,6 +17,66 @@ impl State for GameState {
             ))
             .build();
 
+        // create ground entity.
+        world
+            .create_entity()
+            .with(CompositeRenderable(
+                Rectangle {
+                    color: Color::green().a(128),
+                    rect: Rect::with_size([1024.0, 64.0].into()).align([0.5, 0.5].into()),
+                }
+                .into(),
+            ))
+            .with(CompositeTransform::default())
+            .with(RigidBody2d::new(
+                RigidBodyDesc::new().translation(Vector::y() * 150.0),
+            ))
+            .with(Collider2d::new(ColliderDesc::new(ShapeHandle::new(
+                Cuboid::new(Vector::new(512.0, 32.0)),
+            ))))
+            .with(Collider2dBody::Me)
+            .build();
+
+        // create first obstacle entity.
+        world
+            .create_entity()
+            .with(CompositeRenderable(
+                Rectangle {
+                    color: Color::red().a(128),
+                    rect: Rect::with_size([20.0, 20.0].into()).align([0.5, 0.5].into()),
+                }
+                .into(),
+            ))
+            .with(CompositeTransform::default())
+            .with(RigidBody2d::new(
+                RigidBodyDesc::new().translation(Vector::new(20.0, 150.0 - 32.0 - 10.0)),
+            ))
+            .with(Collider2d::new(ColliderDesc::new(ShapeHandle::new(
+                Cuboid::new(Vector::new(10.0, 10.0)),
+            ))))
+            .with(Collider2dBody::Me)
+            .build();
+
+        // create second obstacle entity.
+        world
+            .create_entity()
+            .with(CompositeRenderable(
+                Rectangle {
+                    color: Color::red().a(128),
+                    rect: Rect::with_size([20.0, 20.0].into()).align([0.5, 0.5].into()),
+                }
+                .into(),
+            ))
+            .with(CompositeTransform::default())
+            .with(RigidBody2d::new(
+                RigidBodyDesc::new().translation(Vector::new(-100.0, 150.0 - 32.0 - 10.0)),
+            ))
+            .with(Collider2d::new(ColliderDesc::new(ShapeHandle::new(
+                Cuboid::new(Vector::new(10.0, 10.0)),
+            ))))
+            .with(Collider2dBody::Me)
+            .build();
+
         // create player entity.
         world
             .create_entity()
@@ -25,7 +85,17 @@ impl State for GameState {
             ))
             .with(CompositeTransform::scale([0.5, 0.5].into()))
             .with(KeyboardMovementTag)
-            .with(Speed(100.0))
+            .with(Speed(50.0))
+            .with(RigidBody2d::new(
+                RigidBodyDesc::new()
+                    .translation(Vector::y() * -100.0)
+                    .linear_damping(0.05)
+                    .angular_damping(0.5),
+            ))
+            .with(Collider2d::new(
+                ColliderDesc::new(ShapeHandle::new(Ball::new(64.0))).density(1.0),
+            ))
+            .with(Collider2dBody::Me)
             .build();
 
         // create hint text.
@@ -42,7 +112,7 @@ impl State for GameState {
                 }
                 .into(),
             ))
-            .with(CompositeTransform::translation([0.0, 100.0].into()))
+            .with(CompositeTransform::translation([0.0, -100.0].into()))
             .with(CompositeRenderDepth(1.0))
             .build();
     }

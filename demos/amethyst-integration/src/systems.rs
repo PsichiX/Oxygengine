@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 use crate::components::PlayerTag;
 use amethyst::{
     core::Time,

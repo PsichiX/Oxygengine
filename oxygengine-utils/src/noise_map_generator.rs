@@ -121,7 +121,7 @@ mod tests {
         // let chunk = gen.build_chunks((-2, 0)..(3, 2));
         let chunk = gen.build_chunk((0, 0), 1);
         print_chunk(chunk.clone());
-        println!("");
+        println!();
         print_chunk(chunk.get_part((1, 1)..(9, 9)));
     }
 }

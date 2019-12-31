@@ -89,10 +89,8 @@ where
         R: Default + Copy,
     {
         let mut cells = [R::default(); 9];
-        let mut index = 0;
         for (i, v) in self.cells.iter().enumerate() {
-            cells[index] = f(i % self.cols, i / self.cols, v);
-            index += 1;
+            cells[i] = f(i % self.cols, i / self.cols, v);
         }
         Grid2dNeighborSample::<R> {
             cells,

@@ -1,0 +1,26 @@
+[package]
+name = "oxygengine-physics-2d"
+version = "0.5.0"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+edition = "2018"
+description = "2D physics module for Oxygen Engine"
+license-file = "../LICENSE"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine-physics-2d"
+readme = "../README.md"
+
+[features]
+web = []
+
+[dependencies]
+oxygengine-core = { version = "0.5", path = "../oxygengine-core" }
+ncollide2d = "0.21"
+
+[dependencies.nphysics2d]
+version = "0.13"
+default-features = false
+features = ["dim2", "use-wasm-bindgen"]
+# TODO: remove when new version will be released
+git = "https://github.com/rustsim/nphysics.git"
+rev = "1cdb09613de1c38e05ab80a4a7a242163402ecd3"

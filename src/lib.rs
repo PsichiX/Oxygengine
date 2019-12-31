@@ -1,3 +1,6 @@
+// reexport core macros.
+pub use oxygengine_core::{error, info, log, warn};
+
 pub mod core {
     pub use oxygengine_core::*;
 }
@@ -52,6 +55,14 @@ pub mod navigation {
 pub mod audio {
     pub use oxygengine_audio::*;
 }
+#[cfg(feature = "physics-2d")]
+pub mod physics_2d {
+    pub use oxygengine_physics_2d::*;
+}
+#[cfg(feature = "integration-physics-2d-composite-renderer")]
+pub mod integration_physics_2d_composite_renderer {
+    pub use oxygengine_integration_physics_2d_composite_renderer::*;
+}
 
 pub mod prelude {
     #[cfg(feature = "audio")]
@@ -72,6 +83,8 @@ pub mod prelude {
     #[cfg(feature = "web")]
     #[cfg(feature = "input")]
     pub use oxygengine_input_device_web::prelude::*;
+    #[cfg(feature = "integration-physics-2d-composite-renderer")]
+    pub use oxygengine_integration_physics_2d_composite_renderer::prelude::*;
     #[cfg(feature = "navigation")]
     pub use oxygengine_navigation::prelude::*;
     #[cfg(feature = "network")]
@@ -85,35 +98,9 @@ pub mod prelude {
     #[cfg(feature = "web")]
     #[cfg(feature = "network")]
     pub use oxygengine_network_backend_web::prelude::*;
+    #[cfg(feature = "physics-2d")]
+    pub use oxygengine_physics_2d::prelude::*;
     #[cfg(feature = "procedural")]
     pub use oxygengine_procedural::prelude::*;
     pub use oxygengine_utils::prelude::*;
-}
-
-#[macro_export]
-macro_rules! log {
-    ($lvl:expr, $($arg:tt)+) => ({
-        $crate::core::log::logger_log($lvl, format!(
-            "[{}: {} | {}]:\n{}",
-            file!(),
-            line!(),
-            module_path!(),
-            format_args!($($arg)+)
-        ))
-    })
-}
-
-#[macro_export]
-macro_rules! info {
-    ($($arg:tt)*) => (log!($crate::core::log::Log::Info, $($arg)*))
-}
-
-#[macro_export]
-macro_rules! warn {
-    ($($arg:tt)*) => (log!($crate::core::log::Log::Warning, $($arg)*))
-}
-
-#[macro_export]
-macro_rules! error {
-    ($($arg:tt)*) => (log!($crate::core::log::Log::Error, $($arg)*))
 }

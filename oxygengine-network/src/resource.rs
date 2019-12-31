@@ -58,7 +58,7 @@ where
     }
 
     pub fn process(&mut self) {
-        for (_, server) in &mut self.servers {
+        for server in self.servers.values_mut() {
             server.process();
         }
         self.servers
@@ -120,7 +120,7 @@ where
     }
 
     pub fn process(&mut self) {
-        for (_, client) in &mut self.clients {
+        for client in self.clients.values_mut() {
             client.process();
         }
         self.clients

@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine"
-version = "0.4.7"
+version = "0.5.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygen Engine"
@@ -12,6 +12,7 @@ exclude = [
   "demos/**",
   "media/**",
   "oxygengine-ignite",
+  "oxygengine-build-tools",
 ]
 readme = "README.md"
 
@@ -28,6 +29,7 @@ parallel = [
 web = [
   "oxygengine-backend-web",
   "oxygengine-core/web",
+  "oxygengine-physics-2d/web",
 ]
 desktop = ["parallel"]
 input = ["oxygengine-input"]
@@ -36,6 +38,8 @@ network = ["oxygengine-network"]
 procedural = ["oxygengine-procedural"]
 navigation = ["oxygengine-navigation"]
 audio = ["oxygengine-audio"]
+physics-2d = ["oxygengine-physics-2d"]
+integration-physics-2d-composite-renderer = ["oxygengine-integration-physics-2d-composite-renderer"]
 web-composite-game = [
   "web",
   "composite-renderer",
@@ -43,6 +47,8 @@ web-composite-game = [
   "network",
   "navigation",
   "audio",
+  "physics-2d",
+  "integration-physics-2d-composite-renderer",
   "oxygengine-composite-renderer-backend-web",
   "oxygengine-input-device-web",
   "oxygengine-network-backend-web",
@@ -62,72 +68,82 @@ desktop-native-headless-game = [
 ]
 
 [dependencies]
-oxygengine-core = { version = "0.4", path = "./oxygengine-core" }
-oxygengine-utils = { version = "0.4", path = "./oxygengine-utils" }
+oxygengine-core = { version = "0.5", path = "./oxygengine-core" }
+oxygengine-utils = { version = "0.5", path = "./oxygengine-utils" }
 
 [dependencies.oxygengine-backend-web]
-version = "0.4"
+version = "0.5"
 path = "./oxygengine-backend-web"
 optional = true
 
 [dependencies.oxygengine-input]
-version = "0.4"
+version = "0.5"
 path = "./oxygengine-input"
 optional = true
 
 [dependencies.oxygengine-input-device-web]
-version = "0.4"
+version = "0.5"
 path = "./oxygengine-input-device-web"
 optional = true
 
 [dependencies.oxygengine-composite-renderer]
-version = "0.4"
+version = "0.5"
 path = "./oxygengine-composite-renderer"
 optional = true
 
 [dependencies.oxygengine-composite-renderer-backend-web]
-version = "0.4"
+version = "0.5"
 path = "./oxygengine-composite-renderer-backend-web"
 optional = true
 
 [dependencies.oxygengine-network]
-version = "0.4"
+version = "0.5"
 path = "./oxygengine-network"
 optional = true
 
 [dependencies.oxygengine-network-backend-web]
-version = "0.4"
+version = "0.5"
 path = "./oxygengine-network-backend-web"
 optional = true
 
 [dependencies.oxygengine-network-backend-desktop]
-version = "0.4"
+version = "0.5"
 path = "./oxygengine-network-backend-desktop"
 optional = true
 
 [dependencies.oxygengine-network-backend-native]
-version = "0.4"
+version = "0.5"
 path = "./oxygengine-network-backend-native"
 optional = true
 
 [dependencies.oxygengine-procedural]
-version = "0.4"
+version = "0.5"
 path = "./oxygengine-procedural"
 optional = true
 
 [dependencies.oxygengine-navigation]
-version = "0.4"
+version = "0.5"
 path = "./oxygengine-navigation"
 optional = true
 
 [dependencies.oxygengine-audio]
-version = "0.4"
+version = "0.5"
 path = "./oxygengine-audio"
 optional = true
 
 [dependencies.oxygengine-audio-backend-web]
-version = "0.4"
+version = "0.5"
 path = "./oxygengine-audio-backend-web"
+optional = true
+
+[dependencies.oxygengine-physics-2d]
+version = "0.5"
+path = "./oxygengine-physics-2d"
+optional = true
+
+[dependencies.oxygengine-integration-physics-2d-composite-renderer]
+version = "0.5"
+path = "./oxygengine-integration-physics-2d-composite-renderer"
 optional = true
 
 [workspace]
@@ -148,6 +164,8 @@ members = [
   "oxygengine-navigation",
   "oxygengine-audio",
   "oxygengine-audio-backend-web",
+  "oxygengine-physics-2d",
+  "oxygengine-integration-physics-2d-composite-renderer",
   "oxygengine-build-tools",
   "demos/procedural-world-simulation",
   "demos/chat/chat-server",

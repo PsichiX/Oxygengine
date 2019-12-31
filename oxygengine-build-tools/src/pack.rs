@@ -51,20 +51,14 @@ fn scan_dir(
                                 println!("* Include file: {:?} as: {:?}", root.join(path), path);
                             }
                             map.insert(path.to_owned(), contents);
-                        } else {
-                            if !quiet {
-                                println!("* Cannot parse path: {:?}", root.join(path));
-                            }
+                        } else if !quiet {
+                            println!("* Cannot parse path: {:?}", root.join(path));
                         }
-                    } else {
-                        if !quiet {
-                            println!("* Cannot diff path: {:?} from root: {:?}", path, root);
-                        }
+                    } else if !quiet {
+                        println!("* Cannot diff path: {:?} from root: {:?}", path, root);
                     }
-                } else {
-                    if !quiet {
-                        println!("* Cannot read file: {:?}", path);
-                    }
+                } else if !quiet {
+                    println!("* Cannot read file: {:?}", path);
                 }
             }
         }

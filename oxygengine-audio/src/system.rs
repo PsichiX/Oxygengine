@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 use crate::{
     audio_asset_protocol::AudioAsset,
     component::{AudioSource, AudioSourceDirtyMode},
@@ -63,13 +65,15 @@ where
         let events = sources.channel().read(self.reader_id.as_mut().unwrap());
         for event in events {
             if let ComponentEvent::Removed(index) = event {
-                if let Some(entity) = self.cached_sources.iter().find_map(|entity| {
+                let found = self.cached_sources.iter().find_map(|entity| {
                     if entity.id() == *index {
                         Some(*entity)
                     } else {
                         None
                     }
-                }) {
+                });
+                if let Some(entity) = found {
+                    self.cached_sources.remove(&entity);
                     audio.destroy_source(entity);
                 }
             }
