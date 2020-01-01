@@ -39,7 +39,7 @@ procedural = ["oxygengine-procedural"]
 navigation = ["oxygengine-navigation"]
 audio = ["oxygengine-audio"]
 physics-2d = ["oxygengine-physics-2d"]
-integration-physics-2d-composite-renderer = ["oxygengine-integration-physics-2d-composite-renderer"]
+integration-physics-2d-composite-renderer = ["oxygengine-integration-p2d-cr"]
 web-composite-game = [
   "web",
   "composite-renderer",
@@ -141,9 +141,9 @@ version = "0.5"
 path = "./oxygengine-physics-2d"
 optional = true
 
-[dependencies.oxygengine-integration-physics-2d-composite-renderer]
+[dependencies.oxygengine-integration-p2d-cr]
 version = "0.5"
-path = "./oxygengine-integration-physics-2d-composite-renderer"
+path = "./oxygengine-integration-p2d-cr"
 optional = true
 
 [workspace]
@@ -165,7 +165,7 @@ members = [
   "oxygengine-audio",
   "oxygengine-audio-backend-web",
   "oxygengine-physics-2d",
-  "oxygengine-integration-physics-2d-composite-renderer",
+  "oxygengine-integration-p2d-cr",
   "oxygengine-build-tools",
   "demos/procedural-world-simulation",
   "demos/chat/chat-server",

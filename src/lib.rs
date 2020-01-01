@@ -61,7 +61,7 @@ pub mod physics_2d {
 }
 #[cfg(feature = "integration-physics-2d-composite-renderer")]
 pub mod integration_physics_2d_composite_renderer {
-    pub use oxygengine_integration_physics_2d_composite_renderer::*;
+    pub use oxygengine_integration_p2d_cr::*;
 }
 
 pub mod prelude {
@@ -84,7 +84,7 @@ pub mod prelude {
     #[cfg(feature = "input")]
     pub use oxygengine_input_device_web::prelude::*;
     #[cfg(feature = "integration-physics-2d-composite-renderer")]
-    pub use oxygengine_integration_physics_2d_composite_renderer::prelude::*;
+    pub use oxygengine_integration_p2d_cr::prelude::*;
     #[cfg(feature = "navigation")]
     pub use oxygengine_navigation::prelude::*;
     #[cfg(feature = "network")]
