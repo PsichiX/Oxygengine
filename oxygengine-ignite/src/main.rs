@@ -199,6 +199,92 @@ fn main() -> Result<()> {
                         .required(false),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name("atlas")
+                .about("Pack images into sprite sheet (texture atlas) for Oxygen Engine")
+                .arg(
+                    Arg::with_name("input")
+                        .short("i")
+                        .long("input")
+                        .value_name("PATH")
+                        .help("Image file or folder containing images")
+                        .takes_value(true)
+                        .required(true)
+                        .multiple(true),
+                )
+                .arg(
+                    Arg::with_name("output-image")
+                        .short("o")
+                        .long("output-image")
+                        .value_name("PATH")
+                        .help("Image output file")
+                        .takes_value(true)
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("output-atlas")
+                        .short("a")
+                        .long("output-atlas")
+                        .value_name("PATH")
+                        .help("Spritesheet output file")
+                        .takes_value(true)
+                        .required(false),
+                )
+                .arg(
+                    Arg::with_name("max-width")
+                        .short("w")
+                        .long("max-width")
+                        .value_name("NUMBER")
+                        .help("Maximum atlas image width")
+                        .takes_value(true)
+                        .default_value("2048")
+                        .required(false),
+                )
+                .arg(
+                    Arg::with_name("max-height")
+                        .short("h")
+                        .long("max-height")
+                        .value_name("NUMBER")
+                        .help("Maximum atlas image height")
+                        .takes_value(true)
+                        .default_value("2048")
+                        .required(false),
+                )
+                .arg(
+                    Arg::with_name("padding")
+                        .short("p")
+                        .long("padding")
+                        .value_name("NUMBER")
+                        .help("Padding between atlas images")
+                        .takes_value(true)
+                        .default_value("2")
+                        .required(false),
+                )
+                .arg(
+                    Arg::with_name("pretty")
+                        .short("r")
+                        .long("pretty")
+                        .help("Produce pretty human-readable JSON")
+                        .takes_value(false)
+                        .required(false),
+                )
+                .arg(
+                    Arg::with_name("full-names")
+                        .short("f")
+                        .long("full-names")
+                        .help("Give full name (with parent folders) to frame ID")
+                        .takes_value(false)
+                        .required(false),
+                )
+                .arg(
+                    Arg::with_name("quiet")
+                        .short("q")
+                        .long("quiet")
+                        .help("Don't show progress information")
+                        .takes_value(false)
+                        .required(false),
+                ),
+        )
         .get_matches();
 
     if let Some(matches) = matches.subcommand_matches("new") {
@@ -291,10 +377,39 @@ fn main() -> Result<()> {
             }
         }
     } else if let Some(matches) = matches.subcommand_matches("pack") {
-        let input = matches.value_of("input").unwrap();
+        let input = matches.values_of("input").unwrap().collect::<Vec<_>>();
         let output = matches.value_of("output").unwrap();
         let quiet = matches.is_present("quiet");
-        oxygengine_build_tools::pack::pack_assets_and_write_to_file(input, output, quiet)?;
+        oxygengine_build_tools::pack::pack_assets_and_write_to_file(&input, output, quiet)?;
+    } else if let Some(matches) = matches.subcommand_matches("atlas") {
+        let input = matches.values_of("input").unwrap().collect::<Vec<_>>();
+        let output_image = matches.value_of("output-image").unwrap();
+        let output_atlas = &if let Some(path) = matches.value_of("output-atlas") {
+            path.to_owned()
+        } else {
+            Path::new(output_image)
+                .with_extension("json")
+                .to_str()
+                .unwrap()
+                .to_owned()
+        };
+        let max_width = matches.value_of("max-width").unwrap().parse().unwrap();
+        let max_height = matches.value_of("max-height").unwrap().parse().unwrap();
+        let padding = matches.value_of("padding").unwrap().parse().unwrap();
+        let pretty = matches.is_present("pretty");
+        let full_names = matches.is_present("full-names");
+        let quiet = matches.is_present("quiet");
+        oxygengine_build_tools::atlas::pack_sprites_and_write_to_files(
+            &input,
+            output_image,
+            output_atlas,
+            max_width,
+            max_height,
+            padding,
+            pretty,
+            full_names,
+            quiet,
+        )?;
     }
     Ok(())
 }

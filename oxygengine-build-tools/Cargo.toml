@@ -15,3 +15,10 @@ serde = { version = "1", features = ["derive"] }
 bincode = "1"
 serde_json = "1"
 pathdiff = "0.1"
+image = "0.22"
+
+[dependencies.texture_packer]
+version = "0.18"
+# TODO: remove when new version will be released
+git = "https://github.com/PsichiX/texture_packer"
+revision = "5115833b3a4b5a2b09af701f4251a2dc33e2679b"
