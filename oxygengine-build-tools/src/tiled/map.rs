@@ -2,7 +2,7 @@ use serde::Deserialize;
 use std::path::PathBuf;
 
 #[derive(Debug, Copy, Clone, Deserialize)]
-pub enum TiledMapOrientation {
+pub(crate) enum TiledMapOrientation {
     #[serde(alias = "orthogonal")]
     Orthogonal,
     #[serde(alias = "isometric")]
@@ -20,7 +20,7 @@ impl Default for TiledMapOrientation {
 }
 
 #[derive(Debug, Copy, Clone, Deserialize)]
-pub enum TiledMapRenderOrder {
+pub(crate) enum TiledMapRenderOrder {
     #[serde(alias = "right-down")]
     RightDown,
     #[serde(alias = "right-up")]
@@ -38,13 +38,13 @@ impl Default for TiledMapRenderOrder {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct TiledMapTileset {
+pub(crate) struct TiledMapTileset {
     pub firstgid: usize,
     pub source: PathBuf,
 }
 
 #[derive(Debug, Copy, Clone, Deserialize)]
-pub enum TiledMapLayerType {
+pub(crate) enum TiledMapLayerType {
     #[serde(alias = "tilelayer")]
     TileLayer,
     #[serde(alias = "objectgroup")]
@@ -52,7 +52,7 @@ pub enum TiledMapLayerType {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct TiledMapObject {
+pub(crate) struct TiledMapObject {
     pub id: usize,
     #[serde(default)]
     pub name: String,
@@ -68,7 +68,7 @@ pub struct TiledMapObject {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct TiledMapLayer {
+pub(crate) struct TiledMapLayer {
     pub id: usize,
     pub name: String,
     pub visible: bool,
@@ -79,7 +79,7 @@ pub struct TiledMapLayer {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct TiledMap {
+pub(crate) struct TiledMap {
     #[serde(default)]
     pub orientation: TiledMapOrientation,
     #[serde(default)]

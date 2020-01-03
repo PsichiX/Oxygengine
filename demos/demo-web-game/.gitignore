@@ -4,3 +4,4 @@ node_modules
 /pkg
 /wasm-pack.log
 /static/*.pack
+/static/assets-generated

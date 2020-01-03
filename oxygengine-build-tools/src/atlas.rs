@@ -1,5 +1,5 @@
 use crate::utils::scan_dir;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fs::{read, write},
@@ -11,31 +11,31 @@ use texture_packer::{
     TexturePackerConfig,
 };
 
-#[derive(Debug, Clone, Serialize)]
-struct SpriteSheetInfo {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct SpriteSheetInfo {
     pub meta: SpriteSheetInfoMeta,
     pub frames: HashMap<String, SpriteSheetInfoFrame>,
 }
 
-#[derive(Debug, Clone, Serialize)]
-struct SpriteSheetInfoMeta {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct SpriteSheetInfoMeta {
     pub image: String,
     pub size: SpriteSheetInfoMetaSize,
 }
 
-#[derive(Debug, Default, Clone, Copy, Serialize)]
-struct SpriteSheetInfoMetaSize {
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+pub(crate) struct SpriteSheetInfoMetaSize {
     pub w: usize,
     pub h: usize,
 }
 
-#[derive(Debug, Clone, Serialize)]
-struct SpriteSheetInfoFrame {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct SpriteSheetInfoFrame {
     pub frame: Rect,
 }
 
-#[derive(Debug, Copy, Clone, Serialize)]
-struct Rect {
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+pub(crate) struct Rect {
     pub x: usize,
     pub y: usize,
     pub w: usize,
@@ -122,12 +122,7 @@ pub fn pack_sprites_and_write_to_files<P: AsRef<Path>>(
         match ImageExporter::export(page) {
             Ok(exporter) => match exporter.save_with_format(&image_path, image::PNG) {
                 Ok(_) => {
-                    let path = Path::new(output_image.as_ref())
-                        .file_name()
-                        .unwrap()
-                        .to_str()
-                        .unwrap()
-                        .to_owned();
+                    let path = image_path.file_name().unwrap().to_str().unwrap().to_owned();
                     let info = SpriteSheetInfo {
                         meta: SpriteSheetInfoMeta {
                             image: format!("png://{}", path),

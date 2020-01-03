@@ -1,9 +1,39 @@
-use std::{env::var, path::Path};
+use oxygengine_build_tools::pipeline::*;
 
 fn main() -> Result<(), std::io::Error> {
-    let out_dir = var("CARGO_MANIFEST_DIR").unwrap();
-    let src_path = Path::new(&out_dir).join("static/assets");
-    let dest_path = Path::new(&out_dir).join("static/assets.pack");
-
-    oxygengine_build_tools::pack::pack_assets_and_write_to_file(src_path, dest_path, false)
+    Pipeline::default()
+        .project_source("static")
+        .project_destination("static")
+        .pipeline(
+            Pipeline::default()
+                .destination("assets-generated")
+                .clear_destination(true),
+        )
+        .pipeline(
+            Pipeline::default()
+                .source("assets-source")
+                .destination("assets-generated")
+                .copy(CopyPhase::default().from("assets.txt"))
+                .atlas(
+                    AtlasPhase::default()
+                        .path("images")
+                        .output_image("sprites.png")
+                        .output_atlas("sprites.json")
+                        .pretty(true),
+                ),
+        )
+        .pipeline(
+            Pipeline::default().destination("assets-generated").tiled(
+                TiledPhase::default()
+                    .input("assets-source/maps/map.json")
+                    .spritesheet("assets-generated/sprites.0.json")
+                    .output("map.map"),
+            ),
+        )
+        .pack(
+            PackPhase::default()
+                .path("assets-generated")
+                .output("assets.pack"),
+        )
+        .execute()
 }

@@ -285,6 +285,54 @@ fn main() -> Result<()> {
                         .required(false),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name("tiled")
+                .about("Build map for Oxygen Engine from Tiled JSON format")
+                .arg(
+                    Arg::with_name("input")
+                        .short("i")
+                        .long("input")
+                        .value_name("PATH")
+                        .help("Tiled JSON file")
+                        .takes_value(true)
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("output")
+                        .short("o")
+                        .long("output")
+                        .value_name("PATH")
+                        .help("Map binary file")
+                        .takes_value(true)
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("spritesheet")
+                        .short("s")
+                        .long("spritesheet")
+                        .value_name("PATH")
+                        .help("Sprite sheet (texture atlas) JSON file")
+                        .takes_value(true)
+                        .required(true)
+                        .multiple(true),
+                )
+                .arg(
+                    Arg::with_name("full-names")
+                        .short("f")
+                        .long("full-names")
+                        .help("Give full name (with parent folders) to sprites used")
+                        .takes_value(false)
+                        .required(false),
+                )
+                .arg(
+                    Arg::with_name("quiet")
+                        .short("q")
+                        .long("quiet")
+                        .help("Don't show progress information")
+                        .takes_value(false)
+                        .required(false),
+                ),
+        )
         .get_matches();
 
     if let Some(matches) = matches.subcommand_matches("new") {
@@ -407,6 +455,22 @@ fn main() -> Result<()> {
             max_height,
             padding,
             pretty,
+            full_names,
+            quiet,
+        )?;
+    } else if let Some(matches) = matches.subcommand_matches("tiled") {
+        let input = matches.value_of("input").unwrap();
+        let output = matches.value_of("output").unwrap();
+        let spritesheets = matches
+            .values_of("spritesheet")
+            .unwrap()
+            .collect::<Vec<_>>();
+        let full_names = matches.is_present("full-names");
+        let quiet = matches.is_present("quiet");
+        oxygengine_build_tools::tiled::build_map_and_write_to_file(
+            input,
+            output,
+            &spritesheets,
             full_names,
             quiet,
         )?;

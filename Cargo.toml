@@ -172,4 +172,5 @@ members = [
   "demos/chat/chat-client",
   "demos/amethyst-integration",
   "demos/basic-web-game",
+  "demos/demo-web-game",
 ]
