@@ -2,15 +2,29 @@ use crate::{
     atlas::pack_sprites_and_write_to_files, pack::pack_assets_and_write_to_file,
     tiled::build_map_and_write_to_file,
 };
+use serde::{Deserialize, Serialize};
 use std::{
     env::var,
+    fs::read_to_string,
     io::{Error, ErrorKind},
     path::{Path, PathBuf},
 };
 
-#[derive(Debug, Default, Clone)]
+fn pathbuf_is_empty(buf: &PathBuf) -> bool {
+    buf.components().count() == 0
+}
+
+fn bool_is_false(value: &bool) -> bool {
+    !value
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CopyPhase {
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     from: Vec<PathBuf>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "pathbuf_is_empty")]
     to: PathBuf,
 }
 
@@ -34,15 +48,31 @@ impl CopyPhase {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AtlasPhase {
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     paths: Vec<PathBuf>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "pathbuf_is_empty")]
     output_image: PathBuf,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "pathbuf_is_empty")]
     output_atlas: PathBuf,
+    #[serde(default = "AtlasPhase::default_max_width")]
+    #[serde(skip_serializing_if = "AtlasPhase::is_default_max_width")]
     max_width: usize,
+    #[serde(default = "AtlasPhase::default_max_height")]
+    #[serde(skip_serializing_if = "AtlasPhase::is_default_max_height")]
     max_height: usize,
+    #[serde(default = "AtlasPhase::default_padding")]
+    #[serde(skip_serializing_if = "AtlasPhase::is_default_padding")]
     padding: usize,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "bool_is_false")]
     pretty: bool,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "bool_is_false")]
     full_names: bool,
 }
 
@@ -62,6 +92,30 @@ impl Default for AtlasPhase {
 }
 
 impl AtlasPhase {
+    fn default_max_width() -> usize {
+        2048
+    }
+
+    fn is_default_max_width(value: &usize) -> bool {
+        *value == Self::default_max_width()
+    }
+
+    fn default_max_height() -> usize {
+        2048
+    }
+
+    fn is_default_max_height(value: &usize) -> bool {
+        *value == Self::default_max_height()
+    }
+
+    fn default_padding() -> usize {
+        2
+    }
+
+    fn is_default_padding(value: &usize) -> bool {
+        *value == Self::default_padding()
+    }
+
     pub fn paths<P: AsRef<Path>>(mut self, paths: &[P]) -> Self {
         self.paths = paths
             .into_iter()
@@ -111,11 +165,19 @@ impl AtlasPhase {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct TiledPhase {
+    #[serde(default)]
+    #[serde(skip_serializing_if = "pathbuf_is_empty")]
     input: PathBuf,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "pathbuf_is_empty")]
     output: PathBuf,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     spritesheets: Vec<PathBuf>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "bool_is_false")]
     full_names: bool,
 }
 
@@ -149,9 +211,13 @@ impl TiledPhase {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct PackPhase {
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     paths: Vec<PathBuf>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "pathbuf_is_empty")]
     output: PathBuf,
 }
 
@@ -175,16 +241,46 @@ impl PackPhase {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Pipeline {
+    #[serde(default)]
+    #[serde(skip_serializing_if = "pathbuf_is_empty")]
     source: PathBuf,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "pathbuf_is_empty")]
     destination: PathBuf,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "bool_is_false")]
     clear_destination: bool,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "bool_is_false")]
     quiet: bool,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     commands: Vec<Command>,
 }
 
 impl Pipeline {
+    pub fn from_file<P: AsRef<Path>>(config: P, project_is_root: bool) -> Result<Self, Error> {
+        let config = if project_is_root {
+            let root = var("CARGO_MANIFEST_DIR").unwrap();
+            Path::new(&root).join(config.as_ref()).to_path_buf()
+        } else {
+            config.as_ref().to_path_buf()
+        };
+        let contents = read_to_string(&config)?;
+        match serde_json::from_str::<Pipeline>(&contents) {
+            Ok(pipeline) => Ok(pipeline),
+            Err(error) => Err(Error::new(
+                ErrorKind::Other,
+                format!(
+                    "Could not parse pipeline JSON config: {:?}. Error: {:?}",
+                    config, error
+                ),
+            )),
+        }
+    }
+
     pub fn source<P: AsRef<Path>>(mut self, source: P) -> Self {
         self.source = source.as_ref().to_path_buf();
         self
@@ -540,7 +636,7 @@ impl Pipeline {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 enum Command {
     Copy(CopyPhase),
     Atlas(AtlasPhase),

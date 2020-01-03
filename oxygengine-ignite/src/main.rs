@@ -1,5 +1,11 @@
 use cargo_metadata::MetadataCommand;
 use clap::{App, Arg, SubCommand};
+use oxygengine_build_tools::{
+    atlas::pack_sprites_and_write_to_files,
+    pack::pack_assets_and_write_to_file,
+    pipeline::{AtlasPhase, CopyPhase, PackPhase, Pipeline, TiledPhase},
+    tiled::build_map_and_write_to_file,
+};
 use serde::Deserialize;
 use std::{
     collections::HashMap,
@@ -333,6 +339,35 @@ fn main() -> Result<()> {
                         .required(false),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name("pipeline")
+                .about("Execute pipeline for Oxygen Engine")
+                .arg(
+                    Arg::with_name("config")
+                        .short("c")
+                        .long("config")
+                        .value_name("PATH")
+                        .help("Pipeline JSON descriptor file")
+                        .takes_value(true)
+                        .required(false),
+                )
+                .arg(
+                    Arg::with_name("template")
+                        .short("t")
+                        .long("template")
+                        .help("Create and save pipeline template")
+                        .takes_value(false)
+                        .required(false),
+                )
+                .arg(
+                    Arg::with_name("dry-run")
+                        .short("d")
+                        .long("dry-run")
+                        .help("Perform dry run (don't execute pipeline, just show its flow)")
+                        .takes_value(false)
+                        .required(false),
+                ),
+        )
         .get_matches();
 
     if let Some(matches) = matches.subcommand_matches("new") {
@@ -428,7 +463,7 @@ fn main() -> Result<()> {
         let input = matches.values_of("input").unwrap().collect::<Vec<_>>();
         let output = matches.value_of("output").unwrap();
         let quiet = matches.is_present("quiet");
-        oxygengine_build_tools::pack::pack_assets_and_write_to_file(&input, output, quiet)?;
+        pack_assets_and_write_to_file(&input, output, quiet)?;
     } else if let Some(matches) = matches.subcommand_matches("atlas") {
         let input = matches.values_of("input").unwrap().collect::<Vec<_>>();
         let output_image = matches.value_of("output-image").unwrap();
@@ -447,7 +482,7 @@ fn main() -> Result<()> {
         let pretty = matches.is_present("pretty");
         let full_names = matches.is_present("full-names");
         let quiet = matches.is_present("quiet");
-        oxygengine_build_tools::atlas::pack_sprites_and_write_to_files(
+        pack_sprites_and_write_to_files(
             &input,
             output_image,
             output_atlas,
@@ -467,13 +502,86 @@ fn main() -> Result<()> {
             .collect::<Vec<_>>();
         let full_names = matches.is_present("full-names");
         let quiet = matches.is_present("quiet");
-        oxygengine_build_tools::tiled::build_map_and_write_to_file(
-            input,
-            output,
-            &spritesheets,
-            full_names,
-            quiet,
-        )?;
+        build_map_and_write_to_file(input, output, &spritesheets, full_names, quiet)?;
+    } else if let Some(matches) = matches.subcommand_matches("pipeline") {
+        let config = matches
+            .value_of("config")
+            .unwrap_or_else(|| "pipeline.json");
+        let dry_run = matches.is_present("dry-run");
+        let template = matches.is_present("template");
+        let config = Path::new(&config);
+        if template {
+            let pipeline = Pipeline::default()
+                .source("static")
+                .destination("static")
+                .pipeline(
+                    Pipeline::default()
+                        .destination("assets-generated")
+                        .clear_destination(true),
+                )
+                .pipeline(
+                    Pipeline::default()
+                        .source("assets-source")
+                        .destination("assets-generated")
+                        .copy(CopyPhase::default().from("assets.txt"))
+                        .atlas(
+                            AtlasPhase::default()
+                                .path("images")
+                                .output_image("sprites.png")
+                                .output_atlas("sprites.json")
+                                .pretty(true),
+                        ),
+                )
+                .pipeline(
+                    Pipeline::default().destination("assets-generated").tiled(
+                        TiledPhase::default()
+                            .input("assets-source/maps/map.json")
+                            .spritesheet("assets-generated/sprites.0.json")
+                            .output("map.map"),
+                    ),
+                )
+                .pack(
+                    PackPhase::default()
+                        .path("assets-generated")
+                        .output("assets.pack"),
+                );
+            let contents = match serde_json::to_string_pretty(&pipeline) {
+                Ok(contents) => contents,
+                Err(error) => {
+                    return Err(Error::new(
+                        ErrorKind::Other,
+                        format!(
+                            "Could not stringify pipeline JSON config: {:?}. Error: {:?}",
+                            config, error
+                        ),
+                    ))
+                }
+            };
+            if dry_run {
+                println!("Pipeline: {}", contents);
+            } else {
+                write(config, &contents)?;
+            }
+        } else {
+            if config.exists() {
+                let contents = read_to_string(config)?;
+                match serde_json::from_str::<Pipeline>(&contents) {
+                    Ok(pipeline) => {
+                        if dry_run {
+                            pipeline.execute()?;
+                        } else {
+                            pipeline.dry_run();
+                        }
+                    }
+                    Err(error) => println!(
+                        "Could not parse pipeline JSON config: {:?}. Error: {:?}",
+                        config, error
+                    ),
+                }
+            } else {
+                println!("Could not find pipeline config file: {:?}", config);
+            }
+        }
     }
     Ok(())
 }
