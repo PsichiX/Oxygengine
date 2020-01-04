@@ -39,8 +39,18 @@ impl CompositeSurfaceCache {
         self.width
     }
 
+    pub fn set_width(&mut self, width: usize) {
+        self.width = width;
+        self.dirty = true;
+    }
+
     pub fn height(&self) -> usize {
         self.height
+    }
+
+    pub fn set_height(&mut self, height: usize) {
+        self.height = height;
+        self.dirty = true;
     }
 
     pub fn rebuild(&mut self) {
@@ -870,5 +880,74 @@ impl CompositeTilemapAnimation {
 }
 
 impl Component for CompositeTilemapAnimation {
+    type Storage = VecStorage<Self>;
+}
+
+#[derive(Debug, Clone)]
+pub struct CompositeMapChunk {
+    map_name: Cow<'static, str>,
+    layer_name: Cow<'static, str>,
+    offset: (usize, usize),
+    size: Option<(usize, usize)>,
+    pub(crate) dirty: bool,
+}
+
+impl CompositeMapChunk {
+    pub fn new(map_name: Cow<'static, str>, layer_name: Cow<'static, str>) -> Self {
+        Self {
+            map_name,
+            layer_name,
+            offset: (0, 0),
+            size: None,
+            dirty: true,
+        }
+    }
+
+    pub fn map_name(&self) -> &str {
+        &self.map_name
+    }
+
+    pub fn set_map_name(&mut self, map_name: Cow<'static, str>) {
+        self.map_name = map_name;
+        self.dirty = true;
+    }
+
+    pub fn layer_name(&self) -> &str {
+        &self.layer_name
+    }
+
+    pub fn set_layer_name(&mut self, layer_name: Cow<'static, str>) {
+        self.layer_name = layer_name;
+        self.dirty = true;
+    }
+
+    pub fn offset(&self) -> (usize, usize) {
+        self.offset
+    }
+
+    pub fn set_offset(&mut self, offset: (usize, usize)) {
+        self.offset = offset;
+        self.dirty = true;
+    }
+
+    pub fn size(&self) -> Option<(usize, usize)> {
+        self.size
+    }
+
+    pub fn set_size(&mut self, size: Option<(usize, usize)>) {
+        self.size = size;
+        self.dirty = true;
+    }
+
+    pub fn rebuild(&mut self) {
+        self.dirty = true;
+    }
+
+    pub fn is_cached(&self) -> bool {
+        !self.dirty
+    }
+}
+
+impl Component for CompositeMapChunk {
     type Storage = VecStorage<Self>;
 }

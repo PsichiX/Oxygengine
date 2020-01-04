@@ -38,6 +38,50 @@ pub struct Text<'a> {
     pub size: Scalar,
 }
 
+impl<'a> Text<'a> {
+    pub fn new(font: &'a str, text: &'a str) -> Self {
+        Self {
+            color: Default::default(),
+            font: font.into(),
+            align: Default::default(),
+            text: text.into(),
+            position: 0.0.into(),
+            size: 32.0,
+        }
+    }
+
+    pub fn new_owned(font: String, text: String) -> Self {
+        Self {
+            color: Default::default(),
+            font: font.into(),
+            align: Default::default(),
+            text: text.into(),
+            position: 0.0.into(),
+            size: 32.0,
+        }
+    }
+
+    pub fn color(mut self, color: Color) -> Self {
+        self.color = color;
+        self
+    }
+
+    pub fn align(mut self, align: TextAlign) -> Self {
+        self.align = align;
+        self
+    }
+
+    pub fn position(mut self, position: Vec2) -> Self {
+        self.position = position;
+        self
+    }
+
+    pub fn size(mut self, size: Scalar) -> Self {
+        self.size = size;
+        self
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum PathElement {
     MoveTo(Vec2),
@@ -69,6 +113,15 @@ pub struct Image<'a> {
 
 impl<'a> Image<'a> {
     pub fn new(image: &'a str) -> Self {
+        Self {
+            image: image.into(),
+            source: None,
+            destination: None,
+            alignment: 0.0.into(),
+        }
+    }
+
+    pub fn new_owned(image: String) -> Self {
         Self {
             image: image.into(),
             source: None,
@@ -233,6 +286,7 @@ pub struct Stats {
 pub struct RenderState {
     pub clear_color: Option<Color>,
     pub image_smoothing: bool,
+    pub image_source_inner_margin: Scalar,
     stats: Stats,
 }
 
@@ -241,6 +295,7 @@ impl Default for RenderState {
         Self {
             clear_color: Some(Color::black()),
             image_smoothing: true,
+            image_source_inner_margin: 0.0,
             stats: Stats::default(),
         }
     }
@@ -251,16 +306,24 @@ impl RenderState {
         Self {
             clear_color,
             image_smoothing: true,
+            image_source_inner_margin: 0.0,
             stats: Stats::default(),
         }
     }
 
-    pub fn with_image_smoothing(clear_color: Option<Color>, image_smoothing: bool) -> Self {
-        Self {
-            clear_color,
-            image_smoothing,
-            stats: Stats::default(),
-        }
+    pub fn clear_color(mut self, clear_color: Option<Color>) -> Self {
+        self.clear_color = clear_color;
+        self
+    }
+
+    pub fn image_smoothing(mut self, image_smoothing: bool) -> Self {
+        self.image_smoothing = image_smoothing;
+        self
+    }
+
+    pub fn image_source_inner_margin(mut self, image_source_inner_margin: Scalar) -> Self {
+        self.image_source_inner_margin = image_source_inner_margin;
+        self
     }
 
     pub fn stats(&self) -> &Stats {

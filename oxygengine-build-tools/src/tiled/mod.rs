@@ -220,7 +220,7 @@ pub fn build_map<P: AsRef<Path>>(
         tile_height: input_data.tileheight,
         sprite_sheets: spritesheets_data
             .keys()
-            .map(|k| format!("atlas://{}", k))
+            .cloned()
             .collect::<Vec<_>>(),
         tiles_mapping,
         layers,

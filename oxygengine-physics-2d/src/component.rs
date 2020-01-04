@@ -11,7 +11,7 @@ pub(crate) enum RigidBody2dInner {
 pub struct RigidBody2d(pub(crate) RigidBody2dInner);
 
 impl Component for RigidBody2d {
-    type Storage = FlaggedStorage<Self>;
+    type Storage = FlaggedStorage<Self, VecStorage<Self>>;
 }
 
 impl RigidBody2d {
@@ -57,7 +57,7 @@ pub(crate) enum Collider2dInner {
 pub struct Collider2d(pub(crate) Collider2dInner);
 
 impl Component for Collider2d {
-    type Storage = FlaggedStorage<Self>;
+    type Storage = FlaggedStorage<Self, VecStorage<Self>>;
 }
 
 impl Collider2d {

@@ -191,7 +191,7 @@ impl WebCompositeRenderer {
                     Renderable::Image(image) => {
                         let path: &str = &image.image;
                         if let Some(elm) = self.images_cache.get(path) {
-                            let src = if let Some(src) = image.source {
+                            let mut src = if let Some(src) = image.source {
                                 src
                             } else {
                                 Rect {
@@ -201,6 +201,10 @@ impl WebCompositeRenderer {
                                     h: elm.height() as Scalar,
                                 }
                             };
+                            src.x += self.state.image_source_inner_margin;
+                            src.y += self.state.image_source_inner_margin;
+                            src.w -= self.state.image_source_inner_margin * 2.0;
+                            src.h -= self.state.image_source_inner_margin * 2.0;
                             let dst = if let Some(dst) = image.destination {
                                 dst
                             } else {
@@ -227,7 +231,7 @@ impl WebCompositeRenderer {
                             render_ops += 1;
                             renderables += 1;
                         } else if let Some((elm, _)) = self.surfaces_cache.get(path) {
-                            let src = if let Some(src) = image.source {
+                            let mut src = if let Some(src) = image.source {
                                 src
                             } else {
                                 Rect {
@@ -237,6 +241,10 @@ impl WebCompositeRenderer {
                                     h: elm.height() as Scalar,
                                 }
                             };
+                            src.x += self.state.image_source_inner_margin;
+                            src.y += self.state.image_source_inner_margin;
+                            src.w -= self.state.image_source_inner_margin * 2.0;
+                            src.h -= self.state.image_source_inner_margin * 2.0;
                             let dst = if let Some(dst) = image.destination {
                                 dst
                             } else {

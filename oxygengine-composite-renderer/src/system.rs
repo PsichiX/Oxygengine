@@ -2,12 +2,13 @@
 
 use crate::{
     component::{
-        CompositeCamera, CompositeEffect, CompositeRenderAlpha, CompositeRenderDepth,
-        CompositeRenderable, CompositeRenderableStroke, CompositeSprite, CompositeSpriteAnimation,
-        CompositeSurfaceCache, CompositeTilemap, CompositeTilemapAnimation, CompositeTransform,
-        CompositeVisibility, TileCell,
+        CompositeCamera, CompositeEffect, CompositeMapChunk, CompositeRenderAlpha,
+        CompositeRenderDepth, CompositeRenderable, CompositeRenderableStroke, CompositeSprite,
+        CompositeSpriteAnimation, CompositeSurfaceCache, CompositeTilemap,
+        CompositeTilemapAnimation, CompositeTransform, CompositeVisibility, TileCell,
     },
     composite_renderer::{Command, CompositeRenderer, Image, Rectangle, Renderable, Stats},
+    map_asset_protocol::{Map, MapAsset},
     math::{Mat2d, Rect, Scalar},
     resource::CompositeTransformRes,
     sprite_sheet_asset_protocol::SpriteSheetAsset,
@@ -575,6 +576,69 @@ where
                         alignment: 0.0.into(),
                     }
                     .into();
+                }
+            }
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct CompositeMapSystem {
+    maps_cache: HashMap<String, Map>,
+    maps_table: HashMap<AssetID, String>,
+}
+
+impl<'s> System<'s> for CompositeMapSystem {
+    type SystemData = (
+        Entities<'s>,
+        ReadExpect<'s, AssetsDatabase>,
+        WriteStorage<'s, CompositeMapChunk>,
+        WriteStorage<'s, CompositeRenderable>,
+        WriteStorage<'s, CompositeSurfaceCache>,
+    );
+
+    fn run(
+        &mut self,
+        (entities, assets, mut chunks, mut renderables, mut caches): Self::SystemData,
+    ) {
+        for id in assets.lately_loaded_protocol("map") {
+            let id = *id;
+            let asset = assets
+                .asset_by_id(id)
+                .expect("trying to use not loaded map asset");
+            let path = asset.path().to_owned();
+            let asset = asset
+                .get::<MapAsset>()
+                .expect("trying to use non-map asset");
+            let map = asset.map().clone();
+            self.maps_cache.insert(path.clone(), map);
+            self.maps_table.insert(id, path);
+        }
+        for id in assets.lately_unloaded_protocol("map") {
+            if let Some(path) = self.maps_table.remove(id) {
+                self.maps_cache.remove(&path);
+            }
+        }
+
+        for (entity, chunk, renderable) in (&entities, &mut chunks, &mut renderables).join() {
+            if chunk.dirty {
+                if let Some(map) = self.maps_cache.get(chunk.map_name()) {
+                    let commands = if let Some(commands) = map
+                        .build_render_commands_from_layer_by_name(
+                            chunk.layer_name(),
+                            chunk.offset(),
+                            chunk.size(),
+                            &assets,
+                        ) {
+                        commands
+                    } else {
+                        vec![]
+                    };
+                    renderable.0 = Renderable::Commands(commands);
+                    if let Some(cache) = caches.get_mut(entity) {
+                        cache.rebuild();
+                    }
+                    chunk.dirty = false;
                 }
             }
         }

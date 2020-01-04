@@ -1,4 +1,4 @@
-use core::ecs::{Component, FlaggedStorage};
+use core::ecs::{Component, FlaggedStorage, VecStorage};
 use std::{
     borrow::Cow,
     sync::{
@@ -194,5 +194,5 @@ impl AudioSource {
 }
 
 impl Component for AudioSource {
-    type Storage = FlaggedStorage<Self>;
+    type Storage = FlaggedStorage<Self, VecStorage<Self>>;
 }

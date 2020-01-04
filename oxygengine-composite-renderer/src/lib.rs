@@ -3,6 +3,7 @@ extern crate oxygengine_utils as utils;
 
 pub mod component;
 pub mod composite_renderer;
+pub mod map_asset_protocol;
 pub mod math;
 pub mod png_image_asset_protocol;
 pub mod resource;
@@ -12,17 +13,18 @@ pub mod tileset_asset_protocol;
 
 pub mod prelude {
     pub use crate::{
-        component::*, composite_renderer::*, math::*, png_image_asset_protocol::*, resource::*,
-        sprite_sheet_asset_protocol::*, system::*, tileset_asset_protocol::*,
+        component::*, composite_renderer::*, map_asset_protocol::*, math::*,
+        png_image_asset_protocol::*, resource::*, sprite_sheet_asset_protocol::*, system::*,
+        tileset_asset_protocol::*,
     };
 }
 
 use crate::{
     composite_renderer::CompositeRenderer,
     system::{
-        CompositeRendererSystem, CompositeSpriteAnimationSystem, CompositeSpriteSheetSystem,
-        CompositeSurfaceCacheSystem, CompositeTilemapAnimationSystem, CompositeTilemapSystem,
-        CompositeTransformSystem,
+        CompositeMapSystem, CompositeRendererSystem, CompositeSpriteAnimationSystem,
+        CompositeSpriteSheetSystem, CompositeSurfaceCacheSystem, CompositeTilemapAnimationSystem,
+        CompositeTilemapSystem, CompositeTransformSystem,
     },
 };
 use core::{app::AppBuilder, assets::database::AssetsDatabase};
@@ -45,6 +47,7 @@ where
         "tilemap",
         &["tilemap_animation"],
     );
+    builder.install_system(CompositeMapSystem::default(), "map", &[]);
     builder.install_thread_local_system(CompositeSurfaceCacheSystem::<CR>::default());
     builder.install_thread_local_system(CompositeRendererSystem::<CR>::default());
 }
@@ -53,4 +56,5 @@ pub fn protocols_installer(database: &mut AssetsDatabase) {
     database.register(png_image_asset_protocol::PngImageAssetProtocol);
     database.register(sprite_sheet_asset_protocol::SpriteSheetAssetProtocol);
     database.register(tileset_asset_protocol::TilesetAssetProtocol);
+    database.register(map_asset_protocol::MapAssetProtocol);
 }
