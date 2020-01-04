@@ -1,2 +1,1 @@
 map://map.map
-atlas://sprites.0.json

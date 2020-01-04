@@ -11,11 +11,11 @@ impl State for LoadingState {
         let assets = &mut world.write_resource::<AssetsDatabase>();
         if let Some(preloader) = &mut self.preloader {
             if preloader.process(assets).unwrap() {
-                let input = &world.read_resource::<InputController>();
+                // let input = &world.read_resource::<InputController>();
                 // NOTE: web browsers require user input to be triggered before playing any audio.
-                if input.trigger_or_default("mouse-left") == TriggerState::Pressed {
+                // if input.trigger_or_default("mouse-left") == TriggerState::Pressed {
                     return StateChange::Swap(Box::new(GameState));
-                }
+                // }
             }
         } else {
             self.preloader = Some(

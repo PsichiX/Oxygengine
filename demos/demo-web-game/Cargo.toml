@@ -2,7 +2,7 @@
 name = "demo-web-game"
 version = "0.1.0"
 edition = "2018"
-build = "build.rs"
+# build = "build.rs"
 
 [lib]
 crate-type = ["cdylib"]

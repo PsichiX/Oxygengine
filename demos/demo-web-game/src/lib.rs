@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate oxygengine;
+
 use crate::{states::loading::LoadingState, systems::keyboard_movement::KeyboardMovementSystem};
 use oxygengine::prelude::*;
 use wasm_bindgen::prelude::*;
@@ -50,7 +53,7 @@ pub fn main_js() -> Result<(), JsValue> {
             oxygengine::composite_renderer::bundle_installer,
             WebCompositeRenderer::with_state(
                 get_canvas_by_id("screen"), // canvas target.
-                RenderState::new(Some(Color::black())),
+                RenderState::default().image_source_inner_margin(0.5),
             ),
         )
         // install audio support.
