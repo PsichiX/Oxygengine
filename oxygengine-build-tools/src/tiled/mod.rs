@@ -218,10 +218,7 @@ pub fn build_map<P: AsRef<Path>>(
         rows: input_data.height,
         tile_width: input_data.tilewidth,
         tile_height: input_data.tileheight,
-        sprite_sheets: spritesheets_data
-            .keys()
-            .cloned()
-            .collect::<Vec<_>>(),
+        sprite_sheets: spritesheets_data.keys().cloned().collect::<Vec<_>>(),
         tiles_mapping,
         layers,
     };

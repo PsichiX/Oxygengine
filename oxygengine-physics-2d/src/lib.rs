@@ -12,13 +12,19 @@ pub mod prelude {
     pub use nphysics2d::{math::*, object::*};
 }
 
-use crate::{resource::Physics2dWorld, system::Physics2dSystem};
+use crate::{
+    resource::{Physics2dWorld, Physics2dWorldSimulationMode},
+    system::Physics2dSystem,
+};
 use core::app::AppBuilder;
 use nphysics2d::math::Vector;
 
 type Scalar = f64;
 
-pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>, gravity: Vector<Scalar>) {
-    builder.install_resource(Physics2dWorld::new(gravity));
+pub fn bundle_installer<'a, 'b>(
+    builder: &mut AppBuilder<'a, 'b>,
+    (gravity, simulation_mode): (Vector<Scalar>, Physics2dWorldSimulationMode),
+) {
+    builder.install_resource(Physics2dWorld::new(gravity, simulation_mode));
     builder.install_system(Physics2dSystem::default(), "physics-2d", &[]);
 }

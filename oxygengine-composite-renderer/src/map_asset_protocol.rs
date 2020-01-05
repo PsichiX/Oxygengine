@@ -27,6 +27,24 @@ pub enum LayerData {
     Objects(Vec<LayerObject>),
 }
 
+impl LayerData {
+    pub fn tiles(&self) -> Option<&[usize]> {
+        if let LayerData::Tiles(data) = self {
+            Some(data)
+        } else {
+            None
+        }
+    }
+
+    pub fn objects(&self) -> Option<&[LayerObject]> {
+        if let LayerData::Objects(data) = self {
+            Some(data)
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Layer {
     pub name: String,
@@ -47,6 +65,10 @@ pub struct Map {
 impl Map {
     pub fn size(&self) -> (usize, usize) {
         (self.cols * self.tile_width, self.rows * self.tile_height)
+    }
+
+    pub fn layer_by_name(&self, name: &str) -> Option<&Layer> {
+        self.layers.iter().find(|layer| layer.name == name)
     }
 
     pub fn build_render_commands_from_layer_by_name<'a>(
@@ -76,7 +98,10 @@ impl Map {
                 .sprite_sheets
                 .iter()
                 .map(|s| {
-                    let info = assets.asset_by_path(&format!("atlas://{}", s))?.get::<SpriteSheetAsset>()?.info();
+                    let info = assets
+                        .asset_by_path(&format!("atlas://{}", s))?
+                        .get::<SpriteSheetAsset>()?
+                        .info();
                     Some((s.clone(), info))
                 })
                 .collect::<Option<HashMap<_, _>>>()?;

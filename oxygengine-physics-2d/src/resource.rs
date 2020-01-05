@@ -10,6 +10,12 @@ use nphysics2d::{
     world::{DefaultGeometricalWorld, DefaultMechanicalWorld},
 };
 
+#[derive(Debug, Copy, Clone)]
+pub enum Physics2dWorldSimulationMode {
+    FixedTimestepMaxIterations(usize),
+    DynamicTimestep,
+}
+
 pub struct Physics2dWorld {
     geometrical_world: DefaultGeometricalWorld<Scalar>,
     mechanical_world: DefaultMechanicalWorld<Scalar>,
@@ -18,6 +24,7 @@ pub struct Physics2dWorld {
     constraint_set: DefaultJointConstraintSet<Scalar>,
     force_generator_set: DefaultForceGeneratorSet<Scalar>,
     remaining_time_step: Scalar,
+    simulation_mode: Physics2dWorldSimulationMode,
 }
 
 impl Default for Physics2dWorld {
@@ -30,14 +37,16 @@ impl Default for Physics2dWorld {
             constraint_set: DefaultJointConstraintSet::new(),
             force_generator_set: DefaultForceGeneratorSet::new(),
             remaining_time_step: 0.0,
+            simulation_mode: Physics2dWorldSimulationMode::FixedTimestepMaxIterations(3),
         }
     }
 }
 
 impl Physics2dWorld {
-    pub fn new(gravity: Vector<Scalar>) -> Self {
+    pub fn new(gravity: Vector<Scalar>, mode: Physics2dWorldSimulationMode) -> Self {
         let mut result = Self::default();
         result.set_gravity(gravity);
+        result.set_simulation_mode(mode);
         result
     }
 
@@ -49,12 +58,24 @@ impl Physics2dWorld {
         self.mechanical_world.gravity = value;
     }
 
+    pub fn simulation_mode(&self) -> Physics2dWorldSimulationMode {
+        self.simulation_mode
+    }
+
+    pub fn set_simulation_mode(&mut self, simulation_mode: Physics2dWorldSimulationMode) {
+        self.simulation_mode = simulation_mode;
+    }
+
     pub fn time_step(&self) -> Scalar {
         self.mechanical_world.timestep()
     }
 
     pub fn set_time_step(&mut self, value: Scalar) {
         self.mechanical_world.set_timestep(value);
+        self.remaining_time_step = 0.0;
+    }
+
+    pub fn reset_timestep_accumulator(&mut self) {
         self.remaining_time_step = 0.0;
     }
 
@@ -100,18 +121,35 @@ impl Physics2dWorld {
     }
 
     pub fn process(&mut self, mut delta_time: Scalar) {
-        let time_step = self.mechanical_world.timestep();
-        delta_time += self.remaining_time_step;
-        while delta_time >= time_step {
-            self.mechanical_world.step(
-                &mut self.geometrical_world,
-                &mut self.body_set,
-                &mut self.collider_set,
-                &mut self.constraint_set,
-                &mut self.force_generator_set,
-            );
-            delta_time -= time_step;
+        match self.simulation_mode {
+            Physics2dWorldSimulationMode::FixedTimestepMaxIterations(iterations) => {
+                let time_step = self.mechanical_world.timestep();
+                delta_time += self.remaining_time_step;
+                let mut i = 0;
+                while delta_time >= time_step && i < iterations {
+                    self.mechanical_world.step(
+                        &mut self.geometrical_world,
+                        &mut self.body_set,
+                        &mut self.collider_set,
+                        &mut self.constraint_set,
+                        &mut self.force_generator_set,
+                    );
+                    delta_time -= time_step;
+                    i += 1;
+                }
+                self.remaining_time_step = delta_time % time_step;
+            }
+            Physics2dWorldSimulationMode::DynamicTimestep => {
+                self.mechanical_world.set_timestep(delta_time);
+                self.mechanical_world.step(
+                    &mut self.geometrical_world,
+                    &mut self.body_set,
+                    &mut self.collider_set,
+                    &mut self.constraint_set,
+                    &mut self.force_generator_set,
+                );
+                self.remaining_time_step = 0.0;
+            }
         }
-        self.remaining_time_step = delta_time;
     }
 }
