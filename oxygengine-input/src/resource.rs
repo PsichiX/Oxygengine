@@ -51,10 +51,6 @@ pub struct InputController {
 }
 
 impl InputController {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn register<D>(&mut self, mut device: D)
     where
         D: InputDevice + 'static,
@@ -143,7 +139,6 @@ impl InputController {
             device.process();
         }
         self.axes.clear();
-        self.triggers.clear();
         for (name_from, (dev, name_to)) in &self.mapping_axes {
             if let Some(device) = self.devices.get(dev) {
                 if let Some(value) = device.query_axis(name_to) {

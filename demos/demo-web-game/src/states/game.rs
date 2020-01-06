@@ -4,7 +4,10 @@ use crate::{
         player::{Player, PlayerType},
         speed::Speed,
     },
-    resources::{globals::Globals, turn::TurnManager},
+    resources::{
+        globals::Globals,
+        turn::{Timer, TurnManager},
+    },
 };
 use oxygengine::prelude::*;
 use rand::{
@@ -17,7 +20,8 @@ const HALF_WALL_THICKNESS: f64 = 50.0;
 
 #[derive(Default)]
 pub struct GameState {
-    players: Vec<Entity>,
+    ui_timer: Option<Entity>,
+    ui_player: Option<Entity>,
 }
 
 impl State for GameState {
@@ -26,26 +30,77 @@ impl State for GameState {
 
         let camera = world
             .create_entity()
-            .with(CompositeCamera::new(CompositeScalingMode::CenterAspect))
+            .with(CompositeCamera::new(CompositeScalingMode::CenterAspect).tag("world".into()))
             .with(CompositeTransform::scale(720.0.into()).with_translation(1216.0.into()))
             .with(NonPersistent(token))
             .with(Follow(None, FollowMode::Instant))
             .build();
 
+        // ui camera
+        world
+            .create_entity()
+            .with(CompositeCamera::new(CompositeScalingMode::CenterAspect).tag("ui".into()))
+            .with(CompositeTransform::scale(720.0.into()))
+            .with(CompositeRenderDepth(1.0))
+            .with(NonPersistent(token))
+            .build();
+
         Self::create_map(world, token);
         Self::create_trees(world, token);
-        self.create_players(world, token);
+        Self::create_players(world, token);
+        self.create_ui(world, token);
 
         world.write_resource::<Globals>().camera = Some(camera);
         world.write_resource::<TurnManager>().select_nth(0);
     }
 
+    fn on_process(&mut self, world: &mut World) -> StateChange {
+        if let Some(ui_timer) = self.ui_timer {
+            let timer = world.read_resource::<TurnManager>().timer();
+            if let Some(renderable) = world
+                .write_storage::<CompositeRenderable>()
+                .get_mut(ui_timer)
+            {
+                if let Renderable::Text(text) = &mut renderable.0 {
+                    text.text = match timer {
+                        Timer::Waiting(t) => format!("Waiting: {}s", t as isize + 1).into(),
+                        Timer::Playing(t) => format!("Playing: {}s", t as isize + 1).into(),
+                        _ => "".into(),
+                    };
+                }
+            }
+        }
+        if let Some(ui_player) = self.ui_player {
+            let player_type =
+                if let Some(selected) = world.read_resource::<TurnManager>().selected() {
+                    world
+                        .read_storage::<Player>()
+                        .get(selected)
+                        .map(|player| player.0)
+                } else {
+                    None
+                };
+            if let Some(player_type) = player_type {
+                if let Some(renderable) = world
+                    .write_storage::<CompositeRenderable>()
+                    .get_mut(ui_player)
+                {
+                    if let Renderable::Text(text) = &mut renderable.0 {
+                        text.text = match player_type {
+                            PlayerType::North => "North".into(),
+                            PlayerType::South => "South".into(),
+                        };
+                    }
+                }
+            }
+        }
+
+        StateChange::None
+    }
+
     fn on_exit(&mut self, world: &mut World) {
         world.write_resource::<Globals>().reset();
-        for entity in &self.players {
-            world.write_resource::<TurnManager>().unregister(*entity);
-        }
-        self.players.clear();
+        world.write_resource::<TurnManager>().reset();
     }
 }
 
@@ -53,6 +108,7 @@ impl GameState {
     fn create_map(world: &mut World, token: StateToken) {
         world
             .create_entity()
+            .with(Tag("world".into()))
             .with(CompositeRenderable(().into()))
             .with(CompositeRenderDepth(-101.0))
             .with(CompositeTransform::default())
@@ -62,6 +118,7 @@ impl GameState {
 
         world
             .create_entity()
+            .with(Tag("world".into()))
             .with(CompositeRenderable(().into()))
             .with(CompositeRenderDepth(-100.0))
             .with(CompositeTransform::default())
@@ -180,17 +237,18 @@ impl GameState {
         };
 
         for (x, y, r, t) in trees_meta {
-            let (tree_type, depth) = match t {
-                0 => ("treeGreen_large.png", 100.0),
-                1 => ("treeGreen_small.png", 50.0),
-                2 => ("treeBrown_large.png", 100.0),
-                3 => ("treeBrown_small.png", 50.0),
-                4 => ("barricadeMetal.png", 10.0),
-                5 => ("barricadeWood.png", 10.0),
+            let (tree_type, depth, radius) = match t {
+                0 => ("treeGreen_large.png", 100.0, 32.0),
+                1 => ("treeGreen_small.png", 50.0, 12.0),
+                2 => ("treeBrown_large.png", 100.0, 32.0),
+                3 => ("treeBrown_small.png", 50.0, 12.0),
+                4 => ("barricadeMetal.png", 10.0, 24.0),
+                5 => ("barricadeWood.png", 10.0, 24.0),
                 _ => unreachable!(),
             };
             world
                 .create_entity()
+                .with(Tag("world".into()))
                 .with(CompositeRenderable(().into()))
                 .with(CompositeRenderDepth(depth))
                 .with(
@@ -205,7 +263,7 @@ impl GameState {
                         .rotation(r),
                 ))
                 .with(Collider2d::new(ColliderDesc::new(ShapeHandle::new(
-                    Ball::new(32.0),
+                    Ball::new(radius),
                 ))))
                 .with(Collider2dBody::Me)
                 .with(Physics2dSyncCompositeTransform)
@@ -214,7 +272,7 @@ impl GameState {
         }
     }
 
-    fn create_players(&mut self, world: &mut World, token: StateToken) {
+    fn create_players(world: &mut World, token: StateToken) {
         let tanks_meta = {
             let assets = world.read_resource::<AssetsDatabase>();
             let asset = assets.asset_by_path("map://map.map").unwrap();
@@ -250,6 +308,7 @@ impl GameState {
             };
             let entity = world
                 .create_entity()
+                .with(Tag("world".into()))
                 .with(CompositeRenderable(().into()))
                 .with(CompositeRenderDepth(25.0))
                 .with(
@@ -266,17 +325,60 @@ impl GameState {
                         .angular_damping(2.0),
                 ))
                 .with(Collider2d::new(
-                    ColliderDesc::new(ShapeHandle::new(Cuboid::new(Vector::new(45.0, 45.0))))
+                    ColliderDesc::new(ShapeHandle::new(Cuboid::new(Vector::new(40.0, 40.0))))
                         .density(1.0),
                 ))
                 .with(Collider2dBody::Me)
                 .with(Physics2dSyncCompositeTransform)
                 .with(NonPersistent(token))
-                .with(Speed(100.0, 0.1))
+                .with(Speed(50.0, 0.1))
                 .with(Player(t))
                 .build();
             world.write_resource::<TurnManager>().register(entity);
-            self.players.push(entity);
         }
+    }
+
+    fn create_ui(&mut self, world: &mut World, token: StateToken) {
+        self.ui_timer = Some(
+            world
+                .create_entity()
+                .with(Tag("ui".into()))
+                .with(CompositeRenderable(
+                    Text {
+                        color: Color::yellow(),
+                        font: "Verdana".into(),
+                        align: TextAlign::Left,
+                        text: "".into(),
+                        position: 0.0.into(),
+                        size: 48.0,
+                    }
+                    .into(),
+                ))
+                .with(CompositeTransform::translation([24.0, 48.0].into()))
+                .with(CompositeCameraAlignment(0.0.into()))
+                .with(NonPersistent(token))
+                .build(),
+        );
+
+        self.ui_player = Some(
+            world
+                .create_entity()
+                .with(Tag("ui".into()))
+                .with(CompositeRenderable(
+                    Text {
+                        color: Color::yellow(),
+                        font: "Verdana".into(),
+                        align: TextAlign::Right,
+                        text: "<PLAYER>".into(),
+                        position: 0.0.into(),
+                        size: 48.0,
+                    }
+                    .into(),
+                ))
+                .with(CompositeTransform::translation([-24.0, 48.0].into()))
+                .with(CompositeCameraAlignment([1.0, 0.0].into()))
+                .with(NonPersistent(token))
+                .build(),
+        );
     }
 }

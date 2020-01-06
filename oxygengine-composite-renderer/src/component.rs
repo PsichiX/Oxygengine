@@ -197,17 +197,24 @@ impl CompositeTransform {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, PartialOrd)]
 pub struct CompositeRenderDepth(pub Scalar);
 
 impl Component for CompositeRenderDepth {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Default, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, PartialOrd)]
 pub struct CompositeRenderAlpha(pub Scalar);
 
 impl Component for CompositeRenderAlpha {
+    type Storage = VecStorage<Self>;
+}
+
+#[derive(Debug, Default, Copy, Clone, PartialEq)]
+pub struct CompositeCameraAlignment(pub Vec2);
+
+impl Component for CompositeCameraAlignment {
     type Storage = VecStorage<Self>;
 }
 
@@ -245,7 +252,7 @@ impl Default for CompositeScalingTarget {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct CompositeCamera {
     pub scaling: CompositeScalingMode,
     pub scaling_target: CompositeScalingTarget,
@@ -254,16 +261,6 @@ pub struct CompositeCamera {
 
 impl Component for CompositeCamera {
     type Storage = HashMapStorage<Self>;
-}
-
-impl Default for CompositeCamera {
-    fn default() -> Self {
-        Self {
-            scaling: CompositeScalingMode::default(),
-            scaling_target: CompositeScalingTarget::default(),
-            tags: vec![],
-        }
-    }
 }
 
 impl CompositeCamera {
@@ -284,6 +281,11 @@ impl CompositeCamera {
             scaling_target: target,
             tags: vec![],
         }
+    }
+
+    pub fn tag(mut self, tag: Cow<'static, str>) -> Self {
+        self.tags.push(tag);
+        self
     }
 
     pub fn tags(mut self, tags: Vec<Cow<'static, str>>) -> Self {

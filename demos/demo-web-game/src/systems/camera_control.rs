@@ -32,7 +32,10 @@ impl<'s> System<'s> for CameraControlSystem {
         if let Some(mut view_box) = view_box {
             view_box.x = view_box.x.max(0.0).min(map_size.x - view_box.w);
             view_box.y = view_box.y.max(0.0).min(map_size.y - view_box.h);
-            transforms.get_mut(entity).unwrap().set_translation(view_box.center());
+            transforms
+                .get_mut(entity)
+                .unwrap()
+                .set_translation(view_box.center());
         }
     }
 }

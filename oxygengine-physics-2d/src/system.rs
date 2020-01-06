@@ -108,7 +108,7 @@ impl<'s> System<'s> for Physics2dSystem {
                             .take_description()
                             .unwrap()
                             .build(BodyPartHandle(h, 0));
-                        let h = world.insert_collider(c);
+                        let h = world.insert_collider(c, entity);
                         collider.0 = Collider2dInner::Handle(h);
                         self.cached_colliders.insert(entity, h);
                     }

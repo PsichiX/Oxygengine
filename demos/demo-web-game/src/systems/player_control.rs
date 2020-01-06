@@ -30,7 +30,7 @@ impl<'s> System<'s> for PlayerControlSystem {
         let ver =
             -input.axis_or_default("move-up") as f64 + input.axis_or_default("move-down") as f64;
 
-        if let Some(active) = turns.selected() {
+        if let Some(active) = turns.selected_playing() {
             for (entity, _, speed, body) in (&entities, &players, &speed, &bodies).join() {
                 if entity == active {
                     if let Some(handle) = body.handle() {
@@ -41,6 +41,38 @@ impl<'s> System<'s> for PlayerControlSystem {
                                 ForceType::VelocityChange,
                                 true,
                             );
+
+                            // let isometry = body.position();
+                            // let p = isometry.translation;
+                            // let r = isometry.rotation.angle();
+                            //
+                            // let entity = world
+                            //     .create_entity()
+                            //     .with(CompositeRenderable(().into()))
+                            //     .with(CompositeRenderDepth(25.0))
+                            //     .with(
+                            //         CompositeSprite::new("sprites.0.json".into(), tank_type.into())
+                            //             .align(0.5.into()),
+                            //     )
+                            //     .with(CompositeTransform::default())
+                            //     .with(RigidBody2d::new(
+                            //         RigidBodyDesc::new()
+                            //             .translation(Vector::new(x as f64, y as f64))
+                            //             .gravity_enabled(false)
+                            //             .rotation(r)
+                            //             .linear_damping(0.5)
+                            //             .angular_damping(2.0),
+                            //     ))
+                            //     .with(Collider2d::new(
+                            //         ColliderDesc::new(ShapeHandle::new(Cuboid::new(Vector::new(40.0, 40.0))))
+                            //             .density(1.0),
+                            //     ))
+                            //     .with(Collider2dBody::Me)
+                            //     .with(Physics2dSyncCompositeTransform)
+                            //     .with(NonPersistent(token))
+                            //     .with(Speed(50.0, 0.1))
+                            //     .with(Player(t))
+                            //     .build();
                         }
                     }
                 }

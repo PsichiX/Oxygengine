@@ -2,14 +2,14 @@
 
 use crate::{
     component::{
-        CompositeCamera, CompositeEffect, CompositeMapChunk, CompositeRenderAlpha,
-        CompositeRenderDepth, CompositeRenderable, CompositeRenderableStroke, CompositeSprite,
-        CompositeSpriteAnimation, CompositeSurfaceCache, CompositeTilemap,
+        CompositeCamera, CompositeCameraAlignment, CompositeEffect, CompositeMapChunk,
+        CompositeRenderAlpha, CompositeRenderDepth, CompositeRenderable, CompositeRenderableStroke,
+        CompositeSprite, CompositeSpriteAnimation, CompositeSurfaceCache, CompositeTilemap,
         CompositeTilemapAnimation, CompositeTransform, CompositeVisibility, TileCell,
     },
     composite_renderer::{Command, CompositeRenderer, Image, Rectangle, Renderable, Stats},
     map_asset_protocol::{Map, MapAsset},
-    math::{Mat2d, Rect, Scalar},
+    math::{Mat2d, Rect, Scalar, Vec2},
     resource::CompositeTransformRes,
     sprite_sheet_asset_protocol::SpriteSheetAsset,
     tileset_asset_protocol::{TilesetAsset, TilesetInfo},
@@ -110,6 +110,7 @@ where
         ReadStorage<'s, CompositeTransform>,
         ReadStorage<'s, CompositeRenderDepth>,
         ReadStorage<'s, CompositeRenderAlpha>,
+        ReadStorage<'s, CompositeCameraAlignment>,
         ReadStorage<'s, CompositeRenderableStroke>,
         ReadStorage<'s, CompositeEffect>,
         ReadStorage<'s, Tag>,
@@ -129,6 +130,7 @@ where
             transforms,
             depths,
             alphas,
+            alignments,
             strokes,
             effects,
             tags,
@@ -227,6 +229,14 @@ where
                             let [a, b, c, d, e, f] = transform.0;
                             vec![
                                 Command::Store,
+                                if let Some(alignment) = alignments.get(*entity) {
+                                    let p = Vec2::new(alignment.0.x * w, alignment.0.y * h);
+                                    let [a, b, c, d, e, f] =
+                                        ((!camera_matrix).unwrap() * Mat2d::translation(p)).0;
+                                    Command::Transform(a, b, c, d, e, f)
+                                } else {
+                                    Command::None
+                                },
                                 Command::Transform(a, b, c, d, e, f),
                                 if let Some(effect) = effects.get(*entity) {
                                     Command::Effect(effect.0)

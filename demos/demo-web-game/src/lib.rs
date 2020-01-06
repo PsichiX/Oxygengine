@@ -5,7 +5,10 @@ extern crate oxygengine;
 use crate::{
     resources::turn::TurnManager,
     states::loading::LoadingState,
-    systems::{follow::FollowSystem, player_control::PlayerControlSystem, turn::TurnSystem, camera_control::CameraControlSystem},
+    systems::{
+        camera_control::CameraControlSystem, follow::FollowSystem,
+        player_control::PlayerControlSystem, turn::TurnSystem,
+    },
 };
 use oxygengine::prelude::*;
 use wasm_bindgen::prelude::*;

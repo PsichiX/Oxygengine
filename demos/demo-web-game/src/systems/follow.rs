@@ -8,11 +8,13 @@ pub struct FollowSystem;
 impl<'s> System<'s> for FollowSystem {
     type SystemData = (
         Entities<'s>,
+        ReadExpect<'s, AppLifeCycle>,
         ReadStorage<'s, Follow>,
         WriteStorage<'s, CompositeTransform>,
     );
 
-    fn run(&mut self, (entities, follows, mut transforms): Self::SystemData) {
+    fn run(&mut self, (entities, lifecycle, follows, mut transforms): Self::SystemData) {
+        let dt = lifecycle.delta_time_seconds() as f32;
         let to_follow = (&entities, &follows, &transforms)
             .join()
             .filter_map(|(entity, follow, transform)| {
@@ -30,7 +32,9 @@ impl<'s> System<'s> for FollowSystem {
             let transform = transforms.get_mut(entity).unwrap();
             match follow_mode {
                 FollowMode::Instant => transform.set_translation(to),
-                FollowMode::Delayed(f) => transform.set_translation(from.lerp(to, f)),
+                FollowMode::Delayed(f) => {
+                    transform.set_translation(from.lerp(to, (f * dt).max(0.0).min(1.0)))
+                }
             }
         }
     }

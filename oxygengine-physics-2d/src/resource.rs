@@ -1,4 +1,6 @@
 use crate::Scalar;
+use core::ecs::Entity;
+use ncollide2d::{pipeline::narrow_phase::ContactEvent, query::Proximity};
 use nphysics2d::{
     force_generator::DefaultForceGeneratorSet,
     joint::DefaultJointConstraintSet,
@@ -9,11 +11,24 @@ use nphysics2d::{
     },
     world::{DefaultGeometricalWorld, DefaultMechanicalWorld},
 };
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Physics2dWorldSimulationMode {
     FixedTimestepMaxIterations(usize),
     DynamicTimestep,
+}
+
+#[derive(Debug, Clone)]
+pub enum Physics2dContact {
+    Started(Entity, Entity),
+    Stopped(Entity, Entity),
+}
+
+#[derive(Debug, Clone)]
+pub enum Physics2dProximity {
+    Started(Entity, Entity),
+    Stopped(Entity, Entity),
 }
 
 pub struct Physics2dWorld {
@@ -25,6 +40,11 @@ pub struct Physics2dWorld {
     force_generator_set: DefaultForceGeneratorSet<Scalar>,
     remaining_time_step: Scalar,
     simulation_mode: Physics2dWorldSimulationMode,
+    collider_map: HashMap<DefaultColliderHandle, Entity>,
+    last_contacts: Vec<Physics2dContact>,
+    last_proximities: Vec<Physics2dProximity>,
+    active_contacts: HashSet<(Entity, Entity)>,
+    active_proximities: HashSet<(Entity, Entity)>,
 }
 
 impl Default for Physics2dWorld {
@@ -38,6 +58,11 @@ impl Default for Physics2dWorld {
             force_generator_set: DefaultForceGeneratorSet::new(),
             remaining_time_step: 0.0,
             simulation_mode: Physics2dWorldSimulationMode::FixedTimestepMaxIterations(3),
+            collider_map: Default::default(),
+            last_contacts: vec![],
+            last_proximities: vec![],
+            active_contacts: Default::default(),
+            active_proximities: Default::default(),
         }
     }
 }
@@ -48,6 +73,14 @@ impl Physics2dWorld {
         result.set_gravity(gravity);
         result.set_simulation_mode(mode);
         result
+    }
+
+    pub fn geometrical_world(&self) -> &DefaultGeometricalWorld<Scalar> {
+        &self.geometrical_world
+    }
+
+    pub fn mechanical_world(&self) -> &DefaultMechanicalWorld<Scalar> {
+        &self.mechanical_world
     }
 
     pub fn gravity(&self) -> Vector<Scalar> {
@@ -95,11 +128,30 @@ impl Physics2dWorld {
         self.body_set.rigid_body_mut(handle)
     }
 
+    pub fn last_contacts(&self) -> impl Iterator<Item = &Physics2dContact> {
+        self.last_contacts.iter()
+    }
+
+    pub fn last_proximities(&self) -> impl Iterator<Item = &Physics2dProximity> {
+        self.last_proximities.iter()
+    }
+
+    pub fn active_contacts(&self) -> impl Iterator<Item = &(Entity, Entity)> {
+        self.active_contacts.iter()
+    }
+
+    pub fn active_proximities(&self) -> impl Iterator<Item = &(Entity, Entity)> {
+        self.active_proximities.iter()
+    }
+
     pub(crate) fn insert_collider(
         &mut self,
         collider: Collider<Scalar, DefaultBodyHandle>,
+        entity: Entity,
     ) -> DefaultColliderHandle {
-        self.collider_set.insert(collider)
+        let handle = self.collider_set.insert(collider);
+        self.collider_map.insert(handle, entity);
+        handle
     }
 
     pub(crate) fn destroy_collider(&mut self, handle: DefaultColliderHandle) {
@@ -120,20 +172,28 @@ impl Physics2dWorld {
         self.collider_set.get_mut(handle)
     }
 
+    pub fn are_in_contact(&self, first: Entity, second: Entity) -> bool {
+        self.active_contacts.contains(&(first, second))
+            || self.active_contacts.contains(&(second, first))
+    }
+
+    pub fn are_in_proximity(&self, first: Entity, second: Entity) -> bool {
+        self.active_proximities.contains(&(first, second))
+            || self.active_proximities.contains(&(second, first))
+    }
+
     pub fn process(&mut self, mut delta_time: Scalar) {
+        self.last_contacts.clear();
+        self.last_proximities.clear();
+        self.active_contacts.clear();
+        self.active_proximities.clear();
         match self.simulation_mode {
             Physics2dWorldSimulationMode::FixedTimestepMaxIterations(iterations) => {
                 let time_step = self.mechanical_world.timestep();
                 delta_time += self.remaining_time_step;
                 let mut i = 0;
                 while delta_time >= time_step && i < iterations {
-                    self.mechanical_world.step(
-                        &mut self.geometrical_world,
-                        &mut self.body_set,
-                        &mut self.collider_set,
-                        &mut self.constraint_set,
-                        &mut self.force_generator_set,
-                    );
+                    self.step();
                     delta_time -= time_step;
                     i += 1;
                 }
@@ -141,14 +201,63 @@ impl Physics2dWorld {
             }
             Physics2dWorldSimulationMode::DynamicTimestep => {
                 self.mechanical_world.set_timestep(delta_time);
-                self.mechanical_world.step(
-                    &mut self.geometrical_world,
-                    &mut self.body_set,
-                    &mut self.collider_set,
-                    &mut self.constraint_set,
-                    &mut self.force_generator_set,
-                );
+                self.step();
                 self.remaining_time_step = 0.0;
+            }
+        }
+    }
+
+    fn step(&mut self) {
+        self.mechanical_world.step(
+            &mut self.geometrical_world,
+            &mut self.body_set,
+            &mut self.collider_set,
+            &mut self.constraint_set,
+            &mut self.force_generator_set,
+        );
+        for contact in self.geometrical_world.contact_events() {
+            match contact {
+                ContactEvent::Started(a, b) => {
+                    if let Some(a) = self.collider_map.get(a) {
+                        if let Some(b) = self.collider_map.get(b) {
+                            // TODO: test if test for effective (deep) filtering is needed.
+                            self.last_contacts.push(Physics2dContact::Started(*a, *b));
+                            self.active_contacts.insert((*a, *b));
+                            self.active_contacts.insert((*b, *a));
+                        }
+                    }
+                }
+                ContactEvent::Stopped(a, b) => {
+                    if let Some(a) = self.collider_map.get(a) {
+                        if let Some(b) = self.collider_map.get(b) {
+                            // TODO: test if test for effective (deep) filtering is needed.
+                            self.last_contacts.push(Physics2dContact::Stopped(*a, *b));
+                            self.active_contacts.remove(&(*a, *b));
+                            self.active_contacts.remove(&(*b, *a));
+                        }
+                    }
+                }
+            }
+        }
+        for proximity in self.geometrical_world.proximity_events() {
+            if let Some(a) = self.collider_map.get(&proximity.collider1) {
+                if let Some(b) = self.collider_map.get(&proximity.collider2) {
+                    let p = proximity.prev_status == Proximity::Intersecting;
+                    let n = proximity.new_status == Proximity::Intersecting;
+                    if !p && n {
+                        // TODO: test if test for effective (deep) filtering is needed.
+                        self.last_proximities
+                            .push(Physics2dProximity::Started(*a, *b));
+                        self.active_proximities.insert((*a, *b));
+                        self.active_proximities.insert((*b, *a));
+                    } else if p && !n {
+                        // TODO: test if test for effective (deep) filtering is needed.
+                        self.last_proximities
+                            .push(Physics2dProximity::Stopped(*a, *b));
+                        self.active_proximities.remove(&(*a, *b));
+                        self.active_proximities.remove(&(*b, *a));
+                    }
+                }
             }
         }
     }
