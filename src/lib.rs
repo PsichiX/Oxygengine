@@ -59,6 +59,8 @@ pub mod audio {
 pub mod physics_2d {
     pub use oxygengine_physics_2d::*;
 }
+#[cfg(feature = "physics-2d")]
+#[cfg(feature = "composite-renderer")]
 #[cfg(feature = "integration-physics-2d-composite-renderer")]
 pub mod integration_physics_2d_composite_renderer {
     pub use oxygengine_integration_p2d_cr::*;
@@ -83,6 +85,8 @@ pub mod prelude {
     #[cfg(feature = "web")]
     #[cfg(feature = "input")]
     pub use oxygengine_input_device_web::prelude::*;
+    #[cfg(feature = "physics-2d")]
+    #[cfg(feature = "composite-renderer")]
     #[cfg(feature = "integration-physics-2d-composite-renderer")]
     pub use oxygengine_integration_p2d_cr::prelude::*;
     #[cfg(feature = "navigation")]

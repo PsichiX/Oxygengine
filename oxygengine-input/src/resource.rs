@@ -19,6 +19,26 @@ impl TriggerState {
     pub fn is_off(self) -> bool {
         !self.is_on()
     }
+
+    #[inline]
+    pub fn is_idle(self) -> bool {
+        self == TriggerState::Idle
+    }
+
+    #[inline]
+    pub fn is_pressed(self) -> bool {
+        self == TriggerState::Pressed
+    }
+
+    #[inline]
+    pub fn is_hold(self) -> bool {
+        self == TriggerState::Hold
+    }
+
+    #[inline]
+    pub fn is_released(self) -> bool {
+        self == TriggerState::Released
+    }
 }
 
 #[derive(Default)]

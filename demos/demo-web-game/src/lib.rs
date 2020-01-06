@@ -1,8 +1,17 @@
-use crate::states::loading::LoadingState;
+#[cfg(debug_assertions)]
+#[macro_use]
+extern crate oxygengine;
+
+use crate::{
+    resources::turn::TurnManager,
+    states::loading::LoadingState,
+    systems::{follow::FollowSystem, player_control::PlayerControlSystem, turn::TurnSystem, camera_control::CameraControlSystem},
+};
 use oxygengine::prelude::*;
 use wasm_bindgen::prelude::*;
 
 mod components;
+mod resources;
 mod states;
 mod systems;
 
@@ -15,28 +24,21 @@ pub fn main_js() -> Result<(), JsValue> {
     #[cfg(debug_assertions)]
     console_error_panic_hook::set_once();
 
-    // initialize logger to see logs in web browser (debug only).
     #[cfg(debug_assertions)]
     logger_setup(WebLogger);
 
-    // Application build phase - install all systems and resources and setup them.
     let app = App::build()
-        // install core module assets managment.
         .with_bundle(
             oxygengine::core::assets::bundle_installer,
             (WebFetchEngine::default(), |assets| {
-                // register assets protocols from composite renderer module.
                 oxygengine::composite_renderer::protocols_installer(assets);
-                // register assets protocols from audio module.
                 oxygengine::audio::protocols_installer(assets);
             }),
         )
-        // install input managment.
         .with_bundle(oxygengine::input::bundle_installer, |input| {
-            // register input devices.
             input.register(WebKeyboardInputDevice::new(get_event_target_document()));
             input.register(WebMouseInputDevice::new(get_event_target_by_id("screen")));
-            // map input axes and triggers to devices.
+            input.map_trigger("next-player", "keyboard", "Space");
             input.map_axis("move-up", "keyboard", "KeyW");
             input.map_axis("move-down", "keyboard", "KeyS");
             input.map_axis("move-left", "keyboard", "KeyA");
@@ -45,17 +47,14 @@ pub fn main_js() -> Result<(), JsValue> {
             // input.map_axis("mouse-y", "mouse", "y");
             input.map_trigger("mouse-left", "mouse", "left");
         })
-        // install composite renderer.
         .with_bundle(
             oxygengine::composite_renderer::bundle_installer,
             WebCompositeRenderer::with_state(
-                get_canvas_by_id("screen"), // canvas target.
+                get_canvas_by_id("screen"),
                 RenderState::default().image_source_inner_margin(0.5),
             ),
         )
-        // install audio support.
         .with_bundle(oxygengine::audio::bundle_installer, WebAudio::default())
-        // install 2D physics with default gravity force vector.
         .with_bundle(
             oxygengine::physics_2d::bundle_installer,
             (
@@ -63,14 +62,17 @@ pub fn main_js() -> Result<(), JsValue> {
                 Physics2dWorldSimulationMode::FixedTimestepMaxIterations(3),
             ),
         )
-        // install integration between 2D physics and composite rendering.
         .with_bundle(
             oxygengine::integration_physics_2d_composite_renderer::bundle_installer,
             (),
         )
+        .with_resource(TurnManager::default())
+        .with_system(PlayerControlSystem, "player-control", &[])
+        .with_system(FollowSystem, "follow", &[])
+        .with_system(TurnSystem, "turns", &[])
+        .with_system(CameraControlSystem, "camera-control", &[])
         .build(LoadingState::default(), WebAppTimer::default());
 
-    // Application run phase - spawn runner that ticks our app.
     AppRunner::new(app).run(WebAppRunner)?;
 
     Ok(())

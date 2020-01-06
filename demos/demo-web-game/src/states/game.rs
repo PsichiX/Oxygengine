@@ -1,6 +1,10 @@
-use crate::components::{
-    player::{Player, PlayerType},
-    speed::Speed,
+use crate::{
+    components::{
+        follow::{Follow, FollowMode},
+        player::{Player, PlayerType},
+        speed::Speed,
+    },
+    resources::{globals::Globals, turn::TurnManager},
 };
 use oxygengine::prelude::*;
 use rand::{
@@ -9,7 +13,41 @@ use rand::{
 };
 use std::f64::consts::PI;
 
-pub struct GameState;
+const HALF_WALL_THICKNESS: f64 = 50.0;
+
+#[derive(Default)]
+pub struct GameState {
+    players: Vec<Entity>,
+}
+
+impl State for GameState {
+    fn on_enter(&mut self, world: &mut World) {
+        let token = world.read_resource::<AppLifeCycle>().current_state_token();
+
+        let camera = world
+            .create_entity()
+            .with(CompositeCamera::new(CompositeScalingMode::CenterAspect))
+            .with(CompositeTransform::scale(720.0.into()).with_translation(1216.0.into()))
+            .with(NonPersistent(token))
+            .with(Follow(None, FollowMode::Instant))
+            .build();
+
+        Self::create_map(world, token);
+        Self::create_trees(world, token);
+        self.create_players(world, token);
+
+        world.write_resource::<Globals>().camera = Some(camera);
+        world.write_resource::<TurnManager>().select_nth(0);
+    }
+
+    fn on_exit(&mut self, world: &mut World) {
+        world.write_resource::<Globals>().reset();
+        for entity in &self.players {
+            world.write_resource::<TurnManager>().unregister(*entity);
+        }
+        self.players.clear();
+    }
+}
 
 impl GameState {
     fn create_map(world: &mut World, token: StateToken) {
@@ -30,6 +68,71 @@ impl GameState {
             .with(CompositeMapChunk::new("map.map".into(), "roads".into()))
             .with(NonPersistent(token))
             .build();
+
+        let (hw, hh) = {
+            let assets = world.read_resource::<AssetsDatabase>();
+            let asset = assets.asset_by_path("map://map.map").unwrap();
+            let map = asset.get::<MapAsset>().unwrap().map();
+            let (w, h) = map.size();
+            world.write_resource::<Globals>().map_size = Some([w as f32, h as f32].into());
+            (w as f64 * 0.5, h as f64 * 0.5)
+        };
+
+        world
+            .create_entity()
+            .with(RigidBody2d::new(
+                RigidBodyDesc::new()
+                    .translation(Vector::new(hw, -HALF_WALL_THICKNESS))
+                    .gravity_enabled(false),
+            ))
+            .with(Collider2d::new(ColliderDesc::new(ShapeHandle::new(
+                Cuboid::new(Vector::new(hw, HALF_WALL_THICKNESS)),
+            ))))
+            .with(Collider2dBody::Me)
+            .with(NonPersistent(token))
+            .build();
+
+        world
+            .create_entity()
+            .with(RigidBody2d::new(
+                RigidBodyDesc::new()
+                    .translation(Vector::new(hw, hh + hh + HALF_WALL_THICKNESS))
+                    .gravity_enabled(false),
+            ))
+            .with(Collider2d::new(ColliderDesc::new(ShapeHandle::new(
+                Cuboid::new(Vector::new(hw, HALF_WALL_THICKNESS)),
+            ))))
+            .with(Collider2dBody::Me)
+            .with(NonPersistent(token))
+            .build();
+
+        world
+            .create_entity()
+            .with(RigidBody2d::new(
+                RigidBodyDesc::new()
+                    .translation(Vector::new(-HALF_WALL_THICKNESS, hh))
+                    .gravity_enabled(false),
+            ))
+            .with(Collider2d::new(ColliderDesc::new(ShapeHandle::new(
+                Cuboid::new(Vector::new(HALF_WALL_THICKNESS, hh)),
+            ))))
+            .with(Collider2dBody::Me)
+            .with(NonPersistent(token))
+            .build();
+
+        world
+            .create_entity()
+            .with(RigidBody2d::new(
+                RigidBodyDesc::new()
+                    .translation(Vector::new(hw + hw + HALF_WALL_THICKNESS, hh))
+                    .gravity_enabled(false),
+            ))
+            .with(Collider2d::new(ColliderDesc::new(ShapeHandle::new(
+                Cuboid::new(Vector::new(HALF_WALL_THICKNESS, hh)),
+            ))))
+            .with(Collider2dBody::Me)
+            .with(NonPersistent(token))
+            .build();
     }
 
     fn create_trees(world: &mut World, token: StateToken) {
@@ -39,7 +142,6 @@ impl GameState {
             let assets = world.read_resource::<AssetsDatabase>();
             let asset = assets.asset_by_path("map://map.map").unwrap();
             let map = asset.get::<MapAsset>().unwrap().map();
-            let y_treshold = (map.rows * map.tile_height) as isize / 2;
             let spawns = map.layer_by_name("spawns").unwrap().data.objects().unwrap();
             spawns
                 .into_iter()
@@ -62,10 +164,10 @@ impl GameState {
                                     let x = x_range.sample(&mut rng);
                                     let y = y_range.sample(&mut rng);
                                     let r = r_range.sample(&mut rng);
-                                    let t = if y > y_treshold {
-                                        t_range_sand.sample(&mut rng)
-                                    } else {
-                                        t_range_grass.sample(&mut rng)
+                                    let t = match spawn.name.as_str() {
+                                        "barricade" => t_range_sand.sample(&mut rng),
+                                        "tree" => t_range_grass.sample(&mut rng),
+                                        _ => unreachable!(),
                                     };
                                     (x, y, r, t)
                                 })
@@ -99,18 +201,20 @@ impl GameState {
                 .with(RigidBody2d::new(
                     RigidBodyDesc::new()
                         .translation(Vector::new(x as f64, y as f64))
+                        .gravity_enabled(false)
                         .rotation(r),
                 ))
                 .with(Collider2d::new(ColliderDesc::new(ShapeHandle::new(
                     Ball::new(32.0),
                 ))))
                 .with(Collider2dBody::Me)
+                .with(Physics2dSyncCompositeTransform)
                 .with(NonPersistent(token))
                 .build();
         }
     }
 
-    fn create_players(world: &mut World, token: StateToken) {
+    fn create_players(&mut self, world: &mut World, token: StateToken) {
         let tanks_meta = {
             let assets = world.read_resource::<AssetsDatabase>();
             let asset = assets.asset_by_path("map://map.map").unwrap();
@@ -126,10 +230,10 @@ impl GameState {
                         "player" => {
                             let x = spawn.x + spawn.width as isize / 2;
                             let y = spawn.y + spawn.height as isize / 2;
-                            let (t, r) = if spawn.name == "north" {
-                                (PlayerType::North, PI * 0.0)
-                            } else {
-                                (PlayerType::South, PI * 1.0)
+                            let (r, t) = match spawn.name.as_str() {
+                                "north" => (0.0, PlayerType::North),
+                                "south" => (PI, PlayerType::South),
+                                _ => unreachable!(),
                             };
                             Some((x, y, r, t))
                         }
@@ -144,7 +248,7 @@ impl GameState {
                 PlayerType::North => "tank_red.png",
                 PlayerType::South => "tank_blue.png",
             };
-            world
+            let entity = world
                 .create_entity()
                 .with(CompositeRenderable(().into()))
                 .with(CompositeRenderDepth(25.0))
@@ -156,39 +260,23 @@ impl GameState {
                 .with(RigidBody2d::new(
                     RigidBodyDesc::new()
                         .translation(Vector::new(x as f64, y as f64))
-                        .rotation(r),
+                        .gravity_enabled(false)
+                        .rotation(r)
+                        .linear_damping(0.5)
+                        .angular_damping(2.0),
                 ))
-                .with(Collider2d::new(ColliderDesc::new(ShapeHandle::new(
-                    Ball::new(32.0),
-                ))))
+                .with(Collider2d::new(
+                    ColliderDesc::new(ShapeHandle::new(Cuboid::new(Vector::new(45.0, 45.0))))
+                        .density(1.0),
+                ))
                 .with(Collider2dBody::Me)
+                .with(Physics2dSyncCompositeTransform)
                 .with(NonPersistent(token))
-                .with(Speed(10.0))
+                .with(Speed(100.0, 0.1))
                 .with(Player(t))
                 .build();
+            world.write_resource::<TurnManager>().register(entity);
+            self.players.push(entity);
         }
     }
-}
-
-impl State for GameState {
-    fn on_enter(&mut self, world: &mut World) {
-        let token = world.read_resource::<AppLifeCycle>().current_state_token();
-
-        world
-            .create_entity()
-            .with(CompositeCamera::new(CompositeScalingMode::CenterAspect))
-            .with(CompositeTransform::scale(2432.0.into()).with_translation(1216.0.into()))
-            .with(NonPersistent(token))
-            .build();
-
-        Self::create_map(world, token);
-        Self::create_trees(world, token);
-        Self::create_players(world, token);
-    }
-
-    // fn on_process(&mut self, world: &mut World) -> StateChange {
-    //     let dt = world.read_resource::<AppLifeCycle>().delta_time_seconds();
-    //     info!("=== DT: {} | FRAME TIME: {}s", dt, 1.0 / dt);
-    //     StateChange::None
-    // }
 }

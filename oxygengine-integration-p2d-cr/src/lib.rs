@@ -1,7 +1,7 @@
 use oxygengine_composite_renderer::{component::CompositeTransform, math::Vec2};
 use oxygengine_core::{
     app::AppBuilder,
-    ecs::{Join, ReadStorage, System, Write, WriteStorage},
+    ecs::{Component, Join, ReadStorage, System, VecStorage, Write, WriteStorage},
     hierarchy::Parent,
 };
 use oxygengine_physics_2d::{component::RigidBody2d, resource::Physics2dWorld};
@@ -18,6 +18,13 @@ pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>, _: ()) {
     );
 }
 
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct Physics2dSyncCompositeTransform;
+
+impl Component for Physics2dSyncCompositeTransform {
+    type Storage = VecStorage<Self>;
+}
+
 #[derive(Debug, Default)]
 pub struct ApplyPhysics2dToCompositeTransformSystem;
 
@@ -27,16 +34,17 @@ impl<'s> System<'s> for ApplyPhysics2dToCompositeTransformSystem {
         ReadStorage<'s, RigidBody2d>,
         WriteStorage<'s, CompositeTransform>,
         ReadStorage<'s, Parent>,
+        ReadStorage<'s, Physics2dSyncCompositeTransform>,
     );
 
-    fn run(&mut self, (world, bodies, mut transforms, parents): Self::SystemData) {
+    fn run(&mut self, (world, bodies, mut transforms, parents, syncs): Self::SystemData) {
         if world.is_none() {
             return;
         }
 
         let world: &mut Physics2dWorld = &mut world.unwrap();
 
-        for (body, transform, _) in (&bodies, &mut transforms, !&parents).join() {
+        for (body, transform, _, _) in (&bodies, &mut transforms, !&parents, &syncs).join() {
             if let Some(handle) = body.handle() {
                 if let Some(body) = world.body(handle) {
                     let isometry = body.position();

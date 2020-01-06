@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.2" tiledversion="1.2.5" orientation="orthogonal" renderorder="right-down" width="19" height="19" tilewidth="128" tileheight="128" infinite="0" nextlayerid="5" nextobjectid="20">
+<map version="1.2" tiledversion="1.2.5" orientation="orthogonal" renderorder="right-down" width="19" height="19" tilewidth="128" tileheight="128" infinite="0" nextlayerid="5" nextobjectid="31">
  <tileset firstgid="1" source="tiles.tsx"/>
  <layer id="2" name="ground" width="19" height="19">
   <data encoding="csv">
@@ -48,19 +48,23 @@
 </data>
  </layer>
  <objectgroup id="4" name="spawns">
-  <object id="2" type="random" x="640" y="1664" width="512" height="384"/>
-  <object id="3" type="random" x="1280" y="1664" width="512" height="384"/>
-  <object id="4" type="random" x="1920" y="1664" width="384" height="384"/>
-  <object id="5" type="random" x="128" y="1664" width="384" height="384"/>
-  <object id="7" type="random" x="640" y="896" width="512" height="640"/>
-  <object id="8" type="random" x="1280" y="896" width="512" height="640"/>
-  <object id="11" type="random" x="128" y="384" width="384" height="384"/>
-  <object id="12" type="random" x="640" y="384" width="512" height="384"/>
-  <object id="13" type="random" x="1280" y="384" width="512" height="384"/>
-  <object id="14" type="random" x="1920" y="384" width="384" height="384"/>
-  <object id="15" type="random" x="128" y="896" width="384" height="640"/>
-  <object id="16" type="random" x="1920" y="896" width="384" height="640"/>
+  <object id="2" name="barricade" type="random" x="640" y="1664" width="512" height="384"/>
+  <object id="3" name="barricade" type="random" x="1280" y="1664" width="512" height="384"/>
+  <object id="4" name="barricade" type="random" x="1920" y="1664" width="384" height="384"/>
+  <object id="5" name="barricade" type="random" x="128" y="1664" width="384" height="384"/>
+  <object id="11" name="barricade" type="random" x="128" y="384" width="384" height="384"/>
+  <object id="12" name="tree" type="random" x="640" y="384" width="512" height="384"/>
+  <object id="13" name="tree" type="random" x="1280" y="384" width="512" height="384"/>
+  <object id="14" name="tree" type="random" x="1920" y="384" width="384" height="384"/>
   <object id="18" name="north" type="player" x="1152" y="0" width="128" height="128"/>
   <object id="19" name="south" type="player" x="1152" y="2304" width="128" height="128"/>
+  <object id="22" name="tree" type="random" x="0" y="896" width="512" height="256"/>
+  <object id="23" name="barricade" type="random" x="0" y="1280" width="512" height="256"/>
+  <object id="24" name="barricade" type="random" x="640" y="1280" width="512" height="256"/>
+  <object id="25" name="tree" type="random" x="640" y="896" width="512" height="256"/>
+  <object id="26" name="tree" type="random" x="1280" y="896" width="512" height="256"/>
+  <object id="27" name="barricade" type="random" x="1280" y="1280" width="512" height="256"/>
+  <object id="28" name="tree" type="random" x="1920" y="896" width="512" height="256"/>
+  <object id="30" name="barricade" type="random" x="1920" y="1280" width="512" height="256"/>
  </objectgroup>
 </map>

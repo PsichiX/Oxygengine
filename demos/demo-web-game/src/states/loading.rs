@@ -13,7 +13,7 @@ impl State for LoadingState {
         world
             .create_entity()
             .with(CompositeCamera::new(CompositeScalingMode::CenterAspect))
-            .with(CompositeTransform::scale(2432.0.into()).with_translation(1216.0.into()))
+            .with(CompositeTransform::scale(720.0.into()))
             .with(NonPersistent(token))
             .build();
 
@@ -26,11 +26,11 @@ impl State for LoadingState {
                     align: TextAlign::Center,
                     text: "Loading".into(),
                     position: 0.0.into(),
-                    size: 24.0,
+                    size: 64.0,
                 }
                 .into(),
             ))
-            .with(CompositeTransform::translation([0.0, -100.0].into()))
+            .with(CompositeTransform::default())
             .with(NonPersistent(token))
             .build();
     }
@@ -42,7 +42,7 @@ impl State for LoadingState {
                 // let input = &world.read_resource::<InputController>();
                 // NOTE: web browsers require user input to be triggered before playing any audio.
                 // if input.trigger_or_default("mouse-left") == TriggerState::Pressed {
-                return StateChange::Swap(Box::new(GameState));
+                return StateChange::Swap(Box::new(GameState::default()));
                 // }
             }
         } else {

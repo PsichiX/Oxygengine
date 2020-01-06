@@ -35,6 +35,7 @@ impl State for GameState {
                 Cuboid::new(Vector::new(512.0, 32.0)),
             ))))
             .with(Collider2dBody::Me)
+            .with(Physics2dSyncCompositeTransform)
             .build();
 
         // create first obstacle entity.
@@ -55,6 +56,7 @@ impl State for GameState {
                 Cuboid::new(Vector::new(10.0, 10.0)),
             ))))
             .with(Collider2dBody::Me)
+            .with(Physics2dSyncCompositeTransform)
             .build();
 
         // create second obstacle entity.
@@ -75,6 +77,7 @@ impl State for GameState {
                 Cuboid::new(Vector::new(10.0, 10.0)),
             ))))
             .with(Collider2dBody::Me)
+            .with(Physics2dSyncCompositeTransform)
             .build();
 
         // create player entity.
@@ -96,6 +99,7 @@ impl State for GameState {
                 ColliderDesc::new(ShapeHandle::new(Ball::new(64.0))).density(1.0),
             ))
             .with(Collider2dBody::Me)
+            .with(Physics2dSyncCompositeTransform)
             .build();
 
         // create hint text.

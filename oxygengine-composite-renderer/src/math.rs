@@ -560,6 +560,10 @@ impl Rect {
             self.h = -self.h;
         }
     }
+
+    pub fn center(&self) -> Vec2 {
+        Vec2::new(self.x + self.w * 0.5, self.y + self.h * 0.5)
+    }
 }
 
 impl From<(Scalar, Scalar)> for Rect {
