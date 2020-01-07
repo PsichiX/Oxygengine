@@ -5,3 +5,4 @@ node_modules
 /wasm-pack.log
 /static/*.pack
 /static/assets-generated
+/static/embed

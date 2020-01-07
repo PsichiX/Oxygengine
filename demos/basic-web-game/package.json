@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "scripts": {
     "build": "rimraf dist pkg && webpack",
-    "build-release": "OXY_RELEASE=1 rimraf dist pkg && webpack",
     "start": "rimraf dist pkg && webpack-dev-server --open -d"
   },
   "devDependencies": {

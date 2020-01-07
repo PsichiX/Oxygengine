@@ -47,6 +47,7 @@ impl State for GameState {
             .with(AudioSource::from(
                 AudioSourceConfig::new("music/strength-of-the-titans.ogg".into())
                     .streaming(true)
+                    .volume(0.5)
                     .looped(true)
                     .play(true),
             ))
