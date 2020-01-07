@@ -1,7 +1,7 @@
 use oxygengine::prelude::*;
 
 const WAITING_TIME: f64 = 3.0;
-const PLAYING_TIME: f64 = 7.0;
+const PLAYING_TIME: f64 = 9.0;
 
 #[derive(Debug, Copy, Clone)]
 pub enum Timer {
@@ -41,6 +41,11 @@ impl TurnManager {
     pub fn unregister(&mut self, entity: Entity) {
         if let Some(index) = self.entities.iter().position(|e| *e == entity) {
             self.entities.remove(index);
+            if let Some(active) = self.active {
+                if active == entity {
+                    self.select_next();
+                }
+            }
         }
     }
 
@@ -54,10 +59,6 @@ impl TurnManager {
         self.timer = Timer::None;
     }
 
-    pub fn entities(&self) -> &[Entity] {
-        &self.entities
-    }
-
     pub fn selected(&self) -> Option<Entity> {
         self.active
     }
@@ -68,16 +69,6 @@ impl TurnManager {
         } else {
             None
         }
-    }
-
-    pub fn select(&mut self, entity: Entity) {
-        if self.entities.contains(&entity) {
-            self.active = Some(entity);
-        }
-    }
-
-    pub fn deselect(&mut self) {
-        self.active = None;
     }
 
     pub fn select_nth(&mut self, index: usize) {

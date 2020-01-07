@@ -471,6 +471,11 @@ impl CompositeSpriteAnimation {
         }
     }
 
+    pub fn autoplay(mut self, name: &str, speed: Scalar, looped: bool) -> Self {
+        self.play(name, speed, looped);
+        self
+    }
+
     pub fn play(&mut self, name: &str, speed: Scalar, looped: bool) -> bool {
         if self.animations.contains_key(name) {
             self.current = Some((name.to_owned().into(), 0.0, speed, looped));

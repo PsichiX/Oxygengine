@@ -1,5 +1,6 @@
 use oxygengine::prelude::*;
 
+#[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub enum FollowMode {
     Instant,

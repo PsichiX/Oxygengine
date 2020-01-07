@@ -1,4 +1,3 @@
-#[cfg(debug_assertions)]
 #[macro_use]
 extern crate oxygengine;
 
@@ -6,8 +5,9 @@ use crate::{
     resources::turn::TurnManager,
     states::loading::LoadingState,
     systems::{
-        camera_control::CameraControlSystem, follow::FollowSystem,
-        player_control::PlayerControlSystem, turn::TurnSystem,
+        bonuses::BonusesSystem, camera_control::CameraControlSystem,
+        destruction::DestructionSystem, follow::FollowSystem, game::GameSystem,
+        health::HealthSystem, player_control::PlayerControlSystem, turn::TurnSystem,
     },
 };
 use oxygengine::prelude::*;
@@ -41,14 +41,14 @@ pub fn main_js() -> Result<(), JsValue> {
         .with_bundle(oxygengine::input::bundle_installer, |input| {
             input.register(WebKeyboardInputDevice::new(get_event_target_document()));
             input.register(WebMouseInputDevice::new(get_event_target_by_id("screen")));
-            input.map_trigger("next-player", "keyboard", "Space");
+            input.map_trigger("fire", "keyboard", "Space");
             input.map_axis("move-up", "keyboard", "KeyW");
             input.map_axis("move-down", "keyboard", "KeyS");
             input.map_axis("move-left", "keyboard", "KeyA");
             input.map_axis("move-right", "keyboard", "KeyD");
             // input.map_axis("mouse-x", "mouse", "x");
             // input.map_axis("mouse-y", "mouse", "y");
-            input.map_trigger("mouse-left", "mouse", "left");
+            // input.map_trigger("mouse-left", "mouse", "left");
         })
         .with_bundle(
             oxygengine::composite_renderer::bundle_installer,
@@ -70,10 +70,14 @@ pub fn main_js() -> Result<(), JsValue> {
             (),
         )
         .with_resource(TurnManager::default())
-        .with_system(PlayerControlSystem, "player-control", &[])
         .with_system(FollowSystem, "follow", &[])
-        .with_system(TurnSystem, "turns", &[])
+        .with_system(HealthSystem, "health", &[])
+        .with_system(BonusesSystem, "bonuses", &[])
+        .with_system(PlayerControlSystem, "player-control", &[])
+        .with_system(DestructionSystem, "destruction", &[])
         .with_system(CameraControlSystem, "camera-control", &[])
+        .with_system(TurnSystem, "turns", &[])
+        .with_system(GameSystem, "game", &[])
         .build(LoadingState::default(), WebAppTimer::default());
 
     AppRunner::new(app).run(WebAppRunner)?;

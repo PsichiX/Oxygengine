@@ -45,6 +45,7 @@ pub struct Physics2dWorld {
     last_proximities: Vec<Physics2dProximity>,
     active_contacts: HashSet<(Entity, Entity)>,
     active_proximities: HashSet<(Entity, Entity)>,
+    paused: bool,
 }
 
 impl Default for Physics2dWorld {
@@ -63,6 +64,7 @@ impl Default for Physics2dWorld {
             last_proximities: vec![],
             active_contacts: Default::default(),
             active_proximities: Default::default(),
+            paused: false,
         }
     }
 }
@@ -106,6 +108,14 @@ impl Physics2dWorld {
     pub fn set_time_step(&mut self, value: Scalar) {
         self.mechanical_world.set_timestep(value);
         self.remaining_time_step = 0.0;
+    }
+
+    pub fn paused(&self) -> bool {
+        self.paused
+    }
+
+    pub fn set_paused(&mut self, value: bool) {
+        self.paused = value;
     }
 
     pub fn reset_timestep_accumulator(&mut self) {
@@ -183,6 +193,9 @@ impl Physics2dWorld {
     }
 
     pub fn process(&mut self, mut delta_time: Scalar) {
+        if self.paused {
+            return;
+        }
         self.last_contacts.clear();
         self.last_proximities.clear();
         self.active_contacts.clear();
