@@ -1,3 +1,8 @@
-# Example of game made with Oxygengine
+# Example of simple game made with Oxygengine
 
-Sprites bought from: [https://www.kenney.nl/](https://www.kenney.nl/)
+# Assets used:
+Sprites bought from: https://www.kenney.nl/
+
+Music from https://filmmusic.io
+"Strength Of The Titans" by Kevin MacLeod (https://incompetech.com)
+License: CC BY (http://creativecommons.org/licenses/by/4.0/)

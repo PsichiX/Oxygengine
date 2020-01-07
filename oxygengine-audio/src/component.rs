@@ -75,6 +75,7 @@ pub struct AudioSource {
     playback_rate: f32,
     volume: f32,
     play: bool,
+    pub(crate) current_time: Option<f32>,
     pub(crate) ready: Arc<AtomicBool>,
     pub(crate) dirty: AudioSourceDirtyMode,
 }
@@ -101,6 +102,7 @@ impl AudioSource {
             playback_rate: 1.0,
             volume: 1.0,
             play: false,
+            current_time: None,
             ready: Arc::new(AtomicBool::new(false)),
             dirty: AudioSourceDirtyMode::All,
         }
@@ -114,6 +116,7 @@ impl AudioSource {
             playback_rate: 1.0,
             volume: 1.0,
             play,
+            current_time: None,
             ready: Arc::new(AtomicBool::new(false)),
             dirty: AudioSourceDirtyMode::All,
         }
@@ -134,6 +137,7 @@ impl AudioSource {
             playback_rate,
             volume,
             play,
+            current_time: None,
             ready: Arc::new(AtomicBool::new(false)),
             dirty: AudioSourceDirtyMode::All,
         }
@@ -172,6 +176,10 @@ impl AudioSource {
     pub fn set_volume(&mut self, volume: f32) {
         self.volume = volume;
         self.dirty = AudioSourceDirtyMode::Param;
+    }
+
+    pub fn current_time(&self) -> Option<f32> {
+        self.current_time
     }
 
     pub fn must_play(&self) -> bool {

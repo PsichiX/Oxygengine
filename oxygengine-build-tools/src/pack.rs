@@ -16,7 +16,8 @@ pub fn pack_assets<P: AsRef<Path>>(paths: &[P], quiet: bool) -> Result<Vec<u8>, 
                     if !quiet {
                         println!("* Include file: {:?}", path);
                     }
-                    files.insert(path.to_owned(), contents);
+                    let name = path.to_owned().replace("\\\\", "/").replace("\\", "/");
+                    files.insert(name, contents);
                 } else if !quiet {
                     println!("* Cannot parse path: {:?}", path);
                 }

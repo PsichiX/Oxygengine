@@ -1,4 +1,4 @@
-use crate::states::game::GameState;
+use crate::states::splash::SplashState;
 use oxygengine::prelude::*;
 
 #[derive(Default)]
@@ -20,15 +20,11 @@ impl State for LoadingState {
         world
             .create_entity()
             .with(CompositeRenderable(
-                Text {
-                    color: Color::white(),
-                    font: "Verdana".into(),
-                    align: TextAlign::Center,
-                    text: "Loading".into(),
-                    position: 0.0.into(),
-                    size: 64.0,
-                }
-                .into(),
+                Text::new("Verdana".into(), "Loading".into())
+                    .color(Color::white())
+                    .align(TextAlign::Center)
+                    .size(64.0)
+                    .into(),
             ))
             .with(CompositeTransform::default())
             .with(NonPersistent(token))
@@ -39,11 +35,7 @@ impl State for LoadingState {
         let assets = &mut world.write_resource::<AssetsDatabase>();
         if let Some(preloader) = &mut self.preloader {
             if preloader.process(assets).unwrap() {
-                // let input = &world.read_resource::<InputController>();
-                // NOTE: web browsers require user input to be triggered before playing any audio.
-                // if input.trigger_or_default("mouse-left") == TriggerState::Pressed {
-                return StateChange::Swap(Box::new(GameState::default()));
-                // }
+                return StateChange::Swap(Box::new(SplashState));
             }
         } else {
             self.preloader = Some(

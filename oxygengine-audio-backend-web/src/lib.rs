@@ -181,6 +181,19 @@ impl Audio for WebAudio {
         }
     }
 
+    fn get_source_state(&self, entity: Entity) -> Option<AudioState> {
+        if let Some(audio) = self.sources_cache.get(&entity) {
+            Some(match audio {
+                AudioCache::Buffered(_, _) => AudioState { current_time: None },
+                AudioCache::Streaming(audio, _) => AudioState {
+                    current_time: Some(audio.current_time() as f32),
+                },
+            })
+        } else {
+            None
+        }
+    }
+
     fn get_asset_id(&self, path: &str) -> Option<AssetID> {
         self.table_forward.get(path).copied()
     }

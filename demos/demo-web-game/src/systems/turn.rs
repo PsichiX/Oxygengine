@@ -18,6 +18,9 @@ impl<'s> System<'s> for TurnSystem {
     );
 
     fn run(&mut self, (lifecycle, globals, mut turns, mut follows): Self::SystemData) {
+        if !globals.phase.is_game() {
+            return;
+        }
         turns.process(lifecycle.delta_time_seconds());
 
         if let Some(camera) = globals.camera {

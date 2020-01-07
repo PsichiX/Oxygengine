@@ -16,7 +16,10 @@
           {
             "Copy": {
               "from": [
-                "assets.txt"
+                "assets.txt",
+                "splash.png",
+                "sounds/",
+                "music/"
               ]
             }
           },

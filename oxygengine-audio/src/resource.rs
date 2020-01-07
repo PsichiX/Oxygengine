@@ -6,6 +6,11 @@ use core::{
 };
 use std::sync::{atomic::AtomicBool, Arc};
 
+#[derive(Debug, Default, Clone)]
+pub struct AudioState {
+    pub current_time: Option<f32>,
+}
+
 pub trait Audio: Send + Sync {
     fn create_source(
         &mut self,
@@ -28,6 +33,7 @@ pub trait Audio: Send + Sync {
         volume: f32,
         play: Option<bool>,
     );
+    fn get_source_state(&self, entity: Entity) -> Option<AudioState>;
     fn get_asset_id(&self, path: &str) -> Option<AssetID>;
     fn update_cache(&mut self, _assets: &AssetsDatabase) {}
 }

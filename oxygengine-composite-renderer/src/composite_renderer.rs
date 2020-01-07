@@ -15,6 +15,21 @@ impl Default for TextAlign {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
+pub enum TextBaseLine {
+    Top,
+    Middle,
+    Bottom,
+    Alphabetic,
+    Hanging,
+}
+
+impl Default for TextBaseLine {
+    fn default() -> Self {
+        TextBaseLine::Top
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct Rectangle {
     pub color: Color,
@@ -33,6 +48,7 @@ pub struct Text<'a> {
     pub color: Color,
     pub font: Cow<'a, str>,
     pub align: TextAlign,
+    pub baseline: TextBaseLine,
     pub text: Cow<'a, str>,
     pub position: Vec2,
     pub size: Scalar,
@@ -44,6 +60,7 @@ impl<'a> Text<'a> {
             color: Default::default(),
             font: font.into(),
             align: Default::default(),
+            baseline: Default::default(),
             text: text.into(),
             position: 0.0.into(),
             size: 32.0,
@@ -55,6 +72,7 @@ impl<'a> Text<'a> {
             color: Default::default(),
             font: font.into(),
             align: Default::default(),
+            baseline: Default::default(),
             text: text.into(),
             position: 0.0.into(),
             size: 32.0,
@@ -68,6 +86,11 @@ impl<'a> Text<'a> {
 
     pub fn align(mut self, align: TextAlign) -> Self {
         self.align = align;
+        self
+    }
+
+    pub fn baseline(mut self, baseline: TextBaseLine) -> Self {
+        self.baseline = baseline;
         self
     }
 

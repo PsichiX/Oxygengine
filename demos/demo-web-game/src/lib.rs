@@ -48,7 +48,7 @@ pub fn main_js() -> Result<(), JsValue> {
             input.map_axis("move-right", "keyboard", "KeyD");
             // input.map_axis("mouse-x", "mouse", "x");
             // input.map_axis("mouse-y", "mouse", "y");
-            // input.map_trigger("mouse-left", "mouse", "left");
+            input.map_trigger("mouse-left", "mouse", "left");
         })
         .with_bundle(
             oxygengine::composite_renderer::bundle_installer,

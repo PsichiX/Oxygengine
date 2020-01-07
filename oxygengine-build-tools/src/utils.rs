@@ -24,7 +24,8 @@ pub(crate) fn scan_dir(
                             if !quiet {
                                 println!("* Include file: {:?} as: {:?}", root.join(path), path);
                             }
-                            map.insert(path.to_owned(), contents);
+                            let name = path.to_owned().replace("\\\\", "/").replace("\\", "/");
+                            map.insert(name, contents);
                         } else if !quiet {
                             println!("* Cannot parse path: {:?}", root.join(path));
                         }

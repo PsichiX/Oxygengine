@@ -44,6 +44,12 @@ impl State for GameState {
             .with(CompositeTransform::scale(720.0.into()).with_translation(1216.0.into()))
             .with(NonPersistent(token))
             .with(Follow(None, FollowMode::Delayed(0.98)))
+            .with(AudioSource::from(
+                AudioSourceConfig::new("music/strength-of-the-titans.ogg".into())
+                    .streaming(true)
+                    .looped(true)
+                    .play(true),
+            ))
             .build();
 
         world
@@ -409,15 +415,10 @@ impl GameState {
                 .create_entity()
                 .with(Tag("ui".into()))
                 .with(CompositeRenderable(
-                    Text {
-                        color: Color::yellow(),
-                        font: "Verdana".into(),
-                        align: TextAlign::Left,
-                        text: "".into(),
-                        position: 0.0.into(),
-                        size: 48.0,
-                    }
-                    .into(),
+                    Text::new("Verdana".into(), "".into())
+                        .color(Color::yellow())
+                        .size(48.0)
+                        .into(),
                 ))
                 .with(CompositeTransform::translation([24.0, 48.0].into()))
                 .with(CompositeCameraAlignment(0.0.into()))
@@ -430,15 +431,11 @@ impl GameState {
                 .create_entity()
                 .with(Tag("ui".into()))
                 .with(CompositeRenderable(
-                    Text {
-                        color: Color::yellow(),
-                        font: "Verdana".into(),
-                        align: TextAlign::Right,
-                        text: "".into(),
-                        position: 0.0.into(),
-                        size: 48.0,
-                    }
-                    .into(),
+                    Text::new("Verdana".into(), "".into())
+                        .color(Color::yellow())
+                        .align(TextAlign::Right)
+                        .size(48.0)
+                        .into(),
                 ))
                 .with(CompositeTransform::translation([-24.0, 48.0].into()))
                 .with(CompositeCameraAlignment([1.0, 0.0].into()))
@@ -468,15 +465,12 @@ impl GameState {
                 .create_entity()
                 .with(Tag("ui".into()))
                 .with(CompositeRenderable(
-                    Text {
-                        color: Color::white(),
-                        font: "Verdana".into(),
-                        align: TextAlign::Center,
-                        text: "".into(),
-                        position: 0.0.into(),
-                        size: 48.0,
-                    }
-                    .into(),
+                    Text::new("Verdana".into(), "".into())
+                        .color(Color::yellow())
+                        .align(TextAlign::Center)
+                        .baseline(TextBaseLine::Middle)
+                        .size(48.0)
+                        .into(),
                 ))
                 .with(CompositeTransform::default())
                 .with(CompositeVisibility(true))
@@ -613,6 +607,9 @@ impl GameState {
                         .with(Bullet(t))
                         .with(Death(DespawnEffect::ExplodeSmoke))
                         .with(Lifetime(3.0))
+                        .with(AudioSource::from(
+                            AudioSourceConfig::new("sounds/firegun.ogg".into()).play(true),
+                        ))
                         .build();
                 }
             }
@@ -677,6 +674,9 @@ impl GameState {
                             .with(CompositeTransform::translation(pos))
                             .with(NonPersistent(token))
                             .with(Lifetime(EXPLOSION_TIME))
+                            .with(AudioSource::from(
+                                AudioSourceConfig::new("sounds/explosion.ogg".into()).play(true),
+                            ))
                             .build();
                     }
                 }

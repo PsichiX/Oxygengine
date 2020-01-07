@@ -106,6 +106,13 @@ impl WebCompositeRenderer {
                             TextAlign::Center => "center",
                             TextAlign::Right => "right",
                         });
+                        context.set_text_baseline(match text.baseline {
+                            TextBaseLine::Top => "top",
+                            TextBaseLine::Middle => "middle",
+                            TextBaseLine::Bottom => "bottom",
+                            TextBaseLine::Alphabetic => "alphabetic",
+                            TextBaseLine::Hanging => "hanging",
+                        });
                         for (i, line) in text.text.lines().enumerate() {
                             drop(context.fill_text(
                                 line,
@@ -300,6 +307,13 @@ impl WebCompositeRenderer {
                             TextAlign::Left => "left",
                             TextAlign::Center => "center",
                             TextAlign::Right => "right",
+                        });
+                        context.set_text_baseline(match text.baseline {
+                            TextBaseLine::Top => "top",
+                            TextBaseLine::Middle => "middle",
+                            TextBaseLine::Bottom => "bottom",
+                            TextBaseLine::Alphabetic => "alphabetic",
+                            TextBaseLine::Hanging => "hanging",
                         });
                         for (i, line) in text.text.lines().enumerate() {
                             drop(context.stroke_text(

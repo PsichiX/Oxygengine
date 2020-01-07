@@ -3,7 +3,7 @@ const CopyPlugin = require("copy-webpack-plugin");
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 
 const dist = path.resolve(__dirname, "dist");
-const DEBUG = true;
+const DEBUG = !process.env.OXY_RELEASE;
 console.log('BUILD MODE: ' + (DEBUG ? 'DEBUG' : 'RELEASE'));
 
 module.exports = {
