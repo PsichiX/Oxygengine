@@ -168,8 +168,6 @@ members = [
   "oxygengine-integration-p2d-cr",
   "oxygengine-build-tools",
   "demos/procedural-world-simulation",
-  "demos/chat/chat-server",
-  "demos/chat/chat-client",
   "demos/amethyst-integration",
   "demos/basic-web-game",
   "demos/demo-web-game",
