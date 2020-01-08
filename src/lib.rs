@@ -65,6 +65,10 @@ pub mod physics_2d {
 pub mod integration_physics_2d_composite_renderer {
     pub use oxygengine_integration_p2d_cr::*;
 }
+pub mod script {
+    #[cfg(feature = "script-web")]
+    pub use oxygengine_script_web::*;
+}
 
 pub mod prelude {
     #[cfg(feature = "audio")]
@@ -106,5 +110,8 @@ pub mod prelude {
     pub use oxygengine_physics_2d::prelude::*;
     #[cfg(feature = "procedural")]
     pub use oxygengine_procedural::prelude::*;
+    #[cfg(feature = "web")]
+    #[cfg(feature = "script-web")]
+    pub use oxygengine_script_web::prelude::*;
     pub use oxygengine_utils::prelude::*;
 }

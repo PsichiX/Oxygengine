@@ -35,6 +35,7 @@ impl State for GameState {
                 Cuboid::new(Vector::new(512.0, 32.0)),
             ))))
             .with(Collider2dBody::Me)
+            .with(Physics2dSyncCompositeTransform)
             .build();
 
         // create first obstacle entity.
@@ -55,6 +56,7 @@ impl State for GameState {
                 Cuboid::new(Vector::new(10.0, 10.0)),
             ))))
             .with(Collider2dBody::Me)
+            .with(Physics2dSyncCompositeTransform)
             .build();
 
         // create second obstacle entity.
@@ -75,6 +77,7 @@ impl State for GameState {
                 Cuboid::new(Vector::new(10.0, 10.0)),
             ))))
             .with(Collider2dBody::Me)
+            .with(Physics2dSyncCompositeTransform)
             .build();
 
         // create player entity.
@@ -96,21 +99,18 @@ impl State for GameState {
                 ColliderDesc::new(ShapeHandle::new(Ball::new(64.0))).density(1.0),
             ))
             .with(Collider2dBody::Me)
+            .with(Physics2dSyncCompositeTransform)
             .build();
 
         // create hint text.
         world
             .create_entity()
             .with(CompositeRenderable(
-                Text {
-                    color: Color::white(),
-                    font: "Verdana".into(),
-                    align: TextAlign::Center,
-                    text: "Use WSAD to move".into(),
-                    position: 0.0.into(),
-                    size: 24.0,
-                }
-                .into(),
+                Text::new("Verdana".into(), "Use WSAD to move".into())
+                    .color(Color::white())
+                    .align(TextAlign::Center)
+                    .size(24.0)
+                    .into(),
             ))
             .with(CompositeTransform::translation([0.0, -100.0].into()))
             .with(CompositeRenderDepth(1.0))

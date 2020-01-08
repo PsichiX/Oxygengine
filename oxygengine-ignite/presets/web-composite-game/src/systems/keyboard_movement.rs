@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 use crate::components::{speed::Speed, KeyboardMovementTag};
 use oxygengine::prelude::*;
 

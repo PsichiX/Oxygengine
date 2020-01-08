@@ -106,15 +106,11 @@ impl State for GameState {
         world
             .create_entity()
             .with(CompositeRenderable(
-                Text {
-                    color: Color::white(),
-                    font: "Verdana".into(),
-                    align: TextAlign::Center,
-                    text: "Use WSAD to move".into(),
-                    position: 0.0.into(),
-                    size: 24.0,
-                }
-                .into(),
+                Text::new("Verdana".into(), "Use WSAD to move".into())
+                    .color(Color::white())
+                    .align(TextAlign::Center)
+                    .size(24.0)
+                    .into(),
             ))
             .with(CompositeTransform::translation([0.0, -100.0].into()))
             .with(CompositeRenderDepth(1.0))

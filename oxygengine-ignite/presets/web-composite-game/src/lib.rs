@@ -56,7 +56,13 @@ pub fn main_js() -> Result<(), JsValue> {
         // install audio support.
         .with_bundle(oxygengine::audio::bundle_installer, WebAudio::default())
         // install 2D physics with default gravity force vector.
-        .with_bundle(oxygengine::physics_2d::bundle_installer, Vector::y() * 9.81)
+        .with_bundle(
+            oxygengine::physics_2d::bundle_installer,
+            (
+                Vector::y() * 9.81,
+                Physics2dWorldSimulationMode::FixedTimestepMaxIterations(3),
+            ),
+        )
         // install integration between 2D physics and composite rendering.
         .with_bundle(
             oxygengine::integration_physics_2d_composite_renderer::bundle_installer,
