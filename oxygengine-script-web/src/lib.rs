@@ -6,6 +6,8 @@ pub mod component;
 pub mod interface;
 pub mod state;
 pub mod system;
+pub mod web_api;
+
 pub mod prelude {
     pub use crate::{component::*, interface::*, state::*, system::*};
 }

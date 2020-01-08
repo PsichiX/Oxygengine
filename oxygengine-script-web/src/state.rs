@@ -1,4 +1,4 @@
-use crate::interface::OxygenInterface;
+use crate::interface::WebScriptInterface;
 use core::{
     ecs::World,
     state::{State, StateChange},
@@ -65,7 +65,7 @@ impl State for WebScriptState {
             if let Ok(result) = on_process.call0(&self.context) {
                 if let Some(result) = result.dyn_ref::<JsString>() {
                     let name = String::from(result);
-                    if let Some(result) = OxygenInterface::build_state(&name) {
+                    if let Some(result) = WebScriptInterface::build_state(&name) {
                         return StateChange::Swap(Box::new(WebScriptState::new(result)));
                     }
                 }

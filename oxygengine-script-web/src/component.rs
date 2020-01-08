@@ -1,15 +1,44 @@
+use crate::web_api::EntityId;
 use core::prelude::*;
-use js_sys::Object;
 use std::collections::HashMap;
+use wasm_bindgen::prelude::*;
 
-#[derive(Default)]
-pub struct WebScriptComponent(pub HashMap<String, Object>);
+#[derive(Copy, Clone)]
+pub enum WebScriptComponentState {
+    Born,
+    Alive,
+    Killed,
+}
+
+pub struct WebScriptComponent {
+    id: EntityId,
+    state: WebScriptComponentState,
+    components: HashMap<String, JsValue>,
+}
 
 unsafe impl Send for WebScriptComponent {}
 unsafe impl Sync for WebScriptComponent {}
 
 impl WebScriptComponent {
-    // pub fn new() {}
+    pub fn new(id: EntityId, components: HashMap<String, JsValue>) -> Self {
+        Self {
+            id,
+            state: WebScriptComponentState::Born,
+            components,
+        }
+    }
+
+    pub fn id(&self) -> EntityId {
+        self.id
+    }
+
+    pub fn state(&self) -> WebScriptComponentState {
+        self.state
+    }
+
+    pub fn components_iter(&self) -> impl Iterator<Item = (&String, &JsValue)> {
+        self.components.iter()
+    }
 }
 
 impl Component for WebScriptComponent {

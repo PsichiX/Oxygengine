@@ -17,7 +17,7 @@ impl FsFetchEngine {
 }
 
 impl FetchEngine for FsFetchEngine {
-    fn fetch(&mut self, path: &str) -> Result<Box<FetchProcessReader>, FetchStatus> {
+    fn fetch(&mut self, path: &str) -> Result<Box<dyn FetchProcessReader>, FetchStatus> {
         #[cfg(feature = "parallel")]
         {
             let path = self.root_path.join(path);
