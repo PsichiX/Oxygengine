@@ -3,7 +3,7 @@ use js_sys::Function;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct EntityId {
     pub(crate) index: u64,
     pub(crate) generation: u32,
@@ -34,7 +34,15 @@ impl WebScriptApi {
         WebScriptInterface::register_component_factory(name, factory);
     }
 
+    pub fn register_system(name: &str, system: JsValue) {
+        WebScriptInterface::register_system(name, system);
+    }
+
     pub fn create_entity(data: JsValue) -> EntityId {
         WebScriptInterface::create_entity(data)
+    }
+
+    pub fn destroy_entity(id: EntityId) {
+        WebScriptInterface::destroy_entity(id);
     }
 }

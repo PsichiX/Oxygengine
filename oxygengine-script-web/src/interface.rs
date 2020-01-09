@@ -1,7 +1,10 @@
 use crate::{component::WebScriptComponent, web_api::EntityId};
-use core::ecs::{world::EntitiesRes, Builder, LazyUpdate};
-use js_sys::{Function, JsString, Object};
-use std::{collections::HashMap, sync::Mutex};
+use core::ecs::{world::EntitiesRes, Builder, Entity, LazyUpdate, ReadStorage, SystemData};
+use js_sys::{Function, JsString, Object, Reflect};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Mutex,
+};
 use wasm_bindgen::{JsCast, JsValue};
 
 lazy_static! {
@@ -9,11 +12,15 @@ lazy_static! {
 }
 
 pub struct WebScriptInterface {
+    resources: HashMap<String, JsValue>,
     component_factory: HashMap<String, Function>,
     state_factory: HashMap<String, Function>,
+    systems: HashMap<String, (JsValue, Function)>,
     index_generator: u64,
     generation: u32,
     entities_to_create: Vec<(JsValue, EntityId)>,
+    entities_to_destroy: HashSet<EntityId>,
+    entities_map: HashMap<EntityId, Entity>,
 }
 
 unsafe impl Send for WebScriptInterface {}
@@ -22,16 +29,26 @@ unsafe impl Sync for WebScriptInterface {}
 impl Default for WebScriptInterface {
     fn default() -> Self {
         Self {
+            resources: HashMap::new(),
             component_factory: HashMap::new(),
             state_factory: HashMap::new(),
+            systems: HashMap::new(),
             index_generator: 0,
             generation: 1,
             entities_to_create: vec![],
+            entities_to_destroy: HashSet::new(),
+            entities_map: HashMap::new(),
         }
     }
 }
 
 impl WebScriptInterface {
+    pub fn register_resource(name: &str, resource: JsValue) {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            interface.resources.insert(name.to_owned(), resource);
+        }
+    }
+
     pub fn register_component_factory(name: &str, factory: Function) {
         if let Ok(mut interface) = INTERFACE.lock() {
             interface.component_factory.insert(name.to_owned(), factory);
@@ -42,6 +59,27 @@ impl WebScriptInterface {
         if let Ok(mut interface) = INTERFACE.lock() {
             interface.state_factory.insert(name.to_owned(), factory);
         }
+    }
+
+    pub fn register_system(name: &str, system: JsValue) {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            if let Ok(m) = Reflect::get(&system, &JsValue::from_str("onRun")) {
+                if let Some(m) = m.dyn_ref::<Function>() {
+                    interface
+                        .systems
+                        .insert(name.to_owned(), (system, m.clone()));
+                }
+            }
+        }
+    }
+
+    pub fn get_resource(name: &str) -> JsValue {
+        if let Ok(interface) = INTERFACE.lock() {
+            if let Some(resource) = interface.resources.get(name) {
+                return resource.clone();
+            }
+        }
+        JsValue::UNDEFINED
     }
 
     pub fn build_state(name: &str) -> Option<JsValue> {
@@ -71,8 +109,38 @@ impl WebScriptInterface {
         }
     }
 
-    pub(crate) fn build_entities(entities: &EntitiesRes, lazy: &LazyUpdate) {
+    pub fn destroy_entity(id: EntityId) {
         if let Ok(mut interface) = INTERFACE.lock() {
+            interface.entities_to_destroy.insert(id);
+        }
+    }
+
+    pub(crate) fn run_systems<'s, SD>(components: ReadStorage<'s, WebScriptComponent>, data: SD)
+    where
+        SD: SystemData<'s>,
+    {
+        // TODO: figure out how to avoid allocation (allocation is made to unlock access to
+        // interface from JS systems).
+        let meta = if let Ok(interface) = INTERFACE.lock() {
+            interface.systems.values().cloned().collect::<Vec<_>>()
+        } else {
+            return;
+        };
+        for (context, on_run) in meta {
+            drop(on_run.call0(&context));
+        }
+    }
+
+    pub(crate) fn maintain_entities(entities: &EntitiesRes, lazy: &LazyUpdate) {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            let entities_to_destroy =
+                std::mem::replace(&mut interface.entities_to_destroy, HashSet::new());
+            for id in entities_to_destroy {
+                if let Some(id) = interface.entities_map.remove(&id) {
+                    drop(entities.delete(id));
+                }
+            }
+
             let entities_to_create = std::mem::replace(&mut interface.entities_to_create, vec![]);
             for (data, id) in entities_to_create {
                 let mut builder = lazy.create_entity(entities);
@@ -103,7 +171,7 @@ impl WebScriptInterface {
                     }
                 }
                 builder = builder.with(WebScriptComponent::new(id, components));
-                builder.build();
+                interface.entities_map.insert(id, builder.build());
             }
         }
     }
