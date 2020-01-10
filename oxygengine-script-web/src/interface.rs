@@ -1,5 +1,5 @@
 use crate::{component::WebScriptComponent, web_api::EntityId};
-use core::ecs::{world::EntitiesRes, Builder, Entity, LazyUpdate, ReadStorage, SystemData};
+use core::ecs::{Builder, Entity, World};
 use js_sys::{Function, JsString, Object, Reflect};
 use std::{
     collections::{HashMap, HashSet},
@@ -12,6 +12,8 @@ lazy_static! {
 }
 
 pub struct WebScriptInterface {
+    ready: bool,
+    world_ptr: Option<*mut World>,
     resources: HashMap<String, JsValue>,
     component_factory: HashMap<String, Function>,
     state_factory: HashMap<String, Function>,
@@ -29,6 +31,8 @@ unsafe impl Sync for WebScriptInterface {}
 impl Default for WebScriptInterface {
     fn default() -> Self {
         Self {
+            ready: false,
+            world_ptr: None,
             resources: HashMap::new(),
             component_factory: HashMap::new(),
             state_factory: HashMap::new(),
@@ -43,31 +47,89 @@ impl Default for WebScriptInterface {
 }
 
 impl WebScriptInterface {
+    pub fn is_ready() -> bool {
+        if let Ok(interface) = INTERFACE.lock() {
+            interface.ready
+        } else {
+            false
+        }
+    }
+
+    pub(crate) fn mark_ready() {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            interface.ready = true;
+        }
+    }
+
+    pub fn is_invalid() -> bool {
+        if let Ok(interface) = INTERFACE.lock() {
+            interface.world_ptr.is_none()
+        } else {
+            true
+        }
+    }
+
+    pub(crate) fn set_world(world: &mut World) {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            interface.world_ptr = Some(world as *mut World);
+        }
+    }
+
+    pub(crate) fn unset_world() {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            interface.world_ptr = None;
+        }
+    }
+
+    pub(crate) fn world() -> Option<*mut World> {
+        if let Ok(interface) = INTERFACE.lock() {
+            interface.world_ptr
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn entities() -> Option<Vec<Entity>> {
+        if let Ok(interface) = INTERFACE.lock() {
+            Some(interface.entities_map.values().copied().collect::<Vec<_>>())
+        } else {
+            None
+        }
+    }
+
     pub fn register_resource(name: &str, resource: JsValue) {
         if let Ok(mut interface) = INTERFACE.lock() {
-            interface.resources.insert(name.to_owned(), resource);
+            if !interface.ready {
+                interface.resources.insert(name.to_owned(), resource);
+            }
         }
     }
 
     pub fn register_component_factory(name: &str, factory: Function) {
         if let Ok(mut interface) = INTERFACE.lock() {
-            interface.component_factory.insert(name.to_owned(), factory);
+            if !interface.ready {
+                interface.component_factory.insert(name.to_owned(), factory);
+            }
         }
     }
 
     pub fn register_state_factory(name: &str, factory: Function) {
         if let Ok(mut interface) = INTERFACE.lock() {
-            interface.state_factory.insert(name.to_owned(), factory);
+            if !interface.ready {
+                interface.state_factory.insert(name.to_owned(), factory);
+            }
         }
     }
 
     pub fn register_system(name: &str, system: JsValue) {
         if let Ok(mut interface) = INTERFACE.lock() {
-            if let Ok(m) = Reflect::get(&system, &JsValue::from_str("onRun")) {
-                if let Some(m) = m.dyn_ref::<Function>() {
-                    interface
-                        .systems
-                        .insert(name.to_owned(), (system, m.clone()));
+            if !interface.ready {
+                if let Ok(m) = Reflect::get(&system, &JsValue::from_str("onRun")) {
+                    if let Some(m) = m.dyn_ref::<Function>() {
+                        interface
+                            .systems
+                            .insert(name.to_owned(), (system, m.clone()));
+                    }
                 }
             }
         }
@@ -115,10 +177,7 @@ impl WebScriptInterface {
         }
     }
 
-    pub(crate) fn run_systems<'s, SD>(components: ReadStorage<'s, WebScriptComponent>, data: SD)
-    where
-        SD: SystemData<'s>,
-    {
+    pub(crate) fn run_systems() {
         // TODO: figure out how to avoid allocation (allocation is made to unlock access to
         // interface from JS systems).
         let meta = if let Ok(interface) = INTERFACE.lock() {
@@ -131,19 +190,19 @@ impl WebScriptInterface {
         }
     }
 
-    pub(crate) fn maintain_entities(entities: &EntitiesRes, lazy: &LazyUpdate) {
+    pub(crate) fn maintain_entities(world: &mut World) {
         if let Ok(mut interface) = INTERFACE.lock() {
             let entities_to_destroy =
                 std::mem::replace(&mut interface.entities_to_destroy, HashSet::new());
             for id in entities_to_destroy {
                 if let Some(id) = interface.entities_map.remove(&id) {
-                    drop(entities.delete(id));
+                    drop(world.delete_entity(id));
                 }
             }
 
             let entities_to_create = std::mem::replace(&mut interface.entities_to_create, vec![]);
             for (data, id) in entities_to_create {
-                let mut builder = lazy.create_entity(entities);
+                let mut builder = world.create_entity();
                 let mut components = HashMap::new();
                 // TODO: i beg myself, please refactor this shit.
                 if !data.is_null() && !data.is_undefined() {

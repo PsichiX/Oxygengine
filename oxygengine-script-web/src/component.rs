@@ -39,6 +39,10 @@ impl WebScriptComponent {
     pub fn components_iter(&self) -> impl Iterator<Item = (&String, &JsValue)> {
         self.components.iter()
     }
+
+    pub fn component(&self, name: &str) -> Option<JsValue> {
+        self.components.get(name).cloned()
+    }
 }
 
 impl Component for WebScriptComponent {
