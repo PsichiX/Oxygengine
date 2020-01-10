@@ -2,14 +2,39 @@ import("../pkg/index.js")
   .then(mod => {
     const { WebScriptApi } = mod;
 
+    WebScriptApi.registerResource('globals', { hello: 'world' });
+
+    WebScriptApi.registerComponentFactory('name', () => {
+      return { value: '' };
+    });
+
+    WebScriptApi.registerComponentFactory('age', () => {
+      return { value: 0 };
+    });
+
+    class GrowUpSystem {
+      onRun() {
+        const it = WebScriptApi.fetch(['@', '$globals', '&name', '&age']);
+        while (it.next()) {
+          const [entity, globals, name, age] = it.current();
+          age.value += 1;
+          console.log('===', entity, globals, name, age);
+          if (age.value > 100) {
+            WebScriptApi.destroyEntity(entity);
+          }
+        }
+      }
+    }
+    WebScriptApi.registerSystem('grow-up', new GrowUpSystem());
+
     class TestState {
       onEnter() {
         WebScriptApi.createEntity({
-          'name': 'asshole',
+          'name': { value: 'asshole' },
           'age': { value: 42 },
         });
         WebScriptApi.createEntity({
-          'name': 'asshole2',
+          'name': { value: 'asshole2' },
         });
         WebScriptApi.createEntity({
           'age': { value: 43 },
@@ -17,23 +42,6 @@ import("../pkg/index.js")
       }
     }
     WebScriptApi.registerStateFactory('main', () => new TestState());
-
-    WebScriptApi.registerResource('globals', { hello: 'world' });
-
-    WebScriptApi.registerComponentFactory('name', '');
-    WebScriptApi.registerComponentFactory('age', { value: 0 });
-    WebScriptApi.registerComponentFactory('data', { a: 4, b: 2 });
-    WebScriptApi.registerComponentFactory('logic', { onProcess: () => console.log('=== PROCESS') });
-
-    class GrowUpSystem {
-      onRun() {
-        const it = WebScriptApi.fetch(['&name', '&age']);
-        while (it.next()) {
-          // console.log(it.current());
-        }
-      }
-    }
-    WebScriptApi.registerSystem('grow-up', new GrowUpSystem());
 
     return WebScriptApi;
   })

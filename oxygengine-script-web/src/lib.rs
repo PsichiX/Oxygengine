@@ -11,8 +11,8 @@ pub mod web_api;
 pub mod prelude {
     pub use crate::{component::*, interface::*, state::*};
 }
-use core::app::AppBuilder;
 use crate::component::WebScriptComponent;
+use core::app::AppBuilder;
 
 pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>, _: ()) {
     builder.install_component::<WebScriptComponent>();

@@ -3,13 +3,14 @@ use core::prelude::*;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum WebScriptComponentState {
     Born,
     Alive,
     Killed,
 }
 
+#[derive(Debug)]
 pub struct WebScriptComponent {
     id: EntityId,
     state: WebScriptComponentState,

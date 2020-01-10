@@ -74,6 +74,7 @@ impl State for WebScriptState {
     }
 
     fn on_process(&mut self, world: &mut World) -> StateChange {
+        WebScriptInterface::set_world(world);
         WebScriptInterface::run_systems();
         WebScriptInterface::maintain_entities(world);
 

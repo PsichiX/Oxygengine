@@ -1,5 +1,4 @@
 use crate::{component::WebScriptComponent, interface::WebScriptInterface};
-use core::ecs::Entity;
 use js_sys::{Array, Function, JsString};
 use wasm_bindgen::{prelude::*, JsCast};
 
@@ -33,17 +32,15 @@ pub(crate) enum Constrain {
 #[derive(Debug, Clone)]
 pub struct WebScriptFetch {
     index: usize,
-    entities: Vec<Entity>,
     constrains: Vec<Constrain>,
     cached_item: Array,
 }
 
 impl WebScriptFetch {
-    pub(crate) fn new(entities: Vec<Entity>, constrains: Vec<Constrain>) -> Self {
+    pub(crate) fn new(constrains: Vec<Constrain>) -> Self {
         let cached_item = Array::new_with_length(constrains.len() as u32);
         Self {
             index: 0,
-            entities,
             constrains,
             cached_item,
         }
@@ -57,30 +54,34 @@ impl WebScriptFetch {
         Err(JsValue::from_str("Tried to create WebScriptFetch from constructor! Use WebScriptApi::fetch() to create valid fetch object."))
     }
 
+    // TODO: refactor this shit, please.
     pub fn next(&mut self) -> bool {
         if let Some(world) = WebScriptInterface::world() {
             if let Some(world) = unsafe { world.as_mut() } {
-                if let Some(entity) = self.entities.get(self.index) {
-                    while let Some(c) = world.read_storage::<WebScriptComponent>().get(*entity) {
-                        self.index += 1;
+                'main: while let Some(entity) = WebScriptInterface::get_entity(self.index) {
+                    self.index += 1;
+                    if let Some(c) = world.read_storage::<WebScriptComponent>().get(entity) {
                         for (i, constrain) in self.constrains.iter().enumerate() {
                             let value = match constrain {
-                                // Constrain::Entities => c.id(),
-                                Constrain::Resource(name) => WebScriptInterface::get_resource(name),
+                                Constrain::Entities => c.id().into(),
+                                Constrain::Resource(name) => {
+                                    if let Some(r) = WebScriptInterface::get_resource(name) {
+                                        r
+                                    } else {
+                                        continue 'main;
+                                    }
+                                }
                                 Constrain::Components(name) => {
-                                    info!("=== COMP: {}", name);
                                     if let Some(c) = c.component(name) {
                                         c
                                     } else {
-                                        JsValue::UNDEFINED
+                                        continue 'main;
                                     }
                                 }
-                                _ => JsValue::UNDEFINED,
+                                _ => {
+                                    continue 'main;
+                                }
                             };
-                            if value.is_undefined() {
-                                break;
-                            }
-                            info!("=== #{} | {}", i, value.is_undefined());
                             self.cached_item.set(i as u32, value);
                         }
                         return true;
@@ -155,7 +156,6 @@ impl WebScriptApi {
                 Constrain::None
             })
             .collect::<Vec<_>>();
-        let entities = WebScriptInterface::entities()?;
-        Some(WebScriptFetch::new(entities, constrains))
+        Some(WebScriptFetch::new(constrains))
     }
 }

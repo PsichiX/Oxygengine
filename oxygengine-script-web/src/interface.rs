@@ -13,6 +13,7 @@ lazy_static! {
 
 pub struct WebScriptInterface {
     ready: bool,
+    // TODO: check if this pointer can be pinned.
     world_ptr: Option<*mut World>,
     resources: HashMap<String, JsValue>,
     component_factory: HashMap<String, Function>,
@@ -23,6 +24,7 @@ pub struct WebScriptInterface {
     entities_to_create: Vec<(JsValue, EntityId)>,
     entities_to_destroy: HashSet<EntityId>,
     entities_map: HashMap<EntityId, Entity>,
+    entities_cache: Vec<Entity>,
 }
 
 unsafe impl Send for WebScriptInterface {}
@@ -42,6 +44,7 @@ impl Default for WebScriptInterface {
             entities_to_create: vec![],
             entities_to_destroy: HashSet::new(),
             entities_map: HashMap::new(),
+            entities_cache: vec![],
         }
     }
 }
@@ -89,9 +92,9 @@ impl WebScriptInterface {
         }
     }
 
-    pub(crate) fn entities() -> Option<Vec<Entity>> {
+    pub(crate) fn get_entity(index: usize) -> Option<Entity> {
         if let Ok(interface) = INTERFACE.lock() {
-            Some(interface.entities_map.values().copied().collect::<Vec<_>>())
+            interface.entities_cache.get(index).copied()
         } else {
             None
         }
@@ -135,13 +138,13 @@ impl WebScriptInterface {
         }
     }
 
-    pub fn get_resource(name: &str) -> JsValue {
+    pub fn get_resource(name: &str) -> Option<JsValue> {
         if let Ok(interface) = INTERFACE.lock() {
             if let Some(resource) = interface.resources.get(name) {
-                return resource.clone();
+                return Some(resource.clone());
             }
         }
-        JsValue::UNDEFINED
+        None
     }
 
     pub fn build_state(name: &str) -> Option<JsValue> {
@@ -195,8 +198,9 @@ impl WebScriptInterface {
             let entities_to_destroy =
                 std::mem::replace(&mut interface.entities_to_destroy, HashSet::new());
             for id in entities_to_destroy {
-                if let Some(id) = interface.entities_map.remove(&id) {
-                    drop(world.delete_entity(id));
+                if let Some(entity) = interface.entities_map.remove(&id) {
+                    interface.entities_cache.retain(|e| *e != entity);
+                    drop(world.delete_entity(entity));
                 }
             }
 
@@ -204,15 +208,14 @@ impl WebScriptInterface {
             for (data, id) in entities_to_create {
                 let mut builder = world.create_entity();
                 let mut components = HashMap::new();
-                // TODO: i beg myself, please refactor this shit.
                 if !data.is_null() && !data.is_undefined() {
                     if let Some(object) = Object::try_from(&data) {
-                        let keys_iter = Object::keys(&object)
+                        let keys = Object::keys(&object)
                             .iter()
                             .map(|key| key.dyn_ref::<JsString>().map(|key| String::from(key)))
                             .collect::<Vec<_>>();
-                        let values_iter = Object::values(&object).iter().collect::<Vec<_>>();
-                        for (key, value) in keys_iter.into_iter().zip(values_iter.into_iter()) {
+                        let values = Object::values(&object).iter().collect::<Vec<_>>();
+                        for (key, value) in keys.into_iter().zip(values.into_iter()) {
                             if let Some(key) = key {
                                 if let Some(factory) = interface.component_factory.get(&key) {
                                     if let Ok(v) = factory.call0(&JsValue::UNDEFINED) {
@@ -230,7 +233,9 @@ impl WebScriptInterface {
                     }
                 }
                 builder = builder.with(WebScriptComponent::new(id, components));
-                interface.entities_map.insert(id, builder.build());
+                let entity = builder.build();
+                interface.entities_map.insert(id, entity);
+                interface.entities_cache.push(entity);
             }
         }
     }
