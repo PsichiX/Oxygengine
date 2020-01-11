@@ -3,6 +3,7 @@ use crate::{
     math::{Mat2d, Rect, Scalar, Vec2},
 };
 use core::ecs::{Component, DenseVecStorage, FlaggedStorage, HashMapStorage, VecStorage};
+use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, collections::HashMap, f32::consts::PI};
 use utils::grid_2d::Grid2d;
 
@@ -13,7 +14,7 @@ impl Component for CompositeVisibility {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompositeSurfaceCache {
     name: Cow<'static, str>,
     width: usize,
@@ -66,7 +67,7 @@ impl Component for CompositeSurfaceCache {
     type Storage = FlaggedStorage<Self, VecStorage<Self>>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompositeRenderable(pub Renderable<'static>);
 
 impl Component for CompositeRenderable {
@@ -79,14 +80,14 @@ impl From<Renderable<'static>> for CompositeRenderable {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompositeRenderableStroke(pub Scalar);
 
 impl Component for CompositeRenderableStroke {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CompositeTransform {
     translation: Vec2,
     rotation: Scalar,
@@ -197,35 +198,35 @@ impl CompositeTransform {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct CompositeRenderDepth(pub Scalar);
 
 impl Component for CompositeRenderDepth {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct CompositeRenderAlpha(pub Scalar);
 
 impl Component for CompositeRenderAlpha {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CompositeCameraAlignment(pub Vec2);
 
 impl Component for CompositeCameraAlignment {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CompositeEffect(pub Effect);
 
 impl Component for CompositeEffect {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CompositeScalingMode {
     None,
     Center,
@@ -239,7 +240,7 @@ impl Default for CompositeScalingMode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CompositeScalingTarget {
     Width,
     Height,
@@ -252,7 +253,7 @@ impl Default for CompositeScalingTarget {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CompositeCamera {
     pub scaling: CompositeScalingMode,
     pub scaling_target: CompositeScalingTarget,
@@ -335,7 +336,7 @@ impl CompositeCamera {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompositeSprite {
     pub alignment: Vec2,
     sheet_frame: Option<(Cow<'static, str>, Cow<'static, str>)>,
@@ -424,7 +425,7 @@ impl Component for CompositeSprite {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SpriteAnimation {
     pub sheet: Cow<'static, str>,
     pub frames: Vec<Cow<'static, str>>,
@@ -442,7 +443,7 @@ impl From<(Cow<'static, str>, Vec<Cow<'static, str>>)> for SpriteAnimation {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CompositeSpriteAnimation {
     pub animations: HashMap<Cow<'static, str>, SpriteAnimation>,
     // (name, phase, speed, looped)
@@ -568,7 +569,7 @@ impl Component for CompositeSpriteAnimation {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TileRotate {
     Degrees0,
     Degrees90,
@@ -582,7 +583,7 @@ impl Default for TileRotate {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct TileCell {
     pub col: usize,
     pub row: usize,
@@ -693,7 +694,7 @@ impl From<(usize, usize, bool, bool, TileRotate, bool)> for TileCell {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompositeTilemap {
     tileset: Option<Cow<'static, str>>,
     grid: Grid2d<TileCell>,
@@ -751,7 +752,7 @@ impl Component for CompositeTilemap {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct TilemapAnimation {
     pub tileset: Cow<'static, str>,
     pub frames: Vec<Grid2d<TileCell>>,
@@ -769,7 +770,7 @@ impl From<(Cow<'static, str>, Vec<Grid2d<TileCell>>)> for TilemapAnimation {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CompositeTilemapAnimation {
     pub animations: HashMap<Cow<'static, str>, TilemapAnimation>,
     // (name, phase, speed, looped)
@@ -890,7 +891,7 @@ impl Component for CompositeTilemapAnimation {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompositeMapChunk {
     map_name: Cow<'static, str>,
     layer_name: Cow<'static, str>,

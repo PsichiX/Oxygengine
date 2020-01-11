@@ -1,8 +1,9 @@
 use crate::math::{Color, Rect, Scalar, Vec2};
 use core::{assets::database::AssetsDatabase, error::*};
+use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, ops::Range};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum TextAlign {
     Left,
     Center,
@@ -15,7 +16,7 @@ impl Default for TextAlign {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum TextBaseLine {
     Top,
     Middle,
@@ -30,7 +31,7 @@ impl Default for TextBaseLine {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Rectangle {
     pub color: Color,
     pub rect: Rect,
@@ -43,7 +44,7 @@ impl Rectangle {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Text<'a> {
     pub color: Color,
     pub font: Cow<'a, str>,
@@ -105,7 +106,7 @@ impl<'a> Text<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PathElement {
     MoveTo(Vec2),
     LineTo(Vec2),
@@ -120,13 +121,13 @@ pub enum PathElement {
     Rectangle(Rect),
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Path {
     pub color: Color,
     pub elements: Vec<PathElement>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Image<'a> {
     pub image: Cow<'a, str>,
     pub source: Option<Rect>,
@@ -169,7 +170,7 @@ impl<'a> Image<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Renderable<'a> {
     None,
     Rectangle(Rectangle),
@@ -209,7 +210,7 @@ impl<'a> From<Image<'a>> for Renderable<'a> {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Effect {
     SourceOver,
     SourceIn,
@@ -280,7 +281,7 @@ impl ToString for Effect {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Command<'a> {
     None,
     Draw(Renderable<'a>),
@@ -294,7 +295,7 @@ pub enum Command<'a> {
     Restore,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Stats {
     pub view_size: Vec2,
     pub render_ops: usize,
@@ -305,7 +306,7 @@ pub struct Stats {
     pub surfaces_count: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RenderState {
     pub clear_color: Option<Color>,
     pub image_smoothing: bool,

@@ -1,9 +1,10 @@
 use crate::{component::WebScriptComponent, interface::WebScriptInterface};
 use js_sys::{Array, Function, JsString};
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};
 
 #[wasm_bindgen]
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct EntityId {
     pub(crate) index: u64,
     pub(crate) generation: u32,
@@ -20,7 +21,7 @@ impl EntityId {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) enum Constrain {
     None,
     Entities,
@@ -104,9 +105,9 @@ pub struct WebScriptApi;
 
 #[wasm_bindgen]
 impl WebScriptApi {
-    #[wasm_bindgen(js_name = "markReady")]
-    pub fn mark_ready() {
-        WebScriptInterface::mark_ready();
+    #[wasm_bindgen(js_name = "start")]
+    pub fn start() {
+        WebScriptInterface::start();
     }
 
     #[wasm_bindgen(js_name = "registerResource")]

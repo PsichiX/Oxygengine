@@ -45,5 +45,5 @@ import("../pkg/index.js")
 
     return WebScriptApi;
   })
-  .then(WebScriptApi => WebScriptApi.markReady())
+  .then(WebScriptApi => WebScriptApi.start())
   .catch(console.error);

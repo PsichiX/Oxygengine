@@ -1,4 +1,9 @@
-use crate::{component::WebScriptComponent, web_api::EntityId};
+use crate::{
+    component::WebScriptComponent,
+    scriptable::{scriptable_js_to_value, scriptable_value_to_js, Scriptable, ScriptableValue},
+    state::WebScriptStateScripted,
+    web_api::EntityId,
+};
 use core::ecs::{Builder, Entity, World};
 use js_sys::{Function, JsString, Object, Reflect};
 use std::{
@@ -17,8 +22,11 @@ pub struct WebScriptInterface {
     world_ptr: Option<*mut World>,
     resources: HashMap<String, JsValue>,
     component_factory: HashMap<String, Function>,
+    scriptable_components: HashMap<String, Box<dyn Scriptable>>,
     state_factory: HashMap<String, Function>,
+    scriptable_state_factory: HashMap<String, Box<dyn FnMut() -> Box<dyn WebScriptStateScripted>>>,
     systems: HashMap<String, (JsValue, Function)>,
+    systems_cache: Option<Vec<(JsValue, Function)>>,
     index_generator: u64,
     generation: u32,
     entities_to_create: Vec<(JsValue, EntityId)>,
@@ -37,8 +45,11 @@ impl Default for WebScriptInterface {
             world_ptr: None,
             resources: HashMap::new(),
             component_factory: HashMap::new(),
+            scriptable_components: HashMap::new(),
             state_factory: HashMap::new(),
+            scriptable_state_factory: HashMap::new(),
             systems: HashMap::new(),
+            systems_cache: None,
             index_generator: 0,
             generation: 1,
             entities_to_create: vec![],
@@ -58,17 +69,116 @@ impl WebScriptInterface {
         }
     }
 
-    pub(crate) fn mark_ready() {
-        if let Ok(mut interface) = INTERFACE.lock() {
-            interface.ready = true;
-        }
-    }
-
     pub fn is_invalid() -> bool {
         if let Ok(interface) = INTERFACE.lock() {
             interface.world_ptr.is_none()
         } else {
             true
+        }
+    }
+
+    pub fn register_resource(name: &str, resource: JsValue) {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            if !interface.ready {
+                interface.resources.insert(name.to_owned(), resource);
+            }
+        }
+    }
+
+    pub fn register_scriptable_resource<S>(&mut self, name: &str, resource: S)
+    where
+        S: 'static + Scriptable,
+    {
+        if !self.ready {
+            if let Ok(resource) = resource.to_js() {
+                self.resources.insert(name.to_owned(), resource);
+            }
+        }
+    }
+
+    pub fn register_component_factory(name: &str, factory: Function) {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            if !interface.ready {
+                interface.component_factory.insert(name.to_owned(), factory);
+            }
+        }
+    }
+
+    pub fn register_scriptable_component<S>(&mut self, name: &str, component: S)
+    where
+        S: 'static + Scriptable,
+    {
+        if !self.ready {
+            self.scriptable_components
+                .insert(name.to_owned(), Box::new(component));
+        }
+    }
+
+    pub fn register_state_factory(name: &str, factory: Function) {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            if !interface.ready {
+                interface.state_factory.insert(name.to_owned(), factory);
+            }
+        }
+    }
+
+    pub fn register_scriptable_state_factory<S>(&mut self, name: &str, factory: S)
+    where
+        S: 'static + FnMut() -> Box<dyn WebScriptStateScripted>,
+    {
+        if !self.ready {
+            self.scriptable_state_factory
+                .insert(name.to_owned(), Box::new(factory));
+        }
+    }
+
+    pub fn register_system(name: &str, system: JsValue) {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            if !interface.ready {
+                if let Ok(m) = Reflect::get(&system, &JsValue::from_str("onRun")) {
+                    if let Some(m) = m.dyn_ref::<Function>() {
+                        interface
+                            .systems
+                            .insert(name.to_owned(), (system, m.clone()));
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn with_resource<F, R>(name: &str, mut f: F) -> R
+    where
+        F: FnMut(&mut ScriptableValue) -> R,
+        R: Default,
+    {
+        if let Some(resource) = Self::get_resource(name) {
+            if let Ok(mut resource) = scriptable_js_to_value(resource) {
+                let result = f(&mut resource);
+                if let Ok(resource) = scriptable_value_to_js(&resource) {
+                    Self::set_resource(name, resource);
+                }
+                return result;
+            }
+        }
+        R::default()
+    }
+
+    pub(crate) fn with<F, R>(mut f: F) -> R
+    where
+        F: FnMut(&mut Self) -> R,
+        R: Default,
+    {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            f(&mut interface)
+        } else {
+            R::default()
+        }
+    }
+
+    pub(crate) fn start() {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            interface.ready = true;
+            interface.systems_cache = Some(interface.systems.values().cloned().collect::<Vec<_>>());
         }
     }
 
@@ -100,45 +210,7 @@ impl WebScriptInterface {
         }
     }
 
-    pub fn register_resource(name: &str, resource: JsValue) {
-        if let Ok(mut interface) = INTERFACE.lock() {
-            if !interface.ready {
-                interface.resources.insert(name.to_owned(), resource);
-            }
-        }
-    }
-
-    pub fn register_component_factory(name: &str, factory: Function) {
-        if let Ok(mut interface) = INTERFACE.lock() {
-            if !interface.ready {
-                interface.component_factory.insert(name.to_owned(), factory);
-            }
-        }
-    }
-
-    pub fn register_state_factory(name: &str, factory: Function) {
-        if let Ok(mut interface) = INTERFACE.lock() {
-            if !interface.ready {
-                interface.state_factory.insert(name.to_owned(), factory);
-            }
-        }
-    }
-
-    pub fn register_system(name: &str, system: JsValue) {
-        if let Ok(mut interface) = INTERFACE.lock() {
-            if !interface.ready {
-                if let Ok(m) = Reflect::get(&system, &JsValue::from_str("onRun")) {
-                    if let Some(m) = m.dyn_ref::<Function>() {
-                        interface
-                            .systems
-                            .insert(name.to_owned(), (system, m.clone()));
-                    }
-                }
-            }
-        }
-    }
-
-    pub fn get_resource(name: &str) -> Option<JsValue> {
+    pub(crate) fn get_resource(name: &str) -> Option<JsValue> {
         if let Ok(interface) = INTERFACE.lock() {
             if let Some(resource) = interface.resources.get(name) {
                 return Some(resource.clone());
@@ -147,7 +219,13 @@ impl WebScriptInterface {
         None
     }
 
-    pub fn build_state(name: &str) -> Option<JsValue> {
+    pub(crate) fn set_resource(name: &str, value: JsValue) {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            interface.resources.insert(name.to_owned(), value);
+        }
+    }
+
+    pub(crate) fn build_state(name: &str) -> Option<JsValue> {
         if let Ok(interface) = INTERFACE.lock() {
             if let Some(factory) = interface.state_factory.get(name) {
                 if let Ok(result) = factory.call0(&JsValue::UNDEFINED) {
@@ -158,7 +236,16 @@ impl WebScriptInterface {
         None
     }
 
-    pub fn create_entity(data: JsValue) -> EntityId {
+    pub(crate) fn build_state_scripted(name: &str) -> Option<Box<dyn WebScriptStateScripted>> {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            if let Some(factory) = interface.scriptable_state_factory.get_mut(name) {
+                return Some(factory());
+            }
+        }
+        None
+    }
+
+    pub(crate) fn create_entity(data: JsValue) -> EntityId {
         if let Ok(mut interface) = INTERFACE.lock() {
             if interface.index_generator == std::u64::MAX {
                 interface.index_generator = 0;
@@ -174,22 +261,25 @@ impl WebScriptInterface {
         }
     }
 
-    pub fn destroy_entity(id: EntityId) {
+    pub(crate) fn destroy_entity(id: EntityId) {
         if let Ok(mut interface) = INTERFACE.lock() {
             interface.entities_to_destroy.insert(id);
         }
     }
 
     pub(crate) fn run_systems() {
-        // TODO: figure out how to avoid allocation (allocation is made to unlock access to
-        // interface from JS systems).
-        let meta = if let Ok(interface) = INTERFACE.lock() {
-            interface.systems.values().cloned().collect::<Vec<_>>()
+        let meta = if let Ok(mut interface) = INTERFACE.lock() {
+            std::mem::replace(&mut interface.systems_cache, None)
         } else {
             return;
         };
-        for (context, on_run) in meta {
-            drop(on_run.call0(&context));
+        if let Some(meta) = &meta {
+            for (context, on_run) in meta {
+                drop(on_run.call0(&context));
+            }
+        }
+        if let Ok(mut interface) = INTERFACE.lock() {
+            std::mem::replace(&mut interface.systems_cache, meta);
         }
     }
 
@@ -219,6 +309,18 @@ impl WebScriptInterface {
                             if let Some(key) = key {
                                 if let Some(factory) = interface.component_factory.get(&key) {
                                     if let Ok(v) = factory.call0(&JsValue::UNDEFINED) {
+                                        if let Some(d) = Object::try_from(&v) {
+                                            if let Some(o) = Object::try_from(&value) {
+                                                components.insert(key, Object::assign(d, o).into());
+                                            } else {
+                                                components.insert(key, v);
+                                            }
+                                        }
+                                    }
+                                } else if let Some(scriptable) =
+                                    interface.scriptable_components.get(&key)
+                                {
+                                    if let Ok(v) = scriptable.to_js() {
                                         if let Some(d) = Object::try_from(&v) {
                                             if let Some(o) = Object::try_from(&value) {
                                                 components.insert(key, Object::assign(d, o).into());

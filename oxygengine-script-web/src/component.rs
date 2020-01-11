@@ -1,9 +1,10 @@
 use crate::web_api::EntityId;
 use core::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum WebScriptComponentState {
     Born,
     Alive,

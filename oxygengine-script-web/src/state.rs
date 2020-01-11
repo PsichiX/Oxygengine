@@ -6,6 +6,14 @@ use core::{
 use js_sys::{Function, JsString, Reflect};
 use wasm_bindgen::{JsCast, JsValue};
 
+pub trait WebScriptStateScripted {
+    fn on_enter(&mut self, _world: &mut World) {}
+    fn on_exit(&mut self, _world: &mut World) {}
+    fn on_process(&mut self, _world: &mut World) -> Option<String> {
+        None
+    }
+}
+
 pub struct WebScriptBootState {
     initial_state_name: String,
 }
@@ -23,11 +31,52 @@ impl State for WebScriptBootState {
         if WebScriptInterface::is_ready() {
             return if let Some(result) = WebScriptInterface::build_state(&self.initial_state_name) {
                 StateChange::Swap(Box::new(WebScriptState::new(result)))
+            } else if let Some(result) =
+                WebScriptInterface::build_state_scripted(&self.initial_state_name)
+            {
+                StateChange::Swap(Box::new(WebScriptStateWrapped::new(result)))
             } else {
                 StateChange::Pop
             };
         }
         StateChange::None
+    }
+}
+
+pub(crate) struct WebScriptStateWrapped {
+    inner: Box<dyn WebScriptStateScripted>,
+}
+
+impl WebScriptStateWrapped {
+    pub fn new(inner: Box<dyn WebScriptStateScripted>) -> Self {
+        Self { inner }
+    }
+}
+
+impl State for WebScriptStateWrapped {
+    fn on_enter(&mut self, world: &mut World) {
+        WebScriptInterface::set_world(world);
+        self.inner.on_enter(world);
+    }
+
+    fn on_process(&mut self, world: &mut World) -> StateChange {
+        WebScriptInterface::set_world(world);
+        WebScriptInterface::run_systems();
+        WebScriptInterface::maintain_entities(world);
+
+        if let Some(name) = self.inner.on_process(world) {
+            if let Some(result) = WebScriptInterface::build_state(&name) {
+                return StateChange::Swap(Box::new(WebScriptState::new(result)));
+            } else if let Some(result) = WebScriptInterface::build_state_scripted(&name) {
+                return StateChange::Swap(Box::new(WebScriptStateWrapped::new(result)));
+            }
+        }
+        StateChange::None
+    }
+
+    fn on_exit(&mut self, world: &mut World) {
+        self.inner.on_exit(world);
+        WebScriptInterface::unset_world();
     }
 }
 
@@ -84,6 +133,8 @@ impl State for WebScriptState {
                     let name = String::from(result);
                     if let Some(result) = WebScriptInterface::build_state(&name) {
                         return StateChange::Swap(Box::new(WebScriptState::new(result)));
+                    } else if let Some(result) = WebScriptInterface::build_state_scripted(&name) {
+                        return StateChange::Swap(Box::new(WebScriptStateWrapped::new(result)));
                     }
                 }
             }
@@ -92,10 +143,10 @@ impl State for WebScriptState {
     }
 
     fn on_exit(&mut self, _: &mut World) {
-        WebScriptInterface::unset_world();
-
         if let Some(on_exit) = &self.on_exit {
             drop(on_exit.call0(&self.context));
         }
+
+        WebScriptInterface::unset_world();
     }
 }
