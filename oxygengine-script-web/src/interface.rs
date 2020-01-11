@@ -77,14 +77,6 @@ impl WebScriptInterface {
         }
     }
 
-    pub fn register_resource(name: &str, resource: JsValue) {
-        if let Ok(mut interface) = INTERFACE.lock() {
-            if !interface.ready {
-                interface.resources.insert(name.to_owned(), resource);
-            }
-        }
-    }
-
     pub fn register_scriptable_resource<S>(&mut self, name: &str, resource: S)
     where
         S: 'static + Scriptable,
@@ -92,14 +84,6 @@ impl WebScriptInterface {
         if !self.ready {
             if let Ok(resource) = resource.to_js() {
                 self.resources.insert(name.to_owned(), resource);
-            }
-        }
-    }
-
-    pub fn register_component_factory(name: &str, factory: Function) {
-        if let Ok(mut interface) = INTERFACE.lock() {
-            if !interface.ready {
-                interface.component_factory.insert(name.to_owned(), factory);
             }
         }
     }
@@ -114,7 +98,7 @@ impl WebScriptInterface {
         }
     }
 
-    pub fn register_state_factory(name: &str, factory: Function) {
+    pub(crate) fn register_state_factory(name: &str, factory: Function) {
         if let Ok(mut interface) = INTERFACE.lock() {
             if !interface.ready {
                 interface.state_factory.insert(name.to_owned(), factory);
@@ -132,7 +116,53 @@ impl WebScriptInterface {
         }
     }
 
-    pub fn register_system(name: &str, system: JsValue) {
+    pub fn read_scriptable_resource<T>(name: &str) -> Option<T> where T: Scriptable {
+        if let Some(resource) = Self::get_resource(name) {
+            if let Ok(resource) = T::from_js(resource) {
+                return Some(resource);
+            }
+        }
+        None
+    }
+
+    pub fn read_js_resource(name: &str) -> Option<ScriptableValue> {
+        if let Some(resource) = Self::get_resource(name) {
+            if let Ok(resource) = scriptable_js_to_value(resource) {
+                return Some(resource);
+            }
+        }
+        None
+    }
+
+    pub fn write_scriptable_resource<T>(name: &str, value: &T) where T: Scriptable {
+        if let Ok(resource) = value.to_js() {
+            Self::set_resource(name, resource);
+        }
+    }
+
+    pub fn write_js_resource(name: &str, value: &ScriptableValue) {
+        if let Ok(resource) = scriptable_value_to_js(value) {
+            Self::set_resource(name, resource);
+        }
+    }
+
+    pub(crate) fn register_resource(name: &str, resource: JsValue) {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            if !interface.ready {
+                interface.resources.insert(name.to_owned(), resource);
+            }
+        }
+    }
+
+    pub(crate) fn register_component_factory(name: &str, factory: Function) {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            if !interface.ready {
+                interface.component_factory.insert(name.to_owned(), factory);
+            }
+        }
+    }
+
+    pub(crate) fn register_system(name: &str, system: JsValue) {
         if let Ok(mut interface) = INTERFACE.lock() {
             if !interface.ready {
                 if let Ok(m) = Reflect::get(&system, &JsValue::from_str("onRun")) {
@@ -144,23 +174,6 @@ impl WebScriptInterface {
                 }
             }
         }
-    }
-
-    pub fn with_resource<F, R>(name: &str, mut f: F) -> R
-    where
-        F: FnMut(&mut ScriptableValue) -> R,
-        R: Default,
-    {
-        if let Some(resource) = Self::get_resource(name) {
-            if let Ok(mut resource) = scriptable_js_to_value(resource) {
-                let result = f(&mut resource);
-                if let Ok(resource) = scriptable_value_to_js(&resource) {
-                    Self::set_resource(name, resource);
-                }
-                return result;
-            }
-        }
-        R::default()
     }
 
     pub(crate) fn with<F, R>(mut f: F) -> R
