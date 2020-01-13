@@ -12,6 +12,13 @@ pub struct EntityId {
 
 #[wasm_bindgen]
 impl EntityId {
+    #[wasm_bindgen(constructor)]
+    pub fn new_invalid() -> Result<(), JsValue> {
+        Err(JsValue::from_str(
+            "Tried to create EntityId from constructor!",
+        ))
+    }
+
     pub(crate) fn new(index: u64, generation: u32) -> Self {
         Self { index, generation }
     }
@@ -27,6 +34,7 @@ pub(crate) enum Constrain {
     Entities,
     Resource(String),
     Components(String),
+    ExcludeComponents(String),
 }
 
 #[wasm_bindgen]
@@ -34,16 +42,13 @@ pub(crate) enum Constrain {
 pub struct WebScriptFetch {
     index: usize,
     constrains: Vec<Constrain>,
-    cached_item: Array,
 }
 
 impl WebScriptFetch {
     pub(crate) fn new(constrains: Vec<Constrain>) -> Self {
-        let cached_item = Array::new_with_length(constrains.len() as u32);
         Self {
             index: 0,
             constrains,
-            cached_item,
         }
     }
 }
@@ -51,7 +56,7 @@ impl WebScriptFetch {
 #[wasm_bindgen]
 impl WebScriptFetch {
     #[wasm_bindgen(constructor)]
-    pub fn new_invalid() -> Result<JsValue, JsValue> {
+    pub fn new_invalid() -> Result<(), JsValue> {
         Err(JsValue::from_str("Tried to create WebScriptFetch from constructor! Use WebScriptApi::fetch() to create valid fetch object."))
     }
 
@@ -62,28 +67,28 @@ impl WebScriptFetch {
                 'main: while let Some(entity) = WebScriptInterface::get_entity(self.index) {
                     self.index += 1;
                     if let Some(c) = world.read_storage::<WebScriptComponent>().get(entity) {
-                        for (i, constrain) in self.constrains.iter().enumerate() {
-                            let value = match constrain {
-                                Constrain::Entities => c.id().into(),
+                        for constrain in &self.constrains {
+                            match constrain {
+                                Constrain::Entities => {}
                                 Constrain::Resource(name) => {
-                                    if let Some(r) = WebScriptInterface::get_resource(name) {
-                                        r
-                                    } else {
+                                    if !WebScriptInterface::has_resource(name) {
                                         continue 'main;
                                     }
                                 }
                                 Constrain::Components(name) => {
-                                    if let Some(c) = c.component(name) {
-                                        c
-                                    } else {
+                                    if !c.has_component(name) {
                                         continue 'main;
                                     }
                                 }
-                                _ => {
+                                Constrain::ExcludeComponents(name) => {
+                                    if c.has_component(name) {
+                                        continue 'main;
+                                    }
+                                }
+                                Constrain::None => {
                                     continue 'main;
                                 }
                             };
-                            self.cached_item.set(i as u32, value);
                         }
                         return true;
                     }
@@ -93,9 +98,73 @@ impl WebScriptFetch {
         false
     }
 
-    pub fn current(&self) -> JsValue {
-        let r: &JsValue = self.cached_item.as_ref();
-        r.clone()
+    // TODO: refactor this shit, please.
+    pub fn read(&mut self, item: usize) -> JsValue {
+        if self.index == 0 {
+            return JsValue::UNDEFINED;
+        }
+        if let Some(constrain) = self.constrains.get(item) {
+            let index = self.index - 1;
+            if let Some(entity) = WebScriptInterface::get_entity(index) {
+                if let Some(world) = WebScriptInterface::world() {
+                    if let Some(world) = unsafe { world.as_ref() } {
+                        if let Some(c) = world.read_storage::<WebScriptComponent>().get(entity) {
+                            match constrain {
+                                Constrain::Entities => return c.id().into(),
+                                Constrain::Resource(name) => {
+                                    if let Some(resource) = WebScriptInterface::get_resource(name) {
+                                        return resource;
+                                    }
+                                }
+                                Constrain::Components(name) => {
+                                    if let Some(component) = c.get_component(name) {
+                                        return component;
+                                    } else if let Some(component) =
+                                        WebScriptInterface::read_component_bridge(name, entity)
+                                    {
+                                        return component;
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        JsValue::UNDEFINED
+    }
+
+    // TODO: refactor this shit, please.
+    pub fn write(&mut self, item: usize, value: JsValue) {
+        if self.index == 0 {
+            return;
+        }
+        if let Some(constrain) = self.constrains.get(item) {
+            let index = self.index - 1;
+            if let Some(entity) = WebScriptInterface::get_entity(index) {
+                if let Some(world) = WebScriptInterface::world() {
+                    if let Some(world) = unsafe { world.as_mut() } {
+                        if let Some(c) = world.write_storage::<WebScriptComponent>().get_mut(entity)
+                        {
+                            match constrain {
+                                Constrain::Resource(name) => {
+                                    WebScriptInterface::set_resource(name, value);
+                                }
+                                Constrain::Components(name) => {
+                                    if !c.set_component(name, value.clone()) {
+                                        WebScriptInterface::write_component_bridge(
+                                            name, entity, value,
+                                        );
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -150,8 +219,10 @@ impl WebScriptApi {
                         return Constrain::Entities;
                     } else if s.starts_with("$") {
                         return Constrain::Resource(s[1..].to_owned());
-                    } else if s.starts_with("&") {
+                    } else if s.starts_with("+") {
                         return Constrain::Components(s[1..].to_owned());
+                    } else if s.starts_with("-") {
+                        return Constrain::ExcludeComponents(s[1..].to_owned());
                     }
                 }
                 Constrain::None

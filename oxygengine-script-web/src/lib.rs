@@ -2,14 +2,14 @@ extern crate oxygengine_core as core;
 #[macro_use]
 extern crate lazy_static;
 
-pub mod component;
+mod component;
 pub mod interface;
 pub mod scriptable;
 pub mod state;
 pub mod web_api;
 
 pub mod prelude {
-    pub use crate::{component::*, interface::*, scriptable::*, state::*};
+    pub use crate::{interface::*, scriptable::*, state::*};
 }
 use crate::{component::WebScriptComponent, interface::WebScriptInterface};
 use core::app::AppBuilder;

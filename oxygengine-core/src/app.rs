@@ -402,8 +402,9 @@ impl<'a, 'b> AppBuilder<'a, 'b> {
     }
 
     #[inline]
-    pub fn install_component<T: Component>(&mut self)
+    pub fn install_component<T>(&mut self)
     where
+        T: Component,
         T::Storage: Default,
     {
         self.world.register::<T>();

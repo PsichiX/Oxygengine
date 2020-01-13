@@ -17,4 +17,4 @@ parallel = ["oxygengine-core/parallel", "navmesh/parallel"]
 oxygengine-core = { version = "0.5", path = "../oxygengine-core" }
 navmesh = "0.7"
 serde = { version = "1", features = ["derive"] }
-bincode = "1.1"
+bincode = "1"

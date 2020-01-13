@@ -71,10 +71,8 @@ pub fn main_js() -> Result<(), JsValue> {
             oxygengine::integration_physics_2d_composite_renderer::bundle_installer,
             (),
         )
-        .with_bundle(oxygengine::script::bundle_installer, |interface| {})
         .with_system(KeyboardMovementSystem, "keyboard_movement", &[])
-        // .build(LoadingState::default(), WebAppTimer::default());
-        .build(WebScriptBootState::new("main"), WebAppTimer::default());
+        .build(LoadingState::default(), WebAppTimer::default());
 
     // Application run phase - spawn runner that ticks our app.
     AppRunner::new(app).run(WebAppRunner)?;

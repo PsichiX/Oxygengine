@@ -1,10 +1,13 @@
 use crate::{
     component::WebScriptComponent,
-    scriptable::{scriptable_js_to_value, scriptable_value_to_js, Scriptable, ScriptableValue},
+    scriptable::{
+        scriptable_js_to_value, scriptable_value_merge, scriptable_value_to_js, Scriptable,
+        ScriptableValue,
+    },
     state::WebScriptStateScripted,
     web_api::EntityId,
 };
-use core::ecs::{Builder, Entity, World};
+use core::ecs::{Builder, Component, Entity, EntityBuilder, World};
 use js_sys::{Function, JsString, Object, Reflect};
 use std::{
     collections::{HashMap, HashSet},
@@ -16,6 +19,30 @@ lazy_static! {
     static ref INTERFACE: Mutex<WebScriptInterface> = Mutex::new(WebScriptInterface::default());
 }
 
+struct ComponentBridge {
+    add_to_entity: Box<dyn FnMut(EntityBuilder, JsValue) -> EntityBuilder>,
+    read_data: Box<dyn FnMut(&World, Entity) -> JsValue>,
+    write_data: Box<dyn FnMut(&mut World, Entity, JsValue)>,
+}
+
+impl ComponentBridge {
+    fn on_add_to_entity<'a>(
+        &mut self,
+        data: JsValue,
+        builder: EntityBuilder<'a>,
+    ) -> EntityBuilder<'a> {
+        (self.add_to_entity)(builder, data)
+    }
+
+    fn on_read_data(&mut self, world: &World, entity: Entity) -> JsValue {
+        (self.read_data)(world, entity)
+    }
+
+    fn on_write_data(&mut self, world: &mut World, entity: Entity, value: JsValue) {
+        (self.write_data)(world, entity, value)
+    }
+}
+
 pub struct WebScriptInterface {
     ready: bool,
     // TODO: check if this pointer can be pinned.
@@ -23,6 +50,7 @@ pub struct WebScriptInterface {
     resources: HashMap<String, JsValue>,
     component_factory: HashMap<String, Function>,
     scriptable_components: HashMap<String, Box<dyn Scriptable>>,
+    components_bridge: HashMap<String, ComponentBridge>,
     state_factory: HashMap<String, Function>,
     scriptable_state_factory: HashMap<String, Box<dyn FnMut() -> Box<dyn WebScriptStateScripted>>>,
     systems: HashMap<String, (JsValue, Function)>,
@@ -46,6 +74,7 @@ impl Default for WebScriptInterface {
             resources: HashMap::new(),
             component_factory: HashMap::new(),
             scriptable_components: HashMap::new(),
+            components_bridge: HashMap::new(),
             state_factory: HashMap::new(),
             scriptable_state_factory: HashMap::new(),
             systems: HashMap::new(),
@@ -98,12 +127,42 @@ impl WebScriptInterface {
         }
     }
 
-    pub(crate) fn register_state_factory(name: &str, factory: Function) {
-        if let Ok(mut interface) = INTERFACE.lock() {
-            if !interface.ready {
-                interface.state_factory.insert(name.to_owned(), factory);
-            }
-        }
+    pub fn register_component_bridge<S>(&mut self, name: &str, template: S)
+    where
+        S: Scriptable + Component + Send + Sync + std::fmt::Debug,
+        S::Storage: Default,
+    {
+        self.components_bridge.insert(
+            name.to_owned(),
+            ComponentBridge {
+                add_to_entity: Box::new(move |builder, data| {
+                    if let Ok(template) = template.to_scriptable() {
+                        if let Ok(data) = scriptable_js_to_value(data) {
+                            let template = scriptable_value_merge(&template, &data);
+                            if let Ok(template) = S::from_scriptable(&template) {
+                                return builder.with(template);
+                            }
+                        }
+                    }
+                    builder
+                }),
+                read_data: Box::new(|world, entity| {
+                    if let Some(data) = world.read_storage::<S>().get(entity) {
+                        if let Ok(data) = data.to_js() {
+                            return data;
+                        }
+                    }
+                    JsValue::UNDEFINED
+                }),
+                write_data: Box::new(|world, entity, value| {
+                    if let Ok(data) = S::from_js(value) {
+                        if let Some(component) = world.write_storage::<S>().get_mut(entity) {
+                            *component = data;
+                        }
+                    }
+                }),
+            },
+        );
     }
 
     pub fn register_scriptable_state_factory<S>(&mut self, name: &str, factory: S)
@@ -116,7 +175,10 @@ impl WebScriptInterface {
         }
     }
 
-    pub fn read_scriptable_resource<T>(name: &str) -> Option<T> where T: Scriptable {
+    pub fn read_scriptable_resource<T>(name: &str) -> Option<T>
+    where
+        T: Scriptable,
+    {
         if let Some(resource) = Self::get_resource(name) {
             if let Ok(resource) = T::from_js(resource) {
                 return Some(resource);
@@ -134,7 +196,10 @@ impl WebScriptInterface {
         None
     }
 
-    pub fn write_scriptable_resource<T>(name: &str, value: &T) where T: Scriptable {
+    pub fn write_scriptable_resource<T>(name: &str, value: &T)
+    where
+        T: Scriptable,
+    {
         if let Ok(resource) = value.to_js() {
             Self::set_resource(name, resource);
         }
@@ -172,6 +237,14 @@ impl WebScriptInterface {
                             .insert(name.to_owned(), (system, m.clone()));
                     }
                 }
+            }
+        }
+    }
+
+    pub(crate) fn register_state_factory(name: &str, factory: Function) {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            if !interface.ready {
+                interface.state_factory.insert(name.to_owned(), factory);
             }
         }
     }
@@ -223,6 +296,14 @@ impl WebScriptInterface {
         }
     }
 
+    pub(crate) fn has_resource(name: &str) -> bool {
+        if let Ok(interface) = INTERFACE.lock() {
+            interface.resources.contains_key(name)
+        } else {
+            false
+        }
+    }
+
     pub(crate) fn get_resource(name: &str) -> Option<JsValue> {
         if let Ok(interface) = INTERFACE.lock() {
             if let Some(resource) = interface.resources.get(name) {
@@ -235,6 +316,31 @@ impl WebScriptInterface {
     pub(crate) fn set_resource(name: &str, value: JsValue) {
         if let Ok(mut interface) = INTERFACE.lock() {
             interface.resources.insert(name.to_owned(), value);
+        }
+    }
+
+    pub(crate) fn read_component_bridge(name: &str, entity: Entity) -> Option<JsValue> {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            if interface.world_ptr.is_none() {
+                return None;
+            }
+            let world = interface.world_ptr.unwrap();
+            if let Some(bridge) = interface.components_bridge.get_mut(name) {
+                return Some(bridge.on_read_data(unsafe { world.as_ref().unwrap() }, entity));
+            }
+        }
+        None
+    }
+
+    pub(crate) fn write_component_bridge(name: &str, entity: Entity, value: JsValue) {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            if interface.world_ptr.is_none() {
+                return;
+            }
+            let world = interface.world_ptr.unwrap();
+            if let Some(bridge) = interface.components_bridge.get_mut(name) {
+                bridge.on_write_data(unsafe { world.as_mut().unwrap() }, entity, value);
+            }
         }
     }
 
@@ -309,49 +415,56 @@ impl WebScriptInterface {
 
             let entities_to_create = std::mem::replace(&mut interface.entities_to_create, vec![]);
             for (data, id) in entities_to_create {
-                let mut builder = world.create_entity();
-                let mut components = HashMap::new();
-                if !data.is_null() && !data.is_undefined() {
-                    if let Some(object) = Object::try_from(&data) {
-                        let keys = Object::keys(&object)
-                            .iter()
-                            .map(|key| key.dyn_ref::<JsString>().map(|key| String::from(key)))
-                            .collect::<Vec<_>>();
-                        let values = Object::values(&object).iter().collect::<Vec<_>>();
-                        for (key, value) in keys.into_iter().zip(values.into_iter()) {
-                            if let Some(key) = key {
-                                if let Some(factory) = interface.component_factory.get(&key) {
-                                    if let Ok(v) = factory.call0(&JsValue::UNDEFINED) {
-                                        if let Some(d) = Object::try_from(&v) {
-                                            if let Some(o) = Object::try_from(&value) {
-                                                components.insert(key, Object::assign(d, o).into());
-                                            } else {
-                                                components.insert(key, v);
-                                            }
-                                        }
-                                    }
-                                } else if let Some(scriptable) =
-                                    interface.scriptable_components.get(&key)
-                                {
-                                    if let Ok(v) = scriptable.to_js() {
-                                        if let Some(d) = Object::try_from(&v) {
-                                            if let Some(o) = Object::try_from(&value) {
-                                                components.insert(key, Object::assign(d, o).into());
-                                            } else {
-                                                components.insert(key, v);
-                                            }
-                                        }
-                                    }
+                interface.build_entity(world, id, data);
+            }
+        }
+    }
+
+    fn build_entity(&mut self, world: &mut World, id: EntityId, data: JsValue) {
+        let mut builder = world.create_entity();
+        let mut components = HashMap::new();
+        if !data.is_null() && !data.is_undefined() {
+            if let Some(object) = Object::try_from(&data) {
+                let keys = Object::keys(&object)
+                    .iter()
+                    .map(|key| key.dyn_ref::<JsString>().map(|key| String::from(key)))
+                    .collect::<Vec<_>>();
+                let values = Object::values(&object).iter().collect::<Vec<_>>();
+                for (key, value) in keys.into_iter().zip(values.into_iter()) {
+                    if let Some(key) = key {
+                        if let Some(factory) = self.component_factory.get(&key) {
+                            if let Ok(v) = factory.call0(&JsValue::UNDEFINED) {
+                                if let Some(d) = Object::try_from(&v) {
+                                    let v = if let Some(o) = Object::try_from(&value) {
+                                        Object::assign(d, o).into()
+                                    } else {
+                                        v
+                                    };
+                                    components.insert(key, Some(v));
                                 }
                             }
+                        } else if let Some(scriptable) = self.scriptable_components.get(&key) {
+                            if let Ok(v) = scriptable.to_js() {
+                                if let Some(d) = Object::try_from(&v) {
+                                    let v = if let Some(o) = Object::try_from(&value) {
+                                        Object::assign(d, o).into()
+                                    } else {
+                                        v
+                                    };
+                                    components.insert(key, Some(v));
+                                }
+                            }
+                        } else if let Some(bridge) = self.components_bridge.get_mut(&key) {
+                            builder = bridge.on_add_to_entity(value, builder);
+                            components.insert(key, None);
                         }
                     }
                 }
-                builder = builder.with(WebScriptComponent::new(id, components));
-                let entity = builder.build();
-                interface.entities_map.insert(id, entity);
-                interface.entities_cache.push(entity);
             }
         }
+        builder = builder.with(WebScriptComponent::new(id, components));
+        let entity = builder.build();
+        self.entities_map.insert(id, entity);
+        self.entities_cache.push(entity);
     }
 }

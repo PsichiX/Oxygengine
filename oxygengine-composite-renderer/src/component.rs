@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, collections::HashMap, f32::consts::PI};
 use utils::grid_2d::Grid2d;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct CompositeVisibility(pub bool);
 
 impl Component for CompositeVisibility {
@@ -72,6 +72,12 @@ pub struct CompositeRenderable(pub Renderable<'static>);
 
 impl Component for CompositeRenderable {
     type Storage = DenseVecStorage<Self>;
+}
+
+impl Default for CompositeRenderable {
+    fn default() -> Self {
+        Self(().into())
+    }
 }
 
 impl From<Renderable<'static>> for CompositeRenderable {

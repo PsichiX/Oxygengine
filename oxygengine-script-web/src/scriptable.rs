@@ -24,20 +24,20 @@ pub trait Scriptable {
         Err(ScriptableError::CouldNotSerialize)
     }
 
-    fn to_js(&self) -> Result<JsValue, ScriptableError> {
-        if let Ok(value) = self.to_scriptable() {
-            scriptable_value_to_js(&value)
-        } else {
-            Err(ScriptableError::CouldNotSerialize)
-        }
-    }
-
     fn from_js(js: JsValue) -> Result<Self, ScriptableError>
     where
         Self: Sized,
     {
         let value = scriptable_js_to_value(js)?;
         Self::from_scriptable(&value)
+    }
+
+    fn to_js(&self) -> Result<JsValue, ScriptableError> {
+        if let Ok(value) = self.to_scriptable() {
+            scriptable_value_to_js(&value)
+        } else {
+            Err(ScriptableError::CouldNotSerialize)
+        }
     }
 }
 
@@ -85,7 +85,13 @@ pub fn scriptable_js_to_value(js: JsValue) -> Result<ScriptableValue, Scriptable
     } else if let Some(v) = js.as_bool() {
         Ok(ScriptableValue::Bool(v))
     } else if let Some(v) = js.as_f64() {
-        if let Some(v) = ScriptableNumber::from_f64(v) {
+        if let Some(v) = num::NumCast::from(v) {
+            let v: u64 = v;
+            Ok(ScriptableValue::Number(v.into()))
+        } else if let Some(v) = num::NumCast::from(v) {
+            let v: i64 = v;
+            Ok(ScriptableValue::Number(v.into()))
+        } else if let Some(v) = ScriptableNumber::from_f64(v) {
             Ok(ScriptableValue::Number(v))
         } else {
             Err(ScriptableError::CouldNotDeserialize)
@@ -98,6 +104,25 @@ pub fn scriptable_js_to_value(js: JsValue) -> Result<ScriptableValue, Scriptable
         scriptable_js_to_map(js)
     } else {
         Err(ScriptableError::CouldNotDeserialize)
+    }
+}
+
+pub fn scriptable_value_merge(a: &ScriptableValue, b: &ScriptableValue) -> ScriptableValue {
+    if a.is_object() && b.is_object() {
+        let a = a.as_object().unwrap();
+        let b = b.as_object().unwrap();
+        let mut r = a.clone();
+        for (k, v) in b {
+            if let Some(x) = a.get(k) {
+                let v = scriptable_value_merge(x, v);
+                r.insert(k.clone(), v);
+            } else {
+                r.insert(k.clone(), v.clone());
+            }
+        }
+        ScriptableValue::Object(r)
+    } else {
+        b.clone()
     }
 }
 
