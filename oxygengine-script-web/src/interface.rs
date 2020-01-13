@@ -127,19 +127,22 @@ impl WebScriptInterface {
         }
     }
 
-    pub fn register_component_bridge<S>(&mut self, name: &str, template: S)
+    pub fn register_component_bridge<S, M>(&mut self, name: &str, template: S)
     where
-        S: Scriptable + Component + Send + Sync + std::fmt::Debug,
+        S: Scriptable + Component + Clone + Send + Sync + From<M>,
         S::Storage: Default,
+        M: Scriptable + From<S>,
     {
         self.components_bridge.insert(
             name.to_owned(),
             ComponentBridge {
                 add_to_entity: Box::new(move |builder, data| {
+                    let template: M = template.clone().into();
                     if let Ok(template) = template.to_scriptable() {
                         if let Ok(data) = scriptable_js_to_value(data) {
                             let template = scriptable_value_merge(&template, &data);
-                            if let Ok(template) = S::from_scriptable(&template) {
+                            if let Ok(template) = M::from_scriptable(&template) {
+                                let template: S = template.into();
                                 return builder.with(template);
                             }
                         }
@@ -148,6 +151,7 @@ impl WebScriptInterface {
                 }),
                 read_data: Box::new(|world, entity| {
                     if let Some(data) = world.read_storage::<S>().get(entity) {
+                        let data: M = data.clone().into();
                         if let Ok(data) = data.to_js() {
                             return data;
                         }
@@ -155,7 +159,8 @@ impl WebScriptInterface {
                     JsValue::UNDEFINED
                 }),
                 write_data: Box::new(|world, entity, value| {
-                    if let Ok(data) = S::from_js(value) {
+                    if let Ok(data) = M::from_js(value) {
+                        let data: S = data.into();
                         if let Some(component) = world.write_storage::<S>().get_mut(entity) {
                             *component = data;
                         }

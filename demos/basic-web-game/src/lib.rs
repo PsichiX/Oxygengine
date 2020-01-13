@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate oxygengine;
-
 use crate::{states::loading::LoadingState, systems::keyboard_movement::KeyboardMovementSystem};
 use oxygengine::prelude::*;
 use wasm_bindgen::prelude::*;

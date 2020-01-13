@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate oxygengine;
-
 use crate::{
     resources::turn::TurnManager,
     states::loading::LoadingState,

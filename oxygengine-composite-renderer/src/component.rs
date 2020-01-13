@@ -14,11 +14,18 @@ impl Component for CompositeVisibility {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl Default for CompositeVisibility {
+    fn default() -> Self {
+        Self(true)
+    }
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CompositeSurfaceCache {
     name: Cow<'static, str>,
     width: usize,
     height: usize,
+    #[serde(skip)]
     pub(crate) dirty: bool,
 }
 
@@ -89,6 +96,12 @@ impl From<Renderable<'static>> for CompositeRenderable {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompositeRenderableStroke(pub Scalar);
 
+impl Default for CompositeRenderableStroke {
+    fn default() -> Self {
+        Self(1.0)
+    }
+}
+
 impl Component for CompositeRenderableStroke {
     type Storage = VecStorage<Self>;
 }
@@ -98,6 +111,7 @@ pub struct CompositeTransform {
     translation: Vec2,
     rotation: Scalar,
     scale: Vec2,
+    #[serde(skip)]
     cached: Mat2d,
 }
 
@@ -346,6 +360,7 @@ impl CompositeCamera {
 pub struct CompositeSprite {
     pub alignment: Vec2,
     sheet_frame: Option<(Cow<'static, str>, Cow<'static, str>)>,
+    #[serde(skip)]
     pub(crate) dirty: bool,
 }
 
@@ -454,6 +469,7 @@ pub struct CompositeSpriteAnimation {
     pub animations: HashMap<Cow<'static, str>, SpriteAnimation>,
     // (name, phase, speed, looped)
     pub(crate) current: Option<(Cow<'static, str>, Scalar, Scalar, bool)>,
+    #[serde(skip)]
     pub(crate) dirty: bool,
 }
 
@@ -496,6 +512,18 @@ impl CompositeSpriteAnimation {
 
     pub fn stop(&mut self) {
         self.current = None;
+    }
+
+    pub fn is_playing(&self) -> bool {
+        self.current.is_some()
+    }
+
+    pub fn current(&self) -> Option<&str> {
+        if let Some((name, _, _, _)) = &self.current {
+            Some(name)
+        } else {
+            None
+        }
     }
 
     pub fn phase(&self) -> Option<Scalar> {
@@ -704,6 +732,7 @@ impl From<(usize, usize, bool, bool, TileRotate, bool)> for TileCell {
 pub struct CompositeTilemap {
     tileset: Option<Cow<'static, str>>,
     grid: Grid2d<TileCell>,
+    #[serde(skip)]
     pub(crate) dirty: bool,
 }
 
@@ -781,6 +810,7 @@ pub struct CompositeTilemapAnimation {
     pub animations: HashMap<Cow<'static, str>, TilemapAnimation>,
     // (name, phase, speed, looped)
     pub(crate) current: Option<(Cow<'static, str>, Scalar, Scalar, bool)>,
+    #[serde(skip)]
     pub(crate) dirty: bool,
 }
 
@@ -818,6 +848,18 @@ impl CompositeTilemapAnimation {
 
     pub fn stop(&mut self) {
         self.current = None;
+    }
+
+    pub fn is_playing(&self) -> bool {
+        self.current.is_some()
+    }
+
+    pub fn current(&self) -> Option<&str> {
+        if let Some((name, _, _, _)) = &self.current {
+            Some(name)
+        } else {
+            None
+        }
     }
 
     pub fn phase(&self) -> Option<Scalar> {
@@ -897,12 +939,13 @@ impl Component for CompositeTilemapAnimation {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CompositeMapChunk {
     map_name: Cow<'static, str>,
     layer_name: Cow<'static, str>,
     offset: (usize, usize),
     size: Option<(usize, usize)>,
+    #[serde(skip)]
     pub(crate) dirty: bool,
 }
 

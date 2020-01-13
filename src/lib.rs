@@ -66,8 +66,10 @@ pub mod integration_physics_2d_composite_renderer {
     pub use oxygengine_integration_p2d_cr::*;
 }
 pub mod script {
-    #[cfg(feature = "script-web")]
-    pub use oxygengine_script_web::*;
+    pub mod web {
+        #[cfg(feature = "script-web")]
+        pub use oxygengine_script_web::*;
+    }
 }
 
 pub mod prelude {

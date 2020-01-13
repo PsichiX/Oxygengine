@@ -33,7 +33,7 @@ web = [
 ]
 desktop = ["parallel"]
 input = ["oxygengine-input"]
-composite-renderer = ["oxygengine-composite-renderer"]
+composite-renderer = ["oxygengine-composite-renderer", "oxygengine-script-web/composite-renderer"]
 network = ["oxygengine-network"]
 procedural = ["oxygengine-procedural"]
 navigation = ["oxygengine-navigation"]
