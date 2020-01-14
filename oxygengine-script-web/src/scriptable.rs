@@ -85,7 +85,13 @@ pub fn scriptable_js_to_value(js: JsValue) -> Result<ScriptableValue, Scriptable
     } else if let Some(v) = js.as_bool() {
         Ok(ScriptableValue::Bool(v))
     } else if let Some(v) = js.as_f64() {
-        if let Some(v) = num::NumCast::from(v) {
+        if v.fract().abs() > 1e-6 {
+            if let Some(v) = ScriptableNumber::from_f64(v) {
+                Ok(ScriptableValue::Number(v))
+            } else {
+                Err(ScriptableError::CouldNotDeserialize)
+            }
+        } else if let Some(v) = num::NumCast::from(v) {
             let v: u64 = v;
             Ok(ScriptableValue::Number(v.into()))
         } else if let Some(v) = num::NumCast::from(v) {

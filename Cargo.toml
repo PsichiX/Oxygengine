@@ -49,7 +49,6 @@ web-composite-game = [
   "navigation",
   "audio",
   "physics-2d",
-  "script-web",
   "integration-physics-2d-composite-renderer",
   "oxygengine-composite-renderer-backend-web",
   "oxygengine-input-device-web",
@@ -179,4 +178,5 @@ members = [
   "demos/amethyst-integration",
   "demos/basic-web-game",
   "demos/demo-web-game",
+  "demos/hybrid-script-game",
 ]

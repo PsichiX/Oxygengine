@@ -2,7 +2,7 @@ use crate::interface::ComponentModify;
 use oxygengine_audio::component::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioSourceScripted {
     pub audio: String,
     pub streaming: bool,
@@ -12,6 +12,21 @@ pub struct AudioSourceScripted {
     pub play: bool,
     pub current_time: Option<f32>,
     pub ready: bool,
+}
+
+impl Default for AudioSourceScripted {
+    fn default() -> Self {
+        Self {
+            audio: "".to_owned(),
+            streaming: false,
+            looped: false,
+            playback_rate: 1.0,
+            volume: 1.0,
+            play: false,
+            current_time: None,
+            ready: false,
+        }
+    }
 }
 
 impl From<AudioSource> for AudioSourceScripted {

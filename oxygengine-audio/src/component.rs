@@ -94,7 +94,7 @@ impl AudioSourceConfig {
     }
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioSource {
     audio: Cow<'static, str>,
     streaming: bool,
@@ -107,6 +107,22 @@ pub struct AudioSource {
     pub(crate) ready: Arc<AtomicBool>,
     #[serde(skip)]
     pub(crate) dirty: AudioSourceDirtyMode,
+}
+
+impl Default for AudioSource {
+    fn default() -> Self {
+        Self {
+            audio: "".into(),
+            streaming: false,
+            looped: false,
+            playback_rate: 1.0,
+            volume: 1.0,
+            play: false,
+            current_time: None,
+            ready: Arc::new(AtomicBool::new(false)),
+            dirty: AudioSourceDirtyMode::None,
+        }
+    }
 }
 
 impl From<AudioSourceConfig> for AudioSource {

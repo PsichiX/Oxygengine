@@ -38,7 +38,7 @@ impl From<CompositeTransform> for CompositeTransformScripted {
     fn from(value: CompositeTransform) -> Self {
         Self {
             translation: value.get_translation(),
-            rotation: value.get_rotation(),
+            rotation: value.get_rotation().to_degrees(),
             scale: value.get_scale(),
         }
     }
@@ -46,7 +46,7 @@ impl From<CompositeTransform> for CompositeTransformScripted {
 
 impl From<CompositeTransformScripted> for CompositeTransform {
     fn from(value: CompositeTransformScripted) -> Self {
-        Self::new(value.translation, value.rotation, value.scale)
+        Self::new(value.translation, value.rotation.to_radians(), value.scale)
     }
 }
 

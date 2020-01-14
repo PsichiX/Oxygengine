@@ -1,0 +1,14 @@
+{
+  "source": "static",
+  "destination": "static",
+  "commands": [
+    {
+      "Pack": {
+        "paths": [
+          "assets"
+        ],
+        "output": "assets.pack"
+      }
+    }
+  ]
+}
