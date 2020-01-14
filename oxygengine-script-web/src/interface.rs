@@ -19,6 +19,19 @@ lazy_static! {
     static ref INTERFACE: Mutex<WebScriptInterface> = Mutex::new(WebScriptInterface::default());
 }
 
+pub trait ComponentModify<R> {
+    fn modify_component(&mut self, source: R);
+}
+
+impl<T, R> ComponentModify<R> for T
+where
+    T: Component + From<R>,
+{
+    fn modify_component(&mut self, source: R) {
+        *self = source.into();
+    }
+}
+
 struct ComponentBridge {
     add_to_entity: Box<dyn FnMut(EntityBuilder, JsValue) -> EntityBuilder>,
     read_data: Box<dyn FnMut(&World, Entity) -> JsValue>,
@@ -129,7 +142,7 @@ impl WebScriptInterface {
 
     pub fn register_component_bridge<S, M>(&mut self, name: &str, template: S)
     where
-        S: Scriptable + Component + Clone + Send + Sync + From<M>,
+        S: Scriptable + Component + Clone + Send + Sync + ComponentModify<M>,
         S::Storage: Default,
         M: Scriptable + From<S>,
     {
@@ -137,12 +150,14 @@ impl WebScriptInterface {
             name.to_owned(),
             ComponentBridge {
                 add_to_entity: Box::new(move |builder, data| {
-                    let template: M = template.clone().into();
-                    if let Ok(template) = template.to_scriptable() {
-                        if let Ok(data) = scriptable_js_to_value(data) {
-                            let template = scriptable_value_merge(&template, &data);
-                            if let Ok(template) = M::from_scriptable(&template) {
-                                let template: S = template.into();
+                    let template_medium: M = template.clone().into();
+                    if let Ok(template_scriptable) = template_medium.to_scriptable() {
+                        if let Ok(data_scriptable) = scriptable_js_to_value(data) {
+                            let merged_scriptable =
+                                scriptable_value_merge(&template_scriptable, &data_scriptable);
+                            if let Ok(data) = M::from_scriptable(&merged_scriptable) {
+                                let mut template = template.clone();
+                                template.modify_component(data);
                                 return builder.with(template);
                             }
                         }
@@ -160,9 +175,8 @@ impl WebScriptInterface {
                 }),
                 write_data: Box::new(|world, entity, value| {
                     if let Ok(data) = M::from_js(value) {
-                        let data: S = data.into();
                         if let Some(component) = world.write_storage::<S>().get_mut(entity) {
-                            *component = data;
+                            component.modify_component(data);
                         }
                     }
                 }),

@@ -74,6 +74,15 @@ where
                 CompositeMapChunk::default(),
             );
         }
+        #[cfg(feature = "audio")]
+        {
+            use crate::integration::audio::*;
+            use oxygengine_audio::component::*;
+            interface.register_component_bridge::<_, AudioSourceScripted>(
+                "AudioSource",
+                AudioSource::default(),
+            );
+        }
         web_script_setup(interface);
     });
 }

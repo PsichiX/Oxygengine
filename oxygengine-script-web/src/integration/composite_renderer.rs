@@ -1,3 +1,4 @@
+use crate::interface::ComponentModify;
 use oxygengine_composite_renderer::{component::*, math::*};
 use oxygengine_utils::grid_2d::*;
 use serde::{Deserialize, Serialize};
@@ -110,21 +111,19 @@ impl From<CompositeSpriteAnimation> for CompositeSpriteAnimationScripted {
     }
 }
 
-impl From<CompositeSpriteAnimationScripted> for CompositeSpriteAnimation {
-    fn from(value: CompositeSpriteAnimationScripted) -> Self {
-        let mut r = Self::new(
-            value
-                .animations
-                .iter()
-                .map(|(k, v)| (k.clone().into(), v.clone()))
-                .collect::<HashMap<_, _>>(),
-        );
-        if let Some(value) = value.current {
-            if value.phase <= 0.0 {
-                r.play(&value.name, value.speed, value.looped);
-            }
+impl ComponentModify<CompositeSpriteAnimationScripted> for CompositeSpriteAnimation {
+    fn modify_component(&mut self, source: CompositeSpriteAnimationScripted) {
+        self.animations = source
+            .animations
+            .iter()
+            .map(|(k, v)| (k.clone().into(), v.clone()))
+            .collect::<HashMap<_, _>>();
+        if let Some(current) = source.current {
+            self.play(&current.name, current.speed, current.looped);
+            self.set_phase(current.phase);
+        } else {
+            self.stop();
         }
-        r
     }
 }
 
@@ -188,21 +187,19 @@ impl From<CompositeTilemapAnimation> for CompositeTilemapAnimationScripted {
     }
 }
 
-impl From<CompositeTilemapAnimationScripted> for CompositeTilemapAnimation {
-    fn from(value: CompositeTilemapAnimationScripted) -> Self {
-        let mut r = Self::new(
-            value
-                .animations
-                .iter()
-                .map(|(k, v)| (k.clone().into(), v.clone()))
-                .collect::<HashMap<_, _>>(),
-        );
-        if let Some(value) = value.current {
-            if value.phase <= 0.0 {
-                r.play(&value.name, value.speed, value.looped);
-            }
+impl ComponentModify<CompositeTilemapAnimationScripted> for CompositeTilemapAnimation {
+    fn modify_component(&mut self, source: CompositeTilemapAnimationScripted) {
+        self.animations = source
+            .animations
+            .iter()
+            .map(|(k, v)| (k.clone().into(), v.clone()))
+            .collect::<HashMap<_, _>>();
+        if let Some(current) = source.current {
+            self.play(&current.name, current.speed, current.looped);
+            self.set_phase(current.phase);
+        } else {
+            self.stop();
         }
-        r
     }
 }
 

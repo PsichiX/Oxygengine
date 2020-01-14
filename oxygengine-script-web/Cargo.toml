@@ -25,5 +25,11 @@ version = "0.5"
 path = "../oxygengine-composite-renderer"
 optional = true
 
+[dependencies.oxygengine-audio]
+version = "0.5"
+path = "../oxygengine-audio"
+optional = true
+
 [features]
 composite-renderer = ["oxygengine-composite-renderer"]
+audio = ["oxygengine-audio"]

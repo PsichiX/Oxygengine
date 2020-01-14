@@ -1,4 +1,5 @@
 use core::ecs::{Component, FlaggedStorage, VecStorage};
+use serde::{Deserialize, Serialize};
 use std::{
     borrow::Cow,
     sync::{
@@ -14,7 +15,33 @@ pub(crate) enum AudioSourceDirtyMode {
     All,
 }
 
-#[derive(Debug, Clone)]
+impl Default for AudioSourceDirtyMode {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl From<u8> for AudioSourceDirtyMode {
+    fn from(value: u8) -> Self {
+        match value {
+            1 => Self::Param,
+            2 => Self::All,
+            _ => Self::None,
+        }
+    }
+}
+
+impl Into<u8> for AudioSourceDirtyMode {
+    fn into(self) -> u8 {
+        match self {
+            Self::Param => 1,
+            Self::All => 2,
+            _ => 0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioSourceConfig {
     pub audio: Cow<'static, str>,
     pub streaming: bool,
@@ -67,7 +94,7 @@ impl AudioSourceConfig {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct AudioSource {
     audio: Cow<'static, str>,
     streaming: bool,
@@ -76,7 +103,9 @@ pub struct AudioSource {
     volume: f32,
     play: bool,
     pub(crate) current_time: Option<f32>,
+    #[serde(skip)]
     pub(crate) ready: Arc<AtomicBool>,
+    #[serde(skip)]
     pub(crate) dirty: AudioSourceDirtyMode,
 }
 
@@ -157,7 +186,11 @@ impl AudioSource {
 
     pub fn set_looped(&mut self, looped: bool) {
         self.looped = looped;
-        self.dirty = AudioSourceDirtyMode::Param;
+        self.dirty = {
+            let o: u8 = self.dirty.into();
+            let n: u8 = AudioSourceDirtyMode::Param.into();
+            o.max(n).into()
+        };
     }
 
     pub fn playback_rate(&self) -> f32 {
@@ -166,7 +199,11 @@ impl AudioSource {
 
     pub fn set_playback_rate(&mut self, playback_rate: f32) {
         self.playback_rate = playback_rate;
-        self.dirty = AudioSourceDirtyMode::Param;
+        self.dirty = {
+            let o: u8 = self.dirty.into();
+            let n: u8 = AudioSourceDirtyMode::Param.into();
+            o.max(n).into()
+        };
     }
 
     pub fn volume(&self) -> f32 {
@@ -175,7 +212,11 @@ impl AudioSource {
 
     pub fn set_volume(&mut self, volume: f32) {
         self.volume = volume;
-        self.dirty = AudioSourceDirtyMode::Param;
+        self.dirty = {
+            let o: u8 = self.dirty.into();
+            let n: u8 = AudioSourceDirtyMode::Param.into();
+            o.max(n).into()
+        };
     }
 
     pub fn current_time(&self) -> Option<f32> {
@@ -188,12 +229,20 @@ impl AudioSource {
 
     pub fn play(&mut self) {
         self.play = true;
-        self.dirty = AudioSourceDirtyMode::All;
+        self.dirty = {
+            let o: u8 = self.dirty.into();
+            let n: u8 = AudioSourceDirtyMode::All.into();
+            o.max(n).into()
+        };
     }
 
     pub fn stop(&mut self) {
         self.play = false;
-        self.dirty = AudioSourceDirtyMode::All;
+        self.dirty = {
+            let o: u8 = self.dirty.into();
+            let n: u8 = AudioSourceDirtyMode::All.into();
+            o.max(n).into()
+        };
     }
 
     pub fn is_ready(&self) -> bool {

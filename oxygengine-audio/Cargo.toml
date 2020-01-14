@@ -12,3 +12,4 @@ readme = "../README.md"
 
 [dependencies]
 oxygengine-core = { version = "0.5", path = "../oxygengine-core" }
+serde = { version = "1", features = ["derive"] }
