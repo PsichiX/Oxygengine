@@ -1,6 +1,7 @@
 use crate::{
     interface::{ResourceAccess, ResourceModify},
-    scriptable::ScriptableValue,
+    json_asset_protocol::JsonAsset,
+    scriptable::{ScriptableMap, ScriptableValue},
 };
 use core::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -87,22 +88,72 @@ impl From<&AssetsDatabase> for AssetsDatabaseScripted {
 }
 
 impl ResourceModify<AssetsDatabaseScripted> for AssetsDatabase {
-    fn modify_resource(&mut self, source: AssetsDatabaseScripted) {
-        if let Some(load) = source.load {
-            for path in load {
-                drop(self.load(&path));
-            }
-        }
-        if let Some(unload) = source.unload {
-            for path in unload {
-                self.remove_by_path(&path);
-            }
-        }
-    }
+    fn modify_resource(&mut self, _source: AssetsDatabaseScripted) {}
 }
 
 impl ResourceAccess for AssetsDatabase {
-    fn access_resource(&mut self, _value: ScriptableValue) -> ScriptableValue {
+    fn access_resource(&mut self, value: ScriptableValue) -> ScriptableValue {
+        match value {
+            ScriptableValue::Object(object) => {
+                if let Some(ScriptableValue::Array(load)) = object.get("load") {
+                    for path in load {
+                        if let ScriptableValue::String(path) = path {
+                            drop(self.load(&path));
+                        }
+                    }
+                }
+                if let Some(ScriptableValue::Array(load)) = object.get("unload") {
+                    for path in load {
+                        if let ScriptableValue::String(path) = path {
+                            self.remove_by_path(&path);
+                        }
+                    }
+                }
+                if let Some(ScriptableValue::Array(paths)) = object.get("loaded") {
+                    let map = paths
+                        .into_iter()
+                        .map(|path| {
+                            let path = path.to_string();
+                            let result = ScriptableValue::Bool(self.id_by_path(&path).is_some());
+                            (path, result)
+                        })
+                        .collect::<ScriptableMap<_, _>>();
+                    return ScriptableValue::Object(map);
+                }
+            }
+            ScriptableValue::Array(paths) => {
+                let map = paths
+                    .into_iter()
+                    .filter_map(|path| {
+                        let path = path.to_string();
+                        if let Some(asset) = self.asset_by_path(&path) {
+                            if let Some(protocol) = path.split("://").next() {
+                                let data = match protocol {
+                                    "text" => ScriptableValue::String(
+                                        asset.get::<TextAsset>().unwrap().get().to_owned(),
+                                    ),
+                                    "json" => asset.get::<JsonAsset>().unwrap().get().clone(),
+                                    "binary" => ScriptableValue::Array(
+                                        asset
+                                            .get::<BinaryAsset>()
+                                            .unwrap()
+                                            .get()
+                                            .iter()
+                                            .map(|byte| ScriptableValue::Number((*byte).into()))
+                                            .collect::<Vec<_>>(),
+                                    ),
+                                    _ => return None,
+                                };
+                                return Some((path, data));
+                            }
+                        }
+                        None
+                    })
+                    .collect::<ScriptableMap<_, _>>();
+                return ScriptableValue::Object(map);
+            }
+            _ => {}
+        }
         ScriptableValue::Null
     }
 }

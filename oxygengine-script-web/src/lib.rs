@@ -5,12 +5,15 @@ extern crate lazy_static;
 mod component;
 pub mod integration;
 pub mod interface;
+pub mod json_asset_protocol;
 pub mod scriptable;
 pub mod state;
 pub mod web_api;
 
 pub mod prelude {
-    pub use crate::{integration::*, interface::*, scriptable::*, state::*};
+    pub use crate::{
+        integration::*, interface::*, json_asset_protocol::*, scriptable::*, state::*,
+    };
 }
 use crate::{
     component::WebScriptComponent,
@@ -116,4 +119,8 @@ where
         }
         web_script_setup(interface);
     });
+}
+
+pub fn protocols_installer(database: &mut AssetsDatabase) {
+    database.register(json_asset_protocol::JsonAssetProtocol);
 }

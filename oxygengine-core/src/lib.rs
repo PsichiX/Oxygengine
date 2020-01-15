@@ -28,7 +28,7 @@ pub mod ecs {
 
 pub mod prelude {
     pub use crate::{
-        app::*, assets::prelude::*, assets::*, ecs::*, fetch::prelude::*, fetch::*, hierarchy::*,
-        id::*, log::*, state::*,
+        app::*, assets::bundle_installer, assets::prelude::*, ecs::*, fetch::prelude::*, fetch::*,
+        hierarchy::*, id::*, log::*, state::*,
     };
 }
