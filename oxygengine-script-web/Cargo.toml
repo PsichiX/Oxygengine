@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-script-web"
-version = "0.5.3"
+version = "0.5.5"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Web scripting module for Oxygen Engine"
