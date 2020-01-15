@@ -1,12 +1,19 @@
 use crate::{device::InputDevice, Scalar};
+use serde::{Deserialize, Serialize};
 use std::{borrow::Borrow, collections::HashMap};
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TriggerState {
     Idle,
     Pressed,
     Hold,
     Released,
+}
+
+impl Default for TriggerState {
+    fn default() -> Self {
+        Self::Idle
+    }
 }
 
 impl TriggerState {
@@ -88,6 +95,18 @@ impl InputController {
         }
     }
 
+    pub fn mapping_axes(&self) -> impl Iterator<Item = (&str, (&str, &str))> {
+        self.mapping_axes
+            .iter()
+            .map(|(k, (a, b))| (k.as_str(), (a.as_str(), b.as_str())))
+    }
+
+    pub fn mapping_triggers(&self) -> impl Iterator<Item = (&str, (&str, &str))> {
+        self.mapping_triggers
+            .iter()
+            .map(|(k, (a, b))| (k.as_str(), (a.as_str(), b.as_str())))
+    }
+
     pub fn map_axis(&mut self, name_from: &str, device: &str, name_to: &str) {
         self.mapping_axes.insert(
             name_from.to_owned(),
@@ -108,6 +127,14 @@ impl InputController {
 
     pub fn unmap_trigger(&mut self, name: &str) {
         self.mapping_triggers.remove(name);
+    }
+
+    pub fn axes(&self) -> impl Iterator<Item = (&str, Scalar)> {
+        self.axes.iter().map(|(k, v)| (k.as_str(), *v))
+    }
+
+    pub fn triggers(&self) -> impl Iterator<Item = (&str, TriggerState)> {
+        self.triggers.iter().map(|(k, v)| (k.as_str(), *v))
     }
 
     pub fn axis(&self, name: &str) -> Option<Scalar> {

@@ -32,7 +32,7 @@ web = [
   "oxygengine-physics-2d/web",
 ]
 desktop = ["parallel"]
-input = ["oxygengine-input"]
+input = ["oxygengine-input", "oxygengine-script-web/input"]
 composite-renderer = ["oxygengine-composite-renderer", "oxygengine-script-web/composite-renderer"]
 network = ["oxygengine-network"]
 procedural = ["oxygengine-procedural"]

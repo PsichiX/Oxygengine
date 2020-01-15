@@ -25,11 +25,22 @@ version = "0.5"
 path = "../oxygengine-composite-renderer"
 optional = true
 
+[dependencies.oxygengine-composite-renderer-backend-web]
+version = "0.5"
+path = "../oxygengine-composite-renderer-backend-web"
+optional = true
+
 [dependencies.oxygengine-audio]
 version = "0.5"
 path = "../oxygengine-audio"
 optional = true
 
+[dependencies.oxygengine-input]
+version = "0.5"
+path = "../oxygengine-input"
+optional = true
+
 [features]
-composite-renderer = ["oxygengine-composite-renderer"]
+composite-renderer = ["oxygengine-composite-renderer", "oxygengine-composite-renderer-backend-web"]
 audio = ["oxygengine-audio"]
+input = ["oxygengine-input"]

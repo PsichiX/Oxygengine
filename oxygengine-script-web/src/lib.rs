@@ -12,8 +12,14 @@ pub mod web_api;
 pub mod prelude {
     pub use crate::{integration::*, interface::*, scriptable::*, state::*};
 }
-use crate::{component::WebScriptComponent, interface::WebScriptInterface};
-use core::app::AppBuilder;
+use crate::{
+    component::WebScriptComponent, integration::core::AppLifeCycleScripted,
+    interface::WebScriptInterface,
+};
+use core::{
+    app::{AppBuilder, AppLifeCycle},
+    hierarchy::{Name, NonPersistent, Tag},
+};
 
 pub fn bundle_installer<'a, 'b, WSS>(builder: &mut AppBuilder<'a, 'b>, mut web_script_setup: WSS)
 where
@@ -21,10 +27,15 @@ where
 {
     builder.install_component::<WebScriptComponent>();
     WebScriptInterface::with(|interface| {
+        interface.register_component_bridge("Name", Name::default());
+        interface.register_component_bridge("Tag", Tag::default());
+        interface.register_component_bridge("NonPersistent", NonPersistent::default());
+        interface.register_resource_bridge::<AppLifeCycle, AppLifeCycleScripted>("AppLifeCycle");
         #[cfg(feature = "composite-renderer")]
         {
             use crate::integration::composite_renderer::*;
             use oxygengine_composite_renderer::component::*;
+            use oxygengine_composite_renderer_backend_web::WebCompositeRenderer;
             interface
                 .register_component_bridge("CompositeVisibility", CompositeVisibility::default());
             interface.register_component_bridge::<_, CompositeSurfaceCacheScripted>(
@@ -73,6 +84,10 @@ where
                 "CompositeMapChunk",
                 CompositeMapChunk::default(),
             );
+            interface
+                .register_resource_bridge::<WebCompositeRenderer, WebCompositeRendererScripted>(
+                    "WebCompositeRenderer",
+                );
         }
         #[cfg(feature = "audio")]
         {
@@ -81,6 +96,17 @@ where
             interface.register_component_bridge::<_, AudioSourceScripted>(
                 "AudioSource",
                 AudioSource::default(),
+            );
+        }
+        #[cfg(feature = "input")]
+        {
+            use crate::integration::input::*;
+            use oxygengine_input::resource::*;
+            interface.register_resource_bridge::<InputController, InputControllerMappingsScripted>(
+                "InputControllerMappings",
+            );
+            interface.register_resource_bridge::<InputController, InputControllerStateScripted>(
+                "InputControllerState",
             );
         }
         web_script_setup(interface);

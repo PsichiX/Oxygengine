@@ -32,7 +32,6 @@ impl EntityId {
 pub(crate) enum Constrain {
     None,
     Entities,
-    Resource(String),
     Components(String),
     ExcludeComponents(String),
 }
@@ -70,11 +69,6 @@ impl WebScriptFetch {
                         for constrain in &self.constrains {
                             match constrain {
                                 Constrain::Entities => {}
-                                Constrain::Resource(name) => {
-                                    if !WebScriptInterface::has_resource(name) {
-                                        continue 'main;
-                                    }
-                                }
                                 Constrain::Components(name) => {
                                     if !c.has_component(name) {
                                         continue 'main;
@@ -111,11 +105,6 @@ impl WebScriptFetch {
                         if let Some(c) = world.read_storage::<WebScriptComponent>().get(entity) {
                             match constrain {
                                 Constrain::Entities => return c.id().into(),
-                                Constrain::Resource(name) => {
-                                    if let Some(resource) = WebScriptInterface::get_resource(name) {
-                                        return resource;
-                                    }
-                                }
                                 Constrain::Components(name) => {
                                     if let Some(component) = c.get_component(name) {
                                         return component;
@@ -147,23 +136,33 @@ impl WebScriptFetch {
                     if let Some(world) = unsafe { world.as_mut() } {
                         if let Some(c) = world.write_storage::<WebScriptComponent>().get_mut(entity)
                         {
-                            match constrain {
-                                Constrain::Resource(name) => {
-                                    WebScriptInterface::set_resource(name, value);
+                            if let Constrain::Components(name) = constrain {
+                                if !c.set_component(name, value.clone()) {
+                                    WebScriptInterface::write_component_bridge(name, entity, value);
                                 }
-                                Constrain::Components(name) => {
-                                    if !c.set_component(name, value.clone()) {
-                                        WebScriptInterface::write_component_bridge(
-                                            name, entity, value,
-                                        );
-                                    }
-                                }
-                                _ => {}
                             }
                         }
                     }
                 }
             }
+        }
+    }
+
+    #[wasm_bindgen(js_name = "readResource")]
+    pub fn read_resource(&self, name: &str) -> JsValue {
+        if let Some(resource) = WebScriptInterface::get_resource(name) {
+            resource
+        } else if let Some(resource) = WebScriptInterface::read_resource_bridge(name) {
+            resource
+        } else {
+            JsValue::UNDEFINED
+        }
+    }
+
+    #[wasm_bindgen(js_name = "writeResource")]
+    pub fn write_resource(&self, name: &str, value: JsValue) {
+        if !WebScriptInterface::set_resource(name, value.clone()) {
+            WebScriptInterface::write_resource_bridge(name, value);
         }
     }
 }
@@ -209,7 +208,7 @@ impl WebScriptApi {
         WebScriptInterface::destroy_entity(id);
     }
 
-    pub fn fetch(constrains: &Array) -> Option<WebScriptFetch> {
+    pub fn fetch(constrains: &Array) -> WebScriptFetch {
         let constrains = constrains
             .iter()
             .map(|c| {
@@ -217,8 +216,6 @@ impl WebScriptApi {
                     let s = String::from(s);
                     if s.starts_with("@") {
                         return Constrain::Entities;
-                    } else if s.starts_with("$") {
-                        return Constrain::Resource(s[1..].to_owned());
                     } else if s.starts_with("+") {
                         return Constrain::Components(s[1..].to_owned());
                     } else if s.starts_with("-") {
@@ -228,6 +225,6 @@ impl WebScriptApi {
                 Constrain::None
             })
             .collect::<Vec<_>>();
-        Some(WebScriptFetch::new(constrains))
+        WebScriptFetch::new(constrains)
     }
 }

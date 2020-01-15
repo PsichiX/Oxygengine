@@ -7,7 +7,7 @@ use crate::{
     state::WebScriptStateScripted,
     web_api::EntityId,
 };
-use core::ecs::{Builder, Component, Entity, EntityBuilder, World};
+use core::ecs::{Builder, Component, Entity, EntityBuilder, Resource, World};
 use js_sys::{Function, JsString, Object, Reflect};
 use std::{
     collections::{HashMap, HashSet},
@@ -56,11 +56,31 @@ impl ComponentBridge {
     }
 }
 
+pub trait ResourceModify<R> {
+    fn modify_resource(&mut self, source: R);
+}
+
+struct ResourceBridge {
+    read_data: Box<dyn FnMut(&World) -> JsValue>,
+    write_data: Box<dyn FnMut(&mut World, JsValue)>,
+}
+
+impl ResourceBridge {
+    fn on_read_data(&mut self, world: &World) -> JsValue {
+        (self.read_data)(world)
+    }
+
+    fn on_write_data(&mut self, world: &mut World, value: JsValue) {
+        (self.write_data)(world, value)
+    }
+}
+
 pub struct WebScriptInterface {
     ready: bool,
     // TODO: check if this pointer can be pinned.
     world_ptr: Option<*mut World>,
     resources: HashMap<String, JsValue>,
+    resources_bridge: HashMap<String, ResourceBridge>,
     component_factory: HashMap<String, Function>,
     scriptable_components: HashMap<String, Box<dyn Scriptable>>,
     components_bridge: HashMap<String, ComponentBridge>,
@@ -85,6 +105,7 @@ impl Default for WebScriptInterface {
             ready: false,
             world_ptr: None,
             resources: HashMap::new(),
+            resources_bridge: HashMap::new(),
             component_factory: HashMap::new(),
             scriptable_components: HashMap::new(),
             components_bridge: HashMap::new(),
@@ -128,6 +149,36 @@ impl WebScriptInterface {
                 self.resources.insert(name.to_owned(), resource);
             }
         }
+    }
+
+    pub fn register_resource_bridge<'a, S, M>(&mut self, name: &str)
+    where
+        S: Resource + Send + Sync + ResourceModify<M>,
+        M: Scriptable + From<&'a S>,
+    {
+        self.resources_bridge.insert(
+            name.to_owned(),
+            ResourceBridge {
+                read_data: Box::new(|world| {
+                    let r: &S = &world.read_resource::<S>();
+                    // TODO: this is very hacky and extends reference lifetime for that time that
+                    // resource is converted into proxy object.
+                    // CHANGE IT IN THE FUTURE.
+                    let data = M::from(unsafe { std::mem::transmute(r) });
+                    if let Ok(data) = data.to_js() {
+                        data
+                    } else {
+                        JsValue::UNDEFINED
+                    }
+                }),
+                write_data: Box::new(|world, value| {
+                    if let Ok(data) = M::from_js(value) {
+                        let r: &mut S = &mut world.write_resource::<S>();
+                        r.modify_resource(data);
+                    }
+                }),
+            },
+        );
     }
 
     pub fn register_scriptable_component<S>(&mut self, name: &str, component: S)
@@ -315,14 +366,6 @@ impl WebScriptInterface {
         }
     }
 
-    pub(crate) fn has_resource(name: &str) -> bool {
-        if let Ok(interface) = INTERFACE.lock() {
-            interface.resources.contains_key(name)
-        } else {
-            false
-        }
-    }
-
     pub(crate) fn get_resource(name: &str) -> Option<JsValue> {
         if let Ok(interface) = INTERFACE.lock() {
             if let Some(resource) = interface.resources.get(name) {
@@ -332,9 +375,38 @@ impl WebScriptInterface {
         None
     }
 
-    pub(crate) fn set_resource(name: &str, value: JsValue) {
+    pub(crate) fn set_resource(name: &str, value: JsValue) -> bool {
         if let Ok(mut interface) = INTERFACE.lock() {
-            interface.resources.insert(name.to_owned(), value);
+            if interface.ready && interface.resources.contains_key(name) {
+                interface.resources.insert(name.to_owned(), value);
+                return true;
+            }
+        }
+        false
+    }
+
+    pub(crate) fn read_resource_bridge(name: &str) -> Option<JsValue> {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            if !interface.ready || interface.world_ptr.is_none() {
+                return None;
+            }
+            let world = interface.world_ptr.unwrap();
+            if let Some(bridge) = interface.resources_bridge.get_mut(name) {
+                return Some(bridge.on_read_data(unsafe { world.as_ref().unwrap() }));
+            }
+        }
+        None
+    }
+
+    pub(crate) fn write_resource_bridge(name: &str, value: JsValue) {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            if !interface.ready || interface.world_ptr.is_none() {
+                return;
+            }
+            let world = interface.world_ptr.unwrap();
+            if let Some(bridge) = interface.resources_bridge.get_mut(name) {
+                bridge.on_write_data(unsafe { world.as_mut().unwrap() }, value);
+            }
         }
     }
 

@@ -1,5 +1,6 @@
-use crate::interface::ComponentModify;
-use oxygengine_composite_renderer::{component::*, math::*};
+use crate::interface::{ComponentModify, ResourceModify};
+use oxygengine_composite_renderer::{component::*, composite_renderer::*, math::*};
+use oxygengine_composite_renderer_backend_web::WebCompositeRenderer;
 use oxygengine_utils::grid_2d::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -228,5 +229,28 @@ impl From<CompositeMapChunkScripted> for CompositeMapChunk {
         r.set_offset(value.offset);
         r.set_size(value.size);
         r
+    }
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct WebCompositeRendererScripted {
+    pub state: RenderState,
+    pub view_size: Vec2,
+}
+
+impl From<&WebCompositeRenderer> for WebCompositeRendererScripted {
+    fn from(value: &WebCompositeRenderer) -> Self {
+        Self {
+            state: value.state().clone(),
+            view_size: value.view_size(),
+        }
+    }
+}
+
+impl ResourceModify<WebCompositeRendererScripted> for WebCompositeRenderer {
+    fn modify_resource(&mut self, source: WebCompositeRendererScripted) {
+        self.state_mut().clear_color = source.state.clear_color;
+        self.state_mut().image_smoothing = source.state.image_smoothing;
+        self.state_mut().image_source_inner_margin = source.state.image_source_inner_margin;
     }
 }

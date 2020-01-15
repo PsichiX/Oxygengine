@@ -22,6 +22,7 @@ pub mod id {
 }
 
 pub mod ecs {
+    pub use shred::Resource;
     pub use specs::*;
 }
 

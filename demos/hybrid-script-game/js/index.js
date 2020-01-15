@@ -2,6 +2,33 @@ import("../pkg/index.js")
   .then(mod => {
     const { WebScriptApi } = mod;
 
+    WebScriptApi.registerComponentFactory('player', () => {
+      return {};
+    });
+
+    WebScriptApi.registerComponentFactory('speed', () => {
+      return { value: 1 };
+    });
+
+    class PlayerControlSystem {
+      onRun() {
+        const fetch = WebScriptApi.fetch(['+player', '+speed', '+CompositeTransform']);
+        const input = fetch.readResource('InputControllerState');
+        const dt = fetch.readResource('AppLifeCycle').delta_time_seconds;
+        const x = -input.axes['move-left'] + input.axes['move-right'];
+        const y = -input.axes['move-up'] + input.axes['move-down'];
+        while (fetch.next()) {
+          const player = fetch.read(0);
+          const speed = fetch.read(1).value;
+          const transform = fetch.read(2);
+          transform.translation.x += x * dt * speed;
+          transform.translation.y += y * dt * speed;
+          fetch.write(2, transform);
+        }
+      }
+    }
+    WebScriptApi.registerSystem('player-control', new PlayerControlSystem());
+
     class GameState {
       onEnter() {
         WebScriptApi.createEntity({
@@ -39,6 +66,8 @@ import("../pkg/index.js")
             }
           },
           CompositeTransform: {},
+          player: {},
+          speed: { value: 100 },
         });
       }
     }

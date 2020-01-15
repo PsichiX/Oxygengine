@@ -1,4 +1,5 @@
 use crate::state::StateToken;
+use serde::{Deserialize, Serialize};
 use specs::{Component, Entity, FlaggedStorage, VecStorage, World};
 use specs_hierarchy::Hierarchy;
 use std::{borrow::Cow, collections::HashSet};
@@ -73,21 +74,21 @@ impl specs_hierarchy::Parent for Parent {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Tag(pub Cow<'static, str>);
 
 impl Component for Tag {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Name(pub Cow<'static, str>);
 
 impl Component for Name {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct NonPersistent(pub StateToken);
 
 impl Component for NonPersistent {
