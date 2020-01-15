@@ -2,6 +2,10 @@ import("../pkg/index.js")
   .then(mod => {
     const { WebScriptApi } = mod;
 
+    WebScriptApi.registerResource('globals', {
+      timeScale: 1,
+    });
+
     WebScriptApi.registerComponentFactory('player', () => {
       return {};
     });
@@ -13,8 +17,15 @@ import("../pkg/index.js")
     class PlayerControlSystem {
       onRun() {
         const fetch = WebScriptApi.fetch(['+player', '+speed', '+CompositeTransform']);
+        const globals = fetch.readResource('globals');
         const input = fetch.readResource('InputControllerState');
-        const dt = fetch.readResource('AppLifeCycle').delta_time_seconds;
+        const lifecycle = fetch.readResource('AppLifeCycle');
+        if (input.triggers['mouse-left'] === 'Hold') {
+          globals.timeScale = 0.3;
+        } else {
+          globals.timeScale = 1;
+        }
+        const dt = lifecycle.delta_time_seconds * globals.timeScale;
         const x = -input.axes['move-left'] + input.axes['move-right'];
         const y = -input.axes['move-up'] + input.axes['move-down'];
         while (fetch.next()) {
