@@ -1,4 +1,7 @@
-use crate::interface::ResourceModify;
+use crate::{
+    interface::{ResourceAccess, ResourceModify},
+    scriptable::ScriptableValue,
+};
 use oxygengine_input::resource::{InputController, TriggerState};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -64,5 +67,11 @@ impl ResourceModify<InputControllerStateScripted> for InputController {
         for (k, v) in source.triggers {
             self.set_trigger(&k, v);
         }
+    }
+}
+
+impl ResourceAccess for InputController {
+    fn access_resource(&mut self, _value: ScriptableValue) -> ScriptableValue {
+        ScriptableValue::Null
     }
 }

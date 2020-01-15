@@ -165,6 +165,15 @@ impl WebScriptFetch {
             WebScriptInterface::write_resource_bridge(name, value);
         }
     }
+
+    #[wasm_bindgen(js_name = "accessResource")]
+    pub fn access_resource(&self, name: &str, value: JsValue) -> JsValue {
+        if !WebScriptInterface::set_resource(name, value.clone()) {
+            WebScriptInterface::access_resource_bridge(name, value)
+        } else {
+            JsValue::UNDEFINED
+        }
+    }
 }
 
 #[wasm_bindgen]

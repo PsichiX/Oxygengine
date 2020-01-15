@@ -60,9 +60,14 @@ pub trait ResourceModify<R> {
     fn modify_resource(&mut self, source: R);
 }
 
+pub trait ResourceAccess {
+    fn access_resource(&mut self, value: ScriptableValue) -> ScriptableValue;
+}
+
 struct ResourceBridge {
     read_data: Box<dyn FnMut(&World) -> JsValue>,
     write_data: Box<dyn FnMut(&mut World, JsValue)>,
+    access_data: Box<dyn FnMut(&World, JsValue) -> JsValue>,
 }
 
 impl ResourceBridge {
@@ -72,6 +77,10 @@ impl ResourceBridge {
 
     fn on_write_data(&mut self, world: &mut World, value: JsValue) {
         (self.write_data)(world, value)
+    }
+
+    fn on_access_data(&mut self, world: &World, value: JsValue) -> JsValue {
+        (self.access_data)(world, value)
     }
 }
 
@@ -153,7 +162,7 @@ impl WebScriptInterface {
 
     pub fn register_resource_bridge<'a, S, M>(&mut self, name: &str)
     where
-        S: Resource + Send + Sync + ResourceModify<M>,
+        S: Resource + Send + Sync + ResourceModify<M> + ResourceAccess,
         M: Scriptable + From<&'a S>,
     {
         self.resources_bridge.insert(
@@ -161,7 +170,7 @@ impl WebScriptInterface {
             ResourceBridge {
                 read_data: Box::new(|world| {
                     let r: &S = &world.read_resource::<S>();
-                    // TODO: this is very hacky and extends reference lifetime for that time that
+                    // TODO: this is very hacky - it extends reference lifetime for that time that
                     // resource is converted into proxy object.
                     // CHANGE IT IN THE FUTURE.
                     let data = M::from(unsafe { std::mem::transmute(r) });
@@ -176,6 +185,16 @@ impl WebScriptInterface {
                         let r: &mut S = &mut world.write_resource::<S>();
                         r.modify_resource(data);
                     }
+                }),
+                access_data: Box::new(|world, value| {
+                    if let Ok(data) = scriptable_js_to_value(value) {
+                        let r: &mut S = &mut world.write_resource::<S>();
+                        let v = r.access_resource(data);
+                        if let Ok(v) = scriptable_value_to_js(&v) {
+                            return v;
+                        }
+                    }
+                    JsValue::UNDEFINED
                 }),
             },
         );
@@ -408,6 +427,19 @@ impl WebScriptInterface {
                 bridge.on_write_data(unsafe { world.as_mut().unwrap() }, value);
             }
         }
+    }
+
+    pub(crate) fn access_resource_bridge(name: &str, value: JsValue) -> JsValue {
+        if let Ok(mut interface) = INTERFACE.lock() {
+            if !interface.ready || interface.world_ptr.is_none() {
+                return JsValue::UNDEFINED;
+            }
+            let world = interface.world_ptr.unwrap();
+            if let Some(bridge) = interface.resources_bridge.get_mut(name) {
+                return bridge.on_access_data(unsafe { world.as_mut().unwrap() }, value);
+            }
+        }
+        JsValue::UNDEFINED
     }
 
     pub(crate) fn read_component_bridge(name: &str, entity: Entity) -> Option<JsValue> {

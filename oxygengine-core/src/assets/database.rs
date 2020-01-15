@@ -110,6 +110,10 @@ impl AssetsDatabase {
         self.lately_loaded.iter().map(|(_, id)| id)
     }
 
+    pub fn lately_loaded_paths(&self) -> impl Iterator<Item = &str> {
+        self.lately_loaded.iter().map(|(path, _)| path.as_str())
+    }
+
     pub fn lately_loaded_protocol<'a>(
         &'a self,
         protocol: &'a str,
@@ -121,6 +125,10 @@ impl AssetsDatabase {
 
     pub fn lately_unloaded(&self) -> impl Iterator<Item = &AssetID> {
         self.lately_unloaded.iter().map(|(_, id)| id)
+    }
+
+    pub fn lately_unloaded_paths(&self) -> impl Iterator<Item = &str> {
+        self.lately_unloaded.iter().map(|(path, _)| path.as_str())
     }
 
     pub fn lately_unloaded_protocol<'a>(

@@ -1,4 +1,7 @@
-use crate::interface::{ComponentModify, ResourceModify};
+use crate::{
+    interface::{ComponentModify, ResourceAccess, ResourceModify},
+    scriptable::ScriptableValue,
+};
 use oxygengine_composite_renderer::{component::*, composite_renderer::*, math::*};
 use oxygengine_composite_renderer_backend_web::WebCompositeRenderer;
 use oxygengine_utils::grid_2d::*;
@@ -252,5 +255,11 @@ impl ResourceModify<WebCompositeRendererScripted> for WebCompositeRenderer {
         self.state_mut().clear_color = source.state.clear_color;
         self.state_mut().image_smoothing = source.state.image_smoothing;
         self.state_mut().image_source_inner_margin = source.state.image_source_inner_margin;
+    }
+}
+
+impl ResourceAccess for WebCompositeRenderer {
+    fn access_resource(&mut self, _value: ScriptableValue) -> ScriptableValue {
+        ScriptableValue::Null
     }
 }

@@ -13,6 +13,7 @@ exclude = [
   "media/**",
   "oxygengine-ignite",
   "oxygengine-build-tools",
+  "oxygengine-js",
 ]
 readme = "README.md"
 
@@ -174,6 +175,7 @@ members = [
   "oxygengine-integration-p2d-cr",
   "oxygengine-script-web",
   "oxygengine-build-tools",
+  "oxygengine-js",
   "demos/procedural-world-simulation",
   "demos/amethyst-integration",
   "demos/basic-web-game",

@@ -13,13 +13,13 @@ pub mod prelude {
     pub use crate::{integration::*, interface::*, scriptable::*, state::*};
 }
 use crate::{
-    component::WebScriptComponent, integration::core::AppLifeCycleScripted,
+    component::WebScriptComponent,
+    integration::core::{
+        AppLifeCycleScripted, AssetsDatabaseLoaderScripted, AssetsDatabaseScripted,
+    },
     interface::WebScriptInterface,
 };
-use core::{
-    app::{AppBuilder, AppLifeCycle},
-    hierarchy::{Name, NonPersistent, Tag},
-};
+use core::prelude::*;
 
 pub fn bundle_installer<'a, 'b, WSS>(builder: &mut AppBuilder<'a, 'b>, mut web_script_setup: WSS)
 where
@@ -31,6 +31,11 @@ where
         interface.register_component_bridge("Tag", Tag::default());
         interface.register_component_bridge("NonPersistent", NonPersistent::default());
         interface.register_resource_bridge::<AppLifeCycle, AppLifeCycleScripted>("AppLifeCycle");
+        interface.register_resource_bridge::<AssetsDatabase, AssetsDatabaseLoaderScripted>(
+            "AssetsDatabaseLoader",
+        );
+        interface
+            .register_resource_bridge::<AssetsDatabase, AssetsDatabaseScripted>("AssetsDatabase");
         #[cfg(feature = "composite-renderer")]
         {
             use crate::integration::composite_renderer::*;
