@@ -113,10 +113,10 @@ where
                         },
                     );
                     source.dirty = AudioSourceDirtyMode::None;
-                    if let Some(state) = audio.get_source_state(entity) {
-                        source.current_time = state.current_time;
-                    }
                 }
+            }
+            if let Some(state) = audio.get_source_state(entity) {
+                source.current_time = state.current_time;
             }
         }
     }
