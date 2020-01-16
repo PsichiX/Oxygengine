@@ -1,1 +1,1 @@
-module.exports = import("../pkg/index.js").catch(console.error);
+module.exports = import("../pkg/oxygengine.js").catch(console.error);

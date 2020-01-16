@@ -43,12 +43,17 @@ oxygengine-ignite new <project-name> -d /path/to/parent/
 npm start
 ```
 - Build production distribution (will be available in `/dist` folder):
-```bash
-npm run build
-```
+  with debug symbols:
+  ```bash
+  npm run build
+  ```
+  optimized release mode:
+  ```bash
+  OXY_RELEASE=1 npm run build
+  ```
 - Build crate without of running dev env:
 ```bash
-cargo build --all
+cargo build
 ```
 
 ## TODO / Roadmap

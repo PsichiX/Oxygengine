@@ -1,8 +1,5 @@
-use crate::boot_state::BootState;
 use oxygengine::prelude::*;
 use wasm_bindgen::prelude::*;
-
-mod boot_state;
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
@@ -22,6 +19,7 @@ pub fn main_js() -> Result<(), JsValue> {
             (WebFetchEngine::default(), |assets| {
                 oxygengine::composite_renderer::protocols_installer(assets);
                 oxygengine::audio::protocols_installer(assets);
+                oxygengine::script::web::protocols_installer(assets);
             }),
         )
         .with_bundle(oxygengine::input::bundle_installer, |input| {
@@ -48,7 +46,7 @@ pub fn main_js() -> Result<(), JsValue> {
         //     (),
         // )
         .with_bundle(oxygengine::script::web::bundle_installer, |_| {})
-        .build(BootState::default(), WebAppTimer::default());
+        .build(WebScriptBootState::new("main"), WebAppTimer::default());
 
     AppRunner::new(app).run(WebAppRunner)?;
 

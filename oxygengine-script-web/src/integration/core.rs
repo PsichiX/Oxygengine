@@ -101,15 +101,23 @@ impl ResourceAccess for AssetsDatabase {
                             drop(self.load(&path));
                         }
                     }
-                }
-                if let Some(ScriptableValue::Array(load)) = object.get("unload") {
+                    return ScriptableValue::Bool(true);
+                } else if let Some(ScriptableValue::Array(load)) = object.get("unload") {
                     for path in load {
                         if let ScriptableValue::String(path) = path {
                             self.remove_by_path(&path);
                         }
                     }
-                }
-                if let Some(ScriptableValue::Array(paths)) = object.get("loaded") {
+                    return ScriptableValue::Bool(true);
+                } else if let Some(ScriptableValue::String(path)) = object.get("serve-pack") {
+                    if let Some(asset) = self.asset_by_path(path) {
+                        if let Some(pack) = asset.get::<PackAsset>() {
+                            let engine = pack.make_fetch_engine();
+                            self.push_fetch_engine(Box::new(engine));
+                            return ScriptableValue::Bool(true);
+                        }
+                    }
+                } else if let Some(ScriptableValue::Array(paths)) = object.get("loaded") {
                     let map = paths
                         .into_iter()
                         .map(|path| {

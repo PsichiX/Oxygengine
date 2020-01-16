@@ -1,10 +1,8 @@
-use crate::{states::loading::LoadingState, systems::keyboard_movement::KeyboardMovementSystem};
+use crate::states::loading::LoadingState;
 use oxygengine::prelude::*;
 use wasm_bindgen::prelude::*;
 
-mod components;
 mod states;
-mod systems;
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
@@ -29,6 +27,8 @@ pub fn main_js() -> Result<(), JsValue> {
                 oxygengine::composite_renderer::protocols_installer(assets);
                 // register assets protocols from audio module.
                 oxygengine::audio::protocols_installer(assets);
+                // register assets protocols from web scripting module.
+                oxygengine::script::web::protocols_installer(assets);
             }),
         )
         // install input managment.
@@ -70,7 +70,6 @@ pub fn main_js() -> Result<(), JsValue> {
         )
         // install support for web scripting.
         .with_bundle(oxygengine::script::web::bundle_installer, |_| {})
-        .with_system(KeyboardMovementSystem, "keyboard_movement", &[])
         .build(LoadingState::default(), WebAppTimer::default());
 
     // Application run phase - spawn runner that ticks our app.
