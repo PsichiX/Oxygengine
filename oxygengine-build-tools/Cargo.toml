@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-build-tools"
-version = "0.5.5"
+version = "0.5.6"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Build tools for Oxygen Engine"
@@ -20,6 +20,3 @@ fs_extra = "1.1"
 
 [dependencies.texture_packer]
 version = "0.18"
-# TODO: remove when new version will be released
-git = "https://github.com/PsichiX/texture_packer"
-rev = "5115833b3a4b5a2b09af701f4251a2dc33e2679b"

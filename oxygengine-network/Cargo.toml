@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-network"
-version = "0.5.5"
+version = "0.5.6"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Network module for Oxygen Engine"

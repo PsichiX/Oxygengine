@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-navigation"
-version = "0.5.5"
+version = "0.5.6"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Navigation module for Oxygen Engine"

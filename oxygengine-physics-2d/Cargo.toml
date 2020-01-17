@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-physics-2d"
-version = "0.5.5"
+version = "0.5.6"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "2D physics module for Oxygen Engine"
@@ -21,6 +21,3 @@ ncollide2d = "0.21"
 version = "0.13"
 default-features = false
 features = ["dim2", "use-wasm-bindgen"]
-# TODO: remove when new version will be released
-git = "https://github.com/rustsim/nphysics.git"
-rev = "1cdb09613de1c38e05ab80a4a7a242163402ecd3"

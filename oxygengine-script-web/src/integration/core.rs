@@ -123,7 +123,8 @@ impl ResourceAccess for AssetsDatabase {
                         .filter_map(|path| {
                             if let ScriptableValue::String(path) = path {
                                 let path = path.to_string();
-                                let result = ScriptableValue::Bool(self.id_by_path(&path).is_some());
+                                let result =
+                                    ScriptableValue::Bool(self.id_by_path(&path).is_some());
                                 Some((path, result))
                             } else {
                                 None
