@@ -120,10 +120,14 @@ impl ResourceAccess for AssetsDatabase {
                 } else if let Some(ScriptableValue::Array(paths)) = object.get("loaded") {
                     let map = paths
                         .into_iter()
-                        .map(|path| {
-                            let path = path.to_string();
-                            let result = ScriptableValue::Bool(self.id_by_path(&path).is_some());
-                            (path, result)
+                        .filter_map(|path| {
+                            if let ScriptableValue::String(path) = path {
+                                let path = path.to_string();
+                                let result = ScriptableValue::Bool(self.id_by_path(&path).is_some());
+                                Some((path, result))
+                            } else {
+                                None
+                            }
                         })
                         .collect::<ScriptableMap<_, _>>();
                     return ScriptableValue::Object(map);

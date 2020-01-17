@@ -1,0 +1,2 @@
+audio://ambient.ogg
+png://logo.png

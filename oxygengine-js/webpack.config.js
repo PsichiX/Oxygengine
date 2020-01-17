@@ -19,6 +19,11 @@ module.exports = {
     contentBase: dist,
   },
   plugins: [
+    new CopyPlugin([
+      path.resolve(__dirname, "static/index.html"),
+      path.resolve(__dirname, "static/assets.pack"),
+    ]),
+
     new WasmPackPlugin({
       crateDirectory: __dirname,
       extraArgs: "--out-name oxygengine",
