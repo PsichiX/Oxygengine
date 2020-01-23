@@ -58,6 +58,4 @@ cargo build
 
 ## TODO / Roadmap
 - UI widgets
-- Prefabs (loading scenes from asset)
-- Hardware renderer
-- WebGL hardware renderer backend
+- Hardware renderer (WebGPU hardware renderer backend)
