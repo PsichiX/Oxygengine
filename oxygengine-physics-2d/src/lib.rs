@@ -14,10 +14,14 @@ pub mod prelude {
 }
 
 use crate::{
+    component::{
+        Collider2d, Collider2dBody, Collider2dBodyPrefabProxy, Collider2dPrefabProxy, RigidBody2d,
+        RigidBody2dPrefabProxy,
+    },
     resource::{Physics2dWorld, Physics2dWorldSimulationMode},
     system::Physics2dSystem,
 };
-use core::app::AppBuilder;
+use core::{app::AppBuilder, prefab::PrefabManager};
 use nphysics2d::math::Vector;
 
 type Scalar = f64;
@@ -28,4 +32,12 @@ pub fn bundle_installer<'a, 'b>(
 ) {
     builder.install_resource(Physics2dWorld::new(gravity, simulation_mode));
     builder.install_system(Physics2dSystem::default(), "physics-2d", &[]);
+}
+
+pub fn prefabs_installer(prefabs: &mut PrefabManager) {
+    prefabs.register_component_factory_proxy::<RigidBody2d, RigidBody2dPrefabProxy>("RigidBody2d");
+    prefabs.register_component_factory_proxy::<Collider2d, Collider2dPrefabProxy>("Collider2d");
+    prefabs.register_component_factory_proxy::<Collider2dBody, Collider2dBodyPrefabProxy>(
+        "Collider2dBody",
+    );
 }

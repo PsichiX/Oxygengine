@@ -1,4 +1,8 @@
-use crate::{states::loading::LoadingState, systems::keyboard_movement::KeyboardMovementSystem};
+use crate::{
+    components::{speed::Speed, KeyboardMovementTag},
+    states::loading::LoadingState,
+    systems::keyboard_movement::KeyboardMovementSystem,
+};
 use oxygengine::prelude::*;
 use wasm_bindgen::prelude::*;
 
@@ -31,6 +35,20 @@ pub fn main_js() -> Result<(), JsValue> {
                 oxygengine::audio::protocols_installer(assets);
             }),
         )
+        // install core module prefabs management.
+        .with_bundle(oxygengine::core::prefab::bundle_installer, |prefabs| {
+            // install composite renderer prefabs.
+            oxygengine::composite_renderer::prefabs_installer(prefabs);
+            // install audio prefabs.
+            oxygengine::audio::prefabs_installer(prefabs);
+            // install 2d physics prefabs.
+            oxygengine::physics_2d::prefabs_installer(prefabs);
+            // install prefabs for integration between 2D physics and composite rendering.
+            oxygengine::integration_physics_2d_composite_renderer::prefabs_installer(prefabs);
+            // register game prefabs component factories.
+            prefabs.register_component_factory::<Speed>("Speed");
+            prefabs.register_component_factory::<KeyboardMovementTag>("KeyboardMovementTag");
+        })
         // install input managment.
         .with_bundle(oxygengine::input::bundle_installer, |input| {
             // register input devices.

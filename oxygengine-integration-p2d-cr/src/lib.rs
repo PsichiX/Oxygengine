@@ -3,8 +3,10 @@ use oxygengine_core::{
     app::AppBuilder,
     ecs::{Component, Join, ReadStorage, System, VecStorage, Write, WriteStorage},
     hierarchy::Parent,
+    prefab::{Prefab, PrefabComponent, PrefabManager},
 };
 use oxygengine_physics_2d::{component::RigidBody2d, resource::Physics2dWorld};
+use serde::{Deserialize, Serialize};
 
 pub mod prelude {
     pub use crate::*;
@@ -18,12 +20,15 @@ pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>, _: ()) {
     );
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Physics2dSyncCompositeTransform;
 
 impl Component for Physics2dSyncCompositeTransform {
     type Storage = VecStorage<Self>;
 }
+
+impl Prefab for Physics2dSyncCompositeTransform {}
+impl PrefabComponent for Physics2dSyncCompositeTransform {}
 
 #[derive(Debug, Default)]
 pub struct ApplyPhysics2dToCompositeTransformSystem;
@@ -56,4 +61,10 @@ impl<'s> System<'s> for ApplyPhysics2dToCompositeTransformSystem {
             }
         }
     }
+}
+
+pub fn prefabs_installer(prefabs: &mut PrefabManager) {
+    prefabs.register_component_factory::<Physics2dSyncCompositeTransform>(
+        "Physics2dSyncCompositeTransform",
+    );
 }

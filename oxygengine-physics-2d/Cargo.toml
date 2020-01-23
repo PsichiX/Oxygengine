@@ -15,7 +15,12 @@ web = []
 
 [dependencies]
 oxygengine-core = { version = "0.5", path = "../oxygengine-core" }
-ncollide2d = "0.21"
+serde = { version = "1", features = ["derive"] }
+
+[dependencies.ncollide2d]
+version = "0.21"
+default-features = false
+features = ["dim2", "serde-serialize"]
 
 [dependencies.nphysics2d]
 version = "0.13"

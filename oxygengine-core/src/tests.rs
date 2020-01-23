@@ -2,11 +2,15 @@
 
 use super::{
     app::{App, AppLifeCycle, AppRunner, StandardAppTimer, SyncAppRunner},
+    assets::{database::AssetsDatabase, protocols::prefab::PrefabAsset},
+    fetch::engines::map::MapFetchEngine,
     hierarchy::{hierarchy_find, HierarchyChangeRes, Name, Parent},
     log::{logger_setup, DefaultLogger},
+    prefab::*,
     state::{State, StateChange},
 };
 use specs::prelude::*;
+use std::collections::HashMap;
 
 struct Counter {
     pub times: isize,
@@ -79,6 +83,94 @@ fn test_general() {
         .with_system(CounterSystem, "counter", &[])
         .with_system(PrintableSystem, "names", &[])
         .build(Example::default(), StandardAppTimer::default());
+
+    let mut runner = AppRunner::new(app);
+    drop(runner.run(SyncAppRunner::default()));
+}
+
+#[derive(Default)]
+struct ExamplePrefab {
+    phase: usize,
+}
+
+impl State for ExamplePrefab {
+    fn on_enter(&mut self, world: &mut World) {
+        world
+            .write_resource::<AssetsDatabase>()
+            .load("prefab://scene.yaml")
+            .unwrap();
+    }
+
+    fn on_process(&mut self, world: &mut World) -> StateChange {
+        match self.phase {
+            0 => {
+                if let Some(asset) = world
+                    .read_resource::<AssetsDatabase>()
+                    .asset_by_path("prefab://scene.yaml")
+                {
+                    let prefab = asset
+                        .get::<PrefabAsset>()
+                        .expect("scene.ron is not a prefab asset")
+                        .get();
+                    let entities = world
+                        .write_resource::<PrefabManager>()
+                        .load_scene_from_prefab_world(prefab, world)
+                        .unwrap();
+                    self.phase = 1;
+                    println!("scene.yaml asset finally loaded: {:?}", entities);
+                } else {
+                    println!("scene.yaml asset not loaded yet");
+                }
+                StateChange::None
+            }
+            _ => StateChange::Pop,
+        }
+    }
+}
+
+#[test]
+fn test_prefabs() {
+    let prefab = PrefabScene {
+        autoload: false,
+        template_name: None,
+        dependencies: vec![],
+        entities: vec![
+            PrefabSceneEntity::Data(PrefabSceneEntityData {
+                uid: Some("uidname".to_owned()),
+                components: {
+                    let mut map = HashMap::new();
+                    map.insert(
+                        "Name".to_owned(),
+                        PrefabValue::String("some name".to_owned()),
+                    );
+                    map
+                },
+            }),
+            PrefabSceneEntity::Template("some template".to_owned()),
+        ],
+    };
+    println!("Prefab string:\n{}", prefab.to_prefab_string().unwrap());
+
+    let mut files = HashMap::new();
+    files.insert(
+        "scene.yaml".to_owned(),
+        br#"
+        entities:
+          - Data:
+              components:
+                Name: hello
+                Tag: greting
+                NonPersistent:
+        "#
+        .to_vec(),
+    );
+    let app = App::build()
+        .with_bundle(
+            crate::assets::bundle_installer,
+            (MapFetchEngine::new(files), |_| {}),
+        )
+        .with_bundle(crate::prefab::bundle_installer, |_| {})
+        .build(ExamplePrefab::default(), StandardAppTimer::default());
 
     let mut runner = AppRunner::new(app);
     drop(runner.run(SyncAppRunner::default()));

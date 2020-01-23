@@ -1,7 +1,12 @@
-use core::ecs::{Component, FlaggedStorage, VecStorage};
+use core::{
+    ecs::{Component, Entity, FlaggedStorage, VecStorage},
+    prefab::{Prefab, PrefabError, PrefabProxy},
+    state::StateToken,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     borrow::Cow,
+    collections::HashMap,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
@@ -44,14 +49,27 @@ impl Into<u8> for AudioSourceDirtyMode {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioSourceConfig {
     pub audio: Cow<'static, str>,
+    #[serde(default)]
     pub streaming: bool,
+    #[serde(default)]
     pub looped: bool,
+    #[serde(default = "AudioSourceConfig::default_playback_rate")]
     pub playback_rate: f32,
+    #[serde(default = "AudioSourceConfig::default_volume")]
     pub volume: f32,
+    #[serde(default)]
     pub play: bool,
 }
 
 impl AudioSourceConfig {
+    fn default_playback_rate() -> f32 {
+        1.0
+    }
+
+    fn default_volume() -> f32 {
+        1.0
+    }
+
     pub fn new(audio: Cow<'static, str>) -> Self {
         Self {
             audio,
@@ -94,14 +112,22 @@ impl AudioSourceConfig {
     }
 }
 
+impl Prefab for AudioSourceConfig {}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioSource {
     audio: Cow<'static, str>,
+    #[serde(default)]
     streaming: bool,
+    #[serde(default)]
     looped: bool,
+    #[serde(default)]
     playback_rate: f32,
+    #[serde(default)]
     volume: f32,
+    #[serde(default)]
     play: bool,
+    #[serde(default)]
     pub(crate) current_time: Option<f32>,
     #[serde(skip)]
     pub(crate) ready: Arc<AtomicBool>,
@@ -268,4 +294,16 @@ impl AudioSource {
 
 impl Component for AudioSource {
     type Storage = FlaggedStorage<Self, VecStorage<Self>>;
+}
+
+pub type AudioSourcePrefabProxy = AudioSourceConfig;
+
+impl PrefabProxy<AudioSourcePrefabProxy> for AudioSource {
+    fn from_proxy_with_extras(
+        proxy: AudioSourcePrefabProxy,
+        _: &HashMap<String, Entity>,
+        _: StateToken,
+    ) -> Result<Self, PrefabError> {
+        Ok(proxy.into())
+    }
 }

@@ -46,16 +46,27 @@ impl Rectangle {
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Text<'a> {
+    #[serde(default)]
     pub color: Color,
+    #[serde(default)]
     pub font: Cow<'a, str>,
+    #[serde(default)]
     pub align: TextAlign,
+    #[serde(default)]
     pub baseline: TextBaseLine,
+    #[serde(default)]
     pub text: Cow<'a, str>,
+    #[serde(default)]
     pub position: Vec2,
+    #[serde(default = "Text::default_size")]
     pub size: Scalar,
 }
 
 impl<'a> Text<'a> {
+    fn default_size() -> Scalar {
+        32.0
+    }
+
     pub fn new(font: &'a str, text: &'a str) -> Self {
         Self {
             color: Default::default(),
@@ -123,15 +134,21 @@ pub enum PathElement {
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Path {
+    #[serde(default)]
     pub color: Color,
+    #[serde(default)]
     pub elements: Vec<PathElement>,
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Image<'a> {
+    #[serde(default)]
     pub image: Cow<'a, str>,
+    #[serde(default)]
     pub source: Option<Rect>,
+    #[serde(default)]
     pub destination: Option<Rect>,
+    #[serde(default)]
     pub alignment: Vec2,
 }
 

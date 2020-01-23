@@ -2,7 +2,10 @@ use crate::{
     composite_renderer::{Effect, Renderable},
     math::{Mat2d, Rect, Scalar, Vec2},
 };
-use core::ecs::{Component, DenseVecStorage, FlaggedStorage, HashMapStorage, VecStorage};
+use core::{
+    ecs::{Component, DenseVecStorage, FlaggedStorage, HashMapStorage, VecStorage},
+    prefab::{Prefab, PrefabComponent},
+};
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, collections::HashMap, f32::consts::PI};
 use utils::grid_2d::Grid2d;
@@ -19,6 +22,9 @@ impl Default for CompositeVisibility {
         Self(true)
     }
 }
+
+impl Prefab for CompositeVisibility {}
+impl PrefabComponent for CompositeVisibility {}
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CompositeSurfaceCache {
@@ -74,6 +80,13 @@ impl Component for CompositeSurfaceCache {
     type Storage = FlaggedStorage<Self, VecStorage<Self>>;
 }
 
+impl Prefab for CompositeSurfaceCache {
+    fn post_from_prefab(&mut self) {
+        self.dirty = true;
+    }
+}
+impl PrefabComponent for CompositeSurfaceCache {}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompositeRenderable(pub Renderable<'static>);
 
@@ -93,6 +106,9 @@ impl From<Renderable<'static>> for CompositeRenderable {
     }
 }
 
+impl Prefab for CompositeRenderable {}
+impl PrefabComponent for CompositeRenderable {}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompositeRenderableStroke(pub Scalar);
 
@@ -106,10 +122,16 @@ impl Component for CompositeRenderableStroke {
     type Storage = VecStorage<Self>;
 }
 
+impl Prefab for CompositeRenderableStroke {}
+impl PrefabComponent for CompositeRenderableStroke {}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CompositeTransform {
+    #[serde(default)]
     translation: Vec2,
+    #[serde(default)]
     rotation: Scalar,
+    #[serde(default = "CompositeTransform::default_scale")]
     scale: Vec2,
     #[serde(skip)]
     cached: Mat2d,
@@ -131,6 +153,10 @@ impl Default for CompositeTransform {
 }
 
 impl CompositeTransform {
+    fn default_scale() -> Vec2 {
+        1.0.into()
+    }
+
     pub fn new(translation: Vec2, rotation: Scalar, scale: Vec2) -> Self {
         let mut result = Self {
             translation,
@@ -218,6 +244,13 @@ impl CompositeTransform {
     }
 }
 
+impl Prefab for CompositeTransform {
+    fn post_from_prefab(&mut self) {
+        self.rebuild();
+    }
+}
+impl PrefabComponent for CompositeTransform {}
+
 #[derive(Debug, Default, Copy, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct CompositeRenderDepth(pub Scalar);
 
@@ -225,12 +258,24 @@ impl Component for CompositeRenderDepth {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
+impl Prefab for CompositeRenderDepth {}
+impl PrefabComponent for CompositeRenderDepth {}
+
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct CompositeRenderAlpha(pub Scalar);
 
 impl Component for CompositeRenderAlpha {
     type Storage = VecStorage<Self>;
 }
+
+impl Default for CompositeRenderAlpha {
+    fn default() -> Self {
+        Self(1.0)
+    }
+}
+
+impl Prefab for CompositeRenderAlpha {}
+impl PrefabComponent for CompositeRenderAlpha {}
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CompositeCameraAlignment(pub Vec2);
@@ -239,12 +284,18 @@ impl Component for CompositeCameraAlignment {
     type Storage = VecStorage<Self>;
 }
 
+impl Prefab for CompositeCameraAlignment {}
+impl PrefabComponent for CompositeCameraAlignment {}
+
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CompositeEffect(pub Effect);
 
 impl Component for CompositeEffect {
     type Storage = VecStorage<Self>;
 }
+
+impl Prefab for CompositeEffect {}
+impl PrefabComponent for CompositeEffect {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CompositeScalingMode {
@@ -275,8 +326,11 @@ impl Default for CompositeScalingTarget {
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CompositeCamera {
+    #[serde(default)]
     pub scaling: CompositeScalingMode,
+    #[serde(default)]
     pub scaling_target: CompositeScalingTarget,
+    #[serde(default)]
     pub tags: Vec<Cow<'static, str>>,
 }
 
@@ -356,22 +410,17 @@ impl CompositeCamera {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl Prefab for CompositeCamera {}
+impl PrefabComponent for CompositeCamera {}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CompositeSprite {
+    #[serde(default)]
     pub alignment: Vec2,
+    #[serde(default)]
     sheet_frame: Option<(Cow<'static, str>, Cow<'static, str>)>,
     #[serde(skip)]
     pub(crate) dirty: bool,
-}
-
-impl Default for CompositeSprite {
-    fn default() -> Self {
-        Self {
-            alignment: 0.0.into(),
-            sheet_frame: None,
-            dirty: false,
-        }
-    }
 }
 
 impl CompositeSprite {
@@ -446,7 +495,14 @@ impl Component for CompositeSprite {
     type Storage = VecStorage<Self>;
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+impl Prefab for CompositeSprite {
+    fn post_from_prefab(&mut self) {
+        self.dirty = true;
+    }
+}
+impl PrefabComponent for CompositeSprite {}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpriteAnimation {
     pub sheet: Cow<'static, str>,
     pub frames: Vec<Cow<'static, str>>,
@@ -468,6 +524,7 @@ impl From<(Cow<'static, str>, Vec<Cow<'static, str>>)> for SpriteAnimation {
 pub struct CompositeSpriteAnimation {
     pub animations: HashMap<Cow<'static, str>, SpriteAnimation>,
     // (name, phase, speed, looped)
+    #[serde(default)]
     pub(crate) current: Option<(Cow<'static, str>, Scalar, Scalar, bool)>,
     #[serde(skip)]
     pub(crate) dirty: bool,
@@ -603,6 +660,13 @@ impl Component for CompositeSpriteAnimation {
     type Storage = VecStorage<Self>;
 }
 
+impl Prefab for CompositeSpriteAnimation {
+    fn post_from_prefab(&mut self) {
+        self.dirty = true;
+    }
+}
+impl PrefabComponent for CompositeSpriteAnimation {}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TileRotate {
     Degrees0,
@@ -621,9 +685,13 @@ impl Default for TileRotate {
 pub struct TileCell {
     pub col: usize,
     pub row: usize,
+    #[serde(default)]
     pub flip_x: bool,
+    #[serde(default)]
     pub flip_y: bool,
+    #[serde(default)]
     pub rotate: TileRotate,
+    #[serde(default)]
     pub visible: bool,
 }
 
@@ -728,22 +796,12 @@ impl From<(usize, usize, bool, bool, TileRotate, bool)> for TileCell {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CompositeTilemap {
     tileset: Option<Cow<'static, str>>,
     grid: Grid2d<TileCell>,
     #[serde(skip)]
     pub(crate) dirty: bool,
-}
-
-impl Default for CompositeTilemap {
-    fn default() -> Self {
-        Self {
-            tileset: None,
-            grid: Default::default(),
-            dirty: false,
-        }
-    }
 }
 
 impl CompositeTilemap {
@@ -787,6 +845,13 @@ impl Component for CompositeTilemap {
     type Storage = VecStorage<Self>;
 }
 
+impl Prefab for CompositeTilemap {
+    fn post_from_prefab(&mut self) {
+        self.dirty = true;
+    }
+}
+impl PrefabComponent for CompositeTilemap {}
+
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct TilemapAnimation {
     pub tileset: Cow<'static, str>,
@@ -809,6 +874,7 @@ impl From<(Cow<'static, str>, Vec<Grid2d<TileCell>>)> for TilemapAnimation {
 pub struct CompositeTilemapAnimation {
     pub animations: HashMap<Cow<'static, str>, TilemapAnimation>,
     // (name, phase, speed, looped)
+    #[serde(default)]
     pub(crate) current: Option<(Cow<'static, str>, Scalar, Scalar, bool)>,
     #[serde(skip)]
     pub(crate) dirty: bool,
@@ -939,11 +1005,20 @@ impl Component for CompositeTilemapAnimation {
     type Storage = VecStorage<Self>;
 }
 
+impl Prefab for CompositeTilemapAnimation {
+    fn post_from_prefab(&mut self) {
+        self.dirty = true;
+    }
+}
+impl PrefabComponent for CompositeTilemapAnimation {}
+
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CompositeMapChunk {
     map_name: Cow<'static, str>,
     layer_name: Cow<'static, str>,
+    #[serde(default)]
     offset: (usize, usize),
+    #[serde(default)]
     size: Option<(usize, usize)>,
     #[serde(skip)]
     pub(crate) dirty: bool,
@@ -1008,3 +1083,10 @@ impl CompositeMapChunk {
 impl Component for CompositeMapChunk {
     type Storage = VecStorage<Self>;
 }
+
+impl Prefab for CompositeMapChunk {
+    fn post_from_prefab(&mut self) {
+        self.dirty = true;
+    }
+}
+impl PrefabComponent for CompositeMapChunk {}

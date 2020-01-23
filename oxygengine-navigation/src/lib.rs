@@ -12,10 +12,11 @@ pub mod prelude {
 pub type Scalar = f64;
 
 use crate::{
+    component::NavAgent,
     resource::NavMeshesRes,
     system::{NavAgentMaintainSystem, SimpleNavDriverSystem},
 };
-use core::app::AppBuilder;
+use core::{app::AppBuilder, prefab::PrefabManager};
 
 pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>) {
     builder.install_resource(NavMeshesRes::default());
@@ -25,4 +26,8 @@ pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>) {
         "simple-nav-driver",
         &["nav-agent-maintain"],
     );
+}
+
+pub fn prefabs_installer(prefabs: &mut PrefabManager) {
+    prefabs.register_component_factory::<NavAgent>("NavAgent");
 }

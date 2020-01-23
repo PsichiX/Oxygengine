@@ -20,6 +20,7 @@ pub mod prelude {
 }
 
 use crate::{
+    component::*,
     composite_renderer::CompositeRenderer,
     system::{
         CompositeMapSystem, CompositeRendererSystem, CompositeSpriteAnimationSystem,
@@ -27,7 +28,7 @@ use crate::{
         CompositeTilemapSystem, CompositeTransformSystem,
     },
 };
-use core::{app::AppBuilder, assets::database::AssetsDatabase};
+use core::{app::AppBuilder, assets::database::AssetsDatabase, prefab::PrefabManager};
 
 pub fn bundle_installer<'a, 'b, CR>(builder: &mut AppBuilder<'a, 'b>, data: CR)
 where
@@ -57,4 +58,22 @@ pub fn protocols_installer(database: &mut AssetsDatabase) {
     database.register(sprite_sheet_asset_protocol::SpriteSheetAssetProtocol);
     database.register(tileset_asset_protocol::TilesetAssetProtocol);
     database.register(map_asset_protocol::MapAssetProtocol);
+}
+
+pub fn prefabs_installer(prefabs: &mut PrefabManager) {
+    prefabs.register_component_factory::<CompositeVisibility>("CompositeVisibility");
+    prefabs.register_component_factory::<CompositeSurfaceCache>("CompositeSurfaceCache");
+    prefabs.register_component_factory::<CompositeRenderable>("CompositeRenderable");
+    prefabs.register_component_factory::<CompositeRenderableStroke>("CompositeRenderableStroke");
+    prefabs.register_component_factory::<CompositeTransform>("CompositeTransform");
+    prefabs.register_component_factory::<CompositeRenderDepth>("CompositeRenderDepth");
+    prefabs.register_component_factory::<CompositeRenderAlpha>("CompositeRenderAlpha");
+    prefabs.register_component_factory::<CompositeCameraAlignment>("CompositeCameraAlignment");
+    prefabs.register_component_factory::<CompositeEffect>("CompositeEffect");
+    prefabs.register_component_factory::<CompositeCamera>("CompositeCamera");
+    prefabs.register_component_factory::<CompositeSprite>("CompositeSprite");
+    prefabs.register_component_factory::<CompositeSpriteAnimation>("CompositeSpriteAnimation");
+    prefabs.register_component_factory::<CompositeTilemap>("CompositeTilemap");
+    prefabs.register_component_factory::<CompositeTilemapAnimation>("CompositeTilemapAnimation");
+    prefabs.register_component_factory::<CompositeMapChunk>("CompositeMapChunk");
 }

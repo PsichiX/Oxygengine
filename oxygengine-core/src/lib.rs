@@ -12,6 +12,7 @@ pub mod assets;
 pub mod error;
 pub mod fetch;
 pub mod hierarchy;
+pub mod prefab;
 pub mod state;
 
 #[cfg(test)]
@@ -28,7 +29,7 @@ pub mod ecs {
 
 pub mod prelude {
     pub use crate::{
-        app::*, assets::bundle_installer, assets::prelude::*, ecs::*, fetch::prelude::*, fetch::*,
-        hierarchy::*, id::*, log::*, state::*,
+        app::*, assets::prelude::*, ecs::*, fetch::prelude::*, fetch::*, hierarchy::*, id::*,
+        log::*, prefab::*, state::*,
     };
 }

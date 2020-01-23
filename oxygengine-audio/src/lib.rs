@@ -9,8 +9,12 @@ pub mod prelude {
     pub use crate::{audio_asset_protocol::*, component::*, resource::*, system::*};
 }
 
-use crate::{resource::Audio, system::AudioSystem};
-use core::{app::AppBuilder, assets::database::AssetsDatabase};
+use crate::{
+    component::{AudioSource, AudioSourcePrefabProxy},
+    resource::Audio,
+    system::AudioSystem,
+};
+use core::{app::AppBuilder, assets::database::AssetsDatabase, prefab::PrefabManager};
 
 pub fn bundle_installer<'a, 'b, A>(builder: &mut AppBuilder<'a, 'b>, data: A)
 where
@@ -22,4 +26,8 @@ where
 
 pub fn protocols_installer(database: &mut AssetsDatabase) {
     database.register(audio_asset_protocol::AudioAssetProtocol);
+}
+
+pub fn prefabs_installer(prefabs: &mut PrefabManager) {
+    prefabs.register_component_factory_proxy::<AudioSource, AudioSourcePrefabProxy>("AudioSource");
 }

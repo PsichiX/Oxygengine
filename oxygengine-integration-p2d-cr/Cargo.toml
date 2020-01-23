@@ -17,3 +17,4 @@ web = ["oxygengine-physics-2d/web"]
 oxygengine-core = { version = "0.5", path = "../oxygengine-core" }
 oxygengine-physics-2d = { version = "0.5", path = "../oxygengine-physics-2d" }
 oxygengine-composite-renderer = { version = "0.5", path = "../oxygengine-composite-renderer" }
+serde = { version = "1", features = ["derive"] }

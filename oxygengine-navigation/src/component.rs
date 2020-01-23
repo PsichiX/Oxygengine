@@ -5,18 +5,23 @@ use crate::{
 use core::{
     ecs::{Component, Entity, NullStorage, VecStorage},
     id::ID,
+    prefab::{Prefab, PrefabComponent},
 };
+use serde::{Deserialize, Serialize};
 
 /// Nav agent identifier.
 pub type NavAgentID = ID<NavAgent>;
 
 /// Simple nav driver component tag to mark entity to use simple movement on nav mesh.
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct SimpleNavDriverTag;
 
 impl Component for SimpleNavDriverTag {
     type Storage = NullStorage<Self>;
 }
+
+impl Prefab for SimpleNavDriverTag {}
+impl PrefabComponent for SimpleNavDriverTag {}
 
 /// Nav agent target.
 #[derive(Debug, Clone, Copy)]
@@ -57,7 +62,7 @@ pub struct NavAgentDestination {
 }
 
 /// Nav agent component.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NavAgent {
     id: NavAgentID,
     /// Current agent position in world space.
@@ -71,8 +76,11 @@ pub struct NavAgent {
     /// Mnimal distance to target (affects direction, tells how far look for point to go to in an
     /// instant).
     pub min_target_distance: Scalar,
+    #[serde(skip)]
     pub(crate) destination: Option<NavAgentDestination>,
+    #[serde(skip)]
     pub(crate) path: Option<Vec<NavVec3>>,
+    #[serde(skip)]
     pub(crate) dirty_path: bool,
 }
 
@@ -171,3 +179,6 @@ impl NavAgent {
         self.dirty_path = false;
     }
 }
+
+impl Prefab for NavAgent {}
+impl PrefabComponent for NavAgent {}

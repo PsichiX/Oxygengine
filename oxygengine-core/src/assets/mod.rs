@@ -17,8 +17,8 @@ use crate::{
     assets::{
         database::AssetsDatabase,
         protocols::{
-            binary::BinaryAssetProtocol, pack::PackAssetProtocol, set::SetAssetProtocol,
-            text::TextAssetProtocol,
+            binary::BinaryAssetProtocol, pack::PackAssetProtocol, prefab::PrefabAssetProtocol,
+            set::SetAssetProtocol, text::TextAssetProtocol,
         },
         system::AssetsSystem,
     },
@@ -37,6 +37,7 @@ pub fn bundle_installer<'a, 'b, FE: 'static, ADS>(
     database.register(BinaryAssetProtocol);
     database.register(TextAssetProtocol);
     database.register(SetAssetProtocol);
+    database.register(PrefabAssetProtocol);
     assets_database_setup(&mut database);
     builder.install_resource(database);
     builder.install_thread_local_system(AssetsSystem);

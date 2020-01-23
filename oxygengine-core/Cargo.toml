@@ -18,6 +18,7 @@ parallel = ["rayon", "specs/parallel", "specs-hierarchy/parallel", "shred/parall
 typid = "1"
 serde = { version = "1", features = ["derive"] }
 bincode = "1"
+serde_yaml = "0.8"
 rayon = { version = "1.0", optional = true }
 specs = { version = "0.14", default-features = false }
 specs-hierarchy = { version = "0.3", default-features = false }

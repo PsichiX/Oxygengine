@@ -1,2 +1,3 @@
 audio://ambient.ogg
 png://logo.png
+prefab://scene.yaml
