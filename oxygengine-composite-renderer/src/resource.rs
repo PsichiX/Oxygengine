@@ -110,19 +110,24 @@ impl<'a> Join for CompositeTransformJoinable<'a> {
 
 #[derive(Default)]
 pub struct CompositeCameraCache {
+    pub(crate) last_screen_size: Vec2,
     pub(crate) world_transforms: HashMap<Entity, Mat2d>,
     pub(crate) world_inverse_transforms: HashMap<Entity, Mat2d>,
 }
 
 impl CompositeCameraCache {
-    pub fn transform_point(&self, entity: Entity, point: Vec2) -> Option<Vec2> {
-        self.world_transforms.get(&entity).map(|m| *m * point)
+    pub fn last_screen_size(&self) -> Vec2 {
+        self.last_screen_size
     }
 
-    pub fn inverse_transform_point(&self, entity: Entity, point: Vec2) -> Option<Vec2> {
+    pub fn screen_to_world_space(&self, entity: Entity, point: Vec2) -> Option<Vec2> {
         self.world_inverse_transforms
             .get(&entity)
             .map(|m| *m * point)
+    }
+
+    pub fn world_to_screen_space(&self, entity: Entity, point: Vec2) -> Option<Vec2> {
+        self.world_transforms.get(&entity).map(|m| *m * point)
     }
 
     pub fn world_transform(&self, entity: Entity) -> Option<Mat2d> {

@@ -24,6 +24,7 @@ pub fn main_js() -> Result<(), JsValue> {
             oxygengine::core::assets::bundle_installer,
             (WebFetchEngine::default(), |assets| {
                 // register assets loading error reporter that shows errors in console.
+                #[cfg(debug_assertions)]
                 assets.register_error_reporter(LoggerAssetsDatabaseErrorReporter);
                 // register assets protocols from composite renderer module.
                 oxygengine::composite_renderer::protocols_installer(assets);

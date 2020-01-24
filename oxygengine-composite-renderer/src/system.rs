@@ -108,6 +108,7 @@ where
     fn run(&mut self, (renderer, mut cache, entities, cameras, transforms): Self::SystemData) {
         if let Some(renderer) = renderer {
             let screen_size = renderer.view_size();
+            cache.last_screen_size = screen_size;
             cache.world_transforms = (&entities, &cameras, &transforms)
                 .join()
                 .map(|(entity, camera, transform)| {

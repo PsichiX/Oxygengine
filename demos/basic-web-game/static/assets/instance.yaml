@@ -1,4 +1,4 @@
-template_name instance
+template_name: instance
 entities:
   - Data:
       components:

@@ -58,5 +58,6 @@ cargo build
 
 ## TODO / Roadmap
 - UI widgets
+- Visual Scripting (Blueprints-like logic flow designer)
+- Engine editor (standalone Electron application?)
 - Hardware renderer (WebGPU hardware renderer backend)
-- Engine editor (standalone Electron application)

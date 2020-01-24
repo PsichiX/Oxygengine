@@ -15,15 +15,18 @@ pub enum LoadStatus {
 }
 
 pub trait AssetsDatabaseErrorReporter: Send + Sync {
-    fn on_report(&mut self, message: &str);
+    fn on_report(&mut self, protocol: &str, path: &str, message: &str);
 }
 
 #[derive(Debug, Default, Copy, Clone)]
 pub struct LoggerAssetsDatabaseErrorReporter;
 
 impl AssetsDatabaseErrorReporter for LoggerAssetsDatabaseErrorReporter {
-    fn on_report(&mut self, message: &str) {
-        error!("Assets database loading error: {}", message);
+    fn on_report(&mut self, protocol: &str, path: &str, message: &str) {
+        error!(
+            "Assets database loading `{}://{}` error: {}",
+            protocol, path, message
+        );
     }
 }
 
@@ -358,7 +361,7 @@ impl AssetsDatabase {
                         }
                         AssetLoadResult::Error(message) => {
                             for reporter in self.error_reporters.values_mut() {
-                                reporter.on_report(&message);
+                                reporter.on_report(&prot, &path, &message);
                             }
                         }
                     }
@@ -406,7 +409,7 @@ impl AssetsDatabase {
                         }
                         AssetLoadResult::Error(message) => {
                             for reporter in self.error_reporters.values_mut() {
-                                reporter.on_report(&message);
+                                reporter.on_report(&prot, &path, &message);
                             }
                         }
                     }

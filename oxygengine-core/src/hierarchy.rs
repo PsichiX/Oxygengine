@@ -5,11 +5,13 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use specs::{
     world::EntitiesRes, Component, Entity, FlaggedStorage, Join, ReadStorage, VecStorage, World,
+    WriteStorage,
 };
 use specs_hierarchy::Hierarchy;
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
+    ops::{Deref, DerefMut},
 };
 
 pub fn entity_find_world(name: &str, world: &World) -> Option<Entity> {
@@ -72,6 +74,114 @@ pub fn hierarchy_find_direct<'s>(
     }
     Some(root)
 }
+
+pub struct ComponentContainer<'a, C>
+where
+    C: Component,
+{
+    entity: Entity,
+    storage: WriteStorage<'a, C>,
+}
+
+impl<'a, C> ComponentContainer<'a, C>
+where
+    C: Component,
+{
+    pub fn new(world: &'a World, entity: Entity) -> Self {
+        Self {
+            entity,
+            storage: world.write_storage::<C>(),
+        }
+    }
+
+    pub fn get(&mut self) -> Option<&mut C> {
+        self.storage.get_mut(self.entity)
+    }
+
+    pub fn unwrap(&mut self) -> &mut C {
+        self.get().unwrap()
+    }
+}
+
+impl<'a, C> Deref for ComponentContainer<'a, C>
+where
+    C: Component,
+{
+    type Target = C;
+
+    fn deref(&self) -> &Self::Target {
+        self.storage.get(self.entity).unwrap()
+    }
+}
+
+impl<'a, C> DerefMut for ComponentContainer<'a, C>
+where
+    C: Component,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.storage.get_mut(self.entity).unwrap()
+    }
+}
+
+pub trait ComponentContainerModify<'a, T> {
+    fn fetch(world: &'a World, entity: Entity) -> T;
+}
+
+impl<'a, C> ComponentContainerModify<'a, ComponentContainer<'a, C>> for C
+where
+    C: Component,
+{
+    fn fetch(world: &'a World, entity: Entity) -> ComponentContainer<'a, C> {
+        ComponentContainer::<C>::new(world, entity)
+    }
+}
+
+macro_rules! impl_component_container_modify {
+    ( $($ty:ident),* ) => {
+        impl<'a, $($ty),*> ComponentContainerModify<'a, ( $( ComponentContainer<'a, $ty> , )* )> for ( $( $ty , )* )
+        where $($ty: Component),*
+        {
+            fn fetch(world: &'a World, entity: Entity) -> ( $( ComponentContainer<'a, $ty> , )* ) {
+                ( $( ComponentContainer::<$ty>::new(world, entity), )* )
+            }
+        }
+    };
+}
+
+impl_component_container_modify!(A);
+impl_component_container_modify!(A, B);
+impl_component_container_modify!(A, B, C);
+impl_component_container_modify!(A, B, C, D);
+impl_component_container_modify!(A, B, C, D, E);
+impl_component_container_modify!(A, B, C, D, E, F);
+impl_component_container_modify!(A, B, C, D, E, F, G);
+impl_component_container_modify!(A, B, C, D, E, F, G, H);
+impl_component_container_modify!(A, B, C, D, E, F, G, H, I);
+impl_component_container_modify!(A, B, C, D, E, F, G, H, I, J);
+impl_component_container_modify!(A, B, C, D, E, F, G, H, I, J, K);
+impl_component_container_modify!(A, B, C, D, E, F, G, H, I, J, K, L);
+impl_component_container_modify!(A, B, C, D, E, F, G, H, I, J, K, L, M);
+impl_component_container_modify!(A, B, C, D, E, F, G, H, I, J, K, L, M, N);
+impl_component_container_modify!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
+impl_component_container_modify!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
+impl_component_container_modify!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q);
+impl_component_container_modify!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R);
+impl_component_container_modify!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S);
+impl_component_container_modify!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T);
+impl_component_container_modify!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U);
+impl_component_container_modify!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V);
+impl_component_container_modify!(
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W
+);
+impl_component_container_modify!(
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X
+);
+impl_component_container_modify!(
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y
+);
+impl_component_container_modify!(
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z
+);
 
 pub type HierarchyRes = Hierarchy<Parent>;
 
