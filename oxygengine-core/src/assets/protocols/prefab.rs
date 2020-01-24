@@ -37,7 +37,9 @@ impl AssetProtocol for PrefabAssetProtocol {
                     AssetLoadResult::Yield(Some(Box::new(data)), list)
                 }
             }
-            Err(_) => AssetLoadResult::None,
+            Err(error) => {
+                AssetLoadResult::Error(format!("Error loading prefab asset: {:?}", error))
+            }
         }
     }
 

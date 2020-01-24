@@ -3,16 +3,43 @@ use crate::{
     state::StateToken,
 };
 use serde::{Deserialize, Serialize};
-use specs::{Component, Entity, FlaggedStorage, VecStorage, World};
+use specs::{
+    world::EntitiesRes, Component, Entity, FlaggedStorage, Join, ReadStorage, VecStorage, World,
+};
 use specs_hierarchy::Hierarchy;
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
 };
 
-pub fn hierarchy_find(mut root: Entity, path: &str, world: &World) -> Option<Entity> {
+pub fn entity_find_world(name: &str, world: &World) -> Option<Entity> {
+    let entities = world.read_resource::<EntitiesRes>();
+    let names = world.read_storage::<Name>();
+    entity_find_direct(name, &entities, &names)
+}
+
+pub fn entity_find_direct<'s>(
+    name: &str,
+    entities: &EntitiesRes,
+    names: &ReadStorage<'s, Name>,
+) -> Option<Entity> {
+    (entities, names)
+        .join()
+        .find_map(|(e, n)| if n.0 == name { Some(e) } else { None })
+}
+
+pub fn hierarchy_find_world(root: Entity, path: &str, world: &World) -> Option<Entity> {
     let hierarchy = world.read_resource::<HierarchyRes>();
     let names = world.read_storage::<Name>();
+    hierarchy_find_direct(root, path, &hierarchy, &names)
+}
+
+pub fn hierarchy_find_direct<'s>(
+    mut root: Entity,
+    path: &str,
+    hierarchy: &HierarchyRes,
+    names: &ReadStorage<'s, Name>,
+) -> Option<Entity> {
     for part in path.split('/') {
         match part {
             "" | "." => {}

@@ -5,13 +5,26 @@ use crate::{
     },
     fetch::{FetchEngine, FetchProcessReader, FetchStatus},
 };
-use std::{borrow::BorrowMut, collections::HashMap, mem::replace};
+use std::{any::TypeId, borrow::BorrowMut, collections::HashMap, mem::replace};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LoadStatus {
     InvalidPath(String),
     UnknownProtocol(String),
     FetchError(FetchStatus),
+}
+
+pub trait AssetsDatabaseErrorReporter: Send + Sync {
+    fn on_report(&mut self, message: &str);
+}
+
+#[derive(Debug, Default, Copy, Clone)]
+pub struct LoggerAssetsDatabaseErrorReporter;
+
+impl AssetsDatabaseErrorReporter for LoggerAssetsDatabaseErrorReporter {
+    fn on_report(&mut self, message: &str) {
+        error!("Assets database loading error: {}", message);
+    }
 }
 
 pub struct AssetsDatabase {
@@ -24,6 +37,7 @@ pub struct AssetsDatabase {
     yielded: HashMap<String, (String, Meta, Vec<(String, String)>)>,
     lately_loaded: Vec<(String, AssetID)>,
     lately_unloaded: Vec<(String, AssetID)>,
+    error_reporters: HashMap<TypeId, Box<dyn AssetsDatabaseErrorReporter>>,
 }
 
 impl AssetsDatabase {
@@ -40,7 +54,23 @@ impl AssetsDatabase {
             yielded: Default::default(),
             lately_loaded: vec![],
             lately_unloaded: vec![],
+            error_reporters: Default::default(),
         }
+    }
+
+    pub fn register_error_reporter<T>(&mut self, reporter: T)
+    where
+        T: AssetsDatabaseErrorReporter + 'static,
+    {
+        self.error_reporters
+            .insert(TypeId::of::<T>(), Box::new(reporter));
+    }
+
+    pub fn unregister_error_reporter<T>(&mut self)
+    where
+        T: AssetsDatabaseErrorReporter + 'static,
+    {
+        self.error_reporters.remove(&TypeId::of::<T>());
     }
 
     pub fn loaded_count(&self) -> usize {
@@ -326,7 +356,11 @@ impl AssetsDatabase {
                                 .collect();
                             self.yielded.insert(path, (prot, meta, list));
                         }
-                        _ => {}
+                        AssetLoadResult::Error(message) => {
+                            for reporter in self.error_reporters.values_mut() {
+                                reporter.on_report(&message);
+                            }
+                        }
                     }
                 }
             }
@@ -370,7 +404,11 @@ impl AssetsDatabase {
                                 .collect();
                             self.yielded.insert(path, (prot, meta, list));
                         }
-                        _ => {}
+                        AssetLoadResult::Error(message) => {
+                            for reporter in self.error_reporters.values_mut() {
+                                reporter.on_report(&message);
+                            }
+                        }
                     }
                 }
             } else {

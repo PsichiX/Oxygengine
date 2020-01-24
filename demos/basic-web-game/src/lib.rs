@@ -29,6 +29,8 @@ pub fn main_js() -> Result<(), JsValue> {
         .with_bundle(
             oxygengine::core::assets::bundle_installer,
             (WebFetchEngine::default(), |assets| {
+                // register assets loading error reporter that shows errors in console.
+                assets.register_error_reporter(LoggerAssetsDatabaseErrorReporter);
                 // register assets protocols from composite renderer module.
                 oxygengine::composite_renderer::protocols_installer(assets);
                 // register assets protocols from audio module.
@@ -59,8 +61,8 @@ pub fn main_js() -> Result<(), JsValue> {
             input.map_axis("move-down", "keyboard", "KeyS");
             input.map_axis("move-left", "keyboard", "KeyA");
             input.map_axis("move-right", "keyboard", "KeyD");
-            // input.map_axis("mouse-x", "mouse", "x");
-            // input.map_axis("mouse-y", "mouse", "y");
+            input.map_axis("mouse-x", "mouse", "x");
+            input.map_axis("mouse-y", "mouse", "y");
             input.map_trigger("mouse-left", "mouse", "left");
         })
         // install composite renderer.

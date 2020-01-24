@@ -2,6 +2,7 @@ template_name: scene
 entities:
   - Data:
       components:
+        Name: camera
         CompositeCamera:
           scaling: CenterAspect
         CompositeTransform:
@@ -12,6 +13,7 @@ entities:
           audio: ambient.ogg
           streaming: true
           play: true
+        NonPersistent: ~
   - Data:
       components:
         CompositeRenderable:
@@ -39,6 +41,7 @@ entities:
                 - 32
         Collider2dBody: Me
         Physics2dSyncCompositeTransform: ~
+        NonPersistent: ~
   - Data:
       components:
         CompositeRenderable:
@@ -66,6 +69,7 @@ entities:
                 - 10
         Collider2dBody: Me
         Physics2dSyncCompositeTransform: ~
+        NonPersistent: ~
   - Data:
       components:
         CompositeRenderable:
@@ -93,8 +97,10 @@ entities:
                 - 10
         Collider2dBody: Me
         Physics2dSyncCompositeTransform: ~
+        NonPersistent: ~
   - Data:
       components:
+        Name: player
         CompositeRenderable:
           Image:
             image: logo.png
@@ -120,6 +126,7 @@ entities:
           density: 1
         Collider2dBody: Me
         Physics2dSyncCompositeTransform: ~
+        NonPersistent: ~
   - Data:
       components:
         CompositeRenderable:
@@ -138,3 +145,4 @@ entities:
             x: 0
             y: -100
         CompositeRenderDepth: 1
+        NonPersistent: ~

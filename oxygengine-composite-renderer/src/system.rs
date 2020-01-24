@@ -10,7 +10,7 @@ use crate::{
     composite_renderer::{Command, CompositeRenderer, Image, Rectangle, Renderable, Stats},
     map_asset_protocol::{Map, MapAsset},
     math::{Mat2d, Rect, Scalar, Vec2},
-    resource::CompositeTransformRes,
+    resource::{CompositeCameraCache, CompositeTransformRes},
     sprite_sheet_asset_protocol::SpriteSheetAsset,
     tileset_asset_protocol::{TilesetAsset, TilesetInfo},
 };
@@ -71,6 +71,54 @@ fn add_matrix<'s>(
         result.add(child, mat);
         for child in hierarchy.children(child) {
             add_matrix(*child, transforms, mat, hierarchy, result);
+        }
+    }
+}
+
+pub struct CompositeCameraCacheSystem<CR>
+where
+    CR: CompositeRenderer,
+{
+    _phantom: PhantomData<CR>,
+}
+
+impl<CR> Default for CompositeCameraCacheSystem<CR>
+where
+    CR: CompositeRenderer,
+{
+    fn default() -> Self {
+        Self {
+            _phantom: Default::default(),
+        }
+    }
+}
+
+impl<'s, CR> System<'s> for CompositeCameraCacheSystem<CR>
+where
+    CR: CompositeRenderer + Send + Sync + 'static,
+{
+    type SystemData = (
+        Option<Read<'s, CR>>,
+        Write<'s, CompositeCameraCache>,
+        Entities<'s>,
+        ReadStorage<'s, CompositeCamera>,
+        ReadStorage<'s, CompositeTransform>,
+    );
+
+    fn run(&mut self, (renderer, mut cache, entities, cameras, transforms): Self::SystemData) {
+        if let Some(renderer) = renderer {
+            let screen_size = renderer.view_size();
+            cache.world_transforms = (&entities, &cameras, &transforms)
+                .join()
+                .map(|(entity, camera, transform)| {
+                    (entity, camera.view_matrix(transform, screen_size))
+                })
+                .collect::<HashMap<_, _>>();
+            cache.world_inverse_transforms = cache
+                .world_transforms
+                .iter()
+                .filter_map(|(k, v)| v.inverse().map(|v| (*k, v)))
+                .collect::<HashMap<_, _>>();
         }
     }
 }

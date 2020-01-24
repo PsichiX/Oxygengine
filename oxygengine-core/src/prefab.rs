@@ -243,6 +243,23 @@ impl PrefabManager {
             .0)
     }
 
+    pub fn instantiate_system_data<'s>(
+        &mut self,
+        name: &str,
+        (entities, lazy_update, lifecycle): &(
+            Read<'s, EntitiesRes>,
+            Read<'s, LazyUpdate>,
+            ReadExpect<'s, AppLifeCycle>,
+        ),
+    ) -> Result<Vec<Entity>, PrefabError> {
+        self.instantiate_direct(
+            name,
+            &entities,
+            &lazy_update,
+            lifecycle.current_state_token(),
+        )
+    }
+
     pub fn load_scene_from_prefab_world(
         &mut self,
         prefab: &PrefabScene,
@@ -270,6 +287,23 @@ impl PrefabManager {
                 &Default::default(),
             )?
             .0)
+    }
+
+    pub fn load_scene_from_prefab_system_data<'s>(
+        &mut self,
+        prefab: &PrefabScene,
+        (entities, lazy_update, lifecycle): &(
+            Read<'s, EntitiesRes>,
+            Read<'s, LazyUpdate>,
+            ReadExpect<'s, AppLifeCycle>,
+        ),
+    ) -> Result<Vec<Entity>, PrefabError> {
+        self.load_scene_from_prefab_direct(
+            prefab,
+            &entities,
+            &lazy_update,
+            lifecycle.current_state_token(),
+        )
     }
 
     fn load_scene_from_prefab_inner(

@@ -44,6 +44,10 @@ impl Mat2d {
     pub fn scale(value: Vec2) -> Self {
         Self([value.x, 0.0, 0.0, value.y, 0.0, 0.0])
     }
+
+    pub fn inverse(self) -> Option<Self> {
+        !self
+    }
 }
 
 impl Mul for Mat2d {

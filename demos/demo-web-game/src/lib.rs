@@ -31,6 +31,7 @@ pub fn main_js() -> Result<(), JsValue> {
         .with_bundle(
             oxygengine::core::assets::bundle_installer,
             (WebFetchEngine::default(), |assets| {
+                assets.register_error_reporter(LoggerAssetsDatabaseErrorReporter);
                 oxygengine::composite_renderer::protocols_installer(assets);
                 oxygengine::audio::protocols_installer(assets);
             }),

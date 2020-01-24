@@ -33,10 +33,11 @@ impl AssetProtocol for NavMeshAssetProtocol {
     }
 
     fn on_load(&mut self, data: Vec<u8>) -> AssetLoadResult {
-        if let Ok(asset) = deserialize::<NavMeshAsset>(&data) {
-            AssetLoadResult::Data(Box::new(asset))
-        } else {
-            AssetLoadResult::None
+        match deserialize::<NavMeshAsset>(&data) {
+            Ok(asset) => AssetLoadResult::Data(Box::new(asset)),
+            Err(error) => {
+                AssetLoadResult::Error(format!("Error loading navmesh asset: {:?}", error))
+            }
         }
     }
 }

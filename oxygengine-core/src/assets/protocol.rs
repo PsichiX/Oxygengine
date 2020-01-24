@@ -34,7 +34,7 @@ impl From<&String> for AssetVariant {
 }
 
 pub enum AssetLoadResult {
-    None,
+    Error(String),
     Data(Box<dyn Any + Send + Sync>),
     /// (meta, [(key, path to load)])
     Yield(Meta, Vec<(String, String)>),
@@ -46,7 +46,10 @@ pub trait AssetProtocol: Send + Sync {
     fn on_load(&mut self, data: Vec<u8>) -> AssetLoadResult;
 
     fn on_resume(&mut self, _meta: Meta, _list: &[(&str, &Asset)]) -> AssetLoadResult {
-        AssetLoadResult::None
+        AssetLoadResult::Error(format!(
+            "Protocol {} does not implement `on_resume` method!",
+            std::any::type_name::<Self>()
+        ))
     }
 
     fn on_unload(&mut self, _asset: &Asset) -> Option<Vec<AssetVariant>> {

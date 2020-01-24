@@ -23,9 +23,9 @@ use crate::{
     component::*,
     composite_renderer::CompositeRenderer,
     system::{
-        CompositeMapSystem, CompositeRendererSystem, CompositeSpriteAnimationSystem,
-        CompositeSpriteSheetSystem, CompositeSurfaceCacheSystem, CompositeTilemapAnimationSystem,
-        CompositeTilemapSystem, CompositeTransformSystem,
+        CompositeCameraCacheSystem, CompositeMapSystem, CompositeRendererSystem,
+        CompositeSpriteAnimationSystem, CompositeSpriteSheetSystem, CompositeSurfaceCacheSystem,
+        CompositeTilemapAnimationSystem, CompositeTilemapSystem, CompositeTransformSystem,
     },
 };
 use core::{app::AppBuilder, assets::database::AssetsDatabase, prefab::PrefabManager};
@@ -49,6 +49,7 @@ where
         &["tilemap_animation"],
     );
     builder.install_system(CompositeMapSystem::default(), "map", &[]);
+    builder.install_thread_local_system(CompositeCameraCacheSystem::<CR>::default());
     builder.install_thread_local_system(CompositeSurfaceCacheSystem::<CR>::default());
     builder.install_thread_local_system(CompositeRendererSystem::<CR>::default());
 }

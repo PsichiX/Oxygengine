@@ -26,7 +26,7 @@ impl AssetProtocol for PackAssetProtocol {
     fn on_load(&mut self, data: Vec<u8>) -> AssetLoadResult {
         match bincode::deserialize(&data) {
             Ok(data) => AssetLoadResult::Data(Box::new(PackAsset(data))),
-            Err(_) => AssetLoadResult::None,
+            Err(error) => AssetLoadResult::Error(format!("Error loading pack asset: {:?}", error)),
         }
     }
 }

@@ -19,10 +19,11 @@ impl AssetProtocol for JsonAssetProtocol {
 
     fn on_load(&mut self, data: Vec<u8>) -> AssetLoadResult {
         let data = from_utf8(&data).unwrap();
-        if let Ok(value) = serde_json::from_str(data) {
-            AssetLoadResult::Data(Box::new(JsonAsset(value)))
-        } else {
-            AssetLoadResult::None
+        match serde_json::from_str(data) {
+            Ok(value) => AssetLoadResult::Data(Box::new(JsonAsset(value))),
+            Err(error) => {
+                AssetLoadResult::Error(format!("Error loading navmesh asset: {:?}", error))
+            }
         }
     }
 }

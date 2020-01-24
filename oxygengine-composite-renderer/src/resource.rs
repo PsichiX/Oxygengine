@@ -1,5 +1,6 @@
-use crate::math::Mat2d;
+use crate::math::{Mat2d, Vec2};
 use core::ecs::{storage::UnprotectedStorage, world::Index, BitSet, DenseVecStorage, Entity, Join};
+use std::collections::HashMap;
 
 #[derive(Default)]
 pub struct CompositeTransformRes {
@@ -104,5 +105,40 @@ impl<'a> Join for CompositeTransformJoinable<'a> {
 
     unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
         value.get(id)
+    }
+}
+
+#[derive(Default)]
+pub struct CompositeCameraCache {
+    pub(crate) world_transforms: HashMap<Entity, Mat2d>,
+    pub(crate) world_inverse_transforms: HashMap<Entity, Mat2d>,
+}
+
+impl CompositeCameraCache {
+    pub fn transform_point(&self, entity: Entity, point: Vec2) -> Option<Vec2> {
+        self.world_transforms.get(&entity).map(|m| *m * point)
+    }
+
+    pub fn inverse_transform_point(&self, entity: Entity, point: Vec2) -> Option<Vec2> {
+        self.world_inverse_transforms
+            .get(&entity)
+            .map(|m| *m * point)
+    }
+
+    pub fn world_transform(&self, entity: Entity) -> Option<Mat2d> {
+        self.world_transforms.get(&entity).cloned()
+    }
+
+    pub fn world_inverse_transform(&self, entity: Entity) -> Option<Mat2d> {
+        self.world_inverse_transforms.get(&entity).cloned()
+    }
+
+    pub fn world_both_transforms(&self, entity: Entity) -> Option<(Mat2d, Mat2d)> {
+        if let Some(t) = self.world_transforms.get(&entity) {
+            if let Some(i) = self.world_inverse_transforms.get(&entity) {
+                return Some((*t, *i));
+            }
+        }
+        None
     }
 }
