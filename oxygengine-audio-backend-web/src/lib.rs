@@ -82,7 +82,7 @@ impl Audio for WebAudio {
             audio.set_volume(volume as f64);
             if play {
                 audio.set_current_time(0.0);
-                audio.play().expect("Could not start audio source");
+                drop(audio.play().expect("Could not start audio source"));
             }
             notify_ready.store(true, Ordering::Relaxed);
             AudioCache::Streaming(audio, node)
@@ -113,7 +113,7 @@ impl Audio for WebAudio {
                 future::ok(JsValue::null())
             });
             // TODO: fail process on error catch.
-            future_to_promise(future);
+            drop(future_to_promise(future));
             AudioCache::Buffered(audio2, gain2)
         };
         self.sources_cache.insert(entity, cache);
@@ -171,7 +171,7 @@ impl Audio for WebAudio {
                     if let Some(play) = play {
                         if play {
                             audio.set_current_time(0.0);
-                            audio.play().expect("Could not start audio source");
+                            drop(audio.play().expect("Could not start audio source"));
                         } else {
                             audio.pause().expect("Could not stop audio source");
                         }

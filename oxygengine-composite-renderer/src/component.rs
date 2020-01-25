@@ -206,6 +206,11 @@ impl CompositeTransform {
         self.rotation
     }
 
+    pub fn get_direction(&self) -> Vec2 {
+        let (y, x) = self.rotation.sin_cos();
+        Vec2::new(x, y)
+    }
+
     pub fn get_scale(&self) -> Vec2 {
         self.scale
     }

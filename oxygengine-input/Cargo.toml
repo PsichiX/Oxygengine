@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-input"
-version = "0.5.6"
+version = "0.6.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Input module for Oxygen Engine"
@@ -14,5 +14,5 @@ readme = "../README.md"
 parallel = ["oxygengine-core/parallel"]
 
 [dependencies]
-oxygengine-core = { version = "0.5", path = "../oxygengine-core" }
+oxygengine-core = { version = "0.6", path = "../oxygengine-core" }
 serde = { version = "1", features = ["derive"] }

@@ -1,119 +1,60 @@
-use crate::components::{speed::Speed, KeyboardMovementTag};
 use oxygengine::prelude::*;
 
-pub struct GameState;
+#[derive(Debug, Default)]
+pub struct GameState {
+    camera: Option<Entity>,
+}
 
 impl State for GameState {
     fn on_enter(&mut self, world: &mut World) {
-        // create entity with camera to view scene.
+        // instantiate world objects from scene prefab.
         world
-            .create_entity()
-            .with(CompositeCamera::new(CompositeScalingMode::CenterAspect))
-            .with(CompositeTransform::scale(400.0.into()))
-            .with(AudioSource::from(
-                AudioSourceConfig::new("ambient.ogg".into())
-                    .streaming(true)
-                    .play(true),
-            ))
-            .build();
+            .write_resource::<PrefabManager>()
+            .instantiate_world("scene", world)
+            .unwrap();
+    }
 
-        // create ground entity.
-        world
-            .create_entity()
-            .with(CompositeRenderable(
-                Rectangle {
-                    color: Color::green().a(128),
-                    rect: Rect::with_size([1024.0, 64.0].into()).align([0.5, 0.5].into()),
+    fn on_process(&mut self, world: &mut World) -> StateChange {
+        if let Some(camera) = self.camera {
+            // check if we pressed left mouse button.
+            let input = &world.read_resource::<InputController>();
+            if input.trigger_or_default("mouse-left").is_pressed() {
+                // get mouse screen space coords.
+                let x = input.axis_or_default("mouse-x");
+                let y = input.axis_or_default("mouse-y");
+                // convert mouse coords from screen space to world space.
+                if let Some(pos) = world
+                    .read_resource::<CompositeCameraCache>()
+                    .screen_to_world_space(camera, [x, y].into())
+                {
+                    // instantiate object from prefab and store its entity.
+                    let instance = world
+                        .write_resource::<PrefabManager>()
+                        .instantiate_world("instance", world)
+                        .unwrap()[0];
+                    // LazyUpdate::exec() runs code after all systems are done, so it's perfect to
+                    // modify components of entities created from prefab there.
+                    // note this `move` within closure definition - since we ue `pos` and `instance`
+                    // objects from outside of closure scope, rust has to be informed that we want
+                    // to move ownership of that objects to inside of closure scope.
+                    world.read_resource::<LazyUpdate>().exec(move |world| {
+                        // fetch CompositeTransform from instance and set its position.
+                        // note that we can fetch multiple components at once if we pack them in
+                        // tuple (up to 26 components) just like that:
+                        // ```
+                        // let (mut t, s) = <(CompositeTransform, Speed)>::fetch(world, instance);
+                        // let pos = t.get_translation() + t.get_direction() * s.0;
+                        // t.set_translation(pos);
+                        // ```
+                        let mut transform = <CompositeTransform>::fetch(world, instance);
+                        transform.set_translation(pos);
+                    });
                 }
-                .into(),
-            ))
-            .with(CompositeTransform::default())
-            .with(RigidBody2d::new(
-                RigidBodyDesc::new().translation(Vector::y() * 150.0),
-            ))
-            .with(Collider2d::new(ColliderDesc::new(ShapeHandle::new(
-                Cuboid::new(Vector::new(512.0, 32.0)),
-            ))))
-            .with(Collider2dBody::Me)
-            .with(Physics2dSyncCompositeTransform)
-            .build();
-
-        // create first obstacle entity.
-        world
-            .create_entity()
-            .with(CompositeRenderable(
-                Rectangle {
-                    color: Color::red().a(128),
-                    rect: Rect::with_size([20.0, 20.0].into()).align([0.5, 0.5].into()),
-                }
-                .into(),
-            ))
-            .with(CompositeTransform::default())
-            .with(RigidBody2d::new(
-                RigidBodyDesc::new().translation(Vector::new(20.0, 150.0 - 32.0 - 10.0)),
-            ))
-            .with(Collider2d::new(ColliderDesc::new(ShapeHandle::new(
-                Cuboid::new(Vector::new(10.0, 10.0)),
-            ))))
-            .with(Collider2dBody::Me)
-            .with(Physics2dSyncCompositeTransform)
-            .build();
-
-        // create second obstacle entity.
-        world
-            .create_entity()
-            .with(CompositeRenderable(
-                Rectangle {
-                    color: Color::red().a(128),
-                    rect: Rect::with_size([20.0, 20.0].into()).align([0.5, 0.5].into()),
-                }
-                .into(),
-            ))
-            .with(CompositeTransform::default())
-            .with(RigidBody2d::new(
-                RigidBodyDesc::new().translation(Vector::new(-100.0, 150.0 - 32.0 - 10.0)),
-            ))
-            .with(Collider2d::new(ColliderDesc::new(ShapeHandle::new(
-                Cuboid::new(Vector::new(10.0, 10.0)),
-            ))))
-            .with(Collider2dBody::Me)
-            .with(Physics2dSyncCompositeTransform)
-            .build();
-
-        // create player entity.
-        world
-            .create_entity()
-            .with(CompositeRenderable(
-                Image::new("logo.png").align([0.5, 0.5].into()).into(),
-            ))
-            .with(CompositeTransform::scale([0.5, 0.5].into()))
-            .with(KeyboardMovementTag)
-            .with(Speed(50.0))
-            .with(RigidBody2d::new(
-                RigidBodyDesc::new()
-                    .translation(Vector::y() * -100.0)
-                    .linear_damping(0.05)
-                    .angular_damping(0.5),
-            ))
-            .with(Collider2d::new(
-                ColliderDesc::new(ShapeHandle::new(Ball::new(64.0))).density(1.0),
-            ))
-            .with(Collider2dBody::Me)
-            .with(Physics2dSyncCompositeTransform)
-            .build();
-
-        // create hint text.
-        world
-            .create_entity()
-            .with(CompositeRenderable(
-                Text::new("Verdana".into(), "Use WSAD to move".into())
-                    .color(Color::white())
-                    .align(TextAlign::Center)
-                    .size(24.0)
-                    .into(),
-            ))
-            .with(CompositeTransform::translation([0.0, -100.0].into()))
-            .with(CompositeRenderDepth(1.0))
-            .build();
+            }
+        } else {
+            // find and store camera entity by its name.
+            self.camera = entity_find_world("camera", world);
+        }
+        StateChange::None
     }
 }

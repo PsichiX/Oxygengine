@@ -1,0 +1,15 @@
+template_name: instance
+entities:
+  - Data:
+      components:
+        CompositeRenderable:
+          Image:
+            image: logo.png
+            alignment:
+              x: 0.5
+              y: 0.5
+        CompositeTransform:
+          scale:
+            x: 0.15
+            y: 0.15
+        NonPersistent: ~

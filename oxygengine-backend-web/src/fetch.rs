@@ -49,7 +49,7 @@ impl FetchEngine for WebFetchEngine {
                 future::ok(JsValue::null())
             });
         // TODO: fail process on error catch.
-        future_to_promise(future);
+        drop(future_to_promise(future));
         Ok(Box::new(process))
     }
 }

@@ -1,4 +1,8 @@
-use crate::{states::loading::LoadingState, systems::keyboard_movement::KeyboardMovementSystem};
+use crate::{
+    components::{speed::Speed, KeyboardMovementTag},
+    states::loading::LoadingState,
+    systems::keyboard_movement::KeyboardMovementSystem,
+};
 use oxygengine::prelude::*;
 use wasm_bindgen::prelude::*;
 
@@ -25,12 +29,29 @@ pub fn main_js() -> Result<(), JsValue> {
         .with_bundle(
             oxygengine::core::assets::bundle_installer,
             (WebFetchEngine::default(), |assets| {
+                // register assets loading error reporter that shows errors in console.
+                #[cfg(debug_assertions)]
+                assets.register_error_reporter(LoggerAssetsDatabaseErrorReporter);
                 // register assets protocols from composite renderer module.
                 oxygengine::composite_renderer::protocols_installer(assets);
                 // register assets protocols from audio module.
                 oxygengine::audio::protocols_installer(assets);
             }),
         )
+        // install core module prefabs management.
+        .with_bundle(oxygengine::core::prefab::bundle_installer, |prefabs| {
+            // install composite renderer prefabs.
+            oxygengine::composite_renderer::prefabs_installer(prefabs);
+            // install audio prefabs.
+            oxygengine::audio::prefabs_installer(prefabs);
+            // install 2d physics prefabs.
+            oxygengine::physics_2d::prefabs_installer(prefabs);
+            // install prefabs for integration between 2D physics and composite rendering.
+            oxygengine::integration_physics_2d_composite_renderer::prefabs_installer(prefabs);
+            // register game prefabs component factories.
+            prefabs.register_component_factory::<Speed>("Speed");
+            prefabs.register_component_factory::<KeyboardMovementTag>("KeyboardMovementTag");
+        })
         // install input managment.
         .with_bundle(oxygengine::input::bundle_installer, |input| {
             // register input devices.
@@ -41,8 +62,8 @@ pub fn main_js() -> Result<(), JsValue> {
             input.map_axis("move-down", "keyboard", "KeyS");
             input.map_axis("move-left", "keyboard", "KeyA");
             input.map_axis("move-right", "keyboard", "KeyD");
-            // input.map_axis("mouse-x", "mouse", "x");
-            // input.map_axis("mouse-y", "mouse", "y");
+            input.map_axis("mouse-x", "mouse", "x");
+            input.map_axis("mouse-y", "mouse", "y");
             input.map_trigger("mouse-left", "mouse", "left");
         })
         // install composite renderer.

@@ -14,7 +14,7 @@ impl State for LoadingState {
                 let input = &world.read_resource::<InputController>();
                 // NOTE: web browsers require user input to be triggered before playing any audio.
                 if input.trigger_or_default("mouse-left") == TriggerState::Pressed {
-                    return StateChange::Swap(Box::new(GameState));
+                    return StateChange::Swap(Box::new(GameState::default()));
                 }
             }
         } else {

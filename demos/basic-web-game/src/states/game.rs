@@ -34,8 +34,18 @@ impl State for GameState {
                         .unwrap()[0];
                     // LazyUpdate::exec() runs code after all systems are done, so it's perfect to
                     // modify components of entities created from prefab there.
+                    // note this `move` within closure definition - since we ue `pos` and `instance`
+                    // objects from outside of closure scope, rust has to be informed that we want
+                    // to move ownership of that objects to inside of closure scope.
                     world.read_resource::<LazyUpdate>().exec(move |world| {
                         // fetch CompositeTransform from instance and set its position.
+                        // note that we can fetch multiple components at once if we pack them in
+                        // tuple (up to 26 components) just like that:
+                        // ```
+                        // let (mut t, s) = <(CompositeTransform, Speed)>::fetch(world, instance);
+                        // let pos = t.get_translation() + t.get_direction() * s.0;
+                        // t.set_translation(pos);
+                        // ```
                         let mut transform = <CompositeTransform>::fetch(world, instance);
                         transform.set_translation(pos);
                     });
