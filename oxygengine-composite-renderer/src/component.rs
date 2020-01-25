@@ -422,7 +422,6 @@ impl PrefabComponent for CompositeCamera {}
 pub struct CompositeSprite {
     #[serde(default)]
     pub alignment: Vec2,
-    #[serde(default)]
     sheet_frame: Option<(Cow<'static, str>, Cow<'static, str>)>,
     #[serde(skip)]
     pub(crate) dirty: bool,
@@ -493,6 +492,10 @@ impl CompositeSprite {
         } else {
             self.sheet_frame = None;
         }
+    }
+
+    pub fn apply(&mut self) {
+        self.dirty = true;
     }
 }
 
@@ -638,6 +641,10 @@ impl CompositeSpriteAnimation {
         } else {
             false
         }
+    }
+
+    pub fn apply(&mut self) {
+        self.dirty = true;
     }
 
     pub(crate) fn process(&mut self, delta_time: Scalar) {
@@ -844,6 +851,10 @@ impl CompositeTilemap {
         self.grid = grid;
         self.dirty = true;
     }
+
+    pub fn apply(&mut self) {
+        self.dirty = true;
+    }
 }
 
 impl Component for CompositeTilemap {
@@ -985,6 +996,10 @@ impl CompositeTilemapAnimation {
         }
     }
 
+    pub fn apply(&mut self) {
+        self.dirty = true;
+    }
+
     pub(crate) fn process(&mut self, delta_time: Scalar) {
         if let Some((name, phase, speed, looped)) = &mut self.current {
             if let Some(animation) = self.animations.get(name) {
@@ -1076,7 +1091,7 @@ impl CompositeMapChunk {
         self.dirty = true;
     }
 
-    pub fn rebuild(&mut self) {
+    pub fn apply(&mut self) {
         self.dirty = true;
     }
 
