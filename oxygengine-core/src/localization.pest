@@ -1,0 +1,7 @@
+separator = _{ "|" }
+no_separator = _{ "\\|" | !separator }
+text = { (no_separator ~ ANY)* }
+identifier = { ASCII_ALPHANUMERIC+ }
+param = _{ no_separator ~ "@" ~ identifier  }
+chunk = _{ param | text }
+sentence = { SOI ~ chunk ~ (separator ~ chunk)* ~ EOI }

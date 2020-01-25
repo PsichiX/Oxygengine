@@ -17,12 +17,14 @@ use crate::{
     assets::{
         database::AssetsDatabase,
         protocols::{
-            binary::BinaryAssetProtocol, pack::PackAssetProtocol, prefab::PrefabAssetProtocol,
-            set::SetAssetProtocol, text::TextAssetProtocol,
+            binary::BinaryAssetProtocol, localization::LocalizationAssetProtocol,
+            pack::PackAssetProtocol, prefab::PrefabAssetProtocol, set::SetAssetProtocol,
+            text::TextAssetProtocol,
         },
         system::AssetsSystem,
     },
     fetch::FetchEngine,
+    localization::LocalizationSystem,
 };
 
 pub fn bundle_installer<'a, 'b, FE: 'static, ADS>(
@@ -38,7 +40,9 @@ pub fn bundle_installer<'a, 'b, FE: 'static, ADS>(
     database.register(TextAssetProtocol);
     database.register(SetAssetProtocol);
     database.register(PrefabAssetProtocol);
+    database.register(LocalizationAssetProtocol);
     assets_database_setup(&mut database);
     builder.install_resource(database);
     builder.install_thread_local_system(AssetsSystem);
+    builder.install_thread_local_system(LocalizationSystem::default());
 }

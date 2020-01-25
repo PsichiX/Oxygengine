@@ -3,10 +3,11 @@ extern crate rayon;
 #[macro_use]
 extern crate lazy_static;
 extern crate typid;
+#[macro_use]
+extern crate pest_derive;
 
 #[macro_use]
 pub mod log;
-
 pub mod app;
 pub mod assets;
 pub mod error;
@@ -14,6 +15,8 @@ pub mod fetch;
 pub mod hierarchy;
 pub mod prefab;
 pub mod state;
+#[macro_use]
+pub mod localization;
 
 #[cfg(test)]
 mod tests;
@@ -30,6 +33,6 @@ pub mod ecs {
 pub mod prelude {
     pub use crate::{
         app::*, assets::prelude::*, ecs::*, fetch::prelude::*, fetch::*, hierarchy::*, id::*,
-        log::*, prefab::*, state::*,
+        localization::*, log::*, prefab::*, state::*,
     };
 }

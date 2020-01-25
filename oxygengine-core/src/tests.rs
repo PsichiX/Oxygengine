@@ -4,7 +4,8 @@ use super::{
     app::{App, AppLifeCycle, AppRunner, StandardAppTimer, SyncAppRunner},
     assets::{database::AssetsDatabase, protocols::prefab::PrefabAsset},
     fetch::engines::map::MapFetchEngine,
-    hierarchy::{hierarchy_find, HierarchyChangeRes, Name, Parent},
+    hierarchy::{hierarchy_find_world, HierarchyChangeRes, Name, Parent},
+    localization::Localization,
     log::{logger_setup, DefaultLogger},
     prefab::*,
     state::{State, StateChange},
@@ -203,27 +204,54 @@ fn test_hierarchy_find() {
         .with(Parent(root))
         .build();
     app.process();
-    assert_eq!(hierarchy_find(root, "", app.world()), Some(root));
-    assert_eq!(hierarchy_find(root, ".", app.world()), Some(root));
-    assert_eq!(hierarchy_find(root, "..", app.world()), None);
-    assert_eq!(hierarchy_find(root, "a", app.world()), Some(child_a));
-    assert_eq!(hierarchy_find(root, "a/", app.world()), Some(child_a));
-    assert_eq!(hierarchy_find(root, "a/.", app.world()), Some(child_a));
-    assert_eq!(hierarchy_find(root, "a/..", app.world()), Some(root));
-    assert_eq!(hierarchy_find(root, "a/../..", app.world()), None);
-    assert_eq!(hierarchy_find(root, "b", app.world()), None);
-    assert_eq!(hierarchy_find(root, "c", app.world()), Some(child_c));
-    assert_eq!(hierarchy_find(root, "c/", app.world()), Some(child_c));
-    assert_eq!(hierarchy_find(root, "c/.", app.world()), Some(child_c));
-    assert_eq!(hierarchy_find(root, "c/..", app.world()), Some(root));
-    assert_eq!(hierarchy_find(root, "c/../..", app.world()), None);
-    assert_eq!(hierarchy_find(root, "a/b", app.world()), Some(child_b));
-    assert_eq!(hierarchy_find(root, "a/b/", app.world()), Some(child_b));
-    assert_eq!(hierarchy_find(root, "a/b/", app.world()), Some(child_b));
-    assert_eq!(hierarchy_find(root, "a/b/..", app.world()), Some(child_a));
-    assert_eq!(hierarchy_find(root, "a/b/../..", app.world()), Some(root));
-    assert_eq!(hierarchy_find(root, "a/b/../../..", app.world()), None);
-    assert_eq!(hierarchy_find(root, "a/b/../../..", app.world()), None);
+    assert_eq!(hierarchy_find_world(root, "", app.world()), Some(root));
+    assert_eq!(hierarchy_find_world(root, ".", app.world()), Some(root));
+    assert_eq!(hierarchy_find_world(root, "..", app.world()), None);
+    assert_eq!(hierarchy_find_world(root, "a", app.world()), Some(child_a));
+    assert_eq!(hierarchy_find_world(root, "a/", app.world()), Some(child_a));
+    assert_eq!(
+        hierarchy_find_world(root, "a/.", app.world()),
+        Some(child_a)
+    );
+    assert_eq!(hierarchy_find_world(root, "a/..", app.world()), Some(root));
+    assert_eq!(hierarchy_find_world(root, "a/../..", app.world()), None);
+    assert_eq!(hierarchy_find_world(root, "b", app.world()), None);
+    assert_eq!(hierarchy_find_world(root, "c", app.world()), Some(child_c));
+    assert_eq!(hierarchy_find_world(root, "c/", app.world()), Some(child_c));
+    assert_eq!(
+        hierarchy_find_world(root, "c/.", app.world()),
+        Some(child_c)
+    );
+    assert_eq!(hierarchy_find_world(root, "c/..", app.world()), Some(root));
+    assert_eq!(hierarchy_find_world(root, "c/../..", app.world()), None);
+    assert_eq!(
+        hierarchy_find_world(root, "a/b", app.world()),
+        Some(child_b)
+    );
+    assert_eq!(
+        hierarchy_find_world(root, "a/b/", app.world()),
+        Some(child_b)
+    );
+    assert_eq!(
+        hierarchy_find_world(root, "a/b/", app.world()),
+        Some(child_b)
+    );
+    assert_eq!(
+        hierarchy_find_world(root, "a/b/..", app.world()),
+        Some(child_a)
+    );
+    assert_eq!(
+        hierarchy_find_world(root, "a/b/../..", app.world()),
+        Some(root)
+    );
+    assert_eq!(
+        hierarchy_find_world(root, "a/b/../../..", app.world()),
+        None
+    );
+    assert_eq!(
+        hierarchy_find_world(root, "a/b/../../..", app.world()),
+        None
+    );
 }
 
 #[test]
@@ -274,4 +302,18 @@ fn test_logger() {
     info!("my logger {}", "info");
     warn!("my logger {}", "warn");
     error!("my logger {}", "error");
+}
+
+#[test]
+fn test_localization() {
+    let mut loc = Localization::default();
+    loc.add_text(
+        "hello",
+        "lang",
+        "Hello |@name|, you've got |@score| points! \\| |@bye",
+    );
+    loc.set_current_language(Some("lang".to_owned()));
+    // let text = loc.format_text("hello", &[("name", "Person"), ("score", &42.to_string())]).unwrap();
+    let text = localization_format_text!(loc, "hello", "name" => "Person", "score" => 42).unwrap();
+    assert_eq!(text, "Hello Person, you've got 42 points! | {@bye}");
 }
