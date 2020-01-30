@@ -257,6 +257,16 @@ impl Prefab for CompositeTransform {
 impl PrefabComponent for CompositeTransform {}
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct CompositeRenderLayer(pub usize);
+
+impl Component for CompositeRenderLayer {
+    type Storage = VecStorage<Self>;
+}
+
+impl Prefab for CompositeRenderLayer {}
+impl PrefabComponent for CompositeRenderLayer {}
+
+#[derive(Debug, Default, Copy, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct CompositeRenderDepth(pub Scalar);
 
 impl Component for CompositeRenderDepth {

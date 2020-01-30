@@ -31,4 +31,5 @@ features = [
   'RequestMode',
   'Response',
   'Performance',
+  'Storage',
 ]

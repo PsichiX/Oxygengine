@@ -21,9 +21,7 @@ impl AssetProtocol for JsonAssetProtocol {
         let data = from_utf8(&data).unwrap();
         match serde_json::from_str(data) {
             Ok(value) => AssetLoadResult::Data(Box::new(JsonAsset(value))),
-            Err(error) => {
-                AssetLoadResult::Error(format!("Error loading navmesh asset: {:?}", error))
-            }
+            Err(error) => AssetLoadResult::Error(format!("Error loading JSON asset: {:?}", error)),
         }
     }
 }

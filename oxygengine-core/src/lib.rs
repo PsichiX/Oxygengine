@@ -17,6 +17,7 @@ pub mod prefab;
 pub mod state;
 #[macro_use]
 pub mod localization;
+pub mod storage;
 
 #[cfg(test)]
 mod tests;
@@ -33,6 +34,6 @@ pub mod ecs {
 pub mod prelude {
     pub use crate::{
         app::*, assets::prelude::*, ecs::*, fetch::prelude::*, fetch::*, hierarchy::*, id::*,
-        localization::*, log::*, prefab::*, state::*,
+        localization::*, log::*, prefab::*, state::*, storage::prelude::*, storage::*,
     };
 }

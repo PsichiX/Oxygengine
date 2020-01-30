@@ -19,7 +19,7 @@ use crate::{
         protocols::{
             binary::BinaryAssetProtocol, localization::LocalizationAssetProtocol,
             pack::PackAssetProtocol, prefab::PrefabAssetProtocol, set::SetAssetProtocol,
-            text::TextAssetProtocol,
+            text::TextAssetProtocol, yaml::YamlAssetProtocol,
         },
         system::AssetsSystem,
     },
@@ -38,6 +38,7 @@ pub fn bundle_installer<'a, 'b, FE: 'static, ADS>(
     database.register(PackAssetProtocol);
     database.register(BinaryAssetProtocol);
     database.register(TextAssetProtocol);
+    database.register(YamlAssetProtocol);
     database.register(SetAssetProtocol);
     database.register(PrefabAssetProtocol);
     database.register(LocalizationAssetProtocol);

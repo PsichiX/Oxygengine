@@ -67,6 +67,7 @@ pub fn prefabs_installer(prefabs: &mut PrefabManager) {
     prefabs.register_component_factory::<CompositeRenderable>("CompositeRenderable");
     prefabs.register_component_factory::<CompositeRenderableStroke>("CompositeRenderableStroke");
     prefabs.register_component_factory::<CompositeTransform>("CompositeTransform");
+    prefabs.register_component_factory::<CompositeRenderLayer>("CompositeRenderLayer");
     prefabs.register_component_factory::<CompositeRenderDepth>("CompositeRenderDepth");
     prefabs.register_component_factory::<CompositeRenderAlpha>("CompositeRenderAlpha");
     prefabs.register_component_factory::<CompositeCameraAlignment>("CompositeCameraAlignment");

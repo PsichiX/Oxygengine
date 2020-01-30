@@ -41,6 +41,7 @@ navigation = ["oxygengine-navigation"]
 audio = ["oxygengine-audio", "oxygengine-script-web/audio"]
 physics-2d = ["oxygengine-physics-2d"]
 script-web = ["oxygengine-script-web"]
+script-flow = ["oxygengine-script-flow"]
 integration-physics-2d-composite-renderer = ["oxygengine-integration-p2d-cr"]
 web-composite-game = [
   "web",
@@ -153,6 +154,11 @@ version = "0.6"
 path = "./oxygengine-script-web"
 optional = true
 
+[dependencies.oxygengine-script-flow]
+version = "0.6"
+path = "./oxygengine-script-flow"
+optional = true
+
 [workspace]
 members = [
   "oxygengine-ignite",
@@ -175,6 +181,7 @@ members = [
   "oxygengine-integration-p2d-cr",
   "oxygengine-script-web",
   "oxygengine-build-tools",
+  "oxygengine-script-flow",
   "oxygengine-js",
   "demos/procedural-world-simulation",
   "demos/amethyst-integration",

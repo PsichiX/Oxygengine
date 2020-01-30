@@ -14,7 +14,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-pub use serde_yaml::Value as PrefabValue;
+pub use serde_yaml::{Number as PrefabNumber, Value as PrefabValue};
 
 type ComponentFactory = Box<
     dyn for<'a> FnMut(

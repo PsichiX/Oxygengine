@@ -1,0 +1,16 @@
+[package]
+name = "oxygengine-script-flow"
+version = "0.6.1"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+edition = "2018"
+description = "Visual graph scripting module for Oxygen Engine"
+license-file = "../LICENSE"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine-script-flow"
+readme = "../README.md"
+
+[dependencies]
+oxygengine-core = { version = "0.6", path = "../oxygengine-core" }
+serde = { version = "1", features = ["derive"] }
+petgraph = "0.5"

@@ -3,9 +3,10 @@
 use crate::{
     component::{
         CompositeCamera, CompositeCameraAlignment, CompositeEffect, CompositeMapChunk,
-        CompositeRenderAlpha, CompositeRenderDepth, CompositeRenderable, CompositeRenderableStroke,
-        CompositeSprite, CompositeSpriteAnimation, CompositeSurfaceCache, CompositeTilemap,
-        CompositeTilemapAnimation, CompositeTransform, CompositeVisibility, TileCell,
+        CompositeRenderAlpha, CompositeRenderDepth, CompositeRenderLayer, CompositeRenderable,
+        CompositeRenderableStroke, CompositeSprite, CompositeSpriteAnimation,
+        CompositeSurfaceCache, CompositeTilemap, CompositeTilemapAnimation, CompositeTransform,
+        CompositeVisibility, TileCell,
     },
     composite_renderer::{Command, CompositeRenderer, Image, Rectangle, Renderable, Stats},
     map_asset_protocol::{Map, MapAsset},
@@ -23,7 +24,7 @@ use core::{
     },
     hierarchy::{HierarchyRes, Parent, Tag},
 };
-use std::{collections::HashMap, marker::PhantomData};
+use std::{cmp::Ordering, collections::HashMap, marker::PhantomData};
 use utils::grid_2d::Grid2d;
 
 pub struct CompositeTransformSystem;
@@ -157,6 +158,7 @@ where
         ReadStorage<'s, CompositeVisibility>,
         ReadStorage<'s, CompositeRenderable>,
         ReadStorage<'s, CompositeTransform>,
+        ReadStorage<'s, CompositeRenderLayer>,
         ReadStorage<'s, CompositeRenderDepth>,
         ReadStorage<'s, CompositeRenderAlpha>,
         ReadStorage<'s, CompositeCameraAlignment>,
@@ -177,6 +179,7 @@ where
             visibilities,
             renderables,
             transforms,
+            layers,
             depths,
             alphas,
             alignments,
@@ -223,20 +226,32 @@ where
                     true
                 };
                 if visible {
+                    let layer = if let Some(layer) = layers.get(entity) {
+                        layer.0
+                    } else {
+                        0
+                    };
                     let depth = if let Some(depth) = depths.get(entity) {
                         depth.0
                     } else {
                         0.0
                     };
-                    Some((depth, camera, transform))
+                    Some((layer, depth, camera, transform))
                 } else {
                     None
                 }
             })
             .collect::<Vec<_>>();
-        sorted_cameras.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        sorted_cameras.sort_by(|a, b| {
+            let layer = a.0.partial_cmp(&b.0).unwrap();
+            if layer == Ordering::Equal {
+                a.1.partial_cmp(&b.1).unwrap()
+            } else {
+                layer
+            }
+        });
 
-        for (_, camera, camera_transform) in sorted_cameras {
+        for (_, _, camera, camera_transform) in sorted_cameras {
             let mut sorted = (&entities, &renderables, transform_res.read())
                 .join()
                 .filter(|(entity, _, _)| {
@@ -252,18 +267,30 @@ where
                         true
                     };
                     if visible {
+                        let layer = if let Some(layer) = layers.get(entity) {
+                            layer.0
+                        } else {
+                            0
+                        };
                         let depth = if let Some(depth) = depths.get(entity) {
                             depth.0
                         } else {
                             0.0
                         };
-                        Some((depth, renderable, transform, entity))
+                        Some((layer, depth, renderable, transform, entity))
                     } else {
                         None
                     }
                 })
                 .collect::<Vec<_>>();
-            sorted.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+            sorted.sort_by(|a, b| {
+                let layer = a.0.partial_cmp(&b.0).unwrap();
+                if layer == Ordering::Equal {
+                    a.1.partial_cmp(&b.1).unwrap()
+                } else {
+                    layer
+                }
+            });
 
             let camera_matrix = camera.view_matrix(&camera_transform, [w, h].into());
             let commands = std::iter::once(Command::Store)
@@ -274,7 +301,7 @@ where
                 .chain(
                     sorted
                         .iter()
-                        .flat_map(|(_, renderable, transform, entity)| {
+                        .flat_map(|(_, _, renderable, transform, entity)| {
                             let [a, b, c, d, e, f] = transform.0;
                             vec![
                                 Command::Store,
