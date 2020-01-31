@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-navigation"
-version = "0.6.1"
+version = "0.6.2"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Navigation module for Oxygen Engine"
@@ -15,6 +15,6 @@ parallel = ["oxygengine-core/parallel", "navmesh/parallel"]
 
 [dependencies]
 oxygengine-core = { version = "0.6", path = "../oxygengine-core" }
-navmesh = "0.7"
+navmesh = "0.8"
 serde = { version = "1", features = ["derive"] }
 bincode = "1"
