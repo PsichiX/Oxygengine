@@ -5,9 +5,8 @@ use pest::{iterators::Pair, Parser};
 use specs::{ReadExpect, System, Write};
 use std::collections::HashMap;
 
-#[doc(hidden)]
 #[derive(Parser)]
-#[grammar = "Localization.pest"]
+#[grammar = "localization.pest"]
 struct SentenceParser;
 
 // TODO: swap text id with language.
