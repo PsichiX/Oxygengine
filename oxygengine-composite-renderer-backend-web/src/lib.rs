@@ -114,11 +114,20 @@ impl WebCompositeRenderer {
                             TextBaseLine::Hanging => "hanging",
                         });
                         for (i, line) in text.text.lines().enumerate() {
-                            drop(context.fill_text(
-                                line,
-                                text.position.x.into(),
-                                (text.position.y + text.size * i as Scalar).into(),
-                            ));
+                            if let Some(max_width) = text.max_width {
+                                drop(context.fill_text_with_max_width(
+                                    line,
+                                    text.position.x.into(),
+                                    (text.position.y + text.size * i as Scalar).into(),
+                                    max_width.into(),
+                                ));
+                            } else {
+                                drop(context.fill_text(
+                                    line,
+                                    text.position.x.into(),
+                                    (text.position.y + text.size * i as Scalar).into(),
+                                ));
+                            }
                             render_ops += 1;
                         }
                         render_ops += 3;
@@ -316,11 +325,20 @@ impl WebCompositeRenderer {
                             TextBaseLine::Hanging => "hanging",
                         });
                         for (i, line) in text.text.lines().enumerate() {
-                            drop(context.stroke_text(
-                                line,
-                                text.position.x.into(),
-                                (text.position.y + text.size * i as Scalar).into(),
-                            ));
+                            if let Some(max_width) = text.max_width {
+                                drop(context.stroke_text_with_max_width(
+                                    line,
+                                    text.position.x.into(),
+                                    (text.position.y + text.size * i as Scalar).into(),
+                                    max_width.into(),
+                                ));
+                            } else {
+                                drop(context.stroke_text(
+                                    line,
+                                    text.position.x.into(),
+                                    (text.position.y + text.size * i as Scalar).into(),
+                                ));
+                            }
                             render_ops += 1;
                         }
                         render_ops += 4;

@@ -110,14 +110,14 @@ impl<'a> Join for CompositeTransformJoinable<'a> {
 
 #[derive(Default)]
 pub struct CompositeCameraCache {
-    pub(crate) last_screen_size: Vec2,
+    pub(crate) last_view_size: Vec2,
     pub(crate) world_transforms: HashMap<Entity, Mat2d>,
     pub(crate) world_inverse_transforms: HashMap<Entity, Mat2d>,
 }
 
 impl CompositeCameraCache {
-    pub fn last_screen_size(&self) -> Vec2 {
-        self.last_screen_size
+    pub fn last_view_size(&self) -> Vec2 {
+        self.last_view_size
     }
 
     pub fn screen_to_world_space(&self, entity: Entity, point: Vec2) -> Option<Vec2> {

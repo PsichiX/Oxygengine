@@ -60,6 +60,8 @@ pub struct Text<'a> {
     pub position: Vec2,
     #[serde(default = "Text::default_size")]
     pub size: Scalar,
+    #[serde(default)]
+    pub max_width: Option<Scalar>,
 }
 
 impl<'a> Text<'a> {
@@ -76,6 +78,7 @@ impl<'a> Text<'a> {
             text: text.into(),
             position: 0.0.into(),
             size: 32.0,
+            max_width: None,
         }
     }
 
@@ -88,6 +91,7 @@ impl<'a> Text<'a> {
             text: text.into(),
             position: 0.0.into(),
             size: 32.0,
+            max_width: None,
         }
     }
 

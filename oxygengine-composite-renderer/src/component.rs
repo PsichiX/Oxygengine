@@ -1,5 +1,5 @@
 use crate::{
-    composite_renderer::{Effect, Renderable},
+    composite_renderer::{Command, Effect, Image, Renderable, Text},
     math::{Mat2d, Rect, Scalar, Vec2},
 };
 use core::{
@@ -1120,3 +1120,406 @@ impl Prefab for CompositeMapChunk {
     }
 }
 impl PrefabComponent for CompositeMapChunk {}
+
+#[derive(Debug, Copy, Clone, Default, Serialize, Deserialize)]
+pub struct UiMargin {
+    #[serde(default)]
+    pub left: f32,
+    #[serde(default)]
+    pub right: f32,
+    #[serde(default)]
+    pub top: f32,
+    #[serde(default)]
+    pub bottom: f32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum UiImagePath {
+    Single(Cow<'static, str>),
+    Set([Option<Cow<'static, str>>; 9]),
+}
+
+impl UiImagePath {
+    pub fn get(&self, index: usize) -> Option<&str> {
+        match self {
+            Self::Single(p) => Some(p),
+            Self::Set(p) => {
+                if let Some(p) = &p[index] {
+                    Some(p)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+}
+
+impl Default for UiImagePath {
+    fn default() -> Self {
+        Self::Single(Default::default())
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct UiImage {
+    #[serde(default)]
+    pub image_path: UiImagePath,
+    #[serde(default)]
+    pub source_rect: Rect,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum UiElementType {
+    None,
+    Image(UiImage),
+    Text(Text<'static>),
+}
+
+impl Default for UiElementType {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CompositeUiElement {
+    #[serde(default)]
+    pub camera_name: Cow<'static, str>,
+    #[serde(default)]
+    pub element_type: UiElementType,
+    #[serde(default)]
+    pub margin: UiMargin,
+    #[serde(default)]
+    pub left_anchor: Scalar,
+    #[serde(default)]
+    pub right_anchor: Scalar,
+    #[serde(default)]
+    pub top_anchor: Scalar,
+    #[serde(default)]
+    pub bottom_anchor: Scalar,
+    #[serde(default)]
+    pub alignment: Vec2,
+    #[serde(default)]
+    pub offset: Vec2,
+    #[serde(default)]
+    pub fixed_width: Option<f32>,
+    #[serde(default)]
+    pub fixed_height: Option<f32>,
+    #[serde(default = "CompositeUiElement::default_scale")]
+    pub scale: Vec2,
+    #[serde(skip)]
+    pub(crate) dirty: bool,
+}
+
+impl CompositeUiElement {
+    fn default_scale() -> Vec2 {
+        Vec2::one()
+    }
+
+    pub fn rebuild(&mut self) {
+        self.dirty = true;
+    }
+}
+
+impl Component for CompositeUiElement {
+    type Storage = VecStorage<Self>;
+}
+
+impl Prefab for CompositeUiElement {
+    fn post_from_prefab(&mut self) {
+        self.dirty = true;
+    }
+}
+impl PrefabComponent for CompositeUiElement {}
+
+impl CompositeUiElement {
+    pub fn calculate_rect(&self, parent_rect: Rect) -> Rect {
+        let min_width = self.margin.left + self.margin.right;
+        let min_height = self.margin.top + self.margin.bottom;
+        let (x, width) = {
+            let (x, w) = if let Some(fixed_width) = self.fixed_width {
+                let f = parent_rect.w * self.left_anchor;
+                let t = parent_rect.w * self.right_anchor;
+                let o = (f + t) * 0.5;
+                (o, fixed_width)
+            } else {
+                let f = parent_rect.w * self.left_anchor;
+                let t = parent_rect.w * self.right_anchor;
+                (f, (t - f))
+            };
+            (x, w.max(min_width) * self.scale.x)
+        };
+        let (y, height) = {
+            let (y, h) = if let Some(fixed_height) = self.fixed_height {
+                let f = parent_rect.h * self.top_anchor;
+                let t = parent_rect.h * self.bottom_anchor;
+                let o = (f + t) * 0.5;
+                (o, fixed_height)
+            } else {
+                let f = parent_rect.h * self.top_anchor;
+                let t = parent_rect.h * self.bottom_anchor;
+                (f, (t - f))
+            };
+            (y, h.max(min_height) * self.scale.y)
+        };
+        Rect {
+            x: self.offset.x + x + parent_rect.x - self.alignment.x * width,
+            y: self.offset.y + y + parent_rect.y - self.alignment.y * height,
+            w: width,
+            h: height,
+        }
+    }
+
+    pub fn build_commands(&self, parent_rect: Rect) -> (Vec<Command<'static>>, Rect) {
+        let rect = self.calculate_rect(parent_rect);
+        let commands = match &self.element_type {
+            UiElementType::Text(text) => {
+                let mut text = text.clone();
+                text.position = Vec2::new(rect.x, rect.y);
+                text.max_width = Some(rect.w);
+                vec![Command::Draw(text.into())]
+            }
+            UiElementType::Image(image) => {
+                let sx1 = image.source_rect.x;
+                let sx2 = image.source_rect.x + self.margin.left;
+                let sx3 = image.source_rect.x + image.source_rect.w - self.margin.right;
+                let sy1 = image.source_rect.y;
+                let sy2 = image.source_rect.y + self.margin.top;
+                let sy3 = image.source_rect.y + image.source_rect.h - self.margin.bottom;
+
+                let sw1 = self.margin.left;
+                let sw2 = image.source_rect.w - self.margin.left - self.margin.right;
+                let sw3 = self.margin.right;
+                let sh1 = self.margin.top;
+                let sh2 = image.source_rect.h - self.margin.top - self.margin.bottom;
+                let sh3 = self.margin.bottom;
+
+                let dx1 = rect.x;
+                let dx2 = rect.x + self.margin.left;
+                let dx3 = rect.x + rect.w - self.margin.right;
+                let dy1 = rect.y;
+                let dy2 = rect.y + self.margin.top;
+                let dy3 = rect.y + rect.h - self.margin.bottom;
+
+                let dw1 = self.margin.left;
+                let dw2 = rect.w - self.margin.left - self.margin.right;
+                let dw3 = self.margin.right;
+                let dh1 = self.margin.top;
+                let dh2 = rect.h - self.margin.top - self.margin.bottom;
+                let dh3 = self.margin.bottom;
+
+                vec![
+                    if let Some(path) = image.image_path.get(0) {
+                        Command::Draw(
+                            Image {
+                                image: path.to_owned().into(),
+                                source: Some(Rect {
+                                    x: sx1,
+                                    y: sy1,
+                                    w: sw1,
+                                    h: sh1,
+                                }),
+                                destination: Some(Rect {
+                                    x: dx1,
+                                    y: dy1,
+                                    w: dw1,
+                                    h: dh1,
+                                }),
+                                alignment: Vec2::new(0.0, 0.0),
+                            }
+                            .into(),
+                        )
+                    } else {
+                        Command::None
+                    },
+                    if let Some(path) = image.image_path.get(1) {
+                        Command::Draw(
+                            Image {
+                                image: path.to_owned().into(),
+                                source: Some(Rect {
+                                    x: sx2,
+                                    y: sy1,
+                                    w: sw2,
+                                    h: sh1,
+                                }),
+                                destination: Some(Rect {
+                                    x: dx2,
+                                    y: dy1,
+                                    w: dw2,
+                                    h: dh1,
+                                }),
+                                alignment: Vec2::new(0.0, 0.0),
+                            }
+                            .into(),
+                        )
+                    } else {
+                        Command::None
+                    },
+                    if let Some(path) = image.image_path.get(2) {
+                        Command::Draw(
+                            Image {
+                                image: path.to_owned().into(),
+                                source: Some(Rect {
+                                    x: sx3,
+                                    y: sy1,
+                                    w: sw3,
+                                    h: sh1,
+                                }),
+                                destination: Some(Rect {
+                                    x: dx3,
+                                    y: dy1,
+                                    w: dw3,
+                                    h: dh1,
+                                }),
+                                alignment: Vec2::new(0.0, 0.0),
+                            }
+                            .into(),
+                        )
+                    } else {
+                        Command::None
+                    },
+                    if let Some(path) = image.image_path.get(3) {
+                        Command::Draw(
+                            Image {
+                                image: path.to_owned().into(),
+                                source: Some(Rect {
+                                    x: sx1,
+                                    y: sy2,
+                                    w: sw1,
+                                    h: sh2,
+                                }),
+                                destination: Some(Rect {
+                                    x: dx1,
+                                    y: dy2,
+                                    w: dw1,
+                                    h: dh2,
+                                }),
+                                alignment: Vec2::new(0.0, 0.0),
+                            }
+                            .into(),
+                        )
+                    } else {
+                        Command::None
+                    },
+                    if let Some(path) = image.image_path.get(4) {
+                        Command::Draw(
+                            Image {
+                                image: path.to_owned().into(),
+                                source: Some(Rect {
+                                    x: sx2,
+                                    y: sy2,
+                                    w: sw2,
+                                    h: sh2,
+                                }),
+                                destination: Some(Rect {
+                                    x: dx2,
+                                    y: dy2,
+                                    w: dw2,
+                                    h: dh2,
+                                }),
+                                alignment: Vec2::new(0.0, 0.0),
+                            }
+                            .into(),
+                        )
+                    } else {
+                        Command::None
+                    },
+                    if let Some(path) = image.image_path.get(5) {
+                        Command::Draw(
+                            Image {
+                                image: path.to_owned().into(),
+                                source: Some(Rect {
+                                    x: sx3,
+                                    y: sy2,
+                                    w: sw3,
+                                    h: sh2,
+                                }),
+                                destination: Some(Rect {
+                                    x: dx3,
+                                    y: dy2,
+                                    w: dw3,
+                                    h: dh2,
+                                }),
+                                alignment: Vec2::new(0.0, 0.0),
+                            }
+                            .into(),
+                        )
+                    } else {
+                        Command::None
+                    },
+                    if let Some(path) = image.image_path.get(6) {
+                        Command::Draw(
+                            Image {
+                                image: path.to_owned().into(),
+                                source: Some(Rect {
+                                    x: sx1,
+                                    y: sy3,
+                                    w: sw1,
+                                    h: sh3,
+                                }),
+                                destination: Some(Rect {
+                                    x: dx1,
+                                    y: dy3,
+                                    w: dw1,
+                                    h: dh3,
+                                }),
+                                alignment: Vec2::new(0.0, 0.0),
+                            }
+                            .into(),
+                        )
+                    } else {
+                        Command::None
+                    },
+                    if let Some(path) = image.image_path.get(7) {
+                        Command::Draw(
+                            Image {
+                                image: path.to_owned().into(),
+                                source: Some(Rect {
+                                    x: sx2,
+                                    y: sy3,
+                                    w: sw2,
+                                    h: sh3,
+                                }),
+                                destination: Some(Rect {
+                                    x: dx2,
+                                    y: dy3,
+                                    w: dw2,
+                                    h: dh3,
+                                }),
+                                alignment: Vec2::new(0.0, 0.0),
+                            }
+                            .into(),
+                        )
+                    } else {
+                        Command::None
+                    },
+                    if let Some(path) = image.image_path.get(8) {
+                        Command::Draw(
+                            Image {
+                                image: path.to_owned().into(),
+                                source: Some(Rect {
+                                    x: sx3,
+                                    y: sy3,
+                                    w: sw3,
+                                    h: sh3,
+                                }),
+                                destination: Some(Rect {
+                                    x: dx3,
+                                    y: dy3,
+                                    w: dw3,
+                                    h: dh3,
+                                }),
+                                alignment: Vec2::new(0.0, 0.0),
+                            }
+                            .into(),
+                        )
+                    } else {
+                        Command::None
+                    },
+                ]
+            }
+            _ => vec![],
+        };
+        (commands, rect)
+    }
+}

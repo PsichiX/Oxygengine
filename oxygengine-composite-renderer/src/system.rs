@@ -6,7 +6,7 @@ use crate::{
         CompositeRenderAlpha, CompositeRenderDepth, CompositeRenderLayer, CompositeRenderable,
         CompositeRenderableStroke, CompositeSprite, CompositeSpriteAnimation,
         CompositeSurfaceCache, CompositeTilemap, CompositeTilemapAnimation, CompositeTransform,
-        CompositeVisibility, TileCell,
+        CompositeUiElement, CompositeVisibility, TileCell,
     },
     composite_renderer::{Command, CompositeRenderer, Image, Rectangle, Renderable, Stats},
     map_asset_protocol::{Map, MapAsset},
@@ -22,7 +22,7 @@ use core::{
         storage::ComponentEvent, Entities, Entity, Join, Read, ReadExpect, ReadStorage, ReaderId,
         Resources, System, Write, WriteStorage,
     },
-    hierarchy::{HierarchyRes, Parent, Tag},
+    hierarchy::{HierarchyRes, Name, Parent, Tag},
 };
 use std::{cmp::Ordering, collections::HashMap, marker::PhantomData};
 use utils::grid_2d::Grid2d;
@@ -108,12 +108,12 @@ where
 
     fn run(&mut self, (renderer, mut cache, entities, cameras, transforms): Self::SystemData) {
         if let Some(renderer) = renderer {
-            let screen_size = renderer.view_size();
-            cache.last_screen_size = screen_size;
+            let view_size = renderer.view_size();
+            cache.last_view_size = view_size;
             cache.world_transforms = (&entities, &cameras, &transforms)
                 .join()
                 .map(|(entity, camera, transform)| {
-                    (entity, camera.view_matrix(transform, screen_size))
+                    (entity, camera.view_matrix(transform, view_size))
                 })
                 .collect::<HashMap<_, _>>();
             cache.world_inverse_transforms = cache
@@ -725,6 +725,84 @@ impl<'s> System<'s> for CompositeMapSystem {
                         cache.rebuild();
                     }
                     chunk.dirty = false;
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct CompositeUiSystem<CR>
+where
+    CR: CompositeRenderer,
+{
+    last_view_size: Vec2,
+    _phantom: PhantomData<CR>,
+}
+
+impl<CR> Default for CompositeUiSystem<CR>
+where
+    CR: CompositeRenderer,
+{
+    fn default() -> Self {
+        Self {
+            last_view_size: Default::default(),
+            _phantom: Default::default(),
+        }
+    }
+}
+
+impl<'s, CR> System<'s> for CompositeUiSystem<CR>
+where
+    CR: CompositeRenderer + 'static,
+{
+    type SystemData = (
+        Option<Read<'s, CR>>,
+        WriteStorage<'s, CompositeUiElement>,
+        WriteStorage<'s, CompositeRenderable>,
+        ReadStorage<'s, CompositeCamera>,
+        ReadStorage<'s, CompositeTransform>,
+        ReadStorage<'s, Name>,
+    );
+
+    fn run(
+        &mut self,
+        (renderer, mut ui_elements, mut renderables, cameras, transforms, names): Self::SystemData,
+    ) {
+        if renderer.is_none() {
+            return;
+        }
+
+        let renderer = renderer.unwrap();
+        let view_size = renderer.view_size();
+        let force_update = (self.last_view_size - view_size).sqr_magnitude() > 1.0e-4;
+        self.last_view_size = view_size;
+
+        for (mut ui_element, mut renderable) in (&mut ui_elements, &mut renderables).join() {
+            if ui_element.dirty || force_update {
+                if let Some(rect) = (&cameras, &names, &transforms)
+                    .join()
+                    .find_map(|(c, n, t)| {
+                        if ui_element.camera_name == n.0 {
+                            if let Some(inv_mat) = !c.view_matrix(t, view_size) {
+                                let size = view_size * inv_mat;
+                                Some(Rect {
+                                    x: 0.0,
+                                    y: 0.0,
+                                    w: size.x,
+                                    h: size.y,
+                                })
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    })
+                {
+                    let commands = ui_element.build_commands(rect).0;
+                    renderable.0 = Renderable::Commands(commands);
+                    ui_element.dirty = false;
                 }
             }
         }
