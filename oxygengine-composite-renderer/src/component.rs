@@ -1,6 +1,7 @@
 use crate::{
     composite_renderer::{Command, Effect, Image, Renderable, Text},
     math::{Mat2d, Rect, Scalar, Vec2},
+    resource::CompositeUiInteractibles,
 };
 use core::{
     ecs::{Component, DenseVecStorage, FlaggedStorage, HashMapStorage, VecStorage},
@@ -1186,9 +1187,13 @@ pub struct CompositeUiElement {
     #[serde(default)]
     pub camera_name: Cow<'static, str>,
     #[serde(default)]
+    pub interactive: Option<Cow<'static, str>>,
+    #[serde(default)]
     pub element_type: UiElementType,
     #[serde(default)]
     pub margin: UiMargin,
+    #[serde(default)]
+    pub padding: UiMargin,
     #[serde(default)]
     pub left_anchor: Scalar,
     #[serde(default)]
@@ -1207,6 +1212,8 @@ pub struct CompositeUiElement {
     pub fixed_height: Option<f32>,
     #[serde(default = "CompositeUiElement::default_scale")]
     pub scale: Vec2,
+    #[serde(default)]
+    pub children: Vec<CompositeUiElement>,
     #[serde(skip)]
     pub(crate) dirty: bool,
 }
@@ -1238,26 +1245,26 @@ impl CompositeUiElement {
         let min_height = self.margin.top + self.margin.bottom;
         let (x, width) = {
             let (x, w) = if let Some(fixed_width) = self.fixed_width {
-                let f = parent_rect.w * self.left_anchor;
-                let t = parent_rect.w * self.right_anchor;
+                let f = parent_rect.w * self.left_anchor + self.padding.left;
+                let t = parent_rect.w * self.right_anchor - self.padding.right;
                 let o = (f + t) * 0.5;
                 (o, fixed_width)
             } else {
-                let f = parent_rect.w * self.left_anchor;
-                let t = parent_rect.w * self.right_anchor;
+                let f = parent_rect.w * self.left_anchor + self.padding.left;
+                let t = parent_rect.w * self.right_anchor - self.padding.right;
                 (f, (t - f))
             };
             (x, w.max(min_width) * self.scale.x)
         };
         let (y, height) = {
             let (y, h) = if let Some(fixed_height) = self.fixed_height {
-                let f = parent_rect.h * self.top_anchor;
-                let t = parent_rect.h * self.bottom_anchor;
+                let f = parent_rect.h * self.top_anchor + self.padding.top;
+                let t = parent_rect.h * self.bottom_anchor - self.padding.bottom;
                 let o = (f + t) * 0.5;
                 (o, fixed_height)
             } else {
-                let f = parent_rect.h * self.top_anchor;
-                let t = parent_rect.h * self.bottom_anchor;
+                let f = parent_rect.h * self.top_anchor + self.padding.top;
+                let t = parent_rect.h * self.bottom_anchor - self.padding.bottom;
                 (f, (t - f))
             };
             (y, h.max(min_height) * self.scale.y)
@@ -1270,9 +1277,16 @@ impl CompositeUiElement {
         }
     }
 
-    pub fn build_commands(&self, parent_rect: Rect) -> (Vec<Command<'static>>, Rect) {
+    pub fn build_commands(
+        &self,
+        parent_rect: Rect,
+        interactibles: &mut CompositeUiInteractibles,
+    ) -> (Vec<Command<'static>>, Rect) {
         let rect = self.calculate_rect(parent_rect);
-        let commands = match &self.element_type {
+        if let Some(name) = &self.interactive {
+            interactibles.bounding_boxes.insert(name.clone(), rect);
+        }
+        let mut commands = match &self.element_type {
             UiElementType::Text(text) => {
                 let mut text = text.clone();
                 text.position = Vec2::new(rect.x, rect.y);
@@ -1520,6 +1534,9 @@ impl CompositeUiElement {
             }
             _ => vec![],
         };
+        for child in &self.children {
+            commands.extend(child.build_commands(rect, interactibles).0);
+        }
         (commands, rect)
     }
 }

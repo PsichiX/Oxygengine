@@ -568,6 +568,13 @@ impl Rect {
     pub fn center(&self) -> Vec2 {
         Vec2::new(self.x + self.w * 0.5, self.y + self.h * 0.5)
     }
+
+    pub fn contains_point(&self, point: Vec2) -> bool {
+        point.x > self.x
+            && point.x < self.x + self.w
+            && point.y > self.y
+            && point.y < self.y + self.h
+    }
 }
 
 impl From<(Scalar, Scalar)> for Rect {

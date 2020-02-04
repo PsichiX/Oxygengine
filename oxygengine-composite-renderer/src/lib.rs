@@ -80,4 +80,5 @@ pub fn prefabs_installer(prefabs: &mut PrefabManager) {
     prefabs.register_component_factory::<CompositeTilemap>("CompositeTilemap");
     prefabs.register_component_factory::<CompositeTilemapAnimation>("CompositeTilemapAnimation");
     prefabs.register_component_factory::<CompositeMapChunk>("CompositeMapChunk");
+    prefabs.register_component_factory::<CompositeUiElement>("CompositeUiElement");
 }

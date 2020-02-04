@@ -94,12 +94,20 @@ where
         }
     }
 
-    pub fn get(&mut self) -> Option<&mut C> {
+    pub fn get(&self) -> Option<&C> {
+        self.storage.get(self.entity)
+    }
+
+    pub fn get_mut(&mut self) -> Option<&mut C> {
         self.storage.get_mut(self.entity)
     }
 
-    pub fn unwrap(&mut self) -> &mut C {
+    pub fn unwrap(&self) -> &C {
         self.get().unwrap()
+    }
+
+    pub fn unwrap_mut(&mut self) -> &mut C {
+        self.get_mut().unwrap()
     }
 }
 
@@ -110,7 +118,11 @@ where
     type Target = C;
 
     fn deref(&self) -> &Self::Target {
-        self.storage.get(self.entity).unwrap()
+        if let Some(c) = self.storage.get(self.entity) {
+            c
+        } else {
+            panic!("Could not fetch component: {}", std::any::type_name::<C>());
+        }
     }
 }
 
@@ -119,7 +131,14 @@ where
     C: Component,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.storage.get_mut(self.entity).unwrap()
+        if let Some(c) = self.storage.get_mut(self.entity) {
+            c
+        } else {
+            panic!(
+                "Could not fetch mutable component: {}",
+                std::any::type_name::<C>()
+            );
+        }
     }
 }
 

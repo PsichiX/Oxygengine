@@ -1,6 +1,6 @@
-use crate::math::{Mat2d, Vec2};
+use crate::math::{Mat2d, Rect, Vec2};
 use core::ecs::{storage::UnprotectedStorage, world::Index, BitSet, DenseVecStorage, Entity, Join};
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
 #[derive(Default)]
 pub struct CompositeTransformRes {
@@ -145,5 +145,25 @@ impl CompositeCameraCache {
             }
         }
         None
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct CompositeUiInteractibles {
+    /// {name: screen rect}
+    pub(crate) bounding_boxes: HashMap<Cow<'static, str>, Rect>,
+}
+
+impl CompositeUiInteractibles {
+    pub fn find_rect(&self, name: &str) -> Option<Rect> {
+        self.bounding_boxes.get(name).copied()
+    }
+
+    pub fn does_rect_contains_point(&self, name: &str, point: Vec2) -> bool {
+        if let Some(rect) = self.bounding_boxes.get(name) {
+            rect.contains_point(point)
+        } else {
+            false
+        }
     }
 }

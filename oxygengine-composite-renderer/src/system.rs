@@ -11,7 +11,7 @@ use crate::{
     composite_renderer::{Command, CompositeRenderer, Image, Rectangle, Renderable, Stats},
     map_asset_protocol::{Map, MapAsset},
     math::{Mat2d, Rect, Scalar, Vec2},
-    resource::{CompositeCameraCache, CompositeTransformRes},
+    resource::{CompositeCameraCache, CompositeTransformRes, CompositeUiInteractibles},
     sprite_sheet_asset_protocol::SpriteSheetAsset,
     tileset_asset_protocol::{TilesetAsset, TilesetInfo},
 };
@@ -758,6 +758,7 @@ where
 {
     type SystemData = (
         Option<Read<'s, CR>>,
+        Write<'s, CompositeUiInteractibles>,
         WriteStorage<'s, CompositeUiElement>,
         WriteStorage<'s, CompositeRenderable>,
         ReadStorage<'s, CompositeCamera>,
@@ -767,7 +768,7 @@ where
 
     fn run(
         &mut self,
-        (renderer, mut ui_elements, mut renderables, cameras, transforms, names): Self::SystemData,
+        (renderer, mut interactibles, mut ui_elements, mut renderables, cameras, transforms, names): Self::SystemData,
     ) {
         if renderer.is_none() {
             return;
@@ -800,7 +801,7 @@ where
                         }
                     })
                 {
-                    let commands = ui_element.build_commands(rect).0;
+                    let commands = ui_element.build_commands(rect, &mut interactibles).0;
                     renderable.0 = Renderable::Commands(commands);
                     ui_element.dirty = false;
                 }
