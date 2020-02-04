@@ -3,6 +3,7 @@ use oxygengine::prelude::*;
 #[derive(Debug, Default)]
 pub struct GameState {
     camera: Option<Entity>,
+    camera_ui: Option<Entity>,
 }
 
 impl State for GameState {
@@ -22,10 +23,12 @@ impl State for GameState {
                 // get mouse screen space coords.
                 let x = input.axis_or_default("mouse-x");
                 let y = input.axis_or_default("mouse-y");
+                let point = [x, y].into();
+
                 // convert mouse coords from screen space to world space.
                 if let Some(pos) = world
                     .read_resource::<CompositeCameraCache>()
-                    .screen_to_world_space(camera, [x, y].into())
+                    .screen_to_world_space(camera, point)
                 {
                     // instantiate object from prefab and store its entity.
                     let instance = world
@@ -55,6 +58,30 @@ impl State for GameState {
             // find and store camera entity by its name.
             self.camera = entity_find_world("camera", world);
         }
+
+        if let Some(camera) = self.camera_ui {
+            let input = &world.read_resource::<InputController>();
+            if input.trigger_or_default("mouse-left").is_pressed() {
+                let x = input.axis_or_default("mouse-x");
+                let y = input.axis_or_default("mouse-y");
+                let point = [x, y].into();
+
+                if let Some(pos) = world
+                    .read_resource::<CompositeCameraCache>()
+                    .screen_to_world_space(camera, point)
+                {
+                    if world
+                        .read_resource::<CompositeUiInteractibles>()
+                        .does_rect_contains_point("panel", pos)
+                    {
+                        info!("=== PANEL GOT CLICKED!");
+                    }
+                }
+            }
+        } else {
+            self.camera_ui = entity_find_world("camera_ui", world);
+        }
+
         StateChange::None
     }
 }

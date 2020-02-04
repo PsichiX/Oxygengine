@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate oxygengine;
+
 use crate::{
     components::{speed::Speed, KeyboardMovementTag},
     states::loading::LoadingState,
