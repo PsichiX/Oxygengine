@@ -14,13 +14,37 @@ events:
     output_constrains:
       - Any
     entry_node:
-      Named: n001
+      Named: i001
     nodes:
-      - name: n001
+      - id:
+          Named: i001
         node_type:
-          CallOperation:
-            Named: Print
+          GetInput: 0
+        next_node:
+          Named: n001
+      - id:
+          Named: n001
+        node_type:
+          CallOperation: Print
         input_links:
           - NodeIndexed:
               - Named: i001
+              - 0
+        next_node:
+          Named: i002
+      - id:
+          Named: i002
+        node_type:
+          GetValue:
+            type_name: Number
+            data: 42
+        next_node:
+          Named: o001
+      - id:
+          Named: o001
+        node_type:
+          SetOutput: 0
+        input_links:
+          - NodeIndexed:
+              - Named: i002
               - 0

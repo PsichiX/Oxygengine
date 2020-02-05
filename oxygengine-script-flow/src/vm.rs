@@ -188,8 +188,16 @@ impl Vm {
                     .map(|node| (node.id.clone(), graph.add_node(node.id.clone())))
                     .collect::<HashMap<_, _>>();
                 for node in &event.nodes {
-                    let to = *nodes_map.get(&node.next_node).unwrap();
-                    let from = *nodes_map.get(&node.id).unwrap();
+                    let to = if let Some(node) = nodes_map.get(&node.next_node) {
+                        *node
+                    } else {
+                        continue;
+                    };
+                    let from = if let Some(node) = nodes_map.get(&node.id) {
+                        *node
+                    } else {
+                        return Err(VmError::NodeDoesNotExists(node.id.clone()));
+                    };
                     graph.add_edge(from, to, ());
                     for link in &node.input_links {
                         match link {
