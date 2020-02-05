@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine"
-version = "0.6.3"
+version = "0.6.5"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygen Engine"
