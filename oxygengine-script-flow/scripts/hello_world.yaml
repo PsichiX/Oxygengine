@@ -1,0 +1,26 @@
+version: [0, 0, 1]
+name: hello
+operations:
+  - name: Print
+    input_constrains:
+      - Type:
+          Named: String
+    help: Prints string.
+events:
+  - name: onRun
+    input_constrains:
+      - Type:
+          Named: String
+    output_constrains:
+      - Any
+    entry_node:
+      Named: n001
+    nodes:
+      - name: n001
+        node_type:
+          CallOperation:
+            Named: Print
+        input_links:
+          - NodeIndexed:
+              - Named: i001
+              - 0

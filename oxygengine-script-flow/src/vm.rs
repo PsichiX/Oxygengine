@@ -140,18 +140,18 @@ pub enum VmOperationError {
 pub struct Vm {
     ast: Program,
     operations: HashMap<String, Box<dyn VmOperation>>,
-    variables: HashMap<GUID, Reference>,
+    variables: HashMap<String, Reference>,
     running_events: HashMap<GUID, VmEvent>,
     completed_events: HashMap<GUID, Vec<Reference>>,
-    /// {event guid: [nodes guid]}
-    event_execution_order: HashMap<GUID, Vec<GUID>>,
-    /// {(type guid, method guid): [nodes guid]}
-    method_execution_order: HashMap<(GUID, GUID), Vec<GUID>>,
-    /// {event guid: [nodes guid]}
-    function_execution_order: HashMap<GUID, Vec<GUID>>,
-    /// {type guid: {method guid: (trait guid, is implemented by type)}}
-    type_methods: HashMap<GUID, HashMap<GUID, (GUID, bool)>>,
-    end_nodes: Vec<GUID>,
+    /// {event name: [nodes reference]}
+    event_execution_order: HashMap<String, Vec<ast::Reference>>,
+    /// {(type name, method name): [node reference]}
+    method_execution_order: HashMap<(String, String), Vec<ast::Reference>>,
+    /// {event name: [nodes reference]}
+    function_execution_order: HashMap<String, Vec<ast::Reference>>,
+    /// {type name: {method name: (trait name, is implemented by type)}}
+    type_methods: HashMap<String, HashMap<String, (String, bool)>>,
+    end_nodes: Vec<ast::Reference>,
 }
 
 impl Vm {
@@ -161,26 +161,19 @@ impl Vm {
             .iter()
             .map(|type_| {
                 let mut map = HashMap::new();
-                for (trait_ref, methods) in &type_.traits_implementation {
-                    let trait_ = match trait_ref {
-                        ast::Reference::None => None,
-                        ast::Reference::Guid(guid) => ast.traits.iter().find(|t| t.guid == *guid),
-                        ast::Reference::Named(name) => {
-                            ast.traits.iter().find(|t| t.name.as_str() == name)
-                        }
-                    };
-                    if let Some(trait_) = trait_ {
+                for (trait_name, methods) in &type_.traits_implementation {
+                    if let Some(trait_) = ast.traits.iter().find(|t| &t.name == trait_name) {
                         for trait_method in &trait_.methods {
-                            let b = methods
-                                .iter()
-                                .any(|m| m.name.as_str() == &trait_method.name);
-                            map.insert(trait_method.guid, (trait_.guid, b));
+                            let b = methods.iter().any(|m| m.name == trait_method.name);
+                            map.insert(trait_method.name.clone(), (trait_name.clone(), b));
                         }
                     } else {
-                        return Err(VmError::TraitDoesNotExists(trait_ref.clone()));
+                        return Err(VmError::TraitDoesNotExists(ast::Reference::Named(
+                            trait_name.clone(),
+                        )));
                     }
                 }
-                Ok((type_.guid, map))
+                Ok((type_.name.clone(), map))
             })
             .collect::<Result<HashMap<_, _>, _>>()?;
         let mut end_nodes = vec![];
@@ -188,35 +181,21 @@ impl Vm {
             .events
             .iter()
             .map(|event| {
-                let mut graph = Graph::<GUID, ()>::new();
+                let mut graph = Graph::<ast::Reference, ()>::new();
                 let nodes_map = event
                     .nodes
                     .iter()
-                    .map(|node| (node.guid, graph.add_node(node.guid)))
+                    .map(|node| (node.id.clone(), graph.add_node(node.id.clone())))
                     .collect::<HashMap<_, _>>();
                 for node in &event.nodes {
-                    match &node.next_node {
-                        ast::Reference::None => {}
-                        ast::Reference::Guid(guid) => {
-                            let from = *nodes_map.get(&node.guid).unwrap();
-                            let to = *nodes_map.get(&guid).unwrap();
-                            graph.add_edge(from, to, ());
-                        }
-                        ast::Reference::Named(name) => {
-                            if let Some(n) = event.nodes.iter().find(|n| n.name.as_str() == name) {
-                                let from = *nodes_map.get(&node.guid).unwrap();
-                                let to = *nodes_map.get(&n.guid).unwrap();
-                                graph.add_edge(from, to, ());
-                            } else {
-                                return Err(VmError::NodeDoesNotExists(node.next_node.clone()));
-                            }
-                        }
-                    }
+                    let to = *nodes_map.get(&node.next_node).unwrap();
+                    let from = *nodes_map.get(&node.id).unwrap();
+                    graph.add_edge(from, to, ());
                     for link in &node.input_links {
                         match link {
-                            Link::NodeIndexed(guid, _) => {
-                                let from = *nodes_map.get(&guid).unwrap();
-                                let to = *nodes_map.get(&node.guid).unwrap();
+                            Link::NodeIndexed(id, _) => {
+                                let from = *nodes_map.get(&id).unwrap();
+                                let to = *nodes_map.get(&node.id).unwrap();
                                 graph.add_edge(from, to, ());
                             }
                             Link::None => {}
@@ -226,73 +205,58 @@ impl Vm {
                 let list = match toposort(&graph, None) {
                     Ok(list) => Ok(list
                         .into_iter()
-                        .map(|index| *nodes_map.iter().find(|(_, v)| **v == index).unwrap().0)
+                        .map(|index| {
+                            nodes_map
+                                .iter()
+                                .find(|(_, v)| **v == index)
+                                .unwrap()
+                                .0
+                                .clone()
+                        })
                         .collect::<Vec<_>>()),
                     Err(_) => Err(VmError::CompilationError(
                         "Found flow graph to be cyclic".to_owned(),
                     )),
                 }?;
-                end_nodes.extend(
-                    graph
-                        .externals(Direction::Outgoing)
-                        .map(|index| *nodes_map.iter().find(|(_, v)| **v == index).unwrap().0),
-                );
-                Ok((event.guid, list))
+                end_nodes.extend(graph.externals(Direction::Outgoing).map(|index| {
+                    nodes_map
+                        .iter()
+                        .find(|(_, v)| **v == index)
+                        .unwrap()
+                        .0
+                        .clone()
+                }));
+                Ok((event.name.clone(), list))
             })
             .collect::<Result<HashMap<_, _>, _>>()?;
         let method_execution_order = {
             let mut result = HashMap::new();
             for type_ in &ast.types {
-                for (trait_, methods) in &type_.traits_implementation {
-                    let trait_ = match trait_ {
-                        ast::Reference::None => None,
-                        ast::Reference::Guid(guid) => ast.traits.iter().find(|t| t.guid == *guid),
-                        ast::Reference::Named(name) => {
-                            ast.traits.iter().find(|t| t.name.as_str() == name)
-                        }
-                    };
-                    if let Some(trait_) = trait_ {
+                for (trait_name, methods) in &type_.traits_implementation {
+                    if let Some(trait_) = ast.traits.iter().find(|t| &t.name == trait_name) {
                         for method in &trait_.methods {
                             let method = if let Some(method) =
-                                methods.iter().find(|m| m.name.as_str() == method.name)
+                                methods.iter().find(|m| m.name == method.name)
                             {
                                 method
                             } else {
                                 method
                             };
-                            let mut graph = Graph::<GUID, ()>::new();
+                            let mut graph = Graph::<ast::Reference, ()>::new();
                             let nodes_map = method
                                 .nodes
                                 .iter()
-                                .map(|node| (node.guid, graph.add_node(node.guid)))
+                                .map(|node| (node.id.clone(), graph.add_node(node.id.clone())))
                                 .collect::<HashMap<_, _>>();
                             for node in &method.nodes {
-                                match &node.next_node {
-                                    ast::Reference::None => {}
-                                    ast::Reference::Guid(guid) => {
-                                        let from = *nodes_map.get(&node.guid).unwrap();
-                                        let to = *nodes_map.get(&guid).unwrap();
-                                        graph.add_edge(from, to, ());
-                                    }
-                                    ast::Reference::Named(name) => {
-                                        if let Some(n) =
-                                            method.nodes.iter().find(|n| n.name.as_str() == name)
-                                        {
-                                            let from = *nodes_map.get(&node.guid).unwrap();
-                                            let to = *nodes_map.get(&n.guid).unwrap();
-                                            graph.add_edge(from, to, ());
-                                        } else {
-                                            return Err(VmError::NodeDoesNotExists(
-                                                node.next_node.clone(),
-                                            ));
-                                        }
-                                    }
-                                }
+                                let to = *nodes_map.get(&node.next_node).unwrap();
+                                let from = *nodes_map.get(&node.id).unwrap();
+                                graph.add_edge(from, to, ());
                                 for link in &node.input_links {
                                     match link {
-                                        Link::NodeIndexed(guid, _) => {
-                                            let from = *nodes_map.get(&guid).unwrap();
-                                            let to = *nodes_map.get(&node.guid).unwrap();
+                                        Link::NodeIndexed(id, _) => {
+                                            let to = *nodes_map.get(&node.id).unwrap();
+                                            let from = *nodes_map.get(&id).unwrap();
                                             graph.add_edge(from, to, ());
                                         }
                                         Link::None => {}
@@ -302,7 +266,12 @@ impl Vm {
                             let list = if let Ok(list) = toposort(&graph, None) {
                                 list.into_iter()
                                     .map(|index| {
-                                        *nodes_map.iter().find(|(_, v)| **v == index).unwrap().0
+                                        nodes_map
+                                            .iter()
+                                            .find(|(_, v)| **v == index)
+                                            .unwrap()
+                                            .0
+                                            .clone()
                                     })
                                     .collect::<Vec<_>>()
                             } else {
@@ -311,9 +280,14 @@ impl Vm {
                                 ));
                             };
                             end_nodes.extend(graph.externals(Direction::Outgoing).map(|index| {
-                                *nodes_map.iter().find(|(_, v)| **v == index).unwrap().0
+                                nodes_map
+                                    .iter()
+                                    .find(|(_, v)| **v == index)
+                                    .unwrap()
+                                    .0
+                                    .clone()
                             }));
-                            result.insert((type_.guid, method.guid), list);
+                            result.insert((type_.name.clone(), method.name.clone()), list);
                         }
                     }
                 }
@@ -324,36 +298,21 @@ impl Vm {
             .functions
             .iter()
             .map(|function| {
-                let mut graph = Graph::<GUID, ()>::new();
+                let mut graph = Graph::<ast::Reference, ()>::new();
                 let nodes_map = function
                     .nodes
                     .iter()
-                    .map(|node| (node.guid, graph.add_node(node.guid)))
+                    .map(|node| (node.id.clone(), graph.add_node(node.id.clone())))
                     .collect::<HashMap<_, _>>();
                 for node in &function.nodes {
-                    match &node.next_node {
-                        ast::Reference::None => {}
-                        ast::Reference::Guid(guid) => {
-                            let from = *nodes_map.get(&node.guid).unwrap();
-                            let to = *nodes_map.get(&guid).unwrap();
-                            graph.add_edge(from, to, ());
-                        }
-                        ast::Reference::Named(name) => {
-                            if let Some(n) = function.nodes.iter().find(|n| n.name.as_str() == name)
-                            {
-                                let from = *nodes_map.get(&node.guid).unwrap();
-                                let to = *nodes_map.get(&n.guid).unwrap();
-                                graph.add_edge(from, to, ());
-                            } else {
-                                return Err(VmError::NodeDoesNotExists(node.next_node.clone()));
-                            }
-                        }
-                    }
+                    let to = *nodes_map.get(&node.next_node).unwrap();
+                    let from = *nodes_map.get(&node.id).unwrap();
+                    graph.add_edge(from, to, ());
                     for link in &node.input_links {
                         match link {
-                            Link::NodeIndexed(guid, _) => {
-                                let from = *nodes_map.get(&guid).unwrap();
-                                let to = *nodes_map.get(&node.guid).unwrap();
+                            Link::NodeIndexed(id, _) => {
+                                let to = *nodes_map.get(&node.id).unwrap();
+                                let from = *nodes_map.get(&id).unwrap();
                                 graph.add_edge(from, to, ());
                             }
                             Link::None => {}
@@ -363,24 +322,34 @@ impl Vm {
                 let list = match toposort(&graph, None) {
                     Ok(list) => Ok(list
                         .into_iter()
-                        .map(|index| *nodes_map.iter().find(|(_, v)| **v == index).unwrap().0)
+                        .map(|index| {
+                            nodes_map
+                                .iter()
+                                .find(|(_, v)| **v == index)
+                                .unwrap()
+                                .0
+                                .clone()
+                        })
                         .collect::<Vec<_>>()),
                     Err(_) => Err(VmError::CompilationError(
                         "Found flow graph to be cyclic".to_owned(),
                     )),
                 }?;
-                end_nodes.extend(
-                    graph
-                        .externals(Direction::Outgoing)
-                        .map(|index| *nodes_map.iter().find(|(_, v)| **v == index).unwrap().0),
-                );
-                Ok((function.guid, list))
+                end_nodes.extend(graph.externals(Direction::Outgoing).map(|index| {
+                    nodes_map
+                        .iter()
+                        .find(|(_, v)| **v == index)
+                        .unwrap()
+                        .0
+                        .clone()
+                }));
+                Ok((function.name.clone(), list))
             })
             .collect::<Result<HashMap<_, _>, _>>()?;
         let variables = ast
             .variables
             .iter()
-            .map(|v| (v.guid, Value::None.into()))
+            .map(|v| (v.name.clone(), Value::None.into()))
             .collect();
         let result = Self {
             ast,
@@ -408,48 +377,28 @@ impl Vm {
         self.operations.remove(name).is_some()
     }
 
-    pub fn global_variable_value(&self, reference: &ast::Reference) -> Result<Reference, VmError> {
-        match reference {
-            ast::Reference::None => {}
-            ast::Reference::Guid(guid) => {
-                if let Some(value) = self.variables.get(guid) {
-                    return Ok(value.clone());
-                }
-            }
-            ast::Reference::Named(name) => {
-                if let Some(variable) = self.ast.variables.iter().find(|v| v.name.as_str() == name)
-                {
-                    if let Some(value) = self.variables.get(&variable.guid) {
-                        return Ok(value.clone());
-                    }
-                }
-            }
+    pub fn global_variable_value(&self, name: &str) -> Result<Reference, VmError> {
+        if let Some(value) = self.variables.get(name) {
+            Ok(value.clone())
+        } else {
+            Err(VmError::GlobalVariableDoesNotExists(ast::Reference::Named(
+                name.to_owned(),
+            )))
         }
-        Err(VmError::GlobalVariableDoesNotExists(reference.clone()))
     }
 
     pub fn set_global_variable_value(
         &mut self,
-        reference: &ast::Reference,
+        name: &str,
         value: Reference,
     ) -> Result<Reference, VmError> {
-        match reference {
-            ast::Reference::None => {}
-            ast::Reference::Guid(guid) => {
-                if let Some(v) = self.variables.get_mut(guid) {
-                    return Ok(std::mem::replace(v, value));
-                }
-            }
-            ast::Reference::Named(name) => {
-                if let Some(variable) = self.ast.variables.iter().find(|v| v.name.as_str() == name)
-                {
-                    if let Some(v) = self.variables.get_mut(&variable.guid) {
-                        return Ok(std::mem::replace(v, value));
-                    }
-                }
-            }
+        if let Some(v) = self.variables.get_mut(name) {
+            return Ok(std::mem::replace(v, value));
+        } else {
+            Err(VmError::GlobalVariableDoesNotExists(ast::Reference::Named(
+                name.to_owned(),
+            )))
         }
-        Err(VmError::GlobalVariableDoesNotExists(reference.clone()))
     }
 
     pub fn run_event(&mut self, name: &str, inputs: Vec<Reference>) -> Result<GUID, VmError> {
@@ -469,13 +418,17 @@ impl Vm {
                     if let Some((_, execution)) = self
                         .event_execution_order
                         .iter()
-                        .find(|(k, _)| e.guid == **k)
+                        .find(|(k, _)| e.name == **k)
                     {
-                        let vars = e.variables.iter().map(|v| v.guid).collect::<Vec<_>>();
+                        let vars = e
+                            .variables
+                            .iter()
+                            .map(|v| v.name.clone())
+                            .collect::<Vec<_>>();
                         self.running_events.insert(
                             guid,
                             VmEvent::new(
-                                e.guid,
+                                e.name.clone(),
                                 execution.clone(),
                                 vars,
                                 inputs,
@@ -553,15 +506,15 @@ impl Vm {
                     return Ok(VmStepStatus::Halt);
                 }
                 NodeType::Loop(loop_) => {
-                    event.push_jump_on_stack(VmJump::Loop(node.guid));
+                    event.push_jump_on_stack(VmJump::Loop(node.id.clone()));
                     event.go_to_node(loop_, self)?;
                 }
                 NodeType::IfElse(if_else) => {
-                    let value = event.get_node_output(node.input_links[0])?.clone();
+                    let value = event.get_node_output(&node.input_links[0])?.clone();
                     let value2 = value.clone();
                     let v = &*value.borrow();
                     if let Value::Bool(v) = v {
-                        event.push_jump_on_stack(VmJump::IfElse(node.guid));
+                        event.push_jump_on_stack(VmJump::IfElse(node.id.clone()));
                         if *v {
                             event.go_to_node(&if_else.next_node_true, self)?;
                         } else {
@@ -573,13 +526,12 @@ impl Vm {
                     drop(v);
                 }
                 NodeType::Break => match event.pop_jump_from_stack()? {
-                    VmJump::Loop(guid) => {
-                        let reference = ast::Reference::Guid(guid);
-                        let node = event.get_node(&reference, self)?;
+                    VmJump::Loop(id) => {
+                        let node = event.get_node(&id, self)?;
                         if let NodeType::Loop(_) = &node.node_type {
                             event.go_to_node(&node.next_node, self)?;
                         } else {
-                            return Err(VmError::NodeIsNotALoop(reference));
+                            return Err(VmError::NodeIsNotALoop(id));
                         }
                     }
                     VmJump::IfElse(_) => {
@@ -588,13 +540,12 @@ impl Vm {
                     _ => {}
                 },
                 NodeType::Continue => match event.pop_jump_from_stack()? {
-                    VmJump::Loop(guid) => {
-                        let reference = ast::Reference::Guid(guid);
-                        let node = event.get_node(&reference, self)?;
+                    VmJump::Loop(id) => {
+                        let node = event.get_node(&id, self)?;
                         if let NodeType::Loop(loop_) = &node.node_type {
                             event.go_to_node(&loop_, self)?;
                         } else {
-                            return Err(VmError::NodeIsNotALoop(reference));
+                            return Err(VmError::NodeIsNotALoop(id));
                         }
                     }
                     VmJump::IfElse(_) => {
@@ -604,35 +555,35 @@ impl Vm {
                 },
                 NodeType::GetInstance => {
                     let value = event.instance_value()?.clone();
-                    event.set_node_output(node.guid, value);
+                    event.set_node_output(node.id.clone(), value);
                 }
-                NodeType::GetGlobalVariable(reference) => {
-                    let value = self.global_variable_value(reference)?.clone();
-                    event.set_node_output(node.guid, value);
+                NodeType::GetGlobalVariable(name) => {
+                    let value = self.global_variable_value(name)?.clone();
+                    event.set_node_output(node.id.clone(), value);
                 }
-                NodeType::GetLocalVariable(reference) => {
-                    let value = event.local_variable_value(reference, self)?.clone();
-                    event.set_node_output(node.guid, value);
+                NodeType::GetLocalVariable(name) => {
+                    let value = event.local_variable_value(name)?.clone();
+                    event.set_node_output(node.id.clone(), value);
                 }
                 NodeType::GetInput(index) => {
                     let value = event.input_value(*index)?.clone();
-                    event.set_node_output(node.guid, value);
+                    event.set_node_output(node.id.clone(), value);
                 }
                 NodeType::SetOutput(index) => {
-                    let value = event.get_node_output(node.input_links[0])?.clone();
+                    let value = event.get_node_output(&node.input_links[0])?.clone();
                     event.set_output_value(*index, value)?;
                 }
                 NodeType::GetValue(value) => {
                     let value: Value = value.data.clone().into();
-                    event.set_node_output(node.guid, value.into());
+                    event.set_node_output(node.id.clone(), value.into());
                 }
                 NodeType::GetListItem(index) => {
-                    let value = event.get_node_output(node.input_links[0])?.clone();
+                    let value = event.get_node_output(&node.input_links[0])?.clone();
                     let value2 = value.clone();
                     let v = &*value.borrow();
                     if let Value::List(list) = v {
                         if let Some(value) = list.get(*index) {
-                            event.set_node_output(node.guid, value.clone());
+                            event.set_node_output(node.id.clone(), value.clone());
                         } else {
                             return Err(VmError::IndexOutOfBounds(list.len(), *index, value2));
                         }
@@ -642,12 +593,12 @@ impl Vm {
                     drop(v);
                 }
                 NodeType::GetObjectItem(key) => {
-                    let value = event.get_node_output(node.input_links[0])?.clone();
+                    let value = event.get_node_output(&node.input_links[0])?.clone();
                     let value2 = value.clone();
                     let v = &*value.borrow();
                     if let Value::Object(object) = v {
                         if let Some(value) = object.get(key) {
-                            event.set_node_output(node.guid, value.clone());
+                            event.set_node_output(node.id.clone(), value.clone());
                         } else {
                             return Err(VmError::ObjectKeyDoesNotExists(key.to_owned(), value2));
                         }
@@ -657,9 +608,9 @@ impl Vm {
                     drop(v);
                 }
                 NodeType::MutateValue => {
-                    let value_dst = event.get_node_output(node.input_links[0])?;
+                    let value_dst = event.get_node_output(&node.input_links[0])?;
                     let value_dst2 = value_dst.clone();
-                    let value_src = event.get_node_output(node.input_links[0])?;
+                    let value_src = event.get_node_output(&node.input_links[0])?;
                     let value_src2 = value_src.clone();
                     if let Ok(mut value) = value_dst.try_borrow_mut() {
                         *value = value_src.as_ref().clone().into_inner();
@@ -670,17 +621,13 @@ impl Vm {
                     }
                     drop(value_dst);
                 }
-                NodeType::CallOperation(reference) => {
-                    if let Some(op) = self.ast.operations.iter().find(|op| match reference {
-                        ast::Reference::None => false,
-                        ast::Reference::Guid(guid) => op.guid == *guid,
-                        ast::Reference::Named(name) => op.name.as_str() == name,
-                    }) {
+                NodeType::CallOperation(name) => {
+                    if let Some(op) = self.ast.operations.iter().find(|op| &op.name == name) {
                         if let Some(op_impl) = self.operations.get_mut(&op.name) {
                             let inputs = node
                                 .input_links
                                 .iter()
-                                .map(|link| match event.get_node_output(*link) {
+                                .map(|link| match event.get_node_output(link) {
                                     Ok(v) => Ok(v.clone()),
                                     Err(e) => Err(e),
                                 })
@@ -706,29 +653,27 @@ impl Vm {
                                     outputs.len(),
                                 ));
                             }
-                            event.set_node_outputs(node.guid, outputs);
+                            event.set_node_outputs(node.id.clone(), outputs);
                         } else {
                             return Err(VmError::OperationIsNotRegistered(op.name.clone()));
                         }
                     } else {
-                        return Err(VmError::OperationDoesNotExists(reference.clone()));
+                        return Err(VmError::OperationDoesNotExists(ast::Reference::Named(
+                            name.clone(),
+                        )));
                     }
                 }
-                NodeType::CallFunction(reference) => {
-                    if let Some(function) = self.ast.functions.iter().find(|f| match reference {
-                        ast::Reference::Guid(guid) => f.guid == *guid,
-                        ast::Reference::Named(name) => f.name.as_str() == name,
-                        ast::Reference::None => false,
-                    }) {
+                NodeType::CallFunction(name) => {
+                    if let Some(function) = self.ast.functions.iter().find(|f| &f.name == name) {
                         if let Some((_, execution)) = self
                             .function_execution_order
                             .iter()
-                            .find(|(k, _)| function.guid == **k)
+                            .find(|(k, _)| function.name == **k)
                         {
                             let inputs = node
                                 .input_links
                                 .iter()
-                                .map(|link| match event.get_node_output(*link) {
+                                .map(|link| match event.get_node_output(link) {
                                     Ok(v) => Ok(v.clone()),
                                     Err(e) => Err(e),
                                 })
@@ -740,8 +685,8 @@ impl Vm {
                                 ));
                             }
                             event.contexts.push(VmContext {
-                                owner: VmContextOwner::Function(function.guid),
-                                caller_node: Some(node.guid),
+                                owner: VmContextOwner::Function(function.name.clone()),
+                                caller_node: Some(node.id.clone()),
                                 execution: execution.to_vec(),
                                 current: Some(0),
                                 instance: None,
@@ -750,49 +695,37 @@ impl Vm {
                                 variables: function
                                     .variables
                                     .iter()
-                                    .map(|v| (v.guid, Value::None.into()))
+                                    .map(|v| (v.name.clone(), Value::None.into()))
                                     .collect::<HashMap<_, _>>(),
                                 jump_stack: vec![VmJump::None(None)],
                                 node_outputs: Default::default(),
                             });
                         } else {
-                            return Err(VmError::CouldNotCallFunction(reference.clone()));
+                            return Err(VmError::CouldNotCallFunction(ast::Reference::Named(
+                                name.clone(),
+                            )));
                         }
                     } else {
-                        return Err(VmError::FunctionDoesNotExists(reference.clone()));
+                        return Err(VmError::FunctionDoesNotExists(ast::Reference::Named(
+                            name.clone(),
+                        )));
                     }
                 }
-                NodeType::CallMethod(type_ref, method_ref) => {
-                    if let Some(type_) = self.ast.types.iter().find(|t| match type_ref {
-                        ast::Reference::Guid(guid) => t.guid == *guid,
-                        ast::Reference::Named(name) => t.name.as_str() == name,
-                        ast::Reference::None => false,
-                    }) {
+                NodeType::CallMethod(type_name, method_name) => {
+                    if let Some(type_) = self.ast.types.iter().find(|t| &t.name == type_name) {
                         let method =
                             type_
                                 .traits_implementation
                                 .iter()
-                                .find_map(|(trait_ref, methods)| {
+                                .find_map(|(trait_name, methods)| {
                                     if let Some(method) =
-                                        methods.iter().find(|m| match method_ref {
-                                            ast::Reference::Guid(guid) => m.guid == *guid,
-                                            ast::Reference::Named(name) => m.name.as_str() == name,
-                                            ast::Reference::None => false,
-                                        })
+                                        methods.iter().find(|m| &m.name == method_name)
                                     {
                                         Some(method)
                                     } else if let Some(trait_) =
-                                        self.ast.traits.iter().find(|t| match trait_ref {
-                                            ast::Reference::Guid(guid) => t.guid == *guid,
-                                            ast::Reference::Named(name) => t.name.as_str() == name,
-                                            ast::Reference::None => false,
-                                        })
+                                        self.ast.traits.iter().find(|t| &t.name == trait_name)
                                     {
-                                        trait_.methods.iter().find(|m| match method_ref {
-                                            ast::Reference::Guid(guid) => m.guid == *guid,
-                                            ast::Reference::Named(name) => m.name.as_str() == name,
-                                            ast::Reference::None => false,
-                                        })
+                                        trait_.methods.iter().find(|m| &m.name == method_name)
                                     } else {
                                         None
                                     }
@@ -800,17 +733,19 @@ impl Vm {
                         let method = if let Some(method) = method {
                             method
                         } else {
-                            return Err(VmError::MethodDoesNotExists(method_ref.clone()));
+                            return Err(VmError::MethodDoesNotExists(ast::Reference::Named(
+                                method_name.clone(),
+                            )));
                         };
                         if let Some((_, execution)) = self
                             .method_execution_order
                             .iter()
-                            .find(|((_, k), _)| method.guid == *k)
+                            .find(|((_, k), _)| method.name == *k)
                         {
                             let inputs = node
                                 .input_links
                                 .iter()
-                                .map(|link| match event.get_node_output(*link) {
+                                .map(|link| match event.get_node_output(link) {
                                     Ok(v) => Ok(v.clone()),
                                     Err(e) => Err(e),
                                 })
@@ -822,10 +757,13 @@ impl Vm {
                                 ));
                             }
                             let instance =
-                                Some(event.get_node_output(node.input_links[0])?.clone());
+                                Some(event.get_node_output(&node.input_links[0])?.clone());
                             event.contexts.push(VmContext {
-                                owner: VmContextOwner::Method(type_.guid, method.guid),
-                                caller_node: Some(node.guid),
+                                owner: VmContextOwner::Method(
+                                    type_.name.clone(),
+                                    method.name.clone(),
+                                ),
+                                caller_node: Some(node.id.clone()),
                                 execution: execution.to_vec(),
                                 current: Some(0),
                                 instance,
@@ -834,19 +772,21 @@ impl Vm {
                                 variables: method
                                     .variables
                                     .iter()
-                                    .map(|v| (v.guid, Value::None.into()))
+                                    .map(|v| (v.name.clone(), Value::None.into()))
                                     .collect::<HashMap<_, _>>(),
                                 jump_stack: vec![VmJump::None(None)],
                                 node_outputs: Default::default(),
                             });
                         } else {
                             return Err(VmError::CouldNotCallMethod(
-                                type_ref.clone(),
-                                method_ref.clone(),
+                                ast::Reference::Named(type_name.clone()),
+                                ast::Reference::Named(method_name.clone()),
                             ));
                         }
                     } else {
-                        return Err(VmError::TypeDoesNotExists(type_ref.clone()));
+                        return Err(VmError::TypeDoesNotExists(ast::Reference::Named(
+                            type_name.clone(),
+                        )));
                     }
                 }
                 _ => {
@@ -855,24 +795,22 @@ impl Vm {
                     ))
                 }
             }
-            if self.end_nodes.contains(&node.guid) {
+            if self.end_nodes.contains(&node.id) {
                 match event.pop_jump_from_stack()? {
-                    VmJump::Loop(guid) => {
-                        let reference = ast::Reference::Guid(guid);
-                        let node = event.get_node(&reference, self)?;
+                    VmJump::Loop(id) => {
+                        let node = event.get_node(&id, self)?;
                         if let NodeType::Loop(_) = &node.node_type {
-                            event.go_to_node(&reference, self)?;
+                            event.go_to_node(&id, self)?;
                         } else {
-                            return Err(VmError::NodeIsNotALoop(reference));
+                            return Err(VmError::NodeIsNotALoop(id));
                         }
                     }
-                    VmJump::IfElse(guid) => {
-                        let reference = ast::Reference::Guid(guid);
-                        let node = event.get_node(&reference, self)?;
+                    VmJump::IfElse(id) => {
+                        let node = event.get_node(&id, self)?;
                         if let NodeType::IfElse(_) = &node.node_type {
                             event.go_to_node(&node.next_node, self)?;
                         } else {
-                            return Err(VmError::NodeIsNotAnIfElse(reference));
+                            return Err(VmError::NodeIsNotAnIfElse(id));
                         }
                     }
                     _ => {}
@@ -908,36 +846,36 @@ pub trait VmOperation {
     fn execute(&mut self, inputs: &[Reference]) -> Result<Vec<Reference>, VmOperationError>;
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 enum VmContextOwner {
-    Event(GUID),
-    // (type guid, method guid)
-    Method(GUID, GUID),
-    Function(GUID),
+    Event(String),
+    // (type name, method name)
+    Method(String, String),
+    Function(String),
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 enum VmJump {
-    /// calling node guid?
-    None(Option<GUID>),
-    /// loop node guid
-    Loop(GUID),
-    /// if-else node guid
-    IfElse(GUID),
+    /// calling node reference?
+    None(Option<ast::Reference>),
+    /// loop node reference
+    Loop(ast::Reference),
+    /// if-else node reference
+    IfElse(ast::Reference),
 }
 
 #[derive(Debug, Clone)]
 struct VmContext {
     pub owner: VmContextOwner,
-    pub caller_node: Option<GUID>,
-    pub execution: Vec<GUID>,
+    pub caller_node: Option<ast::Reference>,
+    pub execution: Vec<ast::Reference>,
     pub current: Option<usize>,
     pub instance: Option<Reference>,
     pub inputs: Vec<Reference>,
     pub outputs: Vec<Reference>,
-    pub variables: HashMap<GUID, Reference>,
+    pub variables: HashMap<String, Reference>,
     pub jump_stack: Vec<VmJump>,
-    pub node_outputs: HashMap<GUID, Vec<Reference>>,
+    pub node_outputs: HashMap<ast::Reference, Vec<Reference>>,
 }
 
 #[derive(Debug, Clone)]
@@ -948,9 +886,9 @@ struct VmEvent {
 
 impl VmEvent {
     pub fn new(
-        owner_event: GUID,
-        execution: Vec<GUID>,
-        variables: Vec<GUID>,
+        owner_event: String,
+        execution: Vec<ast::Reference>,
+        variables: Vec<String>,
         inputs: Vec<Reference>,
         outputs: usize,
     ) -> Self {
@@ -974,41 +912,39 @@ impl VmEvent {
         }
     }
 
-    fn get_node_outputs(&self, guid: GUID) -> Result<&[Reference], VmError> {
+    fn get_node_outputs(&self, id: &ast::Reference) -> Result<&[Reference], VmError> {
         if let Some(context) = self.contexts.last() {
-            if let Some(outputs) = context.node_outputs.get(&guid) {
+            if let Some(outputs) = context.node_outputs.get(id) {
                 return Ok(outputs);
             }
         }
-        Err(VmError::ThereAreNoCachedNodeOutputs(ast::Reference::Guid(
-            guid,
-        )))
+        Err(VmError::ThereAreNoCachedNodeOutputs(id.clone()))
     }
 
-    fn get_node_output(&self, link: Link) -> Result<&Reference, VmError> {
-        if let Link::NodeIndexed(guid, index) = link {
-            if let Some(output) = self.get_node_outputs(guid)?.get(index) {
+    fn get_node_output(&self, link: &Link) -> Result<&Reference, VmError> {
+        if let Link::NodeIndexed(id, index) = link {
+            if let Some(output) = self.get_node_outputs(id)?.get(*index) {
                 return Ok(output);
             }
         }
-        Err(VmError::ThereIsNoCachedNodeIndexedOutput(link))
+        Err(VmError::ThereIsNoCachedNodeIndexedOutput(link.clone()))
     }
 
-    fn set_node_outputs(&mut self, guid: GUID, values: Vec<Reference>) {
+    fn set_node_outputs(&mut self, id: ast::Reference, values: Vec<Reference>) {
         if let Some(context) = self.contexts.last_mut() {
-            context.node_outputs.insert(guid, values);
+            context.node_outputs.insert(id, values);
         }
     }
 
-    fn set_node_output(&mut self, guid: GUID, value: Reference) {
-        self.set_node_outputs(guid, vec![value]);
+    fn set_node_output(&mut self, id: ast::Reference, value: Reference) {
+        self.set_node_outputs(id, vec![value]);
     }
 
     fn get_current_node<'a>(&self, vm: &'a Vm) -> Option<&'a Node> {
         if let Some(context) = self.contexts.last() {
             if let Some(current) = context.current {
-                if let Some(node_guid) = context.execution.get(current) {
-                    if let Ok(node) = self.get_node(&ast::Reference::Guid(*node_guid), vm) {
+                if let Some(node_ref) = context.execution.get(current) {
+                    if let Ok(node) = self.get_node(&node_ref, vm) {
                         return Some(node);
                     }
                 }
@@ -1019,107 +955,89 @@ impl VmEvent {
 
     fn get_node<'a>(&self, reference: &ast::Reference, vm: &'a Vm) -> Result<&'a Node, VmError> {
         if let Some(context) = self.contexts.last() {
-            match context.owner {
-                VmContextOwner::Event(event_guid) => {
-                    if let Some(event) = vm.ast.events.iter().find(|e| e.guid == event_guid) {
-                        if let Some(node) = event.nodes.iter().find(|n| match reference {
-                            ast::Reference::Guid(guid) => n.guid == *guid,
-                            ast::Reference::Named(name) => n.name.as_str() == name,
-                            ast::Reference::None => false,
-                        }) {
+            match &context.owner {
+                VmContextOwner::Event(event_name) => {
+                    if let Some(event) = vm.ast.events.iter().find(|e| &e.name == event_name) {
+                        if let Some(node) = event.nodes.iter().find(|n| &n.id == reference) {
                             return Ok(node);
                         }
                     } else {
-                        return Err(VmError::EventDoesNotExists(ast::Reference::Guid(
-                            event_guid,
+                        return Err(VmError::EventDoesNotExists(ast::Reference::Named(
+                            event_name.clone(),
                         )));
                     }
                 }
-                VmContextOwner::Method(type_guid, method_guid) => {
-                    if let Some(methods) = vm.type_methods.get(&type_guid) {
-                        if let Some((trait_guid, is_impl)) = methods.get(&method_guid) {
+                VmContextOwner::Method(type_name, method_name) => {
+                    if let Some(methods) = vm.type_methods.get(type_name) {
+                        if let Some((trait_name, is_impl)) = methods.get(method_name) {
                             let type_ = if let Some(type_) =
-                                vm.ast.types.iter().find(|t| t.guid == type_guid)
+                                vm.ast.types.iter().find(|t| &t.name == type_name)
                             {
                                 type_
                             } else {
-                                return Err(VmError::TypeDoesNotExists(ast::Reference::Guid(
-                                    type_guid,
+                                return Err(VmError::TypeDoesNotExists(ast::Reference::Named(
+                                    type_name.clone(),
                                 )));
                             };
                             if *is_impl {
                                 if let Some(method) =
                                     type_.traits_implementation.iter().find_map(|(_, methods)| {
-                                        methods.iter().find(|m| m.guid == method_guid)
+                                        methods.iter().find(|m| &m.name == method_name)
                                     })
                                 {
                                     if let Some(node) =
-                                        method.nodes.iter().find(|n| match reference {
-                                            ast::Reference::Guid(guid) => n.guid == *guid,
-                                            ast::Reference::Named(name) => n.name.as_str() == name,
-                                            ast::Reference::None => false,
-                                        })
+                                        method.nodes.iter().find(|n| &n.id == reference)
                                     {
                                         return Ok(node);
                                     }
                                 } else {
                                     return Err(VmError::MethodDoesNotExists(
-                                        ast::Reference::Guid(method_guid),
+                                        ast::Reference::Named(method_name.clone()),
+                                    ));
+                                }
+                            } else if let Some(trait_) =
+                                vm.ast.traits.iter().find(|t| &t.name == trait_name)
+                            {
+                                if let Some(method) =
+                                    trait_.methods.iter().find(|m| &m.name == method_name)
+                                {
+                                    if let Some(node) =
+                                        method.nodes.iter().find(|n| &n.id == reference)
+                                    {
+                                        return Ok(node);
+                                    }
+                                } else {
+                                    return Err(VmError::MethodDoesNotExists(
+                                        ast::Reference::Named(method_name.clone()),
                                     ));
                                 }
                             } else {
-                                if let Some(trait_) =
-                                    vm.ast.traits.iter().find(|t| t.guid == *trait_guid)
-                                {
-                                    if let Some(method) =
-                                        trait_.methods.iter().find(|m| m.guid == method_guid)
-                                    {
-                                        if let Some(node) =
-                                            method.nodes.iter().find(|n| match reference {
-                                                ast::Reference::Guid(guid) => n.guid == *guid,
-                                                ast::Reference::Named(name) => {
-                                                    n.name.as_str() == name
-                                                }
-                                                ast::Reference::None => false,
-                                            })
-                                        {
-                                            return Ok(node);
-                                        }
-                                    } else {
-                                        return Err(VmError::MethodDoesNotExists(
-                                            ast::Reference::Guid(method_guid),
-                                        ));
-                                    }
-                                } else {
-                                    return Err(VmError::TraitDoesNotExists(ast::Reference::Guid(
-                                        type_guid,
-                                    )));
-                                }
+                                return Err(VmError::TraitDoesNotExists(ast::Reference::Named(
+                                    trait_name.clone(),
+                                )));
                             }
                         } else {
                             return Err(VmError::TypeDoesNotImplementMethod(
-                                ast::Reference::Guid(type_guid),
-                                ast::Reference::Guid(method_guid),
+                                ast::Reference::Named(type_name.clone()),
+                                ast::Reference::Named(method_name.clone()),
                             ));
                         }
                     } else {
-                        return Err(VmError::NodeDoesNotExists(ast::Reference::Guid(type_guid)));
+                        return Err(VmError::NodeDoesNotExists(ast::Reference::Named(
+                            type_name.clone(),
+                        )));
                     }
                 }
-                VmContextOwner::Function(function_guid) => {
+                VmContextOwner::Function(function_name) => {
                     if let Some(function) =
-                        vm.ast.functions.iter().find(|f| f.guid == function_guid)
+                        vm.ast.functions.iter().find(|f| &f.name == function_name)
                     {
-                        if let Some(node) = function.nodes.iter().find(|n| match reference {
-                            ast::Reference::Guid(guid) => n.guid == *guid,
-                            ast::Reference::Named(name) => n.name.as_str() == name,
-                            ast::Reference::None => false,
-                        }) {
+                        if let Some(node) = function.nodes.iter().find(|n| &n.id == reference) {
                             return Ok(node);
                         }
                     } else {
-                        return Err(VmError::FunctionDoesNotExists(ast::Reference::Guid(
-                            function_guid,
+                        return Err(VmError::FunctionDoesNotExists(ast::Reference::Named(
+                            function_name.clone(),
                         )));
                     }
                 }
@@ -1129,9 +1047,9 @@ impl VmEvent {
     }
 
     fn go_to_node(&mut self, reference: &ast::Reference, vm: &Vm) -> Result<(), VmError> {
-        let guid = self.get_node(reference, vm)?.guid;
+        let id = self.get_node(reference, vm)?.id.clone();
         if let Some(context) = self.contexts.last() {
-            if let Some(index) = context.execution.iter().position(|n| *n == guid) {
+            if let Some(index) = context.execution.iter().position(|n| n == &id) {
                 self.contexts.last_mut().unwrap().current = Some(index);
                 return Ok(());
             }
@@ -1184,118 +1102,15 @@ impl VmEvent {
         Err(VmError::InstanceDoesNotExists)
     }
 
-    fn local_variable_value(
-        &self,
-        reference: &ast::Reference,
-        vm: &Vm,
-    ) -> Result<Reference, VmError> {
+    fn local_variable_value(&self, name: &str) -> Result<Reference, VmError> {
         if let Some(context) = self.contexts.last() {
-            match reference {
-                ast::Reference::None => {}
-                ast::Reference::Guid(guid) => {
-                    if let Some(value) = context.variables.get(guid) {
-                        return Ok(value.clone());
-                    }
-                }
-                ast::Reference::Named(name) => match context.owner {
-                    VmContextOwner::Event(event_guid) => {
-                        if let Some(event) = vm.ast.events.iter().find(|e| e.guid == event_guid) {
-                            if let Some(variable) =
-                                event.variables.iter().find(|v| v.name.as_str() == name)
-                            {
-                                if let Some(value) = context.variables.get(&variable.guid) {
-                                    return Ok(value.clone());
-                                }
-                            }
-                        }
-                    }
-                    VmContextOwner::Method(type_guid, method_guid) => {
-                        if let Some(methods) = vm.type_methods.get(&type_guid) {
-                            if let Some((trait_guid, is_impl)) = methods.get(&method_guid) {
-                                let type_ = if let Some(type_) =
-                                    vm.ast.types.iter().find(|t| t.guid == type_guid)
-                                {
-                                    type_
-                                } else {
-                                    return Err(VmError::TypeDoesNotExists(ast::Reference::Guid(
-                                        type_guid,
-                                    )));
-                                };
-                                let guid = if *is_impl {
-                                    let method = type_.traits_implementation.iter().find_map(
-                                        |(_, methods)| {
-                                            methods.iter().find(|m| m.name.as_str() == name)
-                                        },
-                                    );
-                                    if let Some(method) = method {
-                                        if let Some(variable) = method
-                                            .variables
-                                            .iter()
-                                            .find(|v| v.name.as_str() == name)
-                                        {
-                                            variable.guid
-                                        } else {
-                                            return Err(VmError::LocalVariableDoesNotExists(
-                                                reference.clone(),
-                                            ));
-                                        }
-                                    } else {
-                                        return Err(VmError::MethodDoesNotExists(
-                                            ast::Reference::Named(name.to_owned()),
-                                        ));
-                                    }
-                                } else {
-                                    if let Some(trait_) =
-                                        vm.ast.traits.iter().find(|t| t.guid == *trait_guid)
-                                    {
-                                        if let Some(method) =
-                                            trait_.methods.iter().find(|m| m.guid == method_guid)
-                                        {
-                                            if let Some(variable) = method
-                                                .variables
-                                                .iter()
-                                                .find(|v| v.name.as_str() == name)
-                                            {
-                                                variable.guid
-                                            } else {
-                                                return Err(VmError::LocalVariableDoesNotExists(
-                                                    reference.clone(),
-                                                ));
-                                            }
-                                        } else {
-                                            return Err(VmError::MethodDoesNotExists(
-                                                ast::Reference::Named(name.to_owned()),
-                                            ));
-                                        }
-                                    } else {
-                                        return Err(VmError::TraitDoesNotExists(
-                                            ast::Reference::Guid(type_guid),
-                                        ));
-                                    }
-                                };
-                                if let Some(value) = context.variables.get(&guid) {
-                                    return Ok(value.clone());
-                                }
-                            }
-                        }
-                    }
-                    VmContextOwner::Function(function_guid) => {
-                        if let Some(function) =
-                            vm.ast.functions.iter().find(|f| f.guid == function_guid)
-                        {
-                            if let Some(variable) =
-                                function.variables.iter().find(|v| v.name.as_str() == name)
-                            {
-                                if let Some(value) = context.variables.get(&variable.guid) {
-                                    return Ok(value.clone());
-                                }
-                            }
-                        }
-                    }
-                },
+            if let Some(value) = context.variables.get(name) {
+                return Ok(value.clone());
             }
         }
-        Err(VmError::LocalVariableDoesNotExists(reference.clone()))
+        Err(VmError::LocalVariableDoesNotExists(ast::Reference::Named(
+            name.to_owned(),
+        )))
     }
 
     fn input_value(&self, index: usize) -> Result<Reference, VmError> {

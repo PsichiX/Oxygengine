@@ -18,9 +18,8 @@ impl Default for Reference {
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Program {
-    #[serde(default)]
-    pub guid: GUID,
     pub version: (usize, usize, usize),
+    #[serde(default)]
     pub name: String,
     #[serde(default)]
     pub types: Vec<Type>,
@@ -40,8 +39,6 @@ impl Prefab for Program {}
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Event {
-    #[serde(default)]
-    pub guid: GUID,
     pub name: String,
     #[serde(default)]
     pub input_constrains: Vec<TypeConstraint>,
@@ -57,23 +54,19 @@ impl Prefab for Event {}
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Variable {
-    #[serde(default)]
-    pub guid: GUID,
     pub name: String,
-    pub type_ref: Reference,
+    pub type_name: String,
 }
 
 impl Prefab for Variable {}
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Type {
-    #[serde(default)]
-    pub guid: GUID,
     pub name: String,
     #[serde(default)]
     pub fields: Vec<Field>,
     #[serde(default)]
-    pub traits_implementation: HashMap<Reference, Vec<Method>>,
+    pub traits_implementation: HashMap<String, Vec<Method>>,
     #[serde(default)]
     pub export: bool,
 }
@@ -82,10 +75,8 @@ impl Prefab for Type {}
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Field {
-    #[serde(default)]
-    pub guid: GUID,
     pub name: String,
-    pub type_ref: Reference,
+    pub type_name: String,
     #[serde(default)]
     pub public: bool,
 }
@@ -94,8 +85,6 @@ impl Prefab for Field {}
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Trait {
-    #[serde(default)]
-    pub guid: GUID,
     pub name: String,
     #[serde(default)]
     pub methods: Vec<Method>,
@@ -107,8 +96,6 @@ impl Prefab for Trait {}
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Method {
-    #[serde(default)]
-    pub guid: GUID,
     pub name: String,
     pub owner_trait: Reference,
     #[serde(default)]
@@ -148,8 +135,6 @@ impl Default for TypeConstraint {
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Operation {
-    #[serde(default)]
-    pub guid: GUID,
     pub name: String,
     #[serde(default)]
     pub input_constrains: Vec<TypeConstraint>,
@@ -163,8 +148,6 @@ impl Prefab for Operation {}
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Function {
-    #[serde(default)]
-    pub guid: GUID,
     pub name: String,
     #[serde(default)]
     pub input_constrains: Vec<TypeConstraint>,
@@ -180,10 +163,10 @@ pub struct Function {
 
 impl Prefab for Function {}
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Link {
     None,
-    NodeIndexed(GUID, usize),
+    NodeIndexed(Reference, usize),
 }
 
 impl Prefab for Link {}
@@ -196,10 +179,7 @@ impl Default for Link {
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Node {
-    #[serde(default)]
-    pub guid: GUID,
-    #[serde(default)]
-    pub name: String,
+    pub id: Reference,
     pub node_type: NodeType,
     #[serde(default)]
     pub next_node: Reference,
@@ -233,18 +213,18 @@ pub enum NodeType {
     Break,
     Continue,
     GetInstance,
-    GetGlobalVariable(Reference),
-    GetLocalVariable(Reference),
+    GetGlobalVariable(String),
+    GetLocalVariable(String),
     GetInput(usize),
     SetOutput(usize),
     GetValue(Value),
     GetListItem(usize),
     GetObjectItem(String),
     MutateValue,
-    CallOperation(Reference),
-    CallFunction(Reference),
-    /// (type guid, method guid)
-    CallMethod(Reference, Reference),
+    CallOperation(String),
+    CallFunction(String),
+    /// (type name, method name)
+    CallMethod(String, String),
 }
 
 impl NodeType {
@@ -279,9 +259,7 @@ impl Default for NodeType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Value {
-    #[serde(default)]
-    pub guid: GUID,
-    pub type_ref: Reference,
+    pub type_name: String,
     pub data: PrefabValue,
 }
 
