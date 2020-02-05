@@ -5,23 +5,19 @@ operations:
     input_constrains:
       - Type:
           Named: String
-    help: Prints string.
+      - Type:
+          Named: Number
+    help: Prints inputs.
 events:
   - name: onRun
     input_constrains:
       - Type:
           Named: String
+      - Type:
+          Named: Number
     output_constrains:
       - Any
-    entry_node:
-      Named: i001
     nodes:
-      - id:
-          Named: i001
-        node_type:
-          GetInput: 0
-        next_node:
-          Named: n001
       - id:
           Named: n001
         node_type:
@@ -30,14 +26,25 @@ events:
           - NodeIndexed:
               - Named: i001
               - 0
+          - NodeIndexed:
+              - Named: i002
+              - 0
         next_node:
-          Named: i002
+          Named: i003
+      - id:
+          Named: i001
+        node_type:
+          GetInput: 0
       - id:
           Named: i002
         node_type:
+          GetInput: 1
+      - id:
+          Named: i003
+        node_type:
           GetValue:
             type_name: Number
-            data: 42
+            data: -1
         next_node:
           Named: o001
       - id:
@@ -46,5 +53,5 @@ events:
           SetOutput: 0
         input_links:
           - NodeIndexed:
-              - Named: i002
+              - Named: i003
               - 0

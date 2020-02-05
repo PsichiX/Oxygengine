@@ -46,7 +46,6 @@ pub struct Event {
     pub output_constrains: Vec<TypeConstraint>,
     #[serde(default)]
     pub variables: Vec<Variable>,
-    pub entry_node: Reference,
     pub nodes: Vec<Node>,
 }
 
@@ -106,7 +105,6 @@ pub struct Method {
     pub variables: Vec<Variable>,
     #[serde(default)]
     pub associated: bool,
-    pub entry_node: Reference,
     #[serde(default)]
     pub nodes: Vec<Node>,
     #[serde(default)]
@@ -155,7 +153,6 @@ pub struct Function {
     pub output_constrains: Vec<TypeConstraint>,
     #[serde(default)]
     pub variables: Vec<Variable>,
-    pub entry_node: Reference,
     pub nodes: Vec<Node>,
     #[serde(default)]
     pub help: String,
@@ -228,7 +225,7 @@ pub enum NodeType {
 }
 
 impl NodeType {
-    pub fn is_input_output(&self) -> (bool, bool) {
+    pub fn is_from_to(&self) -> (bool, bool) {
         match self {
             Self::Halt
             | Self::GetListItem(_)

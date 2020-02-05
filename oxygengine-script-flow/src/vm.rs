@@ -126,6 +126,8 @@ pub enum VmError {
     TryingToContinueIfElse,
     ThereAreNoCachedNodeOutputs(ast::Reference),
     ThereIsNoCachedNodeIndexedOutput(Link),
+    /// (node reference, sources count)
+    NodeHasMoreThanOneFlowSources(ast::Reference, usize),
 }
 
 #[derive(Debug)]
@@ -188,6 +190,17 @@ impl Vm {
                     .map(|node| (node.id.clone(), graph.add_node(node.id.clone())))
                     .collect::<HashMap<_, _>>();
                 for node in &event.nodes {
+                    let count = event
+                        .nodes
+                        .iter()
+                        .filter(|n| n.next_node == node.id)
+                        .count();
+                    if count > 1 {
+                        return Err(VmError::NodeHasMoreThanOneFlowSources(
+                            node.id.clone(),
+                            count,
+                        ));
+                    }
                     let to = if let Some(node) = nodes_map.get(&node.next_node) {
                         *node
                     } else {
@@ -257,6 +270,17 @@ impl Vm {
                                 .map(|node| (node.id.clone(), graph.add_node(node.id.clone())))
                                 .collect::<HashMap<_, _>>();
                             for node in &method.nodes {
+                                let count = method
+                                    .nodes
+                                    .iter()
+                                    .filter(|n| n.next_node == node.id)
+                                    .count();
+                                if count > 1 {
+                                    return Err(VmError::NodeHasMoreThanOneFlowSources(
+                                        node.id.clone(),
+                                        count,
+                                    ));
+                                }
                                 let to = *nodes_map.get(&node.next_node).unwrap();
                                 let from = *nodes_map.get(&node.id).unwrap();
                                 graph.add_edge(from, to, ());
@@ -313,6 +337,17 @@ impl Vm {
                     .map(|node| (node.id.clone(), graph.add_node(node.id.clone())))
                     .collect::<HashMap<_, _>>();
                 for node in &function.nodes {
+                    let count = function
+                        .nodes
+                        .iter()
+                        .filter(|n| n.next_node == node.id)
+                        .count();
+                    if count > 1 {
+                        return Err(VmError::NodeHasMoreThanOneFlowSources(
+                            node.id.clone(),
+                            count,
+                        ));
+                    }
                     let to = *nodes_map.get(&node.next_node).unwrap();
                     let from = *nodes_map.get(&node.id).unwrap();
                     graph.add_edge(from, to, ());
@@ -418,35 +453,28 @@ impl Vm {
                 ));
             }
             let guid = GUID::default();
-            match &e.entry_node {
-                ast::Reference::None => {
-                    self.completed_events.insert(guid, vec![]);
-                }
-                ast::Reference::Guid(_) | ast::Reference::Named(_) => {
-                    if let Some((_, execution)) = self
-                        .event_execution_order
-                        .iter()
-                        .find(|(k, _)| e.name == **k)
-                    {
-                        let vars = e
-                            .variables
-                            .iter()
-                            .map(|v| v.name.clone())
-                            .collect::<Vec<_>>();
-                        self.running_events.insert(
-                            guid,
-                            VmEvent::new(
-                                e.name.clone(),
-                                execution.clone(),
-                                vars,
-                                inputs,
-                                e.output_constrains.len(),
-                            ),
-                        );
-                    } else {
-                        return Err(VmError::CouldNotRunEvent(name.to_owned()));
-                    }
-                }
+            if let Some((_, execution)) = self
+                .event_execution_order
+                .iter()
+                .find(|(k, _)| e.name == **k)
+            {
+                let vars = e
+                    .variables
+                    .iter()
+                    .map(|v| v.name.clone())
+                    .collect::<Vec<_>>();
+                self.running_events.insert(
+                    guid,
+                    VmEvent::new(
+                        e.name.clone(),
+                        execution.clone(),
+                        vars,
+                        inputs,
+                        e.output_constrains.len(),
+                    ),
+                );
+            } else {
+                return Err(VmError::CouldNotRunEvent(name.to_owned()));
             }
             Ok(guid)
         } else {
@@ -823,6 +851,10 @@ impl Vm {
                     }
                     _ => {}
                 }
+                if event.is_jump_stack_empty() {
+                    event.go_to_next_node();
+                    return Ok(VmStepStatus::Stop);
+                }
             }
             event.go_to_next_node();
             Ok(VmStepStatus::Continue)
@@ -1099,6 +1131,14 @@ impl VmEvent {
             }
         }
         Err(VmError::StackUnderflow)
+    }
+
+    fn is_jump_stack_empty(&self) -> bool {
+        if let Some(context) = self.contexts.last() {
+            context.jump_stack.is_empty()
+        } else {
+            true
+        }
     }
 
     fn instance_value(&self) -> Result<Reference, VmError> {
