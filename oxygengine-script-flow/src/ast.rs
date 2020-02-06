@@ -203,6 +203,8 @@ impl Prefab for IfElse {}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NodeType {
     None,
+    Entry,
+    Knot,
     Halt,
     /// body entry node
     Loop(Reference),
@@ -225,23 +227,36 @@ pub enum NodeType {
 }
 
 impl NodeType {
-    pub fn is_from_to(&self) -> (bool, bool) {
+    pub fn is_entry(&self) -> bool {
+        if let Self::Entry = self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_input_output_flow_in_out(&self) -> (bool, bool, bool, bool) {
         match self {
-            Self::Halt
-            | Self::GetListItem(_)
-            | Self::GetObjectItem(_)
-            | Self::CallOperation(_)
-            | Self::CallFunction(_)
-            | Self::IfElse(_)
-            | Self::Loop(_)
-            | Self::CallMethod(_, _) => (true, true),
-            Self::GetInstance
-            | Self::GetGlobalVariable(_)
-            | Self::GetLocalVariable(_)
-            | Self::GetInput(_)
-            | Self::GetValue(_) => (false, true),
-            Self::SetOutput(_) | Self::MutateValue | Self::Break | Self::Continue => (true, false),
-            Self::None => (false, false),
+            Self::None => (false, false, false, false),
+            Self::Entry => (false, false, false, true),
+            Self::Knot => (false, false, true, true),
+            Self::Halt => (false, false, true, true),
+            Self::Loop(_) => (false, false, true, true),
+            Self::IfElse(_) => (true, false, true, true),
+            Self::Break => (false, false, true, false),
+            Self::Continue => (false, false, true, false),
+            Self::GetInstance => (false, true, false, true),
+            Self::GetGlobalVariable(_) => (false, true, false, true),
+            Self::GetLocalVariable(_) => (false, true, false, true),
+            Self::GetInput(_) => (false, true, false, true),
+            Self::SetOutput(_) => (true, false, true, true),
+            Self::GetValue(_) => (false, true, false, true),
+            Self::GetListItem(_) => (true, true, true, true),
+            Self::GetObjectItem(_) => (true, true, true, true),
+            Self::MutateValue => (true, false, true, true),
+            Self::CallOperation(_) => (true, true, true, true),
+            Self::CallFunction(_) => (true, true, true, true),
+            Self::CallMethod(_, _) => (true, true, true, true),
         }
     }
 }

@@ -3,7 +3,10 @@ use crate::{
     GUID,
 };
 use core::prefab::{PrefabNumber, PrefabValue};
-use petgraph::{algo::toposort, Direction, Graph};
+use petgraph::{
+    algo::{has_path_connecting, toposort},
+    Direction, Graph,
+};
 use std::{
     cell::RefCell,
     collections::{BTreeMap, HashMap},
@@ -86,7 +89,7 @@ impl Into<Reference> for Value {
 #[derive(Debug)]
 pub enum VmError {
     Message(String),
-    CompilationError(String),
+    FoundCycleInFlowGraph,
     /// (expected, provided)
     WrongNumberOfInputs(usize, usize),
     /// (expected, provided)
@@ -126,8 +129,8 @@ pub enum VmError {
     TryingToContinueIfElse,
     ThereAreNoCachedNodeOutputs(ast::Reference),
     ThereIsNoCachedNodeIndexedOutput(Link),
-    /// (node reference, sources count)
-    NodeHasMoreThanOneFlowSources(ast::Reference, usize),
+    FoundMultipleEntryNodes(Vec<ast::Reference>),
+    EntryNodeNotFound,
 }
 
 #[derive(Debug)]
@@ -190,17 +193,6 @@ impl Vm {
                     .map(|node| (node.id.clone(), graph.add_node(node.id.clone())))
                     .collect::<HashMap<_, _>>();
                 for node in &event.nodes {
-                    let count = event
-                        .nodes
-                        .iter()
-                        .filter(|n| n.next_node == node.id)
-                        .count();
-                    if count > 1 {
-                        return Err(VmError::NodeHasMoreThanOneFlowSources(
-                            node.id.clone(),
-                            count,
-                        ));
-                    }
                     let to = if let Some(node) = nodes_map.get(&node.next_node) {
                         *node
                     } else {
@@ -223,22 +215,58 @@ impl Vm {
                         }
                     }
                 }
-                let list = match toposort(&graph, None) {
-                    Ok(list) => Ok(list
-                        .into_iter()
+                let list = {
+                    let indices = match toposort(&graph, None) {
+                        Ok(list) => Ok(list),
+                        Err(_) => Err(VmError::FoundCycleInFlowGraph),
+                    }?;
+                    let list = indices
+                        .iter()
                         .map(|index| {
                             nodes_map
                                 .iter()
-                                .find(|(_, v)| **v == index)
+                                .find(|(_, v)| *v == index)
                                 .unwrap()
                                 .0
                                 .clone()
                         })
-                        .collect::<Vec<_>>()),
-                    Err(_) => Err(VmError::CompilationError(
-                        "Found flow graph to be cyclic".to_owned(),
-                    )),
-                }?;
+                        .collect::<Vec<_>>();
+                    let entry_pos = {
+                        let entries = event
+                            .nodes
+                            .iter()
+                            .filter(|n| n.node_type.is_entry())
+                            .map(|n| n.id.clone())
+                            .collect::<Vec<_>>();
+                        if entries.is_empty() {
+                            return Err(VmError::EntryNodeNotFound);
+                        } else if entries.len() > 1 {
+                            return Err(VmError::FoundMultipleEntryNodes(entries));
+                        }
+                        list.iter().position(|n| n == &entries[0]).unwrap()
+                    };
+                    let mut from_pos = entry_pos;
+                    let mut to_pos = entry_pos;
+                    for i in (0..entry_pos).rev() {
+                        let idx = indices[i];
+                        if graph.externals(Direction::Incoming).any(|n| n == idx) {
+                            if !has_path_connecting(&graph, idx, indices[entry_pos], None) {
+                                break;
+                            }
+                        }
+                        from_pos = i;
+                    }
+                    for i in (entry_pos + 1)..list.len() {
+                        let idx = indices[i];
+                        if graph.externals(Direction::Outgoing).any(|n| n == idx) {
+                            if !has_path_connecting(&graph, indices[entry_pos], indices[i], None) {
+                                break;
+                            }
+                        }
+                        to_pos = i;
+                    }
+                    list[from_pos..=to_pos].to_vec()
+                };
                 end_nodes.extend(graph.externals(Direction::Outgoing).map(|index| {
                     nodes_map
                         .iter()
@@ -270,17 +298,6 @@ impl Vm {
                                 .map(|node| (node.id.clone(), graph.add_node(node.id.clone())))
                                 .collect::<HashMap<_, _>>();
                             for node in &method.nodes {
-                                let count = method
-                                    .nodes
-                                    .iter()
-                                    .filter(|n| n.next_node == node.id)
-                                    .count();
-                                if count > 1 {
-                                    return Err(VmError::NodeHasMoreThanOneFlowSources(
-                                        node.id.clone(),
-                                        count,
-                                    ));
-                                }
                                 let to = *nodes_map.get(&node.next_node).unwrap();
                                 let from = *nodes_map.get(&node.id).unwrap();
                                 graph.add_edge(from, to, ());
@@ -295,21 +312,67 @@ impl Vm {
                                     }
                                 }
                             }
-                            let list = if let Ok(list) = toposort(&graph, None) {
-                                list.into_iter()
+                            let list = {
+                                let indices = match toposort(&graph, None) {
+                                    Ok(list) => Ok(list),
+                                    Err(_) => Err(VmError::FoundCycleInFlowGraph),
+                                }?;
+                                let list = indices
+                                    .iter()
                                     .map(|index| {
                                         nodes_map
                                             .iter()
-                                            .find(|(_, v)| **v == index)
+                                            .find(|(_, v)| *v == index)
                                             .unwrap()
                                             .0
                                             .clone()
                                     })
-                                    .collect::<Vec<_>>()
-                            } else {
-                                return Err(VmError::CompilationError(
-                                    "Found flow graph to be cyclic".to_owned(),
-                                ));
+                                    .collect::<Vec<_>>();
+                                let entry_pos = {
+                                    let entries = method
+                                        .nodes
+                                        .iter()
+                                        .filter(|n| n.node_type.is_entry())
+                                        .map(|n| n.id.clone())
+                                        .collect::<Vec<_>>();
+                                    if entries.is_empty() {
+                                        return Err(VmError::EntryNodeNotFound);
+                                    } else if entries.len() > 1 {
+                                        return Err(VmError::FoundMultipleEntryNodes(entries));
+                                    }
+                                    list.iter().position(|n| n == &entries[0]).unwrap()
+                                };
+                                let mut from_pos = entry_pos;
+                                let mut to_pos = entry_pos;
+                                for i in (0..entry_pos).rev() {
+                                    let idx = indices[i];
+                                    if graph.externals(Direction::Incoming).any(|n| n == idx) {
+                                        if !has_path_connecting(
+                                            &graph,
+                                            idx,
+                                            indices[entry_pos],
+                                            None,
+                                        ) {
+                                            break;
+                                        }
+                                    }
+                                    from_pos = i;
+                                }
+                                for i in (entry_pos + 1)..list.len() {
+                                    let idx = indices[i];
+                                    if graph.externals(Direction::Outgoing).any(|n| n == idx) {
+                                        if !has_path_connecting(
+                                            &graph,
+                                            indices[entry_pos],
+                                            indices[i],
+                                            None,
+                                        ) {
+                                            break;
+                                        }
+                                    }
+                                    to_pos = i;
+                                }
+                                list[from_pos..=to_pos].to_vec()
                             };
                             end_nodes.extend(graph.externals(Direction::Outgoing).map(|index| {
                                 nodes_map
@@ -337,17 +400,6 @@ impl Vm {
                     .map(|node| (node.id.clone(), graph.add_node(node.id.clone())))
                     .collect::<HashMap<_, _>>();
                 for node in &function.nodes {
-                    let count = function
-                        .nodes
-                        .iter()
-                        .filter(|n| n.next_node == node.id)
-                        .count();
-                    if count > 1 {
-                        return Err(VmError::NodeHasMoreThanOneFlowSources(
-                            node.id.clone(),
-                            count,
-                        ));
-                    }
                     let to = *nodes_map.get(&node.next_node).unwrap();
                     let from = *nodes_map.get(&node.id).unwrap();
                     graph.add_edge(from, to, ());
@@ -362,22 +414,58 @@ impl Vm {
                         }
                     }
                 }
-                let list = match toposort(&graph, None) {
-                    Ok(list) => Ok(list
-                        .into_iter()
+                let list = {
+                    let indices = match toposort(&graph, None) {
+                        Ok(list) => Ok(list),
+                        Err(_) => Err(VmError::FoundCycleInFlowGraph),
+                    }?;
+                    let list = indices
+                        .iter()
                         .map(|index| {
                             nodes_map
                                 .iter()
-                                .find(|(_, v)| **v == index)
+                                .find(|(_, v)| *v == index)
                                 .unwrap()
                                 .0
                                 .clone()
                         })
-                        .collect::<Vec<_>>()),
-                    Err(_) => Err(VmError::CompilationError(
-                        "Found flow graph to be cyclic".to_owned(),
-                    )),
-                }?;
+                        .collect::<Vec<_>>();
+                    let entry_pos = {
+                        let entries = function
+                            .nodes
+                            .iter()
+                            .filter(|n| n.node_type.is_entry())
+                            .map(|n| n.id.clone())
+                            .collect::<Vec<_>>();
+                        if entries.is_empty() {
+                            return Err(VmError::EntryNodeNotFound);
+                        } else if entries.len() > 1 {
+                            return Err(VmError::FoundMultipleEntryNodes(entries));
+                        }
+                        list.iter().position(|n| n == &entries[0]).unwrap()
+                    };
+                    let mut from_pos = entry_pos;
+                    let mut to_pos = entry_pos;
+                    for i in (0..entry_pos).rev() {
+                        let idx = indices[i];
+                        if graph.externals(Direction::Incoming).any(|n| n == idx) {
+                            if !has_path_connecting(&graph, idx, indices[entry_pos], None) {
+                                break;
+                            }
+                        }
+                        from_pos = i;
+                    }
+                    for i in (entry_pos + 1)..list.len() {
+                        let idx = indices[i];
+                        if graph.externals(Direction::Outgoing).any(|n| n == idx) {
+                            if !has_path_connecting(&graph, indices[entry_pos], indices[i], None) {
+                                break;
+                            }
+                        }
+                        to_pos = i;
+                    }
+                    list[from_pos..=to_pos].to_vec()
+                };
                 end_nodes.extend(graph.externals(Direction::Outgoing).map(|index| {
                     nodes_map
                         .iter()
@@ -825,6 +913,7 @@ impl Vm {
                         )));
                     }
                 }
+                NodeType::Entry => {}
                 _ => {
                     return Err(VmError::TryingToPerformInvalidNodeType(
                         node.node_type.clone(),

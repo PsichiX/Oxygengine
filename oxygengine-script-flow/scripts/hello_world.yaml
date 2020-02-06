@@ -55,3 +55,8 @@ events:
           - NodeIndexed:
               - Named: i003
               - 0
+      - id:
+          Named: entry
+        node_type: Entry
+        next_node:
+          Named: n001
