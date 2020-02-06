@@ -7,7 +7,7 @@
 1. [Installation](#installation)
 1. [Project Setup](#project-setup)
 1. [Building for development and production](#building-for-development-and-production)
-1. [Roadmap](#roadmap)
+1. [Roadmap](#todo--roadmap)
 
 ## Installation
 1. Make sure that you have latest `node.js` with `npm` tools installed (https://nodejs.org/)
