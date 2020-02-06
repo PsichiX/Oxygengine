@@ -119,7 +119,7 @@ impl ResourceAccess for AssetsDatabase {
                     }
                 } else if let Some(ScriptableValue::Array(paths)) = object.get("loaded") {
                     let map = paths
-                        .into_iter()
+                        .iter()
                         .filter_map(|path| {
                             if let ScriptableValue::String(path) = path {
                                 let path = path.to_string();

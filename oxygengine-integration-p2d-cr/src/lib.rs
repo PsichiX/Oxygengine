@@ -34,6 +34,7 @@ impl PrefabComponent for Physics2dSyncCompositeTransform {}
 pub struct ApplyPhysics2dToCompositeTransformSystem;
 
 impl<'s> System<'s> for ApplyPhysics2dToCompositeTransformSystem {
+    #[allow(clippy::type_complexity)]
     type SystemData = (
         Option<Write<'s, Physics2dWorld>>,
         ReadStorage<'s, RigidBody2d>,

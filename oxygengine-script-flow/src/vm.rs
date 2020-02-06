@@ -217,7 +217,7 @@ impl Vm {
                         if !can_out {
                             return Err(VmError::NodeCannotFlowOut(node.id.clone()));
                         }
-                        if let Some(n) = event.nodes.iter().find(|n| &n.id == &node.next_node) {
+                        if let Some(n) = event.nodes.iter().find(|n| n.id == node.next_node) {
                             let (_, _, can_in2, _) = n.node_type.is_input_output_flow_in_out();
                             if !can_in2 {
                                 return Err(VmError::NodeCannotFlowIn(n.id.clone()));
@@ -301,19 +301,19 @@ impl Vm {
                     let mut to_pos = entry_pos;
                     for i in (0..entry_pos).rev() {
                         let idx = indices[i];
-                        if graph.externals(Direction::Incoming).any(|n| n == idx) {
-                            if !has_path_connecting(&graph, idx, indices[entry_pos], None) {
-                                break;
-                            }
+                        if graph.externals(Direction::Incoming).any(|n| n == idx)
+                            && !has_path_connecting(&graph, idx, indices[entry_pos], None)
+                        {
+                            break;
                         }
                         from_pos = i;
                     }
                     for i in (entry_pos + 1)..list.len() {
                         let idx = indices[i];
-                        if graph.externals(Direction::Outgoing).any(|n| n == idx) {
-                            if !has_path_connecting(&graph, indices[entry_pos], indices[i], None) {
-                                break;
-                            }
+                        if graph.externals(Direction::Outgoing).any(|n| n == idx)
+                            && !has_path_connecting(&graph, indices[entry_pos], indices[i], None)
+                        {
+                            break;
                         }
                         to_pos = i;
                     }
@@ -398,29 +398,29 @@ impl Vm {
                                 let mut to_pos = entry_pos;
                                 for i in (0..entry_pos).rev() {
                                     let idx = indices[i];
-                                    if graph.externals(Direction::Incoming).any(|n| n == idx) {
-                                        if !has_path_connecting(
+                                    if graph.externals(Direction::Incoming).any(|n| n == idx)
+                                        && !has_path_connecting(
                                             &graph,
                                             idx,
                                             indices[entry_pos],
                                             None,
-                                        ) {
-                                            break;
-                                        }
+                                        )
+                                    {
+                                        break;
                                     }
                                     from_pos = i;
                                 }
                                 for i in (entry_pos + 1)..list.len() {
                                     let idx = indices[i];
-                                    if graph.externals(Direction::Outgoing).any(|n| n == idx) {
-                                        if !has_path_connecting(
+                                    if graph.externals(Direction::Outgoing).any(|n| n == idx)
+                                        && !has_path_connecting(
                                             &graph,
                                             indices[entry_pos],
                                             indices[i],
                                             None,
-                                        ) {
-                                            break;
-                                        }
+                                        )
+                                    {
+                                        break;
                                     }
                                     to_pos = i;
                                 }
@@ -500,19 +500,19 @@ impl Vm {
                     let mut to_pos = entry_pos;
                     for i in (0..entry_pos).rev() {
                         let idx = indices[i];
-                        if graph.externals(Direction::Incoming).any(|n| n == idx) {
-                            if !has_path_connecting(&graph, idx, indices[entry_pos], None) {
-                                break;
-                            }
+                        if graph.externals(Direction::Incoming).any(|n| n == idx)
+                            && !has_path_connecting(&graph, idx, indices[entry_pos], None)
+                        {
+                            break;
                         }
                         from_pos = i;
                     }
                     for i in (entry_pos + 1)..list.len() {
                         let idx = indices[i];
-                        if graph.externals(Direction::Outgoing).any(|n| n == idx) {
-                            if !has_path_connecting(&graph, indices[entry_pos], indices[i], None) {
-                                break;
-                            }
+                        if graph.externals(Direction::Outgoing).any(|n| n == idx)
+                            && !has_path_connecting(&graph, indices[entry_pos], indices[i], None)
+                        {
+                            break;
                         }
                         to_pos = i;
                     }
@@ -580,7 +580,7 @@ impl Vm {
         value: Reference,
     ) -> Result<Reference, VmError> {
         if let Some(v) = self.variables.get_mut(name) {
-            return Ok(std::mem::replace(v, value));
+            Ok(std::mem::replace(v, value))
         } else {
             Err(VmError::GlobalVariableDoesNotExists(ast::Reference::Named(
                 name.to_owned(),
@@ -703,7 +703,6 @@ impl Vm {
                     } else {
                         return Err(VmError::ValueIsNotABool(value2));
                     }
-                    drop(v);
                 }
                 NodeType::Break => match event.pop_jump_from_stack()? {
                     VmJump::Loop(id) => {
@@ -734,19 +733,19 @@ impl Vm {
                     _ => {}
                 },
                 NodeType::GetInstance => {
-                    let value = event.instance_value()?.clone();
+                    let value = event.instance_value()?;
                     event.set_node_output(node.id.clone(), value);
                 }
                 NodeType::GetGlobalVariable(name) => {
-                    let value = self.global_variable_value(name)?.clone();
+                    let value = self.global_variable_value(name)?;
                     event.set_node_output(node.id.clone(), value);
                 }
                 NodeType::GetLocalVariable(name) => {
-                    let value = event.local_variable_value(name)?.clone();
+                    let value = event.local_variable_value(name)?;
                     event.set_node_output(node.id.clone(), value);
                 }
                 NodeType::GetInput(index) => {
-                    let value = event.input_value(*index)?.clone();
+                    let value = event.input_value(*index)?;
                     event.set_node_output(node.id.clone(), value);
                 }
                 NodeType::SetOutput(index) => {
@@ -770,7 +769,6 @@ impl Vm {
                     } else {
                         return Err(VmError::ValueIsNotAList(value2));
                     }
-                    drop(v);
                 }
                 NodeType::GetObjectItem(key) => {
                     let value = event.get_node_output(&node.input_links[0])?.clone();
@@ -785,7 +783,6 @@ impl Vm {
                     } else {
                         return Err(VmError::ValueIsNotAnObject(value2));
                     }
-                    drop(v);
                 }
                 NodeType::MutateValue => {
                     let value_dst = event.get_node_output(&node.input_links[0])?;
@@ -799,7 +796,6 @@ impl Vm {
                             value_src2, value_dst2,
                         ));
                     }
-                    drop(value_dst);
                 }
                 NodeType::CallOperation(name) => {
                     if let Some(op) = self.ast.operations.iter().find(|op| &op.name == name) {

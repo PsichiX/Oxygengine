@@ -143,7 +143,7 @@ fn scriptable_array_to_js(value: &[ScriptableValue]) -> Result<JsValue, Scriptab
 fn scriptable_js_to_array(js: JsValue) -> Result<ScriptableValue, ScriptableError> {
     let items = Array::from(&js)
         .iter()
-        .map(|item| scriptable_js_to_value(item))
+        .map(scriptable_js_to_value)
         .collect::<Result<Vec<_>, _>>()?;
     Ok(ScriptableValue::Array(items))
 }

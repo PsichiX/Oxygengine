@@ -14,6 +14,7 @@ fn pathbuf_is_empty(buf: &PathBuf) -> bool {
     buf.components().count() == 0
 }
 
+#[allow(clippy::trivially_copy_pass_by_ref)]
 fn bool_is_false(value: &bool) -> bool {
     !value
 }
@@ -29,9 +30,10 @@ pub struct CopyPhase {
 }
 
 impl CopyPhase {
+    #[allow(clippy::wrong_self_convention)]
     pub fn from_multi<P: AsRef<Path>>(mut self, from: &[P]) -> Self {
         self.from = from
-            .into_iter()
+            .iter()
             .map(|p| p.as_ref().to_path_buf())
             .collect::<Vec<_>>();
         self
@@ -96,6 +98,7 @@ impl AtlasPhase {
         2048
     }
 
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn is_default_max_width(value: &usize) -> bool {
         *value == Self::default_max_width()
     }
@@ -104,6 +107,7 @@ impl AtlasPhase {
         2048
     }
 
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn is_default_max_height(value: &usize) -> bool {
         *value == Self::default_max_height()
     }
@@ -112,13 +116,14 @@ impl AtlasPhase {
         2
     }
 
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn is_default_padding(value: &usize) -> bool {
         *value == Self::default_padding()
     }
 
     pub fn paths<P: AsRef<Path>>(mut self, paths: &[P]) -> Self {
         self.paths = paths
-            .into_iter()
+            .iter()
             .map(|p| p.as_ref().to_path_buf())
             .collect::<Vec<_>>();
         self
@@ -194,7 +199,7 @@ impl TiledPhase {
 
     pub fn spritesheets<P: AsRef<Path>>(mut self, spritesheets: &[P]) -> Self {
         self.spritesheets = spritesheets
-            .into_iter()
+            .iter()
             .map(|p| p.as_ref().to_path_buf())
             .collect::<Vec<_>>();
         self
@@ -224,7 +229,7 @@ pub struct PackPhase {
 impl PackPhase {
     pub fn paths<P: AsRef<Path>>(mut self, paths: &[P]) -> Self {
         self.paths = paths
-            .into_iter()
+            .iter()
             .map(|p| p.as_ref().to_path_buf())
             .collect::<Vec<_>>();
         self

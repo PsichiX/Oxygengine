@@ -183,7 +183,7 @@ impl GameState {
             let map = asset.get::<MapAsset>().unwrap().map();
             let spawns = map.layer_by_name("spawns").unwrap().data.objects().unwrap();
             spawns
-                .into_iter()
+                .iter()
                 .flat_map(|spawn| {
                     if !spawn.visible {
                         return vec![];
@@ -261,7 +261,7 @@ impl GameState {
             let map = asset.get::<MapAsset>().unwrap().map();
             let spawns = map.layer_by_name("spawns").unwrap().data.objects().unwrap();
             spawns
-                .into_iter()
+                .iter()
                 .filter_map(|spawn| {
                     if !spawn.visible {
                         return None;
@@ -332,7 +332,7 @@ impl GameState {
             let map = asset.get::<MapAsset>().unwrap().map();
             let spawns = map.layer_by_name("spawns").unwrap().data.objects().unwrap();
             spawns
-                .into_iter()
+                .iter()
                 .flat_map(|spawn| {
                     if !spawn.visible {
                         return vec![];
@@ -416,7 +416,7 @@ impl GameState {
                 .create_entity()
                 .with(Tag("ui".into()))
                 .with(CompositeRenderable(
-                    Text::new("Verdana".into(), "".into())
+                    Text::new("Verdana", "")
                         .color(Color::yellow())
                         .size(48.0)
                         .into(),
@@ -432,7 +432,7 @@ impl GameState {
                 .create_entity()
                 .with(Tag("ui".into()))
                 .with(CompositeRenderable(
-                    Text::new("Verdana".into(), "".into())
+                    Text::new("Verdana", "")
                         .color(Color::yellow())
                         .align(TextAlign::Right)
                         .size(48.0)
@@ -466,7 +466,7 @@ impl GameState {
                 .create_entity()
                 .with(Tag("ui".into()))
                 .with(CompositeRenderable(
-                    Text::new("Verdana".into(), "".into())
+                    Text::new("Verdana", "")
                         .color(Color::yellow())
                         .align(TextAlign::Center)
                         .baseline(TextBaseLine::Middle)

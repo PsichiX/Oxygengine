@@ -444,9 +444,7 @@ impl WebScriptInterface {
 
     pub(crate) fn read_component_bridge(name: &str, entity: Entity) -> Option<JsValue> {
         if let Ok(mut interface) = INTERFACE.lock() {
-            if interface.world_ptr.is_none() {
-                return None;
-            }
+            interface.world_ptr?;
             let world = interface.world_ptr.unwrap();
             if let Some(bridge) = interface.components_bridge.get_mut(name) {
                 return Some(bridge.on_read_data(unsafe { world.as_ref().unwrap() }, entity));
@@ -550,7 +548,7 @@ impl WebScriptInterface {
             if let Some(object) = Object::try_from(&data) {
                 let keys = Object::keys(&object)
                     .iter()
-                    .map(|key| key.dyn_ref::<JsString>().map(|key| String::from(key)))
+                    .map(|key| key.dyn_ref::<JsString>().map(String::from))
                     .collect::<Vec<_>>();
                 let values = Object::values(&object).iter().collect::<Vec<_>>();
                 for (key, value) in keys.into_iter().zip(values.into_iter()) {

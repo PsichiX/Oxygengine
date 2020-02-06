@@ -149,8 +149,7 @@ impl PrefabManager {
             component_factory.insert(
                 name.to_owned(),
                 Box::new(move |builder, prefab, named_entities, state_token| {
-                    let c =
-                        T::from_prefab_with_extras(prefab.clone(), named_entities, state_token)?;
+                    let c = T::from_prefab_with_extras(prefab, named_entities, state_token)?;
                     Ok(builder.with(c))
                 }),
             );
@@ -413,6 +412,7 @@ pub struct PrefabSystem {
 }
 
 impl<'s> System<'s> for PrefabSystem {
+    #[allow(clippy::type_complexity)]
     type SystemData = (
         Read<'s, EntitiesRes>,
         Read<'s, LazyUpdate>,

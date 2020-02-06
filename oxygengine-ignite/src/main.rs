@@ -92,6 +92,7 @@ impl Actions {
     }
 }
 
+#[allow(clippy::cognitive_complexity)]
 fn main() -> Result<()> {
     let meta = MetadataCommand::new().exec();
     let mut root_path = if let Ok(meta) = meta {
@@ -562,25 +563,23 @@ fn main() -> Result<()> {
             } else {
                 write(config, &contents)?;
             }
-        } else {
-            if config.exists() {
-                let contents = read_to_string(config)?;
-                match serde_json::from_str::<Pipeline>(&contents) {
-                    Ok(pipeline) => {
-                        if dry_run {
-                            pipeline.execute()?;
-                        } else {
-                            pipeline.dry_run();
-                        }
+        } else if config.exists() {
+            let contents = read_to_string(config)?;
+            match serde_json::from_str::<Pipeline>(&contents) {
+                Ok(pipeline) => {
+                    if dry_run {
+                        pipeline.execute()?;
+                    } else {
+                        pipeline.dry_run();
                     }
-                    Err(error) => println!(
-                        "Could not parse pipeline JSON config: {:?}. Error: {:?}",
-                        config, error
-                    ),
                 }
-            } else {
-                println!("Could not find pipeline config file: {:?}", config);
+                Err(error) => println!(
+                    "Could not parse pipeline JSON config: {:?}. Error: {:?}",
+                    config, error
+                ),
             }
+        } else {
+            println!("Could not find pipeline config file: {:?}", config);
         }
     }
     Ok(())

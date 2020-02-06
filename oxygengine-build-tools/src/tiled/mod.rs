@@ -118,7 +118,7 @@ pub fn build_map<P: AsRef<Path>>(
         })
         .collect::<HashMap<_, _>>();
     let spritesheets_data = spritesheets
-        .into_iter()
+        .iter()
         .map(|s| {
             if !quiet {
                 println!("* Load sprite sheet file: {:?}", s.as_ref());

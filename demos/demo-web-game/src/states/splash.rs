@@ -18,7 +18,7 @@ impl State for SplashState {
         world
             .create_entity()
             .with(CompositeRenderable(
-                Image::new("splash.png".into()).align(0.5.into()).into(),
+                Image::new("splash.png").align(0.5.into()).into(),
             ))
             .with(CompositeTransform::default())
             .with(NonPersistent(token))
@@ -27,7 +27,7 @@ impl State for SplashState {
         world
             .create_entity()
             .with(CompositeRenderable(
-                Text::new("Verdana".into(), "Click to play!".into())
+                Text::new("Verdana", "Click to play!")
                     .color(Color::white())
                     .align(TextAlign::Center)
                     .baseline(TextBaseLine::Bottom)

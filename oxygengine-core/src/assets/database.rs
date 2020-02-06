@@ -31,6 +31,7 @@ impl AssetsDatabaseErrorReporter for LoggerAssetsDatabaseErrorReporter {
 }
 
 pub struct AssetsDatabase {
+    pub max_bytes_per_frame: Option<usize>,
     fetch_engines: Vec<Box<dyn FetchEngine>>,
     protocols: HashMap<String, Box<dyn AssetProtocol>>,
     assets: HashMap<AssetID, (String, Asset)>,
@@ -49,6 +50,7 @@ impl AssetsDatabase {
         FE: FetchEngine + 'static,
     {
         Self {
+            max_bytes_per_frame: None,
             fetch_engines: vec![Box::new(fetch_engine)],
             protocols: Default::default(),
             assets: Default::default(),
@@ -332,51 +334,45 @@ impl AssetsDatabase {
     pub fn process(&mut self) {
         self.lately_loaded.clear();
         self.lately_unloaded.clear();
-        loop {
-            let to_dispatch = {
-                self.loading
-                    .iter()
-                    .filter_map(|(path, (prot, reader))| {
+        let to_dispatch = {
+            let mut bytes_read = 0;
+            self.loading
+                .iter()
+                .filter_map(|(path, (prot, reader))| {
+                    if bytes_read < self.max_bytes_per_frame.unwrap_or(std::usize::MAX) {
                         if let Some(data) = reader.read() {
-                            Some((path.to_owned(), prot.to_owned(), data))
-                        } else {
-                            None
+                            bytes_read += data.len();
+                            return Some((path.to_owned(), prot.to_owned(), data));
                         }
-                    })
-                    .collect::<Vec<_>>()
-            };
-            for (path, prot, data) in to_dispatch {
-                if let Some(protocol) = self.protocols.get_mut(&prot) {
-                    match protocol.on_load(data) {
-                        AssetLoadResult::Data(data) => {
-                            let asset = Asset::new(&prot, &path, data);
-                            self.insert(&asset.to_full_path(), asset);
-                        }
-                        AssetLoadResult::Yield(meta, list) => {
-                            let list = list
-                                .into_iter()
-                                .filter(|(_, path)| self.load(&path).is_ok())
-                                .collect();
-                            self.yielded.insert(path, (prot, meta, list));
-                        }
-                        AssetLoadResult::Error(message) => {
-                            for reporter in self.error_reporters.values_mut() {
-                                reporter.on_report(&prot, &path, &message);
-                            }
+                    }
+                    None
+                })
+                .collect::<Vec<_>>()
+        };
+        for (path, prot, data) in to_dispatch {
+            if let Some(protocol) = self.protocols.get_mut(&prot) {
+                match protocol.on_load(data) {
+                    AssetLoadResult::Data(data) => {
+                        let asset = Asset::new(&prot, &path, data);
+                        self.insert(&asset.to_full_path(), asset);
+                    }
+                    AssetLoadResult::Yield(meta, list) => {
+                        let list = list
+                            .into_iter()
+                            .filter(|(_, path)| self.load(&path).is_ok())
+                            .collect();
+                        self.yielded.insert(path, (prot, meta, list));
+                    }
+                    AssetLoadResult::Error(message) => {
+                        for reporter in self.error_reporters.values_mut() {
+                            reporter.on_report(&prot, &path, &message);
                         }
                     }
                 }
             }
-            if !self
-                .loading
-                .iter()
-                .any(|(_, (_, reader))| reader.status() == FetchStatus::Done)
-            {
-                break;
-            }
         }
         self.loading.retain(|_, (_, reader)| {
-            if let FetchStatus::InProgress(_) = reader.status() {
+            if let FetchStatus::InProgress(_) | FetchStatus::Done = reader.status() {
                 true
             } else {
                 false

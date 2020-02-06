@@ -24,11 +24,13 @@ pub enum FetchStatus {
     InProgress(f32),
     Done,
     Canceled(FetchCancelReason),
+    Read,
 }
 
 pub trait FetchProcessReader: Send + Sync {
     fn status(&self) -> FetchStatus;
     fn read(&self) -> Option<Vec<u8>>;
+    fn byte_size(&self) -> Option<usize>;
     fn box_clone(&self) -> Box<dyn FetchProcessReader>;
 }
 
@@ -130,8 +132,19 @@ impl FetchProcessReader for FetchProcess {
         if let Ok(mut meta) = self.inner.lock() {
             if meta.0 == FetchStatus::Done {
                 let old: (FetchStatus, Option<Vec<u8>>) =
-                    replace(&mut meta, (FetchStatus::Empty, None));
+                    replace(&mut meta, (FetchStatus::Read, None));
                 return old.1;
+            }
+        }
+        None
+    }
+
+    fn byte_size(&self) -> Option<usize> {
+        if let Ok(meta) = self.inner.lock() {
+            if meta.0 == FetchStatus::Done {
+                if let Some(bytes) = &meta.1 {
+                    return Some(bytes.len());
+                }
             }
         }
         None

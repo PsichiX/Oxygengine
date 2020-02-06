@@ -1137,7 +1137,7 @@ pub struct UiMargin {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum UiImagePath {
     Single(Cow<'static, str>),
-    Set([Option<Cow<'static, str>>; 9]),
+    Set(Box<[Option<Cow<'static, str>>; 9]>),
 }
 
 impl UiImagePath {
@@ -1172,7 +1172,7 @@ pub struct UiImage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum UiElementType {
     None,
-    Image(UiImage),
+    Image(Box<UiImage>),
     Text(Text<'static>),
 }
 

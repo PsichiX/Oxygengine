@@ -93,7 +93,7 @@ impl Audio for WebAudio {
             let gain = self.context.create_gain().unwrap();
             let gain2 = gain.clone();
             let promise = self.context.decode_audio_data(&buffer.buffer()).unwrap();
-            let destination = self.context.destination().clone();
+            let destination = self.context.destination();
             let future = JsFuture::from(promise).and_then(move |buff| {
                 assert!(buff.is_instance_of::<AudioBuffer>());
                 let buff: AudioBuffer = buff.dyn_into().unwrap();

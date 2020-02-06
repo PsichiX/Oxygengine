@@ -60,6 +60,7 @@ impl WebScriptFetch {
     }
 
     // TODO: refactor this shit, please.
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> bool {
         if let Some(world) = WebScriptInterface::world() {
             if let Some(world) = unsafe { world.as_mut() } {
@@ -223,11 +224,11 @@ impl WebScriptApi {
             .map(|c| {
                 if let Some(s) = c.dyn_ref::<JsString>() {
                     let s = String::from(s);
-                    if s.starts_with("@") {
+                    if s.starts_with('@') {
                         return Constrain::Entities;
-                    } else if s.starts_with("+") {
+                    } else if s.starts_with('+') {
                         return Constrain::Components(s[1..].to_owned());
-                    } else if s.starts_with("-") {
+                    } else if s.starts_with('-') {
                         return Constrain::ExcludeComponents(s[1..].to_owned());
                     }
                 }

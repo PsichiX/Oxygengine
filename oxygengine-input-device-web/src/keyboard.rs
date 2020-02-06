@@ -44,12 +44,12 @@ impl InputDevice for WebKeyboardInputDevice {
                 let code = event.code();
                 let key = event.key();
                 keys.borrow_mut().insert(code.clone());
-                if key.len() > 1 {
-                    sequence.borrow_mut().push((0 as char, code));
-                } else if key.len() == 1 {
-                    sequence
+                match key.len() {
+                    1 => sequence
                         .borrow_mut()
-                        .push((key.chars().next().unwrap(), code));
+                        .push((key.chars().next().unwrap(), code)),
+                    2..=std::usize::MAX => sequence.borrow_mut().push((0 as char, code)),
+                    _ => {}
                 }
             }) as Box<dyn FnMut(_)>);
             self.element

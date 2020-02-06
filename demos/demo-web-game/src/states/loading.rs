@@ -20,7 +20,7 @@ impl State for LoadingState {
         world
             .create_entity()
             .with(CompositeRenderable(
-                Text::new("Verdana".into(), "Loading".into())
+                Text::new("Verdana", "Loading")
                     .color(Color::white())
                     .align(TextAlign::Center)
                     .size(64.0)

@@ -98,6 +98,7 @@ impl<'s, CR> System<'s> for CompositeCameraCacheSystem<CR>
 where
     CR: CompositeRenderer + Send + Sync + 'static,
 {
+    #[allow(clippy::type_complexity)]
     type SystemData = (
         Option<Read<'s, CR>>,
         Write<'s, CompositeCameraCache>,
@@ -756,6 +757,7 @@ impl<'s, CR> System<'s> for CompositeUiSystem<CR>
 where
     CR: CompositeRenderer + 'static,
 {
+    #[allow(clippy::type_complexity)]
     type SystemData = (
         Option<Read<'s, CR>>,
         Write<'s, CompositeUiInteractibles>,

@@ -107,8 +107,8 @@ impl Map {
                 .collect::<Option<HashMap<_, _>>>()?;
             let mut commands = Vec::with_capacity(2 + self.cols * self.rows);
             commands.push(Command::Store);
-            let w = self.tile_width as f32;
-            let h = self.tile_height as f32;
+            let width = self.tile_width as f32;
+            let height = self.tile_height as f32;
             let chunk_size = chunk_size.unwrap_or_else(|| (self.cols, self.rows));
             let cols_start = chunk_offset.0.min(self.cols);
             let cols_end = (chunk_offset.0 + chunk_size.0).min(self.cols);
@@ -120,13 +120,13 @@ impl Map {
                     let id = data.get(i).unwrap_or_else(|| &0);
                     if let Some((sprite_sheet, name)) = &self.tiles_mapping.get(id) {
                         let info = atlases.get(sprite_sheet)?;
-                        let x = w * col as f32;
-                        let y = h * row as f32;
+                        let x = width * col as f32;
+                        let y = height * row as f32;
                         let frame = info.frames.get(name)?.frame;
                         commands.push(Command::Draw(
                             Image::new_owned(info.meta.image_name())
                                 .source(Some(frame))
-                                .destination(Some([x, y, w, h].into()))
+                                .destination(Some([x, y, width, height].into()))
                                 .into(),
                         ));
                     }
@@ -176,10 +176,7 @@ impl AssetProtocol for MapAssetProtocol {
         let map = *(payload.unwrap() as Box<dyn Any + Send>)
             .downcast::<Map>()
             .unwrap();
-        let sprite_sheet_assets = list
-            .into_iter()
-            .map(|(_, asset)| asset.id())
-            .collect::<Vec<_>>();
+        let sprite_sheet_assets = list.iter().map(|(_, asset)| asset.id()).collect::<Vec<_>>();
         AssetLoadResult::Data(Box::new(MapAsset {
             map,
             sprite_sheet_assets,
