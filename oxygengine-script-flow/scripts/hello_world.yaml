@@ -1,4 +1,4 @@
-version: [0, 0, 1]
+version: 1
 name: hello
 operations:
   - name: Print
@@ -30,7 +30,7 @@ events:
               - Named: i002
               - 0
         next_node:
-          Named: i003
+          Named: n002
       - id:
           Named: i001
         node_type:
@@ -55,6 +55,11 @@ events:
           - NodeIndexed:
               - Named: i003
               - 0
+      - id:
+          Named: n002
+        node_type: Halt
+        next_node:
+          Named: o001
       - id:
           Named: entry
         node_type: Entry

@@ -18,7 +18,7 @@ impl Default for Reference {
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Program {
-    pub version: (usize, usize, usize),
+    pub version: usize,
     #[serde(default)]
     pub name: String,
     #[serde(default)]

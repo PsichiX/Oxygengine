@@ -15,6 +15,9 @@ use std::{
 
 pub type Reference = Rc<RefCell<Value>>;
 
+const VERSION: usize = 1;
+const VERSION_MIN: usize = 1;
+
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Value {
     None,
@@ -88,6 +91,8 @@ impl Into<Reference> for Value {
 
 #[derive(Debug)]
 pub enum VmError {
+    /// (program version, virtual machine version)
+    ProgramCompiledForDifferentVersion(usize, usize),
     Message(String),
     FoundCycleInFlowGraph,
     /// (expected, provided)
@@ -131,6 +136,11 @@ pub enum VmError {
     ThereIsNoCachedNodeIndexedOutput(Link),
     FoundMultipleEntryNodes(Vec<ast::Reference>),
     EntryNodeNotFound,
+    FoundNodeWithInvalidIdentifier,
+    NodeCannotFlowIn(ast::Reference),
+    NodeCannotFlowOut(ast::Reference),
+    NodeCannotTakeInput(ast::Reference),
+    NodeCannotGiveOutput(ast::Reference),
 }
 
 #[derive(Debug)]
@@ -161,6 +171,12 @@ pub struct Vm {
 
 impl Vm {
     pub fn new(ast: Program) -> Result<Self, VmError> {
+        if ast.version < VERSION_MIN || ast.version > VERSION {
+            return Err(VmError::ProgramCompiledForDifferentVersion(
+                ast.version,
+                VERSION,
+            ));
+        }
         let type_methods = ast
             .types
             .iter()
@@ -193,6 +209,42 @@ impl Vm {
                     .map(|node| (node.id.clone(), graph.add_node(node.id.clone())))
                     .collect::<HashMap<_, _>>();
                 for node in &event.nodes {
+                    if node.id == ast::Reference::None {
+                        return Err(VmError::FoundNodeWithInvalidIdentifier);
+                    }
+                    let (can_input, _, _, can_out) = node.node_type.is_input_output_flow_in_out();
+                    if node.next_node != ast::Reference::None {
+                        if !can_out {
+                            return Err(VmError::NodeCannotFlowOut(node.id.clone()));
+                        }
+                        if let Some(n) = event.nodes.iter().find(|n| &n.id == &node.next_node) {
+                            let (_, _, can_in2, _) = n.node_type.is_input_output_flow_in_out();
+                            if !can_in2 {
+                                return Err(VmError::NodeCannotFlowIn(n.id.clone()));
+                            }
+                        }
+                    }
+                    if !node.input_links.is_empty() {
+                        if !can_input {
+                            return Err(VmError::NodeCannotTakeInput(node.id.clone()));
+                        }
+                        for link in &node.input_links {
+                            match link {
+                                Link::NodeIndexed(id, _) => {
+                                    if let Some(n) = event.nodes.iter().find(|n| &n.id == id) {
+                                        let (_, can_output2, _, _) =
+                                            n.node_type.is_input_output_flow_in_out();
+                                        if !can_output2 {
+                                            return Err(VmError::NodeCannotGiveOutput(
+                                                n.id.clone(),
+                                            ));
+                                        }
+                                    }
+                                }
+                                Link::None => {}
+                            }
+                        }
+                    }
                     let to = if let Some(node) = nodes_map.get(&node.next_node) {
                         *node
                     } else {
@@ -495,6 +547,10 @@ impl Vm {
             end_nodes,
         };
         Ok(result)
+    }
+
+    pub fn version_range() -> (usize, usize) {
+        (VERSION_MIN, VERSION)
     }
 
     pub fn register_operation<T>(&mut self, name: &str, operator: T)
