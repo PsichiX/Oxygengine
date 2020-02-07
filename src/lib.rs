@@ -70,6 +70,8 @@ pub mod script {
         #[cfg(feature = "script-web")]
         pub use oxygengine_script_web::*;
     }
+    #[cfg(feature = "script-flow")]
+    pub use oxygengine_script_flow::*;
 }
 
 pub mod prelude {
@@ -112,6 +114,8 @@ pub mod prelude {
     pub use oxygengine_physics_2d::prelude::*;
     #[cfg(feature = "procedural")]
     pub use oxygengine_procedural::prelude::*;
+    #[cfg(feature = "script-flow")]
+    pub use oxygengine_script_flow::prelude::*;
     #[cfg(feature = "web")]
     #[cfg(feature = "script-web")]
     pub use oxygengine_script_web::prelude::*;

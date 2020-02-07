@@ -8,17 +8,61 @@ use petgraph::{
     Direction, Graph,
 };
 use std::{
-    cell::RefCell,
     collections::{BTreeMap, HashMap},
-    rc::Rc,
+    ops::{Deref, DerefMut},
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
-
-pub type Reference = Rc<RefCell<Value>>;
 
 const VERSION: usize = 1;
 const VERSION_MIN: usize = 1;
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone)]
+pub struct Reference(pub Arc<RwLock<Value>>);
+
+impl Reference {
+    pub fn new(inner: Arc<RwLock<Value>>) -> Self {
+        Self(inner)
+    }
+
+    pub fn value(value: Value) -> Self {
+        Self(Arc::new(RwLock::new(value)))
+    }
+
+    pub fn read(&self) -> RwLockReadGuard<Value> {
+        self.0.read().unwrap()
+    }
+
+    pub fn write(&mut self) -> RwLockWriteGuard<Value> {
+        self.0.write().unwrap()
+    }
+}
+
+impl PartialEq for Reference {
+    fn eq(&self, other: &Self) -> bool {
+        if let Ok(a) = self.0.try_read() {
+            if let Ok(b) = other.0.try_read() {
+                return *a == *b;
+            }
+        }
+        false
+    }
+}
+
+impl Deref for Reference {
+    type Target = Arc<RwLock<Value>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Reference {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum Value {
     None,
     Bool(bool),
@@ -28,6 +72,20 @@ pub enum Value {
     Object(BTreeMap<String, Reference>),
 }
 
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::None, Self::None) => true,
+            (Self::Bool(a), Self::Bool(b)) => a == b,
+            (Self::Number(a), Self::Number(b)) => a == b,
+            (Self::String(a), Self::String(b)) => a == b,
+            (Self::List(a), Self::List(b)) => a == b,
+            (Self::Object(a), Self::Object(b)) => a == b,
+            _ => false,
+        }
+    }
+}
+
 impl From<PrefabValue> for Value {
     fn from(value: PrefabValue) -> Self {
         match value {
@@ -35,11 +93,9 @@ impl From<PrefabValue> for Value {
             PrefabValue::Bool(v) => Value::Bool(v),
             PrefabValue::Number(v) => Value::Number(v),
             PrefabValue::String(v) => Value::String(v),
-            PrefabValue::Sequence(v) => Value::List(
-                v.into_iter()
-                    .map(|v| Rc::new(RefCell::new(v.into())))
-                    .collect(),
-            ),
+            PrefabValue::Sequence(v) => {
+                Value::List(v.into_iter().map(|v| Reference::value(v.into())).collect())
+            }
             PrefabValue::Mapping(v) => Value::Object(
                 v.into_iter()
                     .map(|(k, v)| {
@@ -49,7 +105,7 @@ impl From<PrefabValue> for Value {
                         } else {
                             panic!("Mapping key is not a string: {:?}", k);
                         };
-                        let v = Rc::new(RefCell::new(v.into()));
+                        let v = Reference::value(v.into());
                         (k, v)
                     })
                     .collect(),
@@ -65,16 +121,14 @@ impl Into<PrefabValue> for Value {
             Value::Bool(v) => PrefabValue::Bool(v),
             Value::Number(v) => PrefabValue::Number(v),
             Value::String(v) => PrefabValue::String(v),
-            Value::List(v) => PrefabValue::Sequence(
-                v.into_iter()
-                    .map(|v| v.as_ref().clone().into_inner().into())
-                    .collect(),
-            ),
+            Value::List(v) => {
+                PrefabValue::Sequence(v.into_iter().map(|v| v.read().clone().into()).collect())
+            }
             Value::Object(v) => PrefabValue::Mapping(
                 v.into_iter()
                     .map(|(k, v)| {
                         let k = PrefabValue::String(k);
-                        let v = v.as_ref().clone().into_inner().into();
+                        let v = v.read().clone().into();
                         (k, v)
                     })
                     .collect(),
@@ -85,7 +139,7 @@ impl Into<PrefabValue> for Value {
 
 impl Into<Reference> for Value {
     fn into(self) -> Reference {
-        Rc::new(RefCell::new(self))
+        Reference::value(self)
     }
 }
 
@@ -126,7 +180,8 @@ pub enum VmError {
     ValueIsNotABool(Reference),
     TryingToPerformInvalidNodeType(NodeType),
     /// (source value, destination value)
-    TryingToMutateBorrowedReference(Reference, Reference),
+    TryingToWriteBorrowedReference(Reference, Reference),
+    TryingToReadBorrowedReference(Reference),
     NodeNotFoundInExecutionPipeline(ast::Reference),
     NodeIsNotALoop(ast::Reference),
     NodeIsNotAnIfElse(ast::Reference),
@@ -692,17 +747,21 @@ impl Vm {
                 NodeType::IfElse(if_else) => {
                     let value = event.get_node_output(&node.input_links[0])?.clone();
                     let value2 = value.clone();
-                    let v = &*value.borrow();
-                    if let Value::Bool(v) = v {
-                        event.push_jump_on_stack(VmJump::IfElse(node.id.clone()));
-                        if *v {
-                            event.go_to_node(&if_else.next_node_true, self)?;
+                    if let Ok(v) = value.try_read() {
+                        if let Value::Bool(v) = &*v {
+                            event.push_jump_on_stack(VmJump::IfElse(node.id.clone()));
+                            if *v {
+                                event.go_to_node(&if_else.next_node_true, self)?;
+                            } else {
+                                event.go_to_node(&if_else.next_node_false, self)?;
+                            }
                         } else {
-                            event.go_to_node(&if_else.next_node_false, self)?;
+                            return Err(VmError::ValueIsNotABool(value2));
                         }
                     } else {
-                        return Err(VmError::ValueIsNotABool(value2));
+                        return Err(VmError::TryingToReadBorrowedReference(value2));
                     }
+                    drop(value);
                 }
                 NodeType::Break => match event.pop_jump_from_stack()? {
                     VmJump::Loop(id) => {
@@ -759,40 +818,55 @@ impl Vm {
                 NodeType::GetListItem(index) => {
                     let value = event.get_node_output(&node.input_links[0])?.clone();
                     let value2 = value.clone();
-                    let v = &*value.borrow();
-                    if let Value::List(list) = v {
-                        if let Some(value) = list.get(*index) {
-                            event.set_node_output(node.id.clone(), value.clone());
+                    if let Ok(v) = value.try_read() {
+                        if let Value::List(list) = &*v {
+                            if let Some(value) = list.get(*index) {
+                                event.set_node_output(node.id.clone(), value.clone());
+                            } else {
+                                return Err(VmError::IndexOutOfBounds(list.len(), *index, value2));
+                            }
                         } else {
-                            return Err(VmError::IndexOutOfBounds(list.len(), *index, value2));
+                            return Err(VmError::ValueIsNotAList(value2));
                         }
                     } else {
-                        return Err(VmError::ValueIsNotAList(value2));
+                        return Err(VmError::TryingToReadBorrowedReference(value2));
                     }
+                    drop(value);
                 }
                 NodeType::GetObjectItem(key) => {
                     let value = event.get_node_output(&node.input_links[0])?.clone();
                     let value2 = value.clone();
-                    let v = &*value.borrow();
-                    if let Value::Object(object) = v {
-                        if let Some(value) = object.get(key) {
-                            event.set_node_output(node.id.clone(), value.clone());
+                    if let Ok(v) = value.try_read() {
+                        if let Value::Object(object) = &*v {
+                            if let Some(value) = object.get(key) {
+                                event.set_node_output(node.id.clone(), value.clone());
+                            } else {
+                                return Err(VmError::ObjectKeyDoesNotExists(
+                                    key.to_owned(),
+                                    value2,
+                                ));
+                            }
                         } else {
-                            return Err(VmError::ObjectKeyDoesNotExists(key.to_owned(), value2));
+                            return Err(VmError::ValueIsNotAnObject(value2));
                         }
                     } else {
-                        return Err(VmError::ValueIsNotAnObject(value2));
+                        return Err(VmError::TryingToReadBorrowedReference(value2));
                     }
+                    drop(value);
                 }
                 NodeType::MutateValue => {
                     let value_dst = event.get_node_output(&node.input_links[0])?;
                     let value_dst2 = value_dst.clone();
                     let value_src = event.get_node_output(&node.input_links[0])?;
                     let value_src2 = value_src.clone();
-                    if let Ok(mut value) = value_dst.try_borrow_mut() {
-                        *value = value_src.as_ref().clone().into_inner();
+                    if let Ok(mut dst) = value_dst.try_write() {
+                        if let Ok(src) = value_src.try_read() {
+                            *dst = src.clone();
+                        } else {
+                            return Err(VmError::TryingToReadBorrowedReference(value_src2));
+                        }
                     } else {
-                        return Err(VmError::TryingToMutateBorrowedReference(
+                        return Err(VmError::TryingToWriteBorrowedReference(
                             value_src2, value_dst2,
                         ));
                     }
@@ -1023,7 +1097,7 @@ enum VmStepStatus {
     Stop,
 }
 
-pub trait VmOperation {
+pub trait VmOperation: Send + Sync {
     fn execute(&mut self, inputs: &[Reference]) -> Result<Vec<Reference>, VmOperationError>;
 }
 
