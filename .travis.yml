@@ -2,10 +2,15 @@ language: rust
 rust:
   - 1.41.0
 cache: cargo
+matrix:
+  fast_finish: true
 os:
   - windows
   - linux
   - osx
 script:
   - cargo build --verbose --all
+  - cargo build --verbose --all --release
   - cargo test --verbose --all
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -y libasound2-dev ; sudo apt-get install -y libwebkit2gtk-4.0 ; fi
