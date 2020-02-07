@@ -1,6 +1,6 @@
 ![logo](https://raw.githubusercontent.com/PsichiX/Oxygengine/master/media/oxygengine-dark-logo.svg?sanitize=true)
 
-# Oxygengine ![travis-ci status](https://travis-ci.org/PsichiX/Oxygengine.svg?branch=master)
+# Oxygengine ![travis-ci status](https://travis-ci.org/PsichiX/Oxygengine.svg?branch=master) ![crates-io version](https://raster.shields.io/crates/v/oxygengine.png) ![GitHub tag](https://img.shields.io/github/v/release/PsichiX/Oxygengine?include_prereleases&style=social)
 ### The hottest HTML5 + WASM game engine for games written in Rust with `web-sys`.
 
 ## Table of contents
