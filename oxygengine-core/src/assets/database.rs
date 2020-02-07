@@ -446,7 +446,9 @@ mod tests {
         assert_eq!(database.yielded_count(), 0);
         assert_eq!(database.yielded_deps_count(), 0);
 
-        database.process();
+        for _ in 0..2 {
+            database.process();
+        }
         assert_eq!(database.loaded_count(), 3);
         assert_eq!(database.loading_count(), 0);
         assert_eq!(database.yielded_count(), 0);
