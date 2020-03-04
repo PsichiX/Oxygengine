@@ -4,7 +4,7 @@ use oxygengine::prelude::*;
 #[derive(Debug, Copy, Clone)]
 pub enum FollowMode {
     Instant,
-    Delayed(f32),
+    Delayed(Scalar),
 }
 
 #[derive(Debug, Copy, Clone)]

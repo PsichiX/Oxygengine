@@ -1,5 +1,5 @@
 // reexport core macros.
-pub use oxygengine_core::{error, info, log, warn};
+pub use oxygengine_core::{debug, error, info, log, warn};
 
 pub mod core {
     pub use oxygengine_core::*;
@@ -65,6 +65,12 @@ pub mod physics_2d {
 pub mod integration_physics_2d_composite_renderer {
     pub use oxygengine_integration_p2d_cr::*;
 }
+#[cfg(feature = "visual-novel")]
+#[cfg(feature = "composite-renderer")]
+#[cfg(feature = "integration-visual-novel-composite-renderer")]
+pub mod integration_visual_novel_composite_renderer {
+    pub use oxygengine_integration_vn_cr::*;
+}
 pub mod script {
     pub mod web {
         #[cfg(feature = "script-web")]
@@ -73,8 +79,18 @@ pub mod script {
     #[cfg(feature = "script-flow")]
     pub use oxygengine_script_flow::*;
 }
+#[cfg(feature = "visual-novel")]
+pub mod visual_novel {
+    pub use oxygengine_visual_novel::*;
+}
+#[cfg(feature = "animation")]
+pub mod animation {
+    pub use oxygengine_animation::*;
+}
 
 pub mod prelude {
+    #[cfg(feature = "animation")]
+    pub use oxygengine_animation::prelude::*;
     #[cfg(feature = "audio")]
     pub use oxygengine_audio::prelude::*;
     #[cfg(feature = "web")]
@@ -88,6 +104,7 @@ pub mod prelude {
     #[cfg(feature = "composite-renderer")]
     pub use oxygengine_composite_renderer_backend_web::prelude::*;
     pub use oxygengine_core::prelude::*;
+    pub use oxygengine_core::Scalar;
     #[cfg(feature = "input")]
     pub use oxygengine_input::prelude::*;
     #[cfg(feature = "web")]
@@ -97,6 +114,10 @@ pub mod prelude {
     #[cfg(feature = "composite-renderer")]
     #[cfg(feature = "integration-physics-2d-composite-renderer")]
     pub use oxygengine_integration_p2d_cr::prelude::*;
+    #[cfg(feature = "visual-novel")]
+    #[cfg(feature = "composite-renderer")]
+    #[cfg(feature = "integration-visual-novel-composite-renderer")]
+    pub use oxygengine_integration_vn_cr::prelude::*;
     #[cfg(feature = "navigation")]
     pub use oxygengine_navigation::prelude::*;
     #[cfg(feature = "network")]
@@ -120,4 +141,6 @@ pub mod prelude {
     #[cfg(feature = "script-web")]
     pub use oxygengine_script_web::prelude::*;
     pub use oxygengine_utils::prelude::*;
+    #[cfg(feature = "visual-novel")]
+    pub use oxygengine_visual_novel::prelude::*;
 }

@@ -1,5 +1,12 @@
-use crate::math::{Mat2d, Rect, Vec2};
-use core::ecs::{storage::UnprotectedStorage, world::Index, BitSet, DenseVecStorage, Entity, Join};
+use crate::{
+    component::{UiImagePath, UiMargin},
+    math::{Mat2d, Rect, Vec2},
+};
+use core::{
+    ecs::{storage::UnprotectedStorage, world::Index, BitSet, DenseVecStorage, Entity, Join},
+    Scalar,
+};
+use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, collections::HashMap};
 
 #[derive(Default)]
@@ -146,6 +153,23 @@ impl CompositeCameraCache {
         }
         None
     }
+
+    pub fn calculate_view_box(&self, entity: Entity) -> Option<Rect> {
+        let m = self.world_inverse_transforms.get(&entity)?;
+        let p1 = *m * Vec2::new(0.0, 0.0);
+        let p2 = *m * Vec2::new(self.last_view_size.x, 0.0);
+        let p3 = *m * self.last_view_size;
+        let p4 = *m * Vec2::new(0.0, self.last_view_size.y);
+        Rect::bounding(&[p1, p2, p3, p4])
+    }
+
+    pub fn calculate_world_size(&self, entity: Entity) -> Option<Vec2> {
+        let m = self.world_inverse_transforms.get(&entity)?;
+        let p1 = *m * Vec2::new(0.0, 0.0);
+        let p2 = *m * Vec2::new(self.last_view_size.x, 0.0);
+        let p3 = *m * Vec2::new(0.0, self.last_view_size.y);
+        Some(Vec2::new((p2 - p1).magnitude(), (p3 - p1).magnitude()))
+    }
 }
 
 #[derive(Debug, Default)]
@@ -155,6 +179,10 @@ pub struct CompositeUiInteractibles {
 }
 
 impl CompositeUiInteractibles {
+    pub fn names(&self) -> impl Iterator<Item = &str> {
+        self.bounding_boxes.keys().map(|key| key.as_ref())
+    }
+
     pub fn find_rect(&self, name: &str) -> Option<Rect> {
         self.bounding_boxes.get(name).copied()
     }
@@ -166,4 +194,44 @@ impl CompositeUiInteractibles {
             false
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum UiThemed {
+    None,
+    Image {
+        #[serde(default)]
+        source_rect: Rect,
+        #[serde(default)]
+        image_margin: UiMargin,
+        #[serde(default)]
+        image_path: UiImagePath,
+        #[serde(default = "UiThemed::default_alpha")]
+        alpha: Scalar,
+    },
+    Text {
+        #[serde(default)]
+        font_name: Cow<'static, str>,
+        #[serde(default)]
+        font_size: Scalar,
+        #[serde(default = "UiThemed::default_alpha")]
+        alpha: Scalar,
+    },
+}
+
+impl Default for UiThemed {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl UiThemed {
+    fn default_alpha() -> Scalar {
+        1.0
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct CompositeUiThemes {
+    pub themes: HashMap<Cow<'static, str>, UiThemed>,
 }

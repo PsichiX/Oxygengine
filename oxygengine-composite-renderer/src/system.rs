@@ -8,12 +8,15 @@ use crate::{
         CompositeSurfaceCache, CompositeTilemap, CompositeTilemapAnimation, CompositeTransform,
         CompositeUiElement, CompositeVisibility, TileCell,
     },
-    composite_renderer::{Command, CompositeRenderer, Image, Rectangle, Renderable, Stats},
+    composite_renderer::{Command, CompositeRenderer, Image, Renderable, Stats},
     map_asset_protocol::{Map, MapAsset},
-    math::{Mat2d, Rect, Scalar, Vec2},
-    resource::{CompositeCameraCache, CompositeTransformRes, CompositeUiInteractibles},
+    math::{Mat2d, Rect, Vec2},
+    resource::{
+        CompositeCameraCache, CompositeTransformRes, CompositeUiInteractibles, CompositeUiThemes,
+    },
     sprite_sheet_asset_protocol::SpriteSheetAsset,
     tileset_asset_protocol::{TilesetAsset, TilesetInfo},
+    ui_theme_asset_protocol::UiThemeAsset,
 };
 use core::{
     app::AppLifeCycle,
@@ -23,6 +26,7 @@ use core::{
         Resources, System, Write, WriteStorage,
     },
     hierarchy::{HierarchyRes, Name, Parent, Tag},
+    Scalar,
 };
 use std::{cmp::Ordering, collections::HashMap, marker::PhantomData};
 use utils::grid_2d::Grid2d;
@@ -208,10 +212,8 @@ where
         stats.surfaces_count = renderer.surfaces_count();
 
         if let Some(color) = renderer.state().clear_color {
-            let result = renderer.execute(vec![Command::Draw(Renderable::Rectangle(Rectangle {
-                color,
-                rect: [0.0, 0.0, w, h].into(),
-            }))]);
+            let result =
+                renderer.execute(vec![Command::Draw(Renderable::FullscreenRectangle(color))]);
             if let Ok((render_ops, renderables)) = result {
                 stats.render_ops += render_ops;
                 stats.renderables += renderables;
@@ -226,7 +228,13 @@ where
                 } else {
                     true
                 };
-                if visible {
+                let alpha = alphas.get(entity).map(|alpha| alpha.0);
+                let alpha_visible = if let Some(alpha) = alpha {
+                    alpha > 0.0
+                } else {
+                    true
+                };
+                if visible && alpha_visible {
                     let layer = if let Some(layer) = layers.get(entity) {
                         layer.0
                     } else {
@@ -237,7 +245,7 @@ where
                     } else {
                         0.0
                     };
-                    Some((layer, depth, camera, transform))
+                    Some((layer, depth, alpha, camera, transform))
                 } else {
                     None
                 }
@@ -252,7 +260,7 @@ where
             }
         });
 
-        for (_, _, camera, camera_transform) in sorted_cameras {
+        for (_, _, camera_alpha, camera, camera_transform) in sorted_cameras {
             let mut sorted = (&entities, &renderables, transform_res.read())
                 .join()
                 .filter(|(entity, _, _)| {
@@ -267,7 +275,12 @@ where
                     } else {
                         true
                     };
-                    if visible {
+                    let alpha_visible = if let Some(alpha) = alphas.get(entity) {
+                        alpha.0 > 0.0
+                    } else {
+                        true
+                    };
+                    if visible && alpha_visible {
                         let layer = if let Some(layer) = layers.get(entity) {
                             layer.0
                         } else {
@@ -298,6 +311,11 @@ where
                 .chain(std::iter::once({
                     let [a, b, c, d, e, f] = camera_matrix.0;
                     Command::Transform(a, b, c, d, e, f)
+                }))
+                .chain(std::iter::once(if let Some(alpha) = camera_alpha {
+                    Command::Alpha(alpha)
+                } else {
+                    Command::None
                 }))
                 .chain(
                     sorted
@@ -760,7 +778,9 @@ where
     #[allow(clippy::type_complexity)]
     type SystemData = (
         Option<Read<'s, CR>>,
+        ReadExpect<'s, AssetsDatabase>,
         Write<'s, CompositeUiInteractibles>,
+        Write<'s, CompositeUiThemes>,
         WriteStorage<'s, CompositeUiElement>,
         WriteStorage<'s, CompositeRenderable>,
         ReadStorage<'s, CompositeCamera>,
@@ -770,8 +790,43 @@ where
 
     fn run(
         &mut self,
-        (renderer, mut interactibles, mut ui_elements, mut renderables, cameras, transforms, names): Self::SystemData,
+        (
+            renderer,
+            assets,
+            mut interactibles,
+            mut themes,
+            mut ui_elements,
+            mut renderables,
+            cameras,
+            transforms,
+            names,
+        ): Self::SystemData,
     ) {
+        for id in assets.lately_loaded_protocol("ui-theme") {
+            let id = *id;
+            let asset = assets
+                .asset_by_id(id)
+                .expect("trying to use not loaded ui theme asset");
+            let asset = asset
+                .get::<UiThemeAsset>()
+                .expect("trying to use non-ui-theme asset");
+            for (key, value) in asset.get() {
+                themes.themes.insert(key.clone().into(), value.clone());
+            }
+        }
+        for id in assets.lately_unloaded_protocol("ui-theme") {
+            let id = *id;
+            let asset = assets
+                .asset_by_id(id)
+                .expect("trying to use not loaded ui theme asset");
+            let asset = asset
+                .get::<UiThemeAsset>()
+                .expect("trying to use non-ui-theme asset");
+            for key in asset.get().keys() {
+                themes.themes.remove(key.clone().as_str());
+            }
+        }
+
         if renderer.is_none() {
             return;
         }
@@ -781,6 +836,7 @@ where
         let force_update = (self.last_view_size - view_size).sqr_magnitude() > 1.0e-4;
         self.last_view_size = view_size;
 
+        interactibles.bounding_boxes.clear();
         for (mut ui_element, mut renderable) in (&mut ui_elements, &mut renderables).join() {
             if ui_element.dirty || force_update {
                 if let Some(rect) = (&cameras, &names, &transforms)
@@ -803,7 +859,9 @@ where
                         }
                     })
                 {
-                    let commands = ui_element.build_commands(rect, &mut interactibles).0;
+                    let commands = ui_element
+                        .build_commands(rect, &mut interactibles, &themes)
+                        .0;
                     renderable.0 = Renderable::Commands(commands);
                     ui_element.dirty = false;
                 }

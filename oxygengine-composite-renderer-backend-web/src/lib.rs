@@ -7,6 +7,7 @@ extern crate oxygengine_core as core;
 use core::{
     assets::{asset::AssetID, database::AssetsDatabase},
     error::*,
+    Scalar,
 };
 use js_sys::{Array, Uint8Array};
 use renderer::{composite_renderer::*, math::*, png_image_asset_protocol::PngImageAsset};
@@ -76,6 +77,7 @@ impl WebCompositeRenderer {
     fn execute_with<'a, I>(
         &self,
         context: &CanvasRenderingContext2d,
+        mut current_alpha: Scalar,
         commands: I,
     ) -> Result<(usize, usize)>
     where
@@ -83,6 +85,7 @@ impl WebCompositeRenderer {
     {
         let mut render_ops = 0;
         let mut renderables = 0;
+        let mut alpha_stack = vec![current_alpha];
         for command in commands {
             match command {
                 Command::Draw(renderable) => match renderable {
@@ -95,6 +98,20 @@ impl WebCompositeRenderer {
                             rectangle.rect.w.into(),
                             rectangle.rect.h.into(),
                         );
+                        render_ops += 2;
+                        renderables += 1;
+                    }
+                    Renderable::FullscreenRectangle(color) => {
+                        context.save();
+                        drop(context.set_transform(1.0, 0.0, 0.0, 1.0, 0.0, 0.0));
+                        context.set_fill_style(&color.to_string().into());
+                        context.fill_rect(
+                            0.0,
+                            0.0,
+                            self.view_size.x.into(),
+                            self.view_size.y.into(),
+                        );
+                        context.restore();
                         render_ops += 2;
                         renderables += 1;
                     }
@@ -289,7 +306,8 @@ impl WebCompositeRenderer {
                         }
                     }
                     Renderable::Commands(commands) => {
-                        let (o, r) = self.execute_with(context, commands.into_iter())?;
+                        let (o, r) =
+                            self.execute_with(context, current_alpha, commands.into_iter())?;
                         render_ops += o;
                         renderables += r;
                     }
@@ -306,6 +324,21 @@ impl WebCompositeRenderer {
                             rectangle.rect.h.into(),
                         );
                         render_ops += 3;
+                        renderables += 1;
+                    }
+                    Renderable::FullscreenRectangle(color) => {
+                        context.save();
+                        drop(context.set_transform(1.0, 0.0, 0.0, 1.0, 0.0, 0.0));
+                        context.set_stroke_style(&color.to_string().into());
+                        context.set_line_width(line_width.into());
+                        context.fill_rect(
+                            0.0,
+                            0.0,
+                            self.view_size.x.into(),
+                            self.view_size.y.into(),
+                        );
+                        context.restore();
+                        render_ops += 2;
                         renderables += 1;
                     }
                     Renderable::Text(text) => {
@@ -439,14 +472,17 @@ impl WebCompositeRenderer {
                     render_ops += 1;
                 }
                 Command::Alpha(alpha) => {
-                    context.set_global_alpha(alpha.into());
+                    current_alpha = alpha_stack.last().copied().unwrap_or(1.0) * alpha;
+                    context.set_global_alpha(current_alpha.max(0.0).min(1.0).into());
                     render_ops += 1;
                 }
                 Command::Store => {
+                    alpha_stack.push(current_alpha);
                     context.save();
                     render_ops += 1;
                 }
                 Command::Restore => {
+                    current_alpha = alpha_stack.pop().unwrap_or(1.0);
                     context.restore();
                     render_ops += 1;
                 }
@@ -462,7 +498,7 @@ impl CompositeRenderer for WebCompositeRenderer {
     where
         I: IntoIterator<Item = Command<'a>>,
     {
-        self.execute_with(&self.context, commands)
+        self.execute_with(&self.context, 1.0, commands)
     }
 
     fn images_count(&self) -> usize {
@@ -488,7 +524,9 @@ impl CompositeRenderer for WebCompositeRenderer {
     fn update_state(&mut self) {
         let w = self.canvas.client_width();
         let h = self.canvas.client_height();
-        if (self.view_size.x - w as f32).abs() > 1.0 || (self.view_size.y - h as f32).abs() > 1.0 {
+        if (self.view_size.x - w as Scalar).abs() > 1.0
+            || (self.view_size.y - h as Scalar).abs() > 1.0
+        {
             self.canvas.set_width(w as u32);
             self.canvas.set_height(h as u32);
             self.view_size = Vec2::new(w as Scalar, h as Scalar);
@@ -577,7 +615,7 @@ impl CompositeRenderer for WebCompositeRenderer {
     {
         if let Some((canvas, context)) = self.surfaces_cache.get(name) {
             context.clear_rect(0.0, 0.0, canvas.width().into(), canvas.height().into());
-            self.execute_with(context, commands)
+            self.execute_with(context, 1.0, commands)
         } else {
             Err(Error::Message(format!("There is no '{}' surface", name)))
         }

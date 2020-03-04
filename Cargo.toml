@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine"
-version = "0.6.5"
+version = "0.7.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygen Engine"
@@ -18,34 +18,81 @@ exclude = [
 readme = "README.md"
 
 [features]
+web = [
+  "oxygengine-backend-web",
+  "oxygengine-animation/web",
+  "oxygengine-audio/web",
+  "oxygengine-composite-renderer/web",
+  "oxygengine-core/web",
+  "oxygengine-input/web",
+  "oxygengine-integration-p2d-cr/web",
+  "oxygengine-integration-vn-cr/web",
+  "oxygengine-navigation/web",
+  "oxygengine-network/web",
+  "oxygengine-physics-2d/web",
+  "oxygengine-script-flow/web",
+  "oxygengine-visual-novel/web",
+]
 parallel = [
-  "oxygengine-core/parallel",
+  "oxygengine-audio/parallel",
+  "oxygengine-animation/parallel",
   "oxygengine-composite-renderer/parallel",
+  "oxygengine-core/parallel",
   "oxygengine-input/parallel",
+  "oxygengine-integration-p2d-cr/parallel",
+  "oxygengine-integration-vn-cr/parallel",
   "oxygengine-navigation/parallel",
   "oxygengine-network/parallel",
   "oxygengine-network-backend-desktop/parallel",
   "oxygengine-network-backend-native/parallel",
+  "oxygengine-physics-2d/parallel",
+  "oxygengine-procedural/parallel",
+  "oxygengine-script-flow/parallel",
+  "oxygengine-utils/parallel",
+  "oxygengine-visual-novel/parallel",
 ]
-web = [
-  "oxygengine-backend-web",
-  "oxygengine-core/web",
-  "oxygengine-physics-2d/web",
+scalar64 = [
+  "oxygengine-audio/scalar64",
+  "oxygengine-animation/scalar64",
+  "oxygengine-audio-backend-web/scalar64",
+  "oxygengine-backend-web/scalar64",
+  "oxygengine-composite-renderer/scalar64",
+  "oxygengine-composite-renderer-backend-web/scalar64",
+  "oxygengine-core/scalar64",
+  "oxygengine-input/scalar64",
+  "oxygengine-input-device-web/scalar64",
+  "oxygengine-integration-p2d-cr/scalar64",
+  "oxygengine-integration-vn-cr/scalar64",
+  "oxygengine-navigation/scalar64",
+  "oxygengine-network/scalar64",
+  "oxygengine-network-backend-desktop/scalar64",
+  "oxygengine-network-backend-native/scalar64",
+  "oxygengine-network-backend-web/scalar64",
+  "oxygengine-physics-2d/scalar64",
+  "oxygengine-procedural/scalar64",
+  "oxygengine-script-flow/scalar64",
+  "oxygengine-script-web/scalar64",
+  "oxygengine-utils/scalar64",
+  "oxygengine-visual-novel/scalar64",
 ]
 desktop = ["parallel"]
 input = ["oxygengine-input", "oxygengine-script-web/input"]
 composite-renderer = ["oxygengine-composite-renderer", "oxygengine-script-web/composite-renderer"]
+animation = ["oxygengine-animation"]
 network = ["oxygengine-network"]
 procedural = ["oxygengine-procedural"]
 navigation = ["oxygengine-navigation"]
 audio = ["oxygengine-audio", "oxygengine-script-web/audio"]
 physics-2d = ["oxygengine-physics-2d"]
 script-web = ["oxygengine-script-web"]
-script-flow = ["oxygengine-script-flow"]
+script-flow = ["oxygengine-script-flow", "oxygengine-visual-novel/script-flow"]
 integration-physics-2d-composite-renderer = ["oxygengine-integration-p2d-cr"]
+integration-visual-novel-composite-renderer = ["oxygengine-integration-vn-cr"]
+visual-novel = ["oxygengine-visual-novel"]
 web-composite-game = [
   "web",
   "composite-renderer",
+  "animation",
   "input",
   "network",
   "navigation",
@@ -55,6 +102,18 @@ web-composite-game = [
   "oxygengine-composite-renderer-backend-web",
   "oxygengine-input-device-web",
   "oxygengine-network-backend-web",
+  "oxygengine-audio-backend-web",
+]
+web-composite-visual-novel-game = [
+  "web",
+  "composite-renderer",
+  "animation",
+  "input",
+  "audio",
+  "visual-novel",
+  "integration-visual-novel-composite-renderer",
+  "oxygengine-composite-renderer-backend-web",
+  "oxygengine-input-device-web",
   "oxygengine-audio-backend-web",
 ]
 desktop-headless-game = [
@@ -71,92 +130,107 @@ desktop-native-headless-game = [
 ]
 
 [dependencies]
-oxygengine-core = { version = "0.6", path = "./oxygengine-core" }
-oxygengine-utils = { version = "0.6", path = "./oxygengine-utils" }
+oxygengine-core = { version = "0.7", path = "./oxygengine-core" }
+oxygengine-utils = { version = "0.7", path = "./oxygengine-utils" }
 
 [dependencies.oxygengine-backend-web]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-backend-web"
 optional = true
 
 [dependencies.oxygengine-input]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-input"
 optional = true
 
 [dependencies.oxygengine-input-device-web]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-input-device-web"
 optional = true
 
 [dependencies.oxygengine-composite-renderer]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-composite-renderer"
 optional = true
 
 [dependencies.oxygengine-composite-renderer-backend-web]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-composite-renderer-backend-web"
 optional = true
 
 [dependencies.oxygengine-network]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-network"
 optional = true
 
 [dependencies.oxygengine-network-backend-web]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-network-backend-web"
 optional = true
 
 [dependencies.oxygengine-network-backend-desktop]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-network-backend-desktop"
 optional = true
 
 [dependencies.oxygengine-network-backend-native]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-network-backend-native"
 optional = true
 
 [dependencies.oxygengine-procedural]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-procedural"
 optional = true
 
 [dependencies.oxygengine-navigation]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-navigation"
 optional = true
 
 [dependencies.oxygengine-audio]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-audio"
 optional = true
 
 [dependencies.oxygengine-audio-backend-web]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-audio-backend-web"
 optional = true
 
 [dependencies.oxygengine-physics-2d]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-physics-2d"
 optional = true
 
 [dependencies.oxygengine-integration-p2d-cr]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-integration-p2d-cr"
 optional = true
 
+[dependencies.oxygengine-integration-vn-cr]
+version = "0.7"
+path = "./oxygengine-integration-vn-cr"
+optional = true
+
 [dependencies.oxygengine-script-web]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-script-web"
 optional = true
 
 [dependencies.oxygengine-script-flow]
-version = "0.6"
+version = "0.7"
 path = "./oxygengine-script-flow"
+optional = true
+
+[dependencies.oxygengine-visual-novel]
+version = "0.7"
+path = "./oxygengine-visual-novel"
+optional = true
+
+[dependencies.oxygengine-animation]
+version = "0.7"
+path = "./oxygengine-animation"
 optional = true
 
 [workspace]
@@ -179,13 +253,17 @@ members = [
   "oxygengine-audio-backend-web",
   "oxygengine-physics-2d",
   "oxygengine-integration-p2d-cr",
+  "oxygengine-integration-vn-cr",
   "oxygengine-script-web",
-  "oxygengine-build-tools",
   "oxygengine-script-flow",
+  "oxygengine-visual-novel",
+  "oxygengine-animation",
+  "oxygengine-build-tools",
   "oxygengine-js",
   "demos/procedural-world-simulation",
   "demos/amethyst-integration",
   "demos/basic-web-game",
   "demos/demo-web-game",
   "demos/hybrid-script-game",
+  "demos/visual-novel-testbed",
 ]

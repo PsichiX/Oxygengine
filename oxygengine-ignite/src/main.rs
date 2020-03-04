@@ -568,9 +568,9 @@ fn main() -> Result<()> {
             match serde_json::from_str::<Pipeline>(&contents) {
                 Ok(pipeline) => {
                     if dry_run {
-                        pipeline.execute()?;
-                    } else {
                         pipeline.dry_run();
+                    } else {
+                        pipeline.execute()?;
                     }
                 }
                 Err(error) => println!(

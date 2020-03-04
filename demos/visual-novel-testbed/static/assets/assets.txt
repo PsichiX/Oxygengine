@@ -1,0 +1,8 @@
+png://logo.png
+png://bg-street.png
+png://ui-panel-dark.png
+png://miki-frown.png
+png://miki-open.png
+png://miki-smile.png
+ui-theme://ui.json
+vn-story://story.yaml

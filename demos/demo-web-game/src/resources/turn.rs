@@ -1,13 +1,13 @@
 use oxygengine::prelude::*;
 
-const WAITING_TIME: f64 = 3.0;
-const PLAYING_TIME: f64 = 9.0;
+const WAITING_TIME: Scalar = 3.0;
+const PLAYING_TIME: Scalar = 9.0;
 
 #[derive(Debug, Copy, Clone)]
 pub enum Timer {
     None,
-    Waiting(f64),
-    Playing(f64),
+    Waiting(Scalar),
+    Playing(Scalar),
 }
 
 impl Default for Timer {
@@ -97,7 +97,7 @@ impl TurnManager {
         self.timer = Timer::None;
     }
 
-    pub fn process(&mut self, delta_time: f64) {
+    pub fn process(&mut self, delta_time: Scalar) {
         match self.timer {
             Timer::Waiting(mut t) => {
                 t -= delta_time;

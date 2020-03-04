@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct AppLifeCycleScripted {
     pub running: bool,
-    pub delta_time_seconds: f64,
+    pub delta_time_seconds: Scalar,
     pub current_state_token: StateToken,
 }
 

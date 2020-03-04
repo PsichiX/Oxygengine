@@ -28,12 +28,18 @@ pub mod id {
 
 pub mod ecs {
     pub use shred::Resource;
+    pub use shrev::*;
     pub use specs::*;
 }
 
 pub mod prelude {
     pub use crate::{
         app::*, assets::prelude::*, ecs::*, fetch::prelude::*, fetch::*, hierarchy::*, id::*,
-        localization::*, log::*, prefab::*, state::*, storage::prelude::*, storage::*,
+        localization::*, log::*, prefab::*, state::*, storage::prelude::*, storage::*, Scalar,
     };
 }
+
+#[cfg(feature = "scalar64")]
+pub type Scalar = f64;
+#[cfg(not(feature = "scalar64"))]
+pub type Scalar = f32;

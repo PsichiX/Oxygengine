@@ -2,6 +2,7 @@ use crate::{
     interface::{ResourceAccess, ResourceModify},
     scriptable::ScriptableValue,
 };
+use oxygengine_core::Scalar;
 use oxygengine_input::resource::{InputController, TriggerState};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -40,7 +41,7 @@ impl ResourceModify<InputControllerMappingsScripted> for InputController {
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct InputControllerStateScripted {
-    pub axes: HashMap<String, f32>,
+    pub axes: HashMap<String, Scalar>,
     pub triggers: HashMap<String, TriggerState>,
 }
 

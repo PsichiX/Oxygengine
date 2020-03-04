@@ -10,8 +10,8 @@ use crate::{
 };
 use oxygengine::prelude::*;
 
-const BULLET_VELOCITY: f64 = 200.0;
-const BULLET_OFFSET: f64 = 64.0;
+const BULLET_VELOCITY: Scalar = 200.0;
+const BULLET_OFFSET: Scalar = 64.0;
 
 pub struct PlayerControlSystem;
 
@@ -51,10 +51,8 @@ impl<'s> System<'s> for PlayerControlSystem {
         }
 
         let dt = lifecycle.delta_time_seconds();
-        let hor =
-            -input.axis_or_default("move-left") as f64 + input.axis_or_default("move-right") as f64;
-        let ver =
-            -input.axis_or_default("move-up") as f64 + input.axis_or_default("move-down") as f64;
+        let hor = -input.axis_or_default("move-left") + input.axis_or_default("move-right");
+        let ver = -input.axis_or_default("move-up") + input.axis_or_default("move-down");
 
         if let Some(active) = turns.selected_playing() {
             for (entity, player, speed, body) in (&entities, &players, &speed, &bodies).join() {

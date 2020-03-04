@@ -1,4 +1,4 @@
-use crate::Scalar;
+use core::Scalar;
 use std::any::Any;
 
 pub trait InputDevice: Any + Send + Sync {

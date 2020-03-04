@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-utils"
-version = "0.6.5"
+version = "0.7.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Utilities module for Oxygen Engine"
@@ -12,6 +12,7 @@ readme = "../README.md"
 
 [features]
 parallel = ["rayon"]
+scalar64 = []
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

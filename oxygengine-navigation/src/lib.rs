@@ -9,8 +9,6 @@ pub mod prelude {
     pub use crate::{component::*, nav_mesh_asset_protocol::*, resource::*, system::*};
 }
 
-pub type Scalar = f64;
-
 use crate::{
     component::NavAgent,
     resource::NavMeshesRes,

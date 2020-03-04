@@ -5,7 +5,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone)]
 pub enum Spawn {
     /// (position, rotation, owner type, velocity)
-    Bullet(Vector<f64>, f64, PlayerType, Velocity<f64>),
+    Bullet(Vector<Scalar>, Scalar, PlayerType, Velocity<Scalar>),
 }
 
 #[allow(dead_code)]

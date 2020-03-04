@@ -2,6 +2,7 @@ template_name: instance
 entities:
   - Data:
       components:
+        Tag: world
         CompositeRenderable:
           Image:
             image: logo.png

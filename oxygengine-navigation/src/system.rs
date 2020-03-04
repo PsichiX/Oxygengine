@@ -1,11 +1,11 @@
 use crate::{
     component::{NavAgent, NavAgentTarget, SimpleNavDriverTag},
     resource::{NavMesh, NavMeshesRes, NavVec3},
-    Scalar,
 };
 use core::{
     app::AppLifeCycle,
     ecs::{Entities, Entity, Join, Read, ReadExpect, ReadStorage, System, WriteStorage},
+    Scalar,
 };
 use std::collections::HashMap;
 

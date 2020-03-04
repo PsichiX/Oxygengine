@@ -1,0 +1,46 @@
+characters:
+  Miki:
+    name: Miki
+    styles:
+      Frown: miki-frown.png
+      Open: miki-open.png
+      Smile: miki-smile.png
+    style:
+      from: Smile
+      to: Smile
+    visibility:
+      value_spline:
+        - point: 1
+    name_color:
+      value_spline:
+        - point: [1, 1, 0]
+    position:
+      value_spline:
+        - point: [0.75, 1]
+    alignment:
+      value_spline:
+        - point: [0.5, 1]
+backgrounds:
+  Street:
+    name: Street
+    image: bg-street.png
+scenes:
+  Street:
+    name: Street
+    background_style:
+      from: Street
+      to: Street
+chapters:
+  Main:
+    name: Main
+    actions:
+      - GoToScene: Street
+      - ShowDialogue:
+          character: Miki
+          text: Ohayo!
+          options:
+            - text: Hi!
+              action:
+                JumpToLabel: End
+      - Label: End
+      - EndScene

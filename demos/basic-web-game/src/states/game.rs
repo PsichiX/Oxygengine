@@ -74,7 +74,7 @@ impl State for GameState {
                         .read_resource::<CompositeUiInteractibles>()
                         .does_rect_contains_point("panel", pos)
                     {
-                        info!("=== PANEL GOT CLICKED!");
+                        info!("PANEL GOT CLICKED!");
                     }
                 }
             }

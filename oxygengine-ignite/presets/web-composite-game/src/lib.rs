@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate oxygengine;
+
 use crate::{
     components::{speed::Speed, KeyboardMovementTag},
     states::loading::LoadingState,
@@ -89,6 +92,8 @@ pub fn main_js() -> Result<(), JsValue> {
             oxygengine::integration_physics_2d_composite_renderer::bundle_installer,
             (),
         )
+        // install web storage engine resource.
+        .with_resource(WebStorageEngine)
         .with_system(KeyboardMovementSystem, "keyboard_movement", &[])
         .build(LoadingState::default(), WebAppTimer::default());
 

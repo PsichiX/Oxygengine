@@ -104,11 +104,11 @@ fn init_nav_mesh(world: &mut World) {
     world.write_resource::<NavMeshesRes>().register(mesh);
 }
 
-fn init_agent<T>(world: &mut World, x: f32, y: f32, speed: f64)
+fn init_agent<T>(world: &mut World, x: Scalar, y: Scalar, speed: Scalar)
 where
     T: Component + Default + Copy + Send + Sync,
 {
-    let mut agent = NavAgent::new((x as f64, y as f64).into());
+    let mut agent = NavAgent::new((x, y).into());
     agent.speed = speed;
     world
         .create_entity()

@@ -1,4 +1,7 @@
-use core::prelude::*;
+use core::{
+    app::{App, AppLifeCycle, AppTimer, BackendAppRunner},
+    Scalar,
+};
 use std::{cell::RefCell, rc::Rc, time::Duration};
 use wasm_bindgen::{prelude::*, JsCast};
 
@@ -19,15 +22,15 @@ fn performance() -> web_sys::Performance {
 }
 
 pub struct WebAppTimer {
-    timer: f64,
+    timer: Scalar,
     delta_time: Duration,
-    delta_time_seconds: f64,
+    delta_time_seconds: Scalar,
 }
 
 impl Default for WebAppTimer {
     fn default() -> Self {
         Self {
-            timer: performance().now() * 0.001,
+            timer: performance().now() as Scalar * 0.001,
             delta_time: Duration::default(),
             delta_time_seconds: 0.0,
         }
@@ -36,7 +39,7 @@ impl Default for WebAppTimer {
 
 impl AppTimer for WebAppTimer {
     fn tick(&mut self) {
-        let t = performance().now() * 0.001;
+        let t = performance().now() as Scalar * 0.001;
         let d = t - self.timer;
         self.timer = t;
         self.delta_time = Duration::new(d as u64, (d.fract() * 1e9) as u32);
@@ -47,7 +50,7 @@ impl AppTimer for WebAppTimer {
         self.delta_time
     }
 
-    fn delta_time_seconds(&self) -> f64 {
+    fn delta_time_seconds(&self) -> Scalar {
         self.delta_time_seconds
     }
 }

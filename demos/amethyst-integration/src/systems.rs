@@ -22,7 +22,7 @@ impl<'s> System<'s> for NavDriverSystem {
     );
 
     fn run(&mut self, (time, agents, drivers): Self::SystemData) {
-        SimpleNavDriverSystem::run_impl(time.delta_seconds() as f64, (agents, drivers));
+        SimpleNavDriverSystem::run_impl(time.delta_seconds() as Scalar, (agents, drivers));
     }
 }
 
@@ -88,7 +88,7 @@ impl<'s> System<'s> for CommandAgentsSystem {
                     let mesh = meshes.meshes_iter().nth(0).unwrap().id();
                     self.mouse_left_cooldown = COMMAND_DELAY;
                     agent.set_destination(
-                        NavAgentTarget::Point((x as f64, y as f64).into()),
+                        NavAgentTarget::Point((x as Scalar, y as Scalar).into()),
                         NavQuery::Accuracy,
                         NavPathMode::Accuracy,
                         mesh,
@@ -100,8 +100,8 @@ impl<'s> System<'s> for CommandAgentsSystem {
                 if let Some((mut x, mut y)) = input.mouse_position() {
                     x = x.max(0.0).min(800.0);
                     y = 600.0 - y.max(0.0).min(600.0);
-                    agent.position.x = x as f64;
-                    agent.position.y = y as f64;
+                    agent.position.x = x as Scalar;
+                    agent.position.y = y as Scalar;
                     agent.position.z = 0.0;
                 }
             }

@@ -1,8 +1,8 @@
-use crate::Scalar;
 use core::{
     ecs::{Component, Entity, FlaggedStorage, VecStorage},
     prefab::{Prefab, PrefabError, PrefabProxy},
     state::StateToken,
+    Scalar,
 };
 use ncollide2d::{
     pipeline::CollisionGroups,
@@ -17,6 +17,10 @@ use nphysics2d::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+#[cfg(not(feature = "scalar64"))]
+use std::f32::{consts::PI as SCALAR_PI, MAX as SCALAR_MAX};
+#[cfg(feature = "scalar64")]
+use std::f64::{consts::PI as SCALAR_PI, MAX as SCALAR_MAX};
 
 pub(crate) enum RigidBody2dInner {
     None,
@@ -165,11 +169,11 @@ impl RigidBody2dPrefabProxy {
     }
 
     fn default_max_linear_velocity() -> Scalar {
-        std::f64::MAX
+        SCALAR_MAX
     }
 
     fn default_max_angular_velocity() -> Scalar {
-        std::f64::MAX
+        SCALAR_MAX
     }
 
     fn default_local_inertia() -> (Scalar, Scalar) {
@@ -362,7 +366,7 @@ impl Collider2dPrefabProxy {
     }
 
     fn default_angular_prediction() -> Scalar {
-        std::f64::consts::PI / 180.0 * 5.0
+        SCALAR_PI / 180.0 * 5.0
     }
 
     fn default_is_sensor() -> bool {
@@ -431,6 +435,7 @@ pub enum Collider2dBodyPrefabProxy {
     Me,
     Entity(String),
 }
+
 impl Prefab for Collider2dBodyPrefabProxy {}
 
 impl PrefabProxy<Collider2dBodyPrefabProxy> for Collider2dBody {

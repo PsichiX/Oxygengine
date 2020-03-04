@@ -5,6 +5,7 @@ use audio::resource::*;
 use core::{
     assets::{asset::AssetID, database::AssetsDatabase},
     ecs::Entity,
+    Scalar,
 };
 use futures::{future, Future};
 use js_sys::*;
@@ -57,8 +58,8 @@ impl Audio for WebAudio {
         data: &[u8],
         streaming: bool,
         looped: bool,
-        playback_rate: f32,
-        volume: f32,
+        playback_rate: Scalar,
+        volume: Scalar,
         play: bool,
         notify_ready: Arc<AtomicBool>,
     ) {
@@ -104,8 +105,8 @@ impl Audio for WebAudio {
                     .expect("Could not connect gain with audio output");
                 audio.set_buffer(Some(&buff));
                 audio.set_loop(looped);
-                audio.playback_rate().set_value(playback_rate);
-                gain.gain().set_value(volume);
+                audio.playback_rate().set_value(playback_rate as f32);
+                gain.gain().set_value(volume as f32);
                 if play {
                     audio.start().expect("Could not start audio source");
                 }
@@ -144,8 +145,8 @@ impl Audio for WebAudio {
         &mut self,
         entity: Entity,
         looped: bool,
-        playback_rate: f32,
-        volume: f32,
+        playback_rate: Scalar,
+        volume: Scalar,
         play: Option<bool>,
     ) {
         if let Some(audio) = self.sources_cache.get(&entity) {
@@ -153,8 +154,8 @@ impl Audio for WebAudio {
                 AudioCache::Buffered(audio, gain) => {
                     if audio.buffer().is_some() {
                         audio.set_loop(looped);
-                        audio.playback_rate().set_value(playback_rate);
-                        gain.gain().set_value(volume);
+                        audio.playback_rate().set_value(playback_rate as f32);
+                        gain.gain().set_value(volume as f32);
                         if let Some(play) = play {
                             if play {
                                 audio.start().expect("Could not start audio source");
@@ -186,7 +187,7 @@ impl Audio for WebAudio {
             Some(match audio {
                 AudioCache::Buffered(_, _) => AudioState { current_time: None },
                 AudioCache::Streaming(audio, _) => AudioState {
-                    current_time: Some(audio.current_time() as f32),
+                    current_time: Some(audio.current_time() as Scalar),
                 },
             })
         } else {

@@ -3,12 +3,13 @@
 use core::{
     assets::{asset::AssetID, database::AssetsDatabase},
     ecs::Entity,
+    Scalar,
 };
 use std::sync::{atomic::AtomicBool, Arc};
 
 #[derive(Debug, Default, Clone)]
 pub struct AudioState {
-    pub current_time: Option<f32>,
+    pub current_time: Option<Scalar>,
 }
 
 pub trait Audio: Send + Sync {
@@ -18,8 +19,8 @@ pub trait Audio: Send + Sync {
         data: &[u8],
         streaming: bool,
         looped: bool,
-        playback_rate: f32,
-        volume: f32,
+        playback_rate: Scalar,
+        volume: Scalar,
         play: bool,
         notify_ready: Arc<AtomicBool>,
     );
@@ -29,8 +30,8 @@ pub trait Audio: Send + Sync {
         &mut self,
         entity: Entity,
         looped: bool,
-        playback_rate: f32,
-        volume: f32,
+        playback_rate: Scalar,
+        volume: Scalar,
         play: Option<bool>,
     );
     fn get_source_state(&self, entity: Entity) -> Option<AudioState>;

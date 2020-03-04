@@ -9,6 +9,7 @@ pub enum Log {
     Info,
     Warning,
     Error,
+    Debug,
 }
 
 pub trait Logger: Send + Sync {
@@ -23,6 +24,7 @@ impl Logger for DefaultLogger {
             Log::Info => println!("[INFO] {}", message),
             Log::Warning => eprintln!("[WARNING] {}", message),
             Log::Error => eprintln!("[ERROR] {}", message),
+            Log::Debug => eprintln!("[DEBUG] {}", message),
         }
     }
 }
@@ -70,4 +72,9 @@ macro_rules! warn {
 #[macro_export]
 macro_rules! error {
     ($($arg:tt)*) => (log!($crate::log::Log::Error, $($arg)*))
+}
+
+#[macro_export]
+macro_rules! debug {
+    ($($arg:tt)*) => (log!($crate::log::Log::Debug, $($arg)*))
 }

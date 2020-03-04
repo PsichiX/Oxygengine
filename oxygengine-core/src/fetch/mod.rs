@@ -4,7 +4,7 @@ pub mod prelude {
     pub use super::{engines::prelude::*, engines::*};
 }
 
-use crate::id::ID;
+use crate::{id::ID, Scalar};
 use std::{
     mem::replace,
     sync::{Arc, Mutex},
@@ -21,7 +21,7 @@ pub enum FetchCancelReason {
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum FetchStatus {
     Empty,
-    InProgress(f32),
+    InProgress(Scalar),
     Done,
     Canceled(FetchCancelReason),
     Read,
@@ -96,7 +96,7 @@ impl FetchProcess {
         }
     }
 
-    pub fn progress(&mut self, value: f32) {
+    pub fn progress(&mut self, value: Scalar) {
         if let Ok(mut meta) = self.inner.lock() {
             *meta = (FetchStatus::InProgress(value), None);
         }
@@ -170,8 +170,6 @@ pub trait FetchEngine: Send + Sync {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     #[cfg(not(feature = "web"))]
     fn test_general() {

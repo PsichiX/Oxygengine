@@ -1,6 +1,7 @@
 use crate::{
     hierarchy::{HierarchyChangeRes, Name, NonPersistent, Parent, Tag},
     state::{State, StateChange, StateToken},
+    Scalar,
 };
 use specs::{
     world::EntitiesRes, Component, Dispatcher, DispatcherBuilder, Entity, Join, RunNow, System,
@@ -17,13 +18,13 @@ use std::{
 pub trait AppTimer: Send + Sync {
     fn tick(&mut self);
     fn delta_time(&self) -> Duration;
-    fn delta_time_seconds(&self) -> f64;
+    fn delta_time_seconds(&self) -> Scalar;
 }
 
 pub struct StandardAppTimer {
     timer: Instant,
     delta_time: Duration,
-    delta_time_seconds: f64,
+    delta_time_seconds: Scalar,
 }
 
 impl Default for StandardAppTimer {
@@ -41,14 +42,18 @@ impl AppTimer for StandardAppTimer {
         let d = self.timer.elapsed();
         self.timer = Instant::now();
         self.delta_time = d;
-        self.delta_time_seconds = d.as_secs() as f64 + f64::from(d.subsec_nanos()) * 1e-9;
+        #[cfg(feature = "scalar64")]
+        let secs = d.as_secs_f64();
+        #[cfg(not(feature = "scalar64"))]
+        let secs = d.as_secs_f32();
+        self.delta_time_seconds = secs + d.subsec_nanos() as Scalar * 1e-9;
     }
 
     fn delta_time(&self) -> Duration {
         self.delta_time
     }
 
-    fn delta_time_seconds(&self) -> f64 {
+    fn delta_time_seconds(&self) -> Scalar {
         self.delta_time_seconds
     }
 }
@@ -72,7 +77,7 @@ impl AppLifeCycle {
         self.timer.delta_time()
     }
 
-    pub fn delta_time_seconds(&self) -> f64 {
+    pub fn delta_time_seconds(&self) -> Scalar {
         self.timer.delta_time_seconds()
     }
 

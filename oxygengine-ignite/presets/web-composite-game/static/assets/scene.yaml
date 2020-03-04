@@ -5,6 +5,8 @@ entities:
         Name: camera
         CompositeCamera:
           scaling: CenterAspect
+          tags:
+            - world
         CompositeTransform:
           scale:
             x: 400
@@ -16,6 +18,19 @@ entities:
         NonPersistent: ~
   - Data:
       components:
+        Name: camera_ui
+        CompositeCamera:
+          scaling: Aspect
+          tags:
+            - ui
+        CompositeTransform:
+          scale:
+            x: 400
+            y: 400
+        NonPersistent: ~
+  - Data:
+      components:
+        Tag: world
         CompositeRenderable:
           Rectangle:
             color:
@@ -44,6 +59,7 @@ entities:
         NonPersistent: ~
   - Data:
       components:
+        Tag: world
         CompositeRenderable:
           Rectangle:
             color:
@@ -72,6 +88,7 @@ entities:
         NonPersistent: ~
   - Data:
       components:
+        Tag: world
         CompositeRenderable:
           Rectangle:
             color:
@@ -100,6 +117,7 @@ entities:
         NonPersistent: ~
   - Data:
       components:
+        Tag: world
         Name: player
         CompositeRenderable:
           Image:
@@ -129,6 +147,7 @@ entities:
         NonPersistent: ~
   - Data:
       components:
+        Tag: world
         CompositeRenderable:
           Text:
             font: Verdana
@@ -145,4 +164,46 @@ entities:
             x: 0
             y: -100
         CompositeRenderDepth: 1
+        NonPersistent: ~
+  - Data:
+      components:
+        Tag: ui
+        CompositeRenderable: None
+        CompositeTransform: {}
+        CompositeUiElement:
+          camera_name: camera_ui
+          theme: panel
+          interactive: panel
+          padding:
+            left: 8
+            right: 8
+            bottom: 8
+          left_anchor: 0
+          right_anchor: 1
+          top_anchor: 1
+          bottom_anchor: 1
+          alignment:
+            x: 0
+            y: 1
+          fixed_height: 50
+          element_type:
+            Image: {}
+          children:
+            - padding:
+                left: 8
+                right: 8
+                top: 8
+              left_anchor: 0
+              right_anchor: 1
+              top_anchor: 0
+              bottom_anchor: 1
+              theme: text
+              element_type:
+                Text:
+                  text: Hello, World!
+                  color:
+                    r: 255
+                    g: 255
+                    b: 0
+                    a: 255
         NonPersistent: ~

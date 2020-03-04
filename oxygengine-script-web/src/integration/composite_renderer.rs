@@ -4,6 +4,7 @@ use crate::{
 };
 use oxygengine_composite_renderer::{component::*, composite_renderer::*, math::*};
 use oxygengine_composite_renderer_backend_web::WebCompositeRenderer;
+use oxygengine_core::Scalar;
 use oxygengine_utils::grid_2d::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

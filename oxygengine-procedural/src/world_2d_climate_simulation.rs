@@ -1,38 +1,44 @@
 #![allow(dead_code)]
 
 use crate::world_2d::{World2dField, World2dSimulation};
-use oxygengine_utils::grid_2d::{Grid2d, Grid2dNeighborSample};
+use oxygengine_utils::{
+    grid_2d::{Grid2d, Grid2dNeighborSample},
+    Scalar,
+};
 use psyche_utils::switch::Switch;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+#[cfg(not(feature = "scalar64"))]
+use std::f32::consts::{E, PI};
+#[cfg(feature = "scalar64")]
+use std::f64::consts::{E, PI};
 use std::{
     any::Any,
-    f64::consts::{E, PI},
     ops::{Add, Div, Mul, Neg, Range, Sub},
 };
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub struct World2dClimateSimulationVector(pub f64, pub f64);
+pub struct World2dClimateSimulationVector(pub Scalar, pub Scalar);
 
 impl World2dClimateSimulationVector {
     #[inline]
-    pub fn neg_x(&self) -> Self {
+    pub fn neg_x(self) -> Self {
         Self(-self.0, self.1)
     }
 
     #[inline]
-    pub fn neg_y(&self) -> Self {
+    pub fn neg_y(self) -> Self {
         Self(self.0, -self.1)
     }
 
     #[inline]
-    pub fn dot(&self, other: Self) -> f64 {
+    pub fn dot(self, other: Self) -> Scalar {
         self.0 * other.0 + self.1 * other.1
     }
 
     #[inline]
-    pub fn refract(&self, normal: Self) -> Self {
+    pub fn refract(self, normal: Self) -> Self {
         let len = self.magnitude();
         let dot = self.dot(normal);
         let offset = if dot >= 0.0 {
@@ -40,21 +46,21 @@ impl World2dClimateSimulationVector {
         } else {
             normal * dot * 2.0
         };
-        (*self + offset).normalized() * len
+        (self + offset).normalized() * len
     }
 
     #[inline]
-    pub fn magnitude_sqr(&self) -> f64 {
+    pub fn magnitude_sqr(self) -> Scalar {
         self.0 * self.0 + self.1 * self.1
     }
 
     #[inline]
-    pub fn magnitude(&self) -> f64 {
+    pub fn magnitude(self) -> Scalar {
         self.magnitude_sqr().sqrt()
     }
 
     #[inline]
-    pub fn normalized(&self) -> Self {
+    pub fn normalized(self) -> Self {
         let mag = self.magnitude();
         if mag > 0.0 {
             Self(self.0 / mag, self.1 / mag)
@@ -64,14 +70,14 @@ impl World2dClimateSimulationVector {
     }
 }
 
-impl From<(f64, f64)> for World2dClimateSimulationVector {
-    fn from((x, y): (f64, f64)) -> Self {
+impl From<(Scalar, Scalar)> for World2dClimateSimulationVector {
+    fn from((x, y): (Scalar, Scalar)) -> Self {
         Self(x, y)
     }
 }
 
-impl Into<(f64, f64)> for World2dClimateSimulationVector {
-    fn into(self) -> (f64, f64) {
+impl Into<(Scalar, Scalar)> for World2dClimateSimulationVector {
+    fn into(self) -> (Scalar, Scalar) {
         (self.0, self.1)
     }
 }
@@ -92,10 +98,10 @@ impl Add for World2dClimateSimulationVector {
     }
 }
 
-impl Add<f64> for World2dClimateSimulationVector {
+impl Add<Scalar> for World2dClimateSimulationVector {
     type Output = Self;
 
-    fn add(self, other: f64) -> Self {
+    fn add(self, other: Scalar) -> Self {
         Self(self.0 + other, self.1 + other)
     }
 }
@@ -108,10 +114,10 @@ impl Sub for World2dClimateSimulationVector {
     }
 }
 
-impl Sub<f64> for World2dClimateSimulationVector {
+impl Sub<Scalar> for World2dClimateSimulationVector {
     type Output = Self;
 
-    fn sub(self, other: f64) -> Self {
+    fn sub(self, other: Scalar) -> Self {
         Self(self.0 - other, self.1 - other)
     }
 }
@@ -124,10 +130,10 @@ impl Mul for World2dClimateSimulationVector {
     }
 }
 
-impl Mul<f64> for World2dClimateSimulationVector {
+impl Mul<Scalar> for World2dClimateSimulationVector {
     type Output = Self;
 
-    fn mul(self, other: f64) -> Self {
+    fn mul(self, other: Scalar) -> Self {
         Self(self.0 * other, self.1 * other)
     }
 }
@@ -140,36 +146,36 @@ impl Div for World2dClimateSimulationVector {
     }
 }
 
-impl Div<f64> for World2dClimateSimulationVector {
+impl Div<Scalar> for World2dClimateSimulationVector {
     type Output = Self;
 
-    fn div(self, other: f64) -> Self {
+    fn div(self, other: Scalar) -> Self {
         Self(self.0 / other, self.1 / other)
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct World2dClimateSimulationConfig {
-    pub world_axis_angle: f64,
+    pub world_axis_angle: Scalar,
     pub full_year_steps: usize,
-    pub mass_diffuse_factor: f64,
+    pub mass_diffuse_factor: Scalar,
     pub mass_diffuse_iterations: usize,
-    pub mass_advect_factor: f64,
-    pub viscosity_factor: f64,
+    pub mass_advect_factor: Scalar,
+    pub viscosity_factor: Scalar,
     pub viscosity_iterations: usize,
     pub poisson_pressure_iterations: usize,
-    pub slopeness_refraction_power: f64,
-    pub water_capacity: f64,
-    pub altitude_range: Range<f64>,
-    pub temperature_range: Range<f64>,
-    pub humidity_limit_range: Range<f64>,
-    pub rainfall_factor: f64,
-    pub evaporation_factor: f64,
-    pub world_core_heating: f64,
-    pub sun_heating: f64,
-    pub sun_heating_adaptive_correction_factor: f64,
-    pub sun_heating_absorption_surface_water_range: Range<f64>,
-    pub thermal_radiation: f64,
+    pub slopeness_refraction_power: Scalar,
+    pub water_capacity: Scalar,
+    pub altitude_range: Range<Scalar>,
+    pub temperature_range: Range<Scalar>,
+    pub humidity_limit_range: Range<Scalar>,
+    pub rainfall_factor: Scalar,
+    pub evaporation_factor: Scalar,
+    pub world_core_heating: Scalar,
+    pub sun_heating: Scalar,
+    pub sun_heating_adaptive_correction_factor: Scalar,
+    pub sun_heating_absorption_surface_water_range: Range<Scalar>,
+    pub thermal_radiation: Scalar,
 }
 
 impl Default for World2dClimateSimulationConfig {
@@ -205,8 +211,8 @@ pub struct World2dClimateSimulation {
     steps: usize,
     years: usize,
     velocity: Option<Switch<Grid2d<World2dClimateSimulationVector>>>,
-    divergence: Option<Grid2d<f64>>,
-    pressure: Option<Switch<Grid2d<f64>>>,
+    divergence: Option<Grid2d<Scalar>>,
+    pressure: Option<Switch<Grid2d<Scalar>>>,
     slopeness: Option<Grid2d<World2dClimateSimulationVector>>,
 }
 
@@ -247,7 +253,7 @@ impl World2dClimateSimulation {
         }
     }
 
-    pub fn divergence(&self) -> Option<&Grid2d<f64>> {
+    pub fn divergence(&self) -> Option<&Grid2d<Scalar>> {
         if let Some(divergence) = &self.divergence {
             Some(divergence)
         } else {
@@ -255,7 +261,7 @@ impl World2dClimateSimulation {
         }
     }
 
-    pub fn pressure(&self) -> Option<&Grid2d<f64>> {
+    pub fn pressure(&self) -> Option<&Grid2d<Scalar>> {
         if let Some(pressure) = &self.pressure {
             pressure.get()
         } else {
@@ -278,12 +284,12 @@ impl World2dClimateSimulation {
     fn heat_exchange(
         &mut self,
         temperature: &mut World2dField,
-        surface_water: &Grid2d<f64>,
-        seasons_phase: f64,
+        surface_water: &Grid2d<Scalar>,
+        seasons_phase: Scalar,
     ) {
         let temperature = temperature.get_mut().unwrap();
-        let rows = temperature.rows() as f64;
-        let cols = temperature.cols() as f64;
+        let rows = temperature.rows() as Scalar;
+        let cols = temperature.cols() as Scalar;
         let world_core_heating = self.config.world_core_heating.max(0.0);
         let thermal_radiation = self.config.thermal_radiation.max(0.0);
         let sun_heating = self.config.sun_heating.max(0.0);
@@ -300,21 +306,21 @@ impl World2dClimateSimulation {
             };
             let absorption =
                 self.config.sun_heating_absorption_surface_water_range.start + absorption_diff * f;
-            let f = (PI * ((row as f64 + 0.5) / rows + seasons_phase)).sin();
+            let f = (PI * ((row as Scalar + 0.5) / rows + seasons_phase)).sin();
             let sun_value = (sun_heating * f * absorption).max(0.0);
             value + world_core_heating + sun_value - thermal_radiation
         });
         let size = cols * rows;
         #[cfg(not(feature = "parallel"))]
-        let average_temp = temperature.iter().sum::<f64>() / size;
+        let average_temp = temperature.iter().sum::<Scalar>() / size;
         #[cfg(feature = "parallel")]
-        let average_temp = temperature.par_iter().sum::<f64>() / size;
+        let average_temp = temperature.par_iter().sum::<Scalar>() / size;
         let dtemp = logistic_sigmoid_simple_signed(target_average_temp - average_temp);
         let f = self.config.sun_heating_adaptive_correction_factor;
         self.config.sun_heating = (self.config.sun_heating + dtemp * f).max(0.0);
     }
 
-    fn surface_water_transfer(&self, altitude: &Grid2d<f64>, surface_water: &mut World2dField) {
+    fn surface_water_transfer(&self, altitude: &Grid2d<Scalar>, surface_water: &mut World2dField) {
         let surface_water = surface_water.iterate().unwrap();
         diffuse_with_barriers(altitude, surface_water.0, surface_water.1);
     }
@@ -323,7 +329,7 @@ impl World2dClimateSimulation {
         &self,
         surface_water: &mut World2dField,
         humidity: &mut World2dField,
-        temperature: &Grid2d<f64>,
+        temperature: &Grid2d<Scalar>,
     ) {
         if self.config.water_capacity <= 0.0 {
             return;
@@ -390,10 +396,10 @@ impl World2dClimateSimulation {
 impl World2dSimulation for World2dClimateSimulation {
     fn initialize_world(
         &mut self,
-        altitude: &mut Grid2d<f64>,
-        temperature: &mut Grid2d<f64>,
-        _humidity: &mut Grid2d<f64>,
-        _surface_water: &mut Grid2d<f64>,
+        altitude: &mut Grid2d<Scalar>,
+        temperature: &mut Grid2d<Scalar>,
+        _humidity: &mut Grid2d<Scalar>,
+        _surface_water: &mut Grid2d<Scalar>,
     ) {
         self.velocity = Some(Switch::new(
             2,
@@ -424,7 +430,7 @@ impl World2dSimulation for World2dClimateSimulation {
         self.slopeness = Some(slopeness);
         let diff = self.config.temperature_range.end - self.config.temperature_range.start;
         temperature.with(|_, row, _| {
-            let f = (PI * ((row as f64 + 0.5) / rows as f64)).sin();
+            let f = (PI * ((row as Scalar + 0.5) / rows as Scalar)).sin();
             self.config.temperature_range.start + diff * f
         });
     }
@@ -443,9 +449,9 @@ impl World2dSimulation for World2dClimateSimulation {
         } else {
             self.steps = steps;
         }
-        let seasons_phase = ((self.steps as f64 / self.config.full_year_steps as f64) * PI * 2.0)
-            .sin()
-            * self.config.world_axis_angle.sin();
+        let seasons_phase =
+            ((self.steps as Scalar / self.config.full_year_steps as Scalar) * PI * 2.0).sin()
+                * self.config.world_axis_angle.sin();
 
         self.heat_exchange(temperature, surface_water.get().unwrap(), seasons_phase);
         self.surface_water_transfer(altitude.get().unwrap(), surface_water);
@@ -585,7 +591,7 @@ impl From<&World2dClimateSimulationData> for World2dClimateSimulation {
     }
 }
 
-fn apply_duplicate_boundaries(field: &mut Grid2d<f64>) {
+fn apply_duplicate_boundaries(field: &mut Grid2d<Scalar>) {
     let cols = field.cols();
     let rows = field.rows();
     for col in 1..(cols - 1) {
@@ -622,7 +628,7 @@ fn apply_mirror_boundaries(field: &mut Grid2d<World2dClimateSimulationVector>) {
 fn consider_obstacles(
     velocity: &mut Grid2d<World2dClimateSimulationVector>,
     slopeness: &Grid2d<World2dClimateSimulationVector>,
-    refraction_power: f64,
+    refraction_power: Scalar,
 ) {
     let cols = velocity.cols();
     let rows = velocity.rows();
@@ -641,10 +647,10 @@ fn consider_obstacles(
 }
 
 // a.k.a. Jacobi
-fn diffuse_scalar(field: &mut World2dField, iterations: usize, factor: f64) {
+fn diffuse_scalar(field: &mut World2dField, iterations: usize, factor: Scalar) {
     let cols = field.get().unwrap().cols();
     let rows = field.get().unwrap().rows();
-    let fa = (cols as f64 * rows as f64) * factor;
+    let fa = (cols as Scalar * rows as Scalar) * factor;
     let fb = 1.0 / (1.0 + 4.0 * fa);
     for _ in 0..iterations {
         let field = field.iterate().unwrap();
@@ -670,11 +676,11 @@ fn diffuse_scalar(field: &mut World2dField, iterations: usize, factor: f64) {
 fn diffuse_vector(
     field: &mut Switch<Grid2d<World2dClimateSimulationVector>>,
     iterations: usize,
-    factor: f64,
+    factor: Scalar,
 ) {
     let cols = field.get().unwrap().cols();
     let rows = field.get().unwrap().rows();
-    let fa = (cols as f64 * rows as f64) * factor;
+    let fa = (cols as Scalar * rows as Scalar) * factor;
     let fb = 1.0 / (1.0 + 4.0 * fa);
     for _ in 0..iterations {
         let field = field.iterate().unwrap();
@@ -697,10 +703,10 @@ fn diffuse_vector(
 }
 
 fn advect_scalar(
-    density_prev: &Grid2d<f64>,
-    density_next: &mut Grid2d<f64>,
+    density_prev: &Grid2d<Scalar>,
+    density_next: &mut Grid2d<Scalar>,
     velocity: &Grid2d<World2dClimateSimulationVector>,
-    factor: f64,
+    factor: Scalar,
 ) {
     let cols = density_prev.cols();
     let rows = density_prev.rows();
@@ -709,19 +715,19 @@ fn advect_scalar(
             0.0
         } else {
             let vel = velocity[(col, row)];
-            let x = (col as f64 - factor * vel.0)
-                .min(cols as f64 - 1.5)
+            let x = (col as Scalar - factor * vel.0)
+                .min(cols as Scalar - 1.5)
                 .max(0.5);
-            let y = (row as f64 - factor * vel.1)
-                .min(rows as f64 - 1.5)
+            let y = (row as Scalar - factor * vel.1)
+                .min(rows as Scalar - 1.5)
                 .max(0.5);
             let xa = x as usize;
             let ya = y as usize;
             let xb = xa + 1;
             let yb = ya + 1;
-            let dx1 = x - xa as f64;
+            let dx1 = x - xa as Scalar;
             let dx0 = 1.0 - dx1;
-            let dy1 = y - ya as f64;
+            let dy1 = y - ya as Scalar;
             let dy0 = 1.0 - dy1;
             let val_xaya = density_prev[(xa, ya)];
             let val_xayb = density_prev[(xa, yb)];
@@ -737,7 +743,7 @@ fn advect_vector(
     field_prev: &Grid2d<World2dClimateSimulationVector>,
     field_next: &mut Grid2d<World2dClimateSimulationVector>,
     velocity: &Grid2d<World2dClimateSimulationVector>,
-    factor: f64,
+    factor: Scalar,
 ) {
     let cols = field_prev.cols();
     let rows = field_prev.rows();
@@ -746,19 +752,19 @@ fn advect_vector(
             (0.0, 0.0).into()
         } else {
             let vel = velocity[(col, row)];
-            let x = (col as f64 - factor * vel.0)
-                .min(cols as f64 - 1.5)
+            let x = (col as Scalar - factor * vel.0)
+                .min(cols as Scalar - 1.5)
                 .max(0.5);
-            let y = (row as f64 - factor * vel.1)
-                .min(rows as f64 - 1.5)
+            let y = (row as Scalar - factor * vel.1)
+                .min(rows as Scalar - 1.5)
                 .max(0.5);
             let xa = x as usize;
             let ya = y as usize;
             let xb = xa + 1;
             let yb = ya + 1;
-            let dx1 = x - xa as f64;
+            let dx1 = x - xa as Scalar;
             let dx0 = 1.0 - dx1;
-            let dy1 = y - ya as f64;
+            let dy1 = y - ya as Scalar;
             let dy0 = 1.0 - dy1;
             let val_xaya = field_prev[(xa, ya)];
             let val_xayb = field_prev[(xa, yb)];
@@ -773,7 +779,7 @@ fn advect_vector(
 fn conserve_mass(
     velocity: &mut Switch<Grid2d<World2dClimateSimulationVector>>,
     pressure: &mut World2dField,
-    divergence: &mut Grid2d<f64>,
+    divergence: &mut Grid2d<Scalar>,
     poisson_pressure_iterations: usize,
 ) {
     {
@@ -792,7 +798,7 @@ fn conserve_mass(
 fn calculate_poisson_pressure(
     velocity: &Grid2d<World2dClimateSimulationVector>,
     pressure: &mut World2dField,
-    divergence: &mut Grid2d<f64>,
+    divergence: &mut Grid2d<Scalar>,
     iterations: usize,
 ) {
     let cols = divergence.cols();
@@ -833,7 +839,7 @@ fn calculate_poisson_pressure(
 fn calculate_convergence_from_pressure_gradient(
     velocity_prev: &Grid2d<World2dClimateSimulationVector>,
     velocity_next: &mut Grid2d<World2dClimateSimulationVector>,
-    pressure: &Grid2d<f64>,
+    pressure: &Grid2d<Scalar>,
 ) {
     let cols = velocity_prev.cols();
     let rows = velocity_prev.rows();
@@ -855,9 +861,9 @@ fn calculate_convergence_from_pressure_gradient(
 }
 
 fn diffuse_with_barriers(
-    barriers: &Grid2d<f64>,
-    field_prev: &Grid2d<f64>,
-    field_next: &mut Grid2d<f64>,
+    barriers: &Grid2d<Scalar>,
+    field_prev: &Grid2d<Scalar>,
+    field_next: &mut Grid2d<Scalar>,
 ) {
     let levels = (barriers + field_prev).unwrap();
     field_next.with(|col, row, _| {
@@ -874,7 +880,7 @@ fn diffuse_with_barriers(
             .max_by(|a, b| a.partial_cmp(b).unwrap())
             .unwrap();
         let capacity_sample = barriers_sample.map(|_, _, v| levels_max - v.max(levels_min));
-        let capacity = capacity_sample.iter().sum::<f64>();
+        let capacity = capacity_sample.iter().sum::<Scalar>();
         if capacity > 0.0 {
             let energy_sample = Grid2dNeighborSample::from((
                 levels_sample.cols(),
@@ -883,7 +889,7 @@ fn diffuse_with_barriers(
                     .zip(barriers_sample.iter())
                     .map(|(v, b)| *v - b.max(levels_min)),
             ));
-            let energy = energy_sample.iter().sum::<f64>();
+            let energy = energy_sample.iter().sum::<Scalar>();
             let amount = energy * capacity_sample[sample_coord] / capacity;
             values_sample[sample_coord] - energy_sample[sample_coord] + amount
         } else {
@@ -892,49 +898,49 @@ fn diffuse_with_barriers(
     });
     // error correction.
     #[cfg(not(feature = "parallel"))]
-    let before = field_prev.iter().sum::<f64>();
+    let before = field_prev.iter().sum::<Scalar>();
     #[cfg(feature = "parallel")]
-    let before = field_prev.par_iter().sum::<f64>();
+    let before = field_prev.par_iter().sum::<Scalar>();
     #[cfg(not(feature = "parallel"))]
-    let after = field_next.iter().sum::<f64>();
+    let after = field_next.iter().sum::<Scalar>();
     #[cfg(feature = "parallel")]
-    let after = field_next.par_iter().sum::<f64>();
-    let diff = (before - after) / field_prev.len() as f64;
+    let after = field_next.par_iter().sum::<Scalar>();
+    let diff = (before - after) / field_prev.len() as Scalar;
     field_next.with(|_, _, value| *value + diff);
 }
 
 #[inline]
-fn unproject_in_range(value: f64, range: Range<f64>) -> f64 {
+fn unproject_in_range(value: Scalar, range: Range<Scalar>) -> Scalar {
     (value - range.start) / (range.end - range.start)
 }
 
 #[inline]
-fn project_in_range(factor: f64, range: Range<f64>) -> f64 {
+fn project_in_range(factor: Scalar, range: Range<Scalar>) -> Scalar {
     (range.end - range.start) * factor + range.start
 }
 
 #[inline]
-fn remap_in_ranges(value: f64, from: Range<f64>, to: Range<f64>) -> f64 {
+fn remap_in_ranges(value: Scalar, from: Range<Scalar>, to: Range<Scalar>) -> Scalar {
     project_in_range(unproject_in_range(value, from).max(0.0).min(1.0), to)
 }
 
 #[inline]
-fn logistic_sigmoid_simple(value: f64) -> f64 {
+fn logistic_sigmoid_simple(value: Scalar) -> Scalar {
     logistic_sigmoid_advanced(value, 1.0, 0.0, 1.0)
 }
 
 #[inline]
-fn logistic_sigmoid_simple_signed(value: f64) -> f64 {
+fn logistic_sigmoid_simple_signed(value: Scalar) -> Scalar {
     logistic_sigmoid_advanced_signed(value, 1.0, 0.0, 1.0)
 }
 
 #[inline]
 fn logistic_sigmoid_advanced(
-    value: f64,
-    curve_max: f64,
-    midpoint: f64,
-    logistic_growth: f64,
-) -> f64 {
+    value: Scalar,
+    curve_max: Scalar,
+    midpoint: Scalar,
+    logistic_growth: Scalar,
+) -> Scalar {
     let power = -logistic_growth * (value - midpoint);
     let denominator = 1.0 + E.powf(power);
     curve_max / denominator
@@ -942,11 +948,11 @@ fn logistic_sigmoid_advanced(
 
 #[inline]
 fn logistic_sigmoid_advanced_signed(
-    value: f64,
-    curve_max: f64,
-    midpoint: f64,
-    logistic_growth: f64,
-) -> f64 {
+    value: Scalar,
+    curve_max: Scalar,
+    midpoint: Scalar,
+    logistic_growth: Scalar,
+) -> Scalar {
     (logistic_sigmoid_advanced(value.abs(), curve_max, midpoint, logistic_growth) - 0.5)
         * 2.0
         * value
@@ -958,8 +964,8 @@ pub struct World2dClimateSimulationData {
     steps: usize,
     years: usize,
     velocity: Option<Grid2d<World2dClimateSimulationVector>>,
-    divergence: Option<Grid2d<f64>>,
-    pressure: Option<Grid2d<f64>>,
+    divergence: Option<Grid2d<Scalar>>,
+    pressure: Option<Grid2d<Scalar>>,
     slopeness: Option<Grid2d<World2dClimateSimulationVector>>,
 }
 

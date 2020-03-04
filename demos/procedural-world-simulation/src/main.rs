@@ -7,16 +7,17 @@ mod data_aggregator;
 use data_aggregator::*;
 use minifb::{Key, KeyRepeat, MouseMode, Scale, Window, WindowOptions};
 use procedural::prelude::*;
+use std::f64::consts::PI;
 
 const SIZE: usize = 100;
-const ALTITUDE_LIMIT: f64 = 200.0;
-const HUMIDITY_LIMIT: f64 = 0.25;
-const TEMPERATURE_LIMIT: f64 = 100.0;
-const WATER_LIMIT: f64 = 30.0;
-const VELOCITY_LIMIT: f64 = 1.0;
-const DIVERGENCE_LIMIT: f64 = 1.0;
-const PRESSURE_LIMIT: f64 = 1.0;
-const SLOPENESS_LIMIT: f64 = 0.5;
+const ALTITUDE_LIMIT: Scalar = 200.0;
+const HUMIDITY_LIMIT: Scalar = 0.25;
+const TEMPERATURE_LIMIT: Scalar = 100.0;
+const WATER_LIMIT: Scalar = 30.0;
+const VELOCITY_LIMIT: Scalar = 1.0;
+const DIVERGENCE_LIMIT: Scalar = 1.0;
+const PRESSURE_LIMIT: Scalar = 1.0;
+const SLOPENESS_LIMIT: Scalar = 0.5;
 const STEPS_LIMIT: usize = 0;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -40,7 +41,7 @@ fn build_world(altitude_seed: u32) -> World2d {
         config.water_capacity = WATER_LIMIT;
         config.altitude_range = 0.0..ALTITUDE_LIMIT;
         config.temperature_range = 0.0..TEMPERATURE_LIMIT;
-        config.world_axis_angle = 0.0 * ::std::f64::consts::PI / 180.0;
+        config.world_axis_angle = 0.0 * PI as Scalar / 180.0;
         config.mass_diffuse_factor = 0.00001;
         // config.mass_diffuse_factor = 1.0;
         // config.viscosity_factor = 0.00001;

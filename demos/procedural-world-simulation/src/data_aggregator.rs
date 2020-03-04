@@ -1,12 +1,13 @@
 #![allow(dead_code)]
 
+use crate::Scalar;
 use std::{fs::File, io::Write, path::Path};
 
 pub trait DataAggregatorRenderer {
     fn render_columns(&self, columns: &mut Vec<String>);
 }
 
-impl DataAggregatorRenderer for f64 {
+impl DataAggregatorRenderer for Scalar {
     fn render_columns(&self, columns: &mut Vec<String>) {
         columns.push(self.to_string());
     }

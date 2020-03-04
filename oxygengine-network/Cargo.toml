@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-network"
-version = "0.6.5"
+version = "0.7.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Network module for Oxygen Engine"
@@ -11,7 +11,9 @@ documentation = "https://docs.rs/oxygengine-network"
 readme = "../README.md"
 
 [features]
+web = ["oxygengine-core/web"]
 parallel = ["oxygengine-core/parallel"]
+scalar64 = ["oxygengine-core/scalar64"]
 
 [dependencies]
-oxygengine-core = { version = "0.6", path = "../oxygengine-core" }
+oxygengine-core = { version = "0.7", path = "../oxygengine-core" }

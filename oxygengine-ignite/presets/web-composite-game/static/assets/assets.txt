@@ -1,4 +1,6 @@
 audio://ambient.ogg
 png://logo.png
+png://ui.png
 prefab://scene.yaml
 prefab://instance.yaml
+ui-theme://ui.json

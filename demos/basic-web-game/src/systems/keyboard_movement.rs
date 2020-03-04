@@ -30,7 +30,7 @@ impl<'s> System<'s> for KeyboardMovementSystem {
         let dt = lifecycle.delta_time_seconds();
         let hor = -input.axis_or_default("move-left") + input.axis_or_default("move-right");
         let ver = -input.axis_or_default("move-up") + input.axis_or_default("move-down");
-        let force = Vector::new(hor as f64, ver as f64) * dt;
+        let force = Vector::new(hor as Scalar, ver as Scalar) * dt;
 
         // iterate over all bodies with speed and keyboard movement components.
         for (_, speed, body) in (&keyboard_movement, &speed, &bodies).join() {

@@ -10,12 +10,13 @@ pub mod resource;
 pub mod sprite_sheet_asset_protocol;
 pub mod system;
 pub mod tileset_asset_protocol;
+pub mod ui_theme_asset_protocol;
 
 pub mod prelude {
     pub use crate::{
         component::*, composite_renderer::*, map_asset_protocol::*, math::*,
         png_image_asset_protocol::*, resource::*, sprite_sheet_asset_protocol::*, system::*,
-        tileset_asset_protocol::*,
+        tileset_asset_protocol::*, ui_theme_asset_protocol::*,
     };
 }
 
@@ -61,6 +62,7 @@ pub fn protocols_installer(database: &mut AssetsDatabase) {
     database.register(sprite_sheet_asset_protocol::SpriteSheetAssetProtocol);
     database.register(tileset_asset_protocol::TilesetAssetProtocol);
     database.register(map_asset_protocol::MapAssetProtocol);
+    database.register(ui_theme_asset_protocol::UiThemeAssetProtocol);
 }
 
 pub fn prefabs_installer(prefabs: &mut PrefabManager) {

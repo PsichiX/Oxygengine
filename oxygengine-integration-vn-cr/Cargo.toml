@@ -1,0 +1,35 @@
+[package]
+name = "oxygengine-integration-vn-cr"
+version = "0.7.0"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+edition = "2018"
+description = "Integration module of visual novel and composite rendering for Oxygen Engine"
+license-file = "../LICENSE"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine-integration-vn-cr"
+readme = "../README.md"
+
+[features]
+web = [
+  "oxygengine-core/web",
+  "oxygengine-visual-novel/web",
+  "oxygengine-composite-renderer/web",
+]
+parallel = [
+  "oxygengine-core/parallel",
+  "oxygengine-visual-novel/parallel",
+  "oxygengine-composite-renderer/parallel",
+]
+scalar64 = [
+  "oxygengine-core/scalar64",
+  "oxygengine-visual-novel/scalar64",
+  "oxygengine-composite-renderer/scalar64",
+]
+
+[dependencies]
+oxygengine-core = { version = "0.7", path = "../oxygengine-core" }
+oxygengine-visual-novel = { version = "0.7", path = "../oxygengine-visual-novel" }
+oxygengine-composite-renderer = { version = "0.7", path = "../oxygengine-composite-renderer" }
+oxygengine-input = { version = "0.7", path = "../oxygengine-input" }
+serde = { version = "1", features = ["derive"] }

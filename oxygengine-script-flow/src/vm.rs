@@ -28,6 +28,10 @@ impl Reference {
         Self(Arc::new(RwLock::new(value)))
     }
 
+    pub fn into_inner(self) -> Value {
+        (*self.read()).clone()
+    }
+
     pub fn read(&self) -> RwLockReadGuard<Value> {
         self.0.read().unwrap()
     }
@@ -688,6 +692,10 @@ impl Vm {
         } else {
             Err(VmError::EventDoesNotExists(ast::Reference::Guid(guid)))
         }
+    }
+
+    pub fn get_completed_event(&mut self, guid: GUID) -> Option<Vec<Reference>> {
+        self.completed_events.remove(&guid)
     }
 
     pub fn get_completed_events(&mut self) -> impl Iterator<Item = (GUID, Vec<Reference>)> {

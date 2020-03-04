@@ -1,5 +1,8 @@
 use crate::GUID;
-use core::prefab::{Prefab, PrefabValue};
+use core::{
+    prefab::{Prefab, PrefabValue},
+    Scalar,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -183,9 +186,9 @@ pub struct Node {
     #[serde(default)]
     pub input_links: Vec<Link>,
     #[serde(default)]
-    pub x: f32,
+    pub x: Scalar,
     #[serde(default)]
-    pub y: f32,
+    pub y: Scalar,
 }
 
 impl Prefab for Node {}

@@ -15,7 +15,7 @@ pub mod prelude {
 pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>, _: ()) {
     builder.install_system(
         ApplyPhysics2dToCompositeTransformSystem,
-        "apply-physics-2d-to-composite-renderer",
+        "apply-physics-2d-to-composite-transform-renderer",
         &[],
     );
 }
@@ -57,7 +57,7 @@ impl<'s> System<'s> for ApplyPhysics2dToCompositeTransformSystem {
                     let p = isometry.translation;
                     let r = isometry.rotation.angle();
                     let s = transform.get_scale();
-                    transform.apply(Vec2::new(p.x as f32, p.y as f32), r as f32, s);
+                    transform.apply(Vec2::new(p.x, p.y), r, s);
                 }
             }
         }

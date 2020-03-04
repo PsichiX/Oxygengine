@@ -4,15 +4,24 @@
 ### The hottest HTML5 + WASM game engine for games written in Rust with `web-sys`.
 
 ## Table of contents
+1. [Understanding ECS](#understanding-ecs)
 1. [Installation](#installation)
+1. [Teaser](#teaser)
 1. [Project Setup](#project-setup)
 1. [Building for development and production](#building-for-development-and-production)
 1. [Roadmap](#todo--roadmap)
+
+## Understanding ECS
+Oxygengine is highly based on `specs` crate used for its ECS framework.
+You can get understanding of it by reading `specs` book and tutorials here: https://specs.amethyst.rs/docs/tutorials/
 
 ## Installation
 1. Make sure that you have latest `node.js` with `npm` tools installed (https://nodejs.org/)
 1. Make sure that you have latest `wasm-pack` toolset installed (https://rustwasm.github.io/wasm-pack/installer/)
 1. Make sure that you have latest `oxygengine-ignite` application installed (from project repository releases)
+
+## Teaser
+![Visual Novel](https://raw.githubusercontent.com/PsichiX/Oxygengine/master/media/oxygengine-visual-novel-teaser.gif)
 
 ## Project Setup
 Create Oxygen Engine project with `oxygengine-ignite`:
@@ -57,7 +66,5 @@ cargo build
 ```
 
 ## TODO / Roadmap
-- Visual Scripting (Blueprints-like logic flow designer)
-- Visual Novel maker module
 - Engine editor (standalone Electron application?)
 - Hardware renderer (WebGPU hardware renderer backend)

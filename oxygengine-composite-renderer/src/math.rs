@@ -1,7 +1,6 @@
+use core::Scalar;
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Div, Mul, Neg, Not, Sub};
-
-pub type Scalar = f32;
 
 #[inline]
 pub fn lerp(a: Scalar, b: Scalar, f: Scalar) -> Scalar {
@@ -268,7 +267,7 @@ impl ToString for Color {
             self.r,
             self.g,
             self.b,
-            f32::from(self.a) / 255.0
+            Scalar::from(self.a) / 255.0
         )
     }
 }

@@ -1,11 +1,9 @@
-use crate::{
-    resource::{NavMeshID, NavPathMode, NavQuery, NavVec3},
-    Scalar,
-};
+use crate::resource::{NavMeshID, NavPathMode, NavQuery, NavVec3};
 use core::{
     ecs::{Component, Entity, NullStorage, VecStorage},
     id::ID,
     prefab::{Prefab, PrefabComponent},
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 

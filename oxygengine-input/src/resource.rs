@@ -1,4 +1,5 @@
-use crate::{device::InputDevice, Scalar};
+use crate::device::InputDevice;
+use core::Scalar;
 use serde::{Deserialize, Serialize};
 use std::{borrow::Borrow, collections::HashMap};
 

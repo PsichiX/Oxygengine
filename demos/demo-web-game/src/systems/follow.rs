@@ -14,7 +14,7 @@ impl<'s> System<'s> for FollowSystem {
     );
 
     fn run(&mut self, (entities, lifecycle, follows, mut transforms): Self::SystemData) {
-        let dt = lifecycle.delta_time_seconds() as f32;
+        let dt = lifecycle.delta_time_seconds();
         let to_follow = (&entities, &follows, &transforms)
             .join()
             .filter_map(|(entity, follow, transform)| {

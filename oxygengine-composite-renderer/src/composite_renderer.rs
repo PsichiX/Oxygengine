@@ -1,5 +1,5 @@
-use crate::math::{Color, Rect, Scalar, Vec2};
-use core::{assets::database::AssetsDatabase, error::*};
+use crate::math::{Color, Rect, Vec2};
+use core::{assets::database::AssetsDatabase, error::*, Scalar};
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, ops::Range};
 
@@ -195,6 +195,7 @@ impl<'a> Image<'a> {
 pub enum Renderable<'a> {
     None,
     Rectangle(Rectangle),
+    FullscreenRectangle(Color),
     Text(Text<'a>),
     Path(Path),
     Image(Image<'a>),
@@ -321,8 +322,8 @@ pub struct Stats {
     pub view_size: Vec2,
     pub render_ops: usize,
     pub renderables: usize,
-    pub fps: f64,
-    pub delta_time: f64,
+    pub fps: Scalar,
+    pub delta_time: Scalar,
     pub images_count: usize,
     pub surfaces_count: usize,
 }

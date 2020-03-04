@@ -2,10 +2,13 @@ use crate::{
     composite_renderer::{Command, Image},
     sprite_sheet_asset_protocol::SpriteSheetAsset,
 };
-use core::assets::{
-    asset::{Asset, AssetID},
-    database::AssetsDatabase,
-    protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
+use core::{
+    assets::{
+        asset::{Asset, AssetID},
+        database::AssetsDatabase,
+        protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
+    },
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::{any::Any, collections::HashMap};
@@ -107,8 +110,8 @@ impl Map {
                 .collect::<Option<HashMap<_, _>>>()?;
             let mut commands = Vec::with_capacity(2 + self.cols * self.rows);
             commands.push(Command::Store);
-            let width = self.tile_width as f32;
-            let height = self.tile_height as f32;
+            let width = self.tile_width as Scalar;
+            let height = self.tile_height as Scalar;
             let chunk_size = chunk_size.unwrap_or_else(|| (self.cols, self.rows));
             let cols_start = chunk_offset.0.min(self.cols);
             let cols_end = (chunk_offset.0 + chunk_size.0).min(self.cols);
@@ -120,8 +123,8 @@ impl Map {
                     let id = data.get(i).unwrap_or_else(|| &0);
                     if let Some((sprite_sheet, name)) = &self.tiles_mapping.get(id) {
                         let info = atlases.get(sprite_sheet)?;
-                        let x = width * col as f32;
-                        let y = height * row as f32;
+                        let x = width * col as Scalar;
+                        let y = height * row as Scalar;
                         let frame = info.frames.get(name)?.frame;
                         commands.push(Command::Draw(
                             Image::new_owned(info.meta.image_name())

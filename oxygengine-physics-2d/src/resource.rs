@@ -1,5 +1,4 @@
-use crate::Scalar;
-use core::ecs::Entity;
+use core::{ecs::Entity, Scalar};
 use ncollide2d::{pipeline::narrow_phase::ContactEvent, query::Proximity};
 use nphysics2d::{
     force_generator::DefaultForceGeneratorSet,

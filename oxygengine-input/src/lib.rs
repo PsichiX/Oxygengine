@@ -8,8 +8,6 @@ pub mod prelude {
     pub use crate::{device::*, resource::*, system::*};
 }
 
-pub type Scalar = f32;
-
 use crate::{resource::InputController, system::InputSystem};
 use core::app::AppBuilder;
 

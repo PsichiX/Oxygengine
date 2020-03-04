@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-composite-renderer"
-version = "0.6.5"
+version = "0.7.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Composite renderer module for Oxygen Engine"
@@ -11,11 +11,13 @@ documentation = "https://docs.rs/oxygengine-composite-renderer"
 readme = "../README.md"
 
 [features]
-parallel = ["oxygengine-core/parallel"]
+web = ["oxygengine-core/web"]
+parallel = ["oxygengine-core/parallel", "oxygengine-utils/parallel"]
+scalar64 = ["oxygengine-core/scalar64", "oxygengine-utils/scalar64"]
 
 [dependencies]
-oxygengine-core = { version = "0.6", path = "../oxygengine-core" }
-oxygengine-utils = { version = "0.6", path = "../oxygengine-utils" }
+oxygengine-core = { version = "0.7", path = "../oxygengine-core" }
+oxygengine-utils = { version = "0.7", path = "../oxygengine-utils" }
 png = "0.14"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

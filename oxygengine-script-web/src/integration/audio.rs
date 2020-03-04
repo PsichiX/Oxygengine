@@ -1,5 +1,6 @@
 use crate::interface::ComponentModify;
 use oxygengine_audio::component::*;
+use oxygengine_core::Scalar;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -7,10 +8,10 @@ pub struct AudioSourceScripted {
     pub audio: String,
     pub streaming: bool,
     pub looped: bool,
-    pub playback_rate: f32,
-    pub volume: f32,
+    pub playback_rate: Scalar,
+    pub volume: Scalar,
     pub play: bool,
-    pub current_time: Option<f32>,
+    pub current_time: Option<Scalar>,
     pub ready: bool,
 }
 

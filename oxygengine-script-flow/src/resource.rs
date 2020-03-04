@@ -38,6 +38,14 @@ impl FlowManager {
         self.vms.get_mut(name).map(|(vm, _)| vm)
     }
 
+    pub fn vms(&self) -> impl Iterator<Item = &Vm> {
+        self.vms.values().map(|(vm, _)| vm)
+    }
+
+    pub fn vms_mut(&mut self) -> impl Iterator<Item = &mut Vm> {
+        self.vms.values_mut().map(|(vm, _)| vm)
+    }
+
     pub fn process_events(&mut self) -> Result<(), VmError> {
         for (vm, paused) in self.vms.values_mut() {
             if !*paused {

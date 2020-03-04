@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-physics-2d"
-version = "0.6.5"
+version = "0.7.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "2D physics module for Oxygen Engine"
@@ -11,10 +11,12 @@ documentation = "https://docs.rs/oxygengine-physics-2d"
 readme = "../README.md"
 
 [features]
-web = []
+web = ["oxygengine-core/web"]
+parallel = ["oxygengine-core/parallel"]
+scalar64 = ["oxygengine-core/scalar64"]
 
 [dependencies]
-oxygengine-core = { version = "0.6", path = "../oxygengine-core" }
+oxygengine-core = { version = "0.7", path = "../oxygengine-core" }
 serde = { version = "1", features = ["derive"] }
 
 [dependencies.ncollide2d]

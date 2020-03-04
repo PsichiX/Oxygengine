@@ -1,20 +1,24 @@
-use oxygengine_utils::{grid_2d::Grid2d, noise_map_generator::NoiseMapGenerator};
+use oxygengine_utils::{grid_2d::Grid2d, noise_map_generator::NoiseMapGenerator, Scalar};
 use psyche_utils::switch::Switch;
 use serde::{Deserialize, Serialize};
+#[cfg(not(feature = "scalar64"))]
+use std::f32::{INFINITY as SCALAR_INFINITY, NEG_INFINITY as SCALAR_NEG_INFINITY};
+#[cfg(feature = "scalar64")]
+use std::f64::{INFINITY as SCALAR_INFINITY, NEG_INFINITY as SCALAR_NEG_INFINITY};
 use std::{any::Any, borrow::Borrow, ops::Range};
 
-pub type World2dField = Switch<Grid2d<f64>>;
+pub type World2dField = Switch<Grid2d<Scalar>>;
 
 #[derive(Debug, Clone)]
 pub struct World2dConfig {
     pub size: usize,
-    pub zoom: f64,
+    pub zoom: Scalar,
     pub altitude_seed: u32,
-    pub altitude_range: Range<f64>,
+    pub altitude_range: Range<Scalar>,
     pub temperature_seed: u32,
-    pub temperature_range: Range<f64>,
+    pub temperature_range: Range<Scalar>,
     pub humidity_seed: u32,
-    pub humidity_range: Range<f64>,
+    pub humidity_range: Range<Scalar>,
 }
 
 impl Default for World2dConfig {
@@ -35,10 +39,10 @@ impl Default for World2dConfig {
 pub trait World2dSimulation: Any + Send + Sync {
     fn initialize_world(
         &mut self,
-        _altitude: &mut Grid2d<f64>,
-        _temperature: &mut Grid2d<f64>,
-        _humidity: &mut Grid2d<f64>,
-        _surface_water: &mut Grid2d<f64>,
+        _altitude: &mut Grid2d<Scalar>,
+        _temperature: &mut Grid2d<Scalar>,
+        _humidity: &mut Grid2d<Scalar>,
+        _surface_water: &mut Grid2d<Scalar>,
     ) {
     }
 
@@ -71,21 +75,21 @@ impl World2dSimulation for () {
 #[derive(Debug, Default, Clone)]
 pub struct World2dStats {
     /// (min, max, mean)
-    pub altitude: (f64, f64, f64),
+    pub altitude: (Scalar, Scalar, Scalar),
     /// (min, max, mean)
-    pub temperature: (f64, f64, f64),
+    pub temperature: (Scalar, Scalar, Scalar),
     /// (min, max, mean)
-    pub humidity: (f64, f64, f64),
+    pub humidity: (Scalar, Scalar, Scalar),
     /// (min, max, mean)
-    pub surface_water: (f64, f64, f64),
+    pub surface_water: (Scalar, Scalar, Scalar),
 }
 
 pub struct World2d {
     size: usize,
-    altitude: Switch<Grid2d<f64>>,
-    temperature: Switch<Grid2d<f64>>,
-    humidity: Switch<Grid2d<f64>>,
-    surface_water: Switch<Grid2d<f64>>,
+    altitude: Switch<Grid2d<Scalar>>,
+    temperature: Switch<Grid2d<Scalar>>,
+    humidity: Switch<Grid2d<Scalar>>,
+    surface_water: Switch<Grid2d<Scalar>>,
     simulation: Box<dyn World2dSimulation>,
     stats: World2dStats,
 }
@@ -148,23 +152,23 @@ impl World2d {
         mut surface_water_generator: FSW,
     ) -> Self
     where
-        FA: FnMut(usize, usize) -> f64,
-        FT: FnMut(usize, usize) -> f64,
-        FH: FnMut(usize, usize) -> f64,
-        FSW: FnMut(usize, usize) -> f64,
+        FA: FnMut(usize, usize) -> Scalar,
+        FT: FnMut(usize, usize) -> Scalar,
+        FH: FnMut(usize, usize) -> Scalar,
+        FSW: FnMut(usize, usize) -> Scalar,
     {
         let altitude = (0..(size * size))
             .map(|i| altitude_generator(i % size, i / size))
-            .collect::<Vec<f64>>();
+            .collect::<Vec<_>>();
         let temperature = (0..size * size)
             .map(|i| temperature_generator(i % size, i / size))
-            .collect::<Vec<f64>>();
+            .collect::<Vec<_>>();
         let humidity = (0..size * size)
             .map(|i| humidity_generator(i % size, i / size))
-            .collect::<Vec<f64>>();
+            .collect::<Vec<_>>();
         let surface_water = (0..size * size)
             .map(|i| surface_water_generator(i % size, i / size))
-            .collect::<Vec<f64>>();
+            .collect::<Vec<_>>();
         let mut altitude = Switch::new(2, Grid2d::with_cells(size, altitude));
         let mut temperature = Switch::new(2, Grid2d::with_cells(size, temperature));
         let mut humidity = Switch::new(2, Grid2d::with_cells(size, humidity));
@@ -196,19 +200,19 @@ impl World2d {
         self.size
     }
 
-    pub fn altitude(&self) -> &Grid2d<f64> {
+    pub fn altitude(&self) -> &Grid2d<Scalar> {
         self.altitude.get().unwrap()
     }
 
-    pub fn temperature(&self) -> &Grid2d<f64> {
+    pub fn temperature(&self) -> &Grid2d<Scalar> {
         self.temperature.get().unwrap()
     }
 
-    pub fn humidity(&self) -> &Grid2d<f64> {
+    pub fn humidity(&self) -> &Grid2d<Scalar> {
         self.humidity.get().unwrap()
     }
 
-    pub fn surface_water(&self) -> &Grid2d<f64> {
+    pub fn surface_water(&self) -> &Grid2d<Scalar> {
         self.surface_water.get().unwrap()
     }
 
@@ -236,7 +240,7 @@ impl World2d {
     pub fn remap_region<F, T>(&self, mut range: Range<(usize, usize)>, mut f: F) -> Grid2d<T>
     where
         // (col, row, altitude, temperature, humidity, surface water)
-        F: FnMut(usize, usize, f64, f64, f64, f64) -> T,
+        F: FnMut(usize, usize, Scalar, Scalar, Scalar, Scalar) -> T,
         T: Clone + Send + Sync,
     {
         range.end.0 = range.end.0.min(self.size);
@@ -266,7 +270,14 @@ impl World2d {
     ) -> Grid2d<T>
     where
         // (col, row, altitude, temperature, humidity, surface water)
-        F: FnMut(usize, usize, Grid2d<&f64>, Grid2d<&f64>, Grid2d<&f64>, Grid2d<&f64>) -> T,
+        F: FnMut(
+            usize,
+            usize,
+            Grid2d<&Scalar>,
+            Grid2d<&Scalar>,
+            Grid2d<&Scalar>,
+            Grid2d<&Scalar>,
+        ) -> T,
         T: Clone + Send + Sync,
     {
         range.end.0 = range.end.0.min(self.size);
@@ -308,10 +319,14 @@ impl World2d {
                 .get()
                 .unwrap()
                 .iter()
-                .fold((std::f64::INFINITY, std::f64::NEG_INFINITY, 0.0), |a, v| {
+                .fold((SCALAR_INFINITY, SCALAR_NEG_INFINITY, 0.0), |a, v| {
                     (a.0.min(*v), a.1.max(*v), a.2 + *v)
                 });
-            (min, max, accum / self.altitude.get().unwrap().len() as f64)
+            (
+                min,
+                max,
+                accum / self.altitude.get().unwrap().len() as Scalar,
+            )
         };
         self.stats.temperature = {
             let (min, max, accum) = self
@@ -319,10 +334,14 @@ impl World2d {
                 .get()
                 .unwrap()
                 .iter()
-                .fold((std::f64::INFINITY, std::f64::NEG_INFINITY, 0.0), |a, v| {
+                .fold((SCALAR_INFINITY, SCALAR_NEG_INFINITY, 0.0), |a, v| {
                     (a.0.min(*v), a.1.max(*v), a.2 + *v)
                 });
-            (min, max, accum / self.altitude.get().unwrap().len() as f64)
+            (
+                min,
+                max,
+                accum / self.altitude.get().unwrap().len() as Scalar,
+            )
         };
         self.stats.humidity = {
             let (min, max, accum) = self
@@ -330,10 +349,14 @@ impl World2d {
                 .get()
                 .unwrap()
                 .iter()
-                .fold((std::f64::INFINITY, std::f64::NEG_INFINITY, 0.0), |a, v| {
+                .fold((SCALAR_INFINITY, SCALAR_NEG_INFINITY, 0.0), |a, v| {
                     (a.0.min(*v), a.1.max(*v), a.2 + *v)
                 });
-            (min, max, accum / self.altitude.get().unwrap().len() as f64)
+            (
+                min,
+                max,
+                accum / self.altitude.get().unwrap().len() as Scalar,
+            )
         };
         self.stats.surface_water = {
             let (min, max, accum) = self
@@ -341,10 +364,14 @@ impl World2d {
                 .get()
                 .unwrap()
                 .iter()
-                .fold((std::f64::INFINITY, std::f64::NEG_INFINITY, 0.0), |a, v| {
+                .fold((SCALAR_INFINITY, SCALAR_NEG_INFINITY, 0.0), |a, v| {
                     (a.0.min(*v), a.1.max(*v), a.2 + *v)
                 });
-            (min, max, accum / self.altitude.get().unwrap().len() as f64)
+            (
+                min,
+                max,
+                accum / self.altitude.get().unwrap().len() as Scalar,
+            )
         };
     }
 }
@@ -355,10 +382,10 @@ where
     S: World2dSimulation,
 {
     size: usize,
-    altitude: Grid2d<f64>,
-    temperature: Grid2d<f64>,
-    humidity: Grid2d<f64>,
-    surface_water: Grid2d<f64>,
+    altitude: Grid2d<Scalar>,
+    temperature: Grid2d<Scalar>,
+    humidity: Grid2d<Scalar>,
+    surface_water: Grid2d<Scalar>,
     simulation: S,
 }
 

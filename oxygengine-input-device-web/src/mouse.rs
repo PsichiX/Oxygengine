@@ -1,4 +1,5 @@
-use input::{device::InputDevice, Scalar};
+use core::Scalar;
+use input::device::InputDevice;
 use std::{any::Any, cell::Cell, rc::Rc};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::*;

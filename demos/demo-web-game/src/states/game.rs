@@ -23,8 +23,8 @@ use rand::{
 };
 use std::{collections::HashMap, f64::consts::PI};
 
-const HALF_WALL_THICKNESS: f64 = 50.0;
-const EXPLOSION_TIME: f64 = 0.5;
+const HALF_WALL_THICKNESS: Scalar = 50.0;
+const EXPLOSION_TIME: Scalar = 0.5;
 
 #[derive(Default)]
 pub struct GameState {
@@ -113,8 +113,8 @@ impl GameState {
             let asset = assets.asset_by_path("map://map.map").unwrap();
             let map = asset.get::<MapAsset>().unwrap().map();
             let (w, h) = map.size();
-            world.write_resource::<Globals>().map_size = Some([w as f32, h as f32].into());
-            (w as f64 * 0.5, h as f64 * 0.5)
+            world.write_resource::<Globals>().map_size = Some([w as Scalar, h as Scalar].into());
+            (w as Scalar * 0.5, h as Scalar * 0.5)
         };
 
         world
@@ -192,7 +192,7 @@ impl GameState {
                         "random" => {
                             let x_range = Uniform::from(spawn.x..(spawn.x + spawn.width as isize));
                             let y_range = Uniform::from(spawn.y..(spawn.y + spawn.height as isize));
-                            let r_range = Uniform::from(0.0..PI);
+                            let r_range = Uniform::from(0.0..(PI as Scalar));
                             let t_range_grass = Uniform::from(0..4);
                             let t_range_sand = Uniform::from(4..6);
                             let place_area = spawn.width * spawn.height;
@@ -240,7 +240,7 @@ impl GameState {
                 .with(CompositeTransform::default())
                 .with(RigidBody2d::new(
                     RigidBodyDesc::new()
-                        .translation(Vector::new(x as f64, y as f64))
+                        .translation(Vector::new(x as Scalar, y as Scalar))
                         .gravity_enabled(false)
                         .rotation(r),
                 ))
@@ -272,7 +272,7 @@ impl GameState {
                             let y = spawn.y + spawn.height as isize / 2;
                             let (r, t) = match spawn.name.as_str() {
                                 "north" => (0.0, PlayerType::North),
-                                "south" => (PI, PlayerType::South),
+                                "south" => (PI as Scalar, PlayerType::South),
                                 _ => unreachable!(),
                             };
                             Some((x, y, r, t))
@@ -300,7 +300,7 @@ impl GameState {
                 .with(CompositeTransform::default())
                 .with(RigidBody2d::new(
                     RigidBodyDesc::new()
-                        .translation(Vector::new(x as f64, y as f64))
+                        .translation(Vector::new(x as Scalar, y as Scalar))
                         .gravity_enabled(false)
                         .rotation(r)
                         .linear_damping(0.5)
@@ -341,7 +341,7 @@ impl GameState {
                         "spawn" => {
                             let x_range = Uniform::from(spawn.x..(spawn.x + spawn.width as isize));
                             let y_range = Uniform::from(spawn.y..(spawn.y + spawn.height as isize));
-                            let r_range = Uniform::from(0.0..PI);
+                            let r_range = Uniform::from(0.0..(PI as Scalar));
                             let count = match spawn.name.as_str() {
                                 "bonuses" => rng.next_u32() % 2 + 1,
                                 "barrels" => 4,
@@ -387,7 +387,7 @@ impl GameState {
                 .with(CompositeTransform::default())
                 .with(RigidBody2d::new(
                     RigidBodyDesc::new()
-                        .translation(Vector::new(x as f64, y as f64))
+                        .translation(Vector::new(x as Scalar, y as Scalar))
                         .gravity_enabled(false)
                         .rotation(r)
                         .linear_damping(0.5)
@@ -593,7 +593,7 @@ impl GameState {
                             RigidBodyDesc::new()
                                 .translation(p)
                                 .gravity_enabled(false)
-                                .rotation(r + PI)
+                                .rotation(r + PI as Scalar)
                                 .velocity(v),
                         ))
                         .with(Collider2d::new(
@@ -669,7 +669,7 @@ impl GameState {
                             .with(CompositeSprite::default().align(0.5.into()))
                             .with(CompositeSpriteAnimation::new(animations).autoplay(
                                 "explode",
-                                5.0 / EXPLOSION_TIME as f32,
+                                5.0 / EXPLOSION_TIME,
                                 false,
                             ))
                             .with(CompositeTransform::translation(pos))

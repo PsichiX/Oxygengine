@@ -1,14 +1,19 @@
 use crate::{
     composite_renderer::{Command, Effect, Image, Renderable, Text},
-    math::{Mat2d, Rect, Scalar, Vec2},
-    resource::CompositeUiInteractibles,
+    math::{Mat2d, Rect, Vec2},
+    resource::{CompositeUiInteractibles, CompositeUiThemes, UiThemed},
 };
 use core::{
     ecs::{Component, DenseVecStorage, FlaggedStorage, HashMapStorage, VecStorage},
     prefab::{Prefab, PrefabComponent},
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
-use std::{borrow::Cow, collections::HashMap, f32::consts::PI};
+#[cfg(not(feature = "scalar64"))]
+use std::f32::consts::PI;
+#[cfg(feature = "scalar64")]
+use std::f64::consts::PI;
+use std::{borrow::Cow, collections::HashMap};
 use utils::grid_2d::Grid2d;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
@@ -327,11 +332,13 @@ impl Default for CompositeScalingMode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum CompositeScalingTarget {
     Width,
     Height,
     Both,
+    BothMinimum,
+    Cover(Scalar, Scalar),
 }
 
 impl Default for CompositeScalingTarget {
@@ -390,12 +397,10 @@ impl CompositeCamera {
         let scale = match self.scaling_target {
             CompositeScalingTarget::Width => screen_size.x,
             CompositeScalingTarget::Height => screen_size.y,
-            CompositeScalingTarget::Both => {
-                if screen_size.x > screen_size.y {
-                    screen_size.y
-                } else {
-                    screen_size.x
-                }
+            CompositeScalingTarget::Both => screen_size.x.min(screen_size.y),
+            CompositeScalingTarget::BothMinimum => screen_size.x.max(screen_size.y),
+            CompositeScalingTarget::Cover(width, height) => {
+                (screen_size.x / width).max(screen_size.y / height)
             }
         };
         let s = Mat2d::scale(Vec2::one() / transform.get_scale());
@@ -1125,13 +1130,13 @@ impl PrefabComponent for CompositeMapChunk {}
 #[derive(Debug, Copy, Clone, Default, Serialize, Deserialize)]
 pub struct UiMargin {
     #[serde(default)]
-    pub left: f32,
+    pub left: Scalar,
     #[serde(default)]
-    pub right: f32,
+    pub right: Scalar,
     #[serde(default)]
-    pub top: f32,
+    pub top: Scalar,
     #[serde(default)]
-    pub bottom: f32,
+    pub bottom: Scalar,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1182,8 +1187,12 @@ impl Default for UiElementType {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompositeUiElement {
+    #[serde(default)]
+    pub id: Option<Cow<'static, str>>,
+    #[serde(default)]
+    pub theme: Option<Cow<'static, str>>,
     #[serde(default)]
     pub camera_name: Cow<'static, str>,
     #[serde(default)]
@@ -1207,15 +1216,43 @@ pub struct CompositeUiElement {
     #[serde(default)]
     pub offset: Vec2,
     #[serde(default)]
-    pub fixed_width: Option<f32>,
+    pub fixed_width: Option<Scalar>,
     #[serde(default)]
-    pub fixed_height: Option<f32>,
+    pub fixed_height: Option<Scalar>,
     #[serde(default = "CompositeUiElement::default_scale")]
     pub scale: Vec2,
+    #[serde(default = "CompositeUiElement::default_alpha")]
+    pub alpha: Scalar,
     #[serde(default)]
     pub children: Vec<CompositeUiElement>,
     #[serde(skip)]
     pub(crate) dirty: bool,
+}
+
+impl Default for CompositeUiElement {
+    fn default() -> Self {
+        Self {
+            id: None,
+            theme: None,
+            camera_name: "".into(),
+            interactive: None,
+            element_type: Default::default(),
+            margin: Default::default(),
+            padding: Default::default(),
+            left_anchor: 0.0,
+            right_anchor: 0.0,
+            top_anchor: 0.0,
+            bottom_anchor: 0.0,
+            alignment: Default::default(),
+            offset: Default::default(),
+            fixed_width: None,
+            fixed_height: None,
+            scale: Self::default_scale(),
+            alpha: Self::default_alpha(),
+            children: Default::default(),
+            dirty: true,
+        }
+    }
 }
 
 impl CompositeUiElement {
@@ -1223,8 +1260,78 @@ impl CompositeUiElement {
         Vec2::one()
     }
 
+    fn default_alpha() -> Scalar {
+        1.0
+    }
+
     pub fn rebuild(&mut self) {
         self.dirty = true;
+    }
+
+    pub fn find(&self, id: &str) -> Option<&CompositeUiElement> {
+        if let Some(index) = id.find('/') {
+            let part = &id[0..index];
+            let test = self.children.iter().enumerate().find(|(i, c)| {
+                if let Some(name) = &c.id {
+                    name == part
+                } else {
+                    i.to_string() == part
+                }
+            });
+            if let Some((_, child)) = test {
+                if index < id.len() {
+                    return child.find(&id[(index + 1)..]);
+                } else {
+                    return Some(child);
+                }
+            }
+        } else {
+            let part = id;
+            let test = self.children.iter().enumerate().find(|(i, c)| {
+                if let Some(name) = &c.id {
+                    name == part
+                } else {
+                    i.to_string() == part
+                }
+            });
+            if let Some((_, child)) = test {
+                return Some(child);
+            }
+        }
+        None
+    }
+
+    pub fn find_mut(&mut self, id: &str) -> Option<&mut CompositeUiElement> {
+        if let Some(index) = id.find('/') {
+            let part = &id[0..index];
+            let test = self.children.iter_mut().enumerate().find(|(i, c)| {
+                if let Some(name) = &c.id {
+                    name == part
+                } else {
+                    i.to_string() == part
+                }
+            });
+            if let Some((_, child)) = test {
+                if index < id.len() {
+                    return child.find_mut(&id[(index + 1)..]);
+                } else {
+                    return Some(child);
+                }
+            }
+        } else {
+            let part = id;
+            let test = self.children.iter_mut().enumerate().find(|(i, c)| {
+                if let Some(name) = &c.id {
+                    name == part
+                } else {
+                    i.to_string() == part
+                }
+            });
+            if let Some((_, child)) = test {
+                return Some(child);
+            }
+        }
+        None
     }
 }
 
@@ -1240,9 +1347,19 @@ impl Prefab for CompositeUiElement {
 impl PrefabComponent for CompositeUiElement {}
 
 impl CompositeUiElement {
-    pub fn calculate_rect(&self, parent_rect: Rect) -> Rect {
-        let min_width = self.margin.left + self.margin.right;
-        let min_height = self.margin.top + self.margin.bottom;
+    pub fn calculate_rect(&self, parent_rect: Rect, themes: &CompositeUiThemes) -> Rect {
+        let margin = if let Some(name) = &self.theme {
+            if let Some(UiThemed::Image { image_margin, .. }) = themes.themes.get(name) {
+                *image_margin
+            } else {
+                self.margin
+            }
+        } else {
+            self.margin
+        };
+
+        let min_width = margin.left + margin.right;
+        let min_height = margin.top + margin.bottom;
         let (x, width) = {
             let (x, w) = if let Some(fixed_width) = self.fixed_width {
                 let f = parent_rect.w * self.left_anchor + self.padding.left;
@@ -1281,8 +1398,9 @@ impl CompositeUiElement {
         &self,
         parent_rect: Rect,
         interactibles: &mut CompositeUiInteractibles,
+        themes: &CompositeUiThemes,
     ) -> (Vec<Command<'static>>, Rect) {
-        let rect = self.calculate_rect(parent_rect);
+        let rect = self.calculate_rect(parent_rect, themes);
         if let Some(name) = &self.interactive {
             interactibles.bounding_boxes.insert(name.clone(), rect);
         }
@@ -1291,39 +1409,78 @@ impl CompositeUiElement {
                 let mut text = text.clone();
                 text.position = Vec2::new(rect.x, rect.y);
                 text.max_width = Some(rect.w);
-                vec![Command::Draw(text.into())]
+                let alpha = if let Some(name) = &self.theme {
+                    if let Some(UiThemed::Text {
+                        font_name,
+                        font_size,
+                        alpha,
+                    }) = themes.themes.get(name)
+                    {
+                        text.font = font_name.clone();
+                        text.size = *font_size;
+                        *alpha
+                    } else {
+                        1.0
+                    }
+                } else {
+                    1.0
+                };
+                vec![
+                    Command::Store,
+                    Command::Alpha(alpha),
+                    Command::Draw(text.into()),
+                    Command::Restore,
+                ]
             }
             UiElementType::Image(image) => {
-                let sx1 = image.source_rect.x;
-                let sx2 = image.source_rect.x + self.margin.left;
-                let sx3 = image.source_rect.x + image.source_rect.w - self.margin.right;
-                let sy1 = image.source_rect.y;
-                let sy2 = image.source_rect.y + self.margin.top;
-                let sy3 = image.source_rect.y + image.source_rect.h - self.margin.bottom;
+                let (margin, source_rect, image_path, alpha) = if let Some(name) = &self.theme {
+                    if let Some(UiThemed::Image {
+                        image_margin,
+                        image_path,
+                        source_rect,
+                        alpha,
+                    }) = themes.themes.get(name)
+                    {
+                        (*image_margin, *source_rect, image_path, *alpha)
+                    } else {
+                        (self.margin, image.source_rect, &image.image_path, 1.0)
+                    }
+                } else {
+                    (self.margin, image.source_rect, &image.image_path, 1.0)
+                };
 
-                let sw1 = self.margin.left;
-                let sw2 = image.source_rect.w - self.margin.left - self.margin.right;
-                let sw3 = self.margin.right;
-                let sh1 = self.margin.top;
-                let sh2 = image.source_rect.h - self.margin.top - self.margin.bottom;
-                let sh3 = self.margin.bottom;
+                let sx1 = source_rect.x;
+                let sx2 = source_rect.x + margin.left;
+                let sx3 = source_rect.x + source_rect.w - margin.right;
+                let sy1 = source_rect.y;
+                let sy2 = source_rect.y + margin.top;
+                let sy3 = source_rect.y + source_rect.h - margin.bottom;
+
+                let sw1 = margin.left;
+                let sw2 = source_rect.w - margin.left - margin.right;
+                let sw3 = margin.right;
+                let sh1 = margin.top;
+                let sh2 = source_rect.h - margin.top - margin.bottom;
+                let sh3 = margin.bottom;
 
                 let dx1 = rect.x;
-                let dx2 = rect.x + self.margin.left;
-                let dx3 = rect.x + rect.w - self.margin.right;
+                let dx2 = rect.x + margin.left;
+                let dx3 = rect.x + rect.w - margin.right;
                 let dy1 = rect.y;
-                let dy2 = rect.y + self.margin.top;
-                let dy3 = rect.y + rect.h - self.margin.bottom;
+                let dy2 = rect.y + margin.top;
+                let dy3 = rect.y + rect.h - margin.bottom;
 
-                let dw1 = self.margin.left;
-                let dw2 = rect.w - self.margin.left - self.margin.right;
-                let dw3 = self.margin.right;
-                let dh1 = self.margin.top;
-                let dh2 = rect.h - self.margin.top - self.margin.bottom;
-                let dh3 = self.margin.bottom;
+                let dw1 = margin.left;
+                let dw2 = rect.w - margin.left - margin.right;
+                let dw3 = margin.right;
+                let dh1 = margin.top;
+                let dh2 = rect.h - margin.top - margin.bottom;
+                let dh3 = margin.bottom;
 
                 vec![
-                    if let Some(path) = image.image_path.get(0) {
+                    Command::Store,
+                    Command::Alpha(alpha),
+                    if let Some(path) = image_path.get(0) {
                         Command::Draw(
                             Image {
                                 image: path.to_owned().into(),
@@ -1346,7 +1503,7 @@ impl CompositeUiElement {
                     } else {
                         Command::None
                     },
-                    if let Some(path) = image.image_path.get(1) {
+                    if let Some(path) = image_path.get(1) {
                         Command::Draw(
                             Image {
                                 image: path.to_owned().into(),
@@ -1369,7 +1526,7 @@ impl CompositeUiElement {
                     } else {
                         Command::None
                     },
-                    if let Some(path) = image.image_path.get(2) {
+                    if let Some(path) = image_path.get(2) {
                         Command::Draw(
                             Image {
                                 image: path.to_owned().into(),
@@ -1392,7 +1549,7 @@ impl CompositeUiElement {
                     } else {
                         Command::None
                     },
-                    if let Some(path) = image.image_path.get(3) {
+                    if let Some(path) = image_path.get(3) {
                         Command::Draw(
                             Image {
                                 image: path.to_owned().into(),
@@ -1415,7 +1572,7 @@ impl CompositeUiElement {
                     } else {
                         Command::None
                     },
-                    if let Some(path) = image.image_path.get(4) {
+                    if let Some(path) = image_path.get(4) {
                         Command::Draw(
                             Image {
                                 image: path.to_owned().into(),
@@ -1438,7 +1595,7 @@ impl CompositeUiElement {
                     } else {
                         Command::None
                     },
-                    if let Some(path) = image.image_path.get(5) {
+                    if let Some(path) = image_path.get(5) {
                         Command::Draw(
                             Image {
                                 image: path.to_owned().into(),
@@ -1461,7 +1618,7 @@ impl CompositeUiElement {
                     } else {
                         Command::None
                     },
-                    if let Some(path) = image.image_path.get(6) {
+                    if let Some(path) = image_path.get(6) {
                         Command::Draw(
                             Image {
                                 image: path.to_owned().into(),
@@ -1484,7 +1641,7 @@ impl CompositeUiElement {
                     } else {
                         Command::None
                     },
-                    if let Some(path) = image.image_path.get(7) {
+                    if let Some(path) = image_path.get(7) {
                         Command::Draw(
                             Image {
                                 image: path.to_owned().into(),
@@ -1507,7 +1664,7 @@ impl CompositeUiElement {
                     } else {
                         Command::None
                     },
-                    if let Some(path) = image.image_path.get(8) {
+                    if let Some(path) = image_path.get(8) {
                         Command::Draw(
                             Image {
                                 image: path.to_owned().into(),
@@ -1530,12 +1687,13 @@ impl CompositeUiElement {
                     } else {
                         Command::None
                     },
+                    Command::Restore,
                 ]
             }
             _ => vec![],
         };
         for child in &self.children {
-            commands.extend(child.build_commands(rect, interactibles).0);
+            commands.extend(child.build_commands(rect, interactibles, themes).0);
         }
         (commands, rect)
     }

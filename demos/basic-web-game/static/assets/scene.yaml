@@ -172,12 +172,8 @@ entities:
         CompositeTransform: {}
         CompositeUiElement:
           camera_name: camera_ui
+          theme: panel
           interactive: panel
-          margin:
-            left: 8
-            right: 8
-            top: 8
-            bottom: 8
           padding:
             left: 8
             right: 8
@@ -191,14 +187,7 @@ entities:
             y: 1
           fixed_height: 50
           element_type:
-            Image:
-              image_path:
-                Single: ui.png
-              source_rect:
-                x: 0
-                y: 0
-                w: 24
-                h: 24
+            Image: {}
           children:
             - padding:
                 left: 8
@@ -208,14 +197,13 @@ entities:
               right_anchor: 1
               top_anchor: 0
               bottom_anchor: 1
+              theme: text
               element_type:
                 Text:
-                  font: Verdana
                   text: Hello, World!
                   color:
                     r: 255
                     g: 255
                     b: 0
                     a: 255
-                  size: 24
         NonPersistent: ~

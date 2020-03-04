@@ -1,9 +1,10 @@
-use crate::{
-    core::assets::{
+use crate::math::Rect;
+use core::{
+    assets::{
         asset::{Asset, AssetID},
         protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
     },
-    math::{Rect, Scalar},
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::{any::Any, collections::HashMap, str::from_utf8};

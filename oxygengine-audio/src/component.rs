@@ -2,6 +2,7 @@ use core::{
     ecs::{Component, Entity, FlaggedStorage, VecStorage},
     prefab::{Prefab, PrefabError, PrefabProxy},
     state::StateToken,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -54,19 +55,19 @@ pub struct AudioSourceConfig {
     #[serde(default)]
     pub looped: bool,
     #[serde(default = "AudioSourceConfig::default_playback_rate")]
-    pub playback_rate: f32,
+    pub playback_rate: Scalar,
     #[serde(default = "AudioSourceConfig::default_volume")]
-    pub volume: f32,
+    pub volume: Scalar,
     #[serde(default)]
     pub play: bool,
 }
 
 impl AudioSourceConfig {
-    fn default_playback_rate() -> f32 {
+    fn default_playback_rate() -> Scalar {
         1.0
     }
 
-    fn default_volume() -> f32 {
+    fn default_volume() -> Scalar {
         1.0
     }
 
@@ -96,12 +97,12 @@ impl AudioSourceConfig {
         self
     }
 
-    pub fn playback_rate(mut self, value: f32) -> Self {
+    pub fn playback_rate(mut self, value: Scalar) -> Self {
         self.playback_rate = value;
         self
     }
 
-    pub fn volume(mut self, value: f32) -> Self {
+    pub fn volume(mut self, value: Scalar) -> Self {
         self.volume = value;
         self
     }
@@ -122,13 +123,13 @@ pub struct AudioSource {
     #[serde(default)]
     looped: bool,
     #[serde(default)]
-    playback_rate: f32,
+    playback_rate: Scalar,
     #[serde(default)]
-    volume: f32,
+    volume: Scalar,
     #[serde(default)]
     play: bool,
     #[serde(default)]
-    pub(crate) current_time: Option<f32>,
+    pub(crate) current_time: Option<Scalar>,
     #[serde(skip)]
     pub(crate) ready: Arc<AtomicBool>,
     #[serde(skip)]
@@ -197,8 +198,8 @@ impl AudioSource {
         audio: Cow<'static, str>,
         streaming: bool,
         looped: bool,
-        playback_rate: f32,
-        volume: f32,
+        playback_rate: Scalar,
+        volume: Scalar,
         play: bool,
     ) -> Self {
         Self {
@@ -235,11 +236,11 @@ impl AudioSource {
         };
     }
 
-    pub fn playback_rate(&self) -> f32 {
+    pub fn playback_rate(&self) -> Scalar {
         self.playback_rate
     }
 
-    pub fn set_playback_rate(&mut self, playback_rate: f32) {
+    pub fn set_playback_rate(&mut self, playback_rate: Scalar) {
         self.playback_rate = playback_rate;
         self.dirty = {
             let o: u8 = self.dirty.into();
@@ -248,11 +249,11 @@ impl AudioSource {
         };
     }
 
-    pub fn volume(&self) -> f32 {
+    pub fn volume(&self) -> Scalar {
         self.volume
     }
 
-    pub fn set_volume(&mut self, volume: f32) {
+    pub fn set_volume(&mut self, volume: Scalar) {
         self.volume = volume;
         self.dirty = {
             let o: u8 = self.dirty.into();
@@ -261,7 +262,7 @@ impl AudioSource {
         };
     }
 
-    pub fn current_time(&self) -> Option<f32> {
+    pub fn current_time(&self) -> Option<Scalar> {
         self.current_time
     }
 
