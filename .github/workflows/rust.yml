@@ -26,4 +26,4 @@ jobs:
     - name: Install test project dependencies
       run: cd demos/test && npm install
     - name: Build test project
-      run: cd demos/test && npm run build
+      run: cd demos/test && echo "[workspace]" > Cargo.toml && npm run build
