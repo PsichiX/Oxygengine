@@ -20,4 +20,8 @@ jobs:
     - name: Install Ignite CLI
       run: cargo install --path oxygengine-ignite --force
     - name: Create project with Ignite CLI
-      run: oxygengine-ignite new test -d demos
+      run: OXY_UPDATE_PRESETS=1 oxygengine-ignite new test -d demos
+    - name: Setup Node.js
+      uses: actions/setup-node@v1.1.0
+    - name: Install test project dependencies
+      run: cd demos/test && npm install
