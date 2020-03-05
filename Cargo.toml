@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine"
-version = "0.7.0"
+version = "0.7.1"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygen Engine"
@@ -16,6 +16,7 @@ exclude = [
   "oxygengine-js",
 ]
 readme = "README.md"
+maintenance = { status = "actively-developed" }
 
 [features]
 web = [
@@ -132,6 +133,8 @@ desktop-native-headless-game = [
 [dependencies]
 oxygengine-core = { version = "0.7", path = "./oxygengine-core" }
 oxygengine-utils = { version = "0.7", path = "./oxygengine-utils" }
+# FIX for: https://github.com/rust-lang-nursery/failure/issues/342
+# quote = "=1.0.2"
 
 [dependencies.oxygengine-backend-web]
 version = "0.7"
@@ -261,7 +264,6 @@ members = [
   "oxygengine-build-tools",
   "oxygengine-js",
   "demos/procedural-world-simulation",
-  "demos/amethyst-integration",
   "demos/basic-web-game",
   "demos/demo-web-game",
   "demos/hybrid-script-game",

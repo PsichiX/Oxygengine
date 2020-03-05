@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-backend-web"
-version = "0.7.0"
+version = "0.7.1"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Web backend module for Oxygen Engine"
@@ -9,6 +9,7 @@ homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine-backend-web"
 readme = "../README.md"
+maintenance = { status = "actively-developed" }
 
 [features]
 default = ["web"]

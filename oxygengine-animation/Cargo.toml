@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-animation"
-version = "0.7.0"
+version = "0.7.1"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Animation module for Oxygen Engine"
@@ -9,6 +9,7 @@ homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine-animation"
 readme = "../README.md"
+maintenance = { status = "actively-developed" }
 
 [features]
 web = ["oxygengine-core/web"]

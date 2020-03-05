@@ -1,8 +1,9 @@
 [package]
 name = "oxygengine-js"
-version = "0.7.0"
+version = "0.7.1"
 edition = "2018"
 build = "build.rs"
+maintenance = { status = "actively-developed" }
 
 [lib]
 crate-type = ["cdylib"]

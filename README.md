@@ -18,7 +18,7 @@ You can get understanding of it by reading `specs` book and tutorials here: http
 ## Installation
 1. Make sure that you have latest `node.js` with `npm` tools installed (https://nodejs.org/)
 1. Make sure that you have latest `wasm-pack` toolset installed (https://rustwasm.github.io/wasm-pack/installer/)
-1. Make sure that you have latest `oxygengine-ignite` application installed (from project repository releases)
+1. Make sure that you have latest `oxygengine-ignite` binary installed (`cargo install oxygengine-ignite --forced`)
 
 ## Teaser
 ![Visual Novel](https://raw.githubusercontent.com/PsichiX/Oxygengine/master/media/oxygengine-visual-novel-teaser.gif)
@@ -44,6 +44,10 @@ You can also tell it where to create project:
 ```bash
 oxygengine-ignite new <project-name> -d /path/to/parent/
 ```
+
+**Updating to new engine version:**
+- reinstall `oxygengine-ignite` (`cargo install oxygengine-ignite --forced`)
+- update `oxygengine` version either in `Cargo.toml` or by calling `cargo update`
 
 ## Building for development and production
 - Launch live development with hot reloading (app will be automatically

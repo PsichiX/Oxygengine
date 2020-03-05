@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-build-tools"
-version = "0.7.0"
+version = "0.7.1"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Build tools for Oxygen Engine"
@@ -9,6 +9,7 @@ homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine-build-tools"
 readme = "../README.md"
+maintenance = { status = "actively-developed" }
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

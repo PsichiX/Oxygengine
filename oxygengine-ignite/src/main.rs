@@ -1,5 +1,6 @@
 use cargo_metadata::MetadataCommand;
 use clap::{App, Arg, SubCommand};
+use dirs::home_dir;
 use oxygengine_build_tools::{
     atlas::pack_sprites_and_write_to_files,
     pack::pack_assets_and_write_to_file,
@@ -10,7 +11,7 @@ use serde::Deserialize;
 use std::{
     collections::HashMap,
     env::{current_dir, current_exe, vars},
-    fs::{copy, create_dir_all, read_dir, read_to_string, write},
+    fs::{copy, create_dir_all, read_dir, read_to_string, remove_dir_all, write},
     io::{Error, ErrorKind, Result},
     path::Path,
     process::{Command, Stdio},
@@ -110,7 +111,54 @@ fn main() -> Result<()> {
         current_exe()?
     };
     root_path.pop();
-    let presets_path = root_path.join("presets");
+    let mut presets_path = root_path.join("presets");
+    if !presets_path.exists() {
+        presets_path = if let Some(path) = home_dir() {
+            path
+        } else {
+            return Err(Error::new(
+                ErrorKind::NotFound,
+                "There is no HOME directory on this machine",
+            ));
+        }
+        .join(".ignite")
+        .join("presets");
+    }
+    let has_presets = if let Ok(iter) = read_dir(&presets_path) {
+        iter.count() > 0
+    } else {
+        false
+    };
+    let update_presets = std::env::var("OXY_UPDATE_PRESETS").is_ok();
+    if !has_presets || update_presets {
+        if update_presets {
+            drop(remove_dir_all(&presets_path));
+        }
+        let url = format!(
+            "https://github.com/PsichiX/Oxygengine/releases/download/{}/oxygengine-presets.pack",
+            env!("CARGO_PKG_VERSION")
+        );
+        println!(
+            "There are no presets installed in {:?} - trying to download them now from: {:?}",
+            presets_path, url
+        );
+        let response =
+            reqwest::blocking::get(&url).expect(&format!("Request for {:?} failed", url));
+        let bytes = response
+            .bytes()
+            .expect(&format!("Could not get bytes from {:?} response", url));
+        let files = bincode::deserialize::<HashMap<String, Vec<u8>>>(bytes.as_ref())
+            .expect(&format!("Could not unpack files from {:?} response", url));
+        drop(create_dir_all(&presets_path));
+        for (fname, bytes) in files {
+            let path = presets_path.join(fname);
+            let mut dir_path = path.clone();
+            dir_path.pop();
+            drop(create_dir_all(&dir_path));
+            println!("Store file: {:?}", path);
+            write(path, bytes)?;
+        }
+    }
     let presets_list = read_dir(&presets_path)?
         .filter_map(|entry| {
             let path = entry.unwrap().path();

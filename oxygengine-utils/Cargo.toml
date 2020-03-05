@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-utils"
-version = "0.7.0"
+version = "0.7.1"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Utilities module for Oxygen Engine"
@@ -9,6 +9,7 @@ homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine-utils"
 readme = "../README.md"
+maintenance = { status = "actively-developed" }
 
 [features]
 parallel = ["rayon"]
