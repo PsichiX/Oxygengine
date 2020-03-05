@@ -26,6 +26,6 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v1.1.0
     - name: Install test project dependencies
-      run: npm install
+      run: cd test && npm install
     - name: Build test project
-      run: npm run build
+      run: cd test && npm run build
