@@ -1,6 +1,6 @@
 ![logo](https://raw.githubusercontent.com/PsichiX/Oxygengine/master/media/oxygengine-dark-logo.svg?sanitize=true)
 
-# Oxygengine ![travis-ci status](https://travis-ci.org/PsichiX/Oxygengine.svg?branch=master) ![crates-io version](https://raster.shields.io/crates/v/oxygengine.png) ![GitHub tag](https://img.shields.io/github/v/release/PsichiX/Oxygengine?include_prereleases&style=social)
+# Oxygengine ![GitHub CI](https://github.com/PsichiX/Oxygengine/workflows/Rust/badge.svg) ![crates-io version](https://raster.shields.io/crates/v/oxygengine.png) ![GitHub tag](https://img.shields.io/github/v/release/PsichiX/Oxygengine?include_prereleases&style=social)
 ### The hottest HTML5 + WASM game engine for games written in Rust with `web-sys`.
 
 ## Table of contents
@@ -9,7 +9,7 @@
 1. [Teaser](#teaser)
 1. [Project Setup](#project-setup)
 1. [Building for development and production](#building-for-development-and-production)
-1. [Roadmap](#todo--roadmap)
+1. [Roadmap](#roadmap)
 
 ## Understanding ECS
 Oxygengine is highly based on `specs` crate used for its ECS framework.
@@ -49,7 +49,7 @@ oxygengine-ignite new <project-name> -d /path/to/parent/
 - reinstall `oxygengine-ignite`:
   ```bash
   cargo install oxygengine-ignite --forced
-  OXY_UPDATE_PRESETS=1 oxygengine-ignite.exe --help
+  OXY_UPDATE_PRESETS=1 oxygengine-ignite --help
   ```
 - update `oxygengine` version either in `Cargo.toml` or by calling: `cargo update`
 
@@ -73,6 +73,5 @@ npm start
 cargo build
 ```
 
-## TODO / Roadmap
-- Engine editor (standalone Electron application?)
-- Hardware renderer (WebGPU hardware renderer backend)
+## Roadmap
+Current milestone progress: https://github.com/PsichiX/Oxygengine/projects/1
