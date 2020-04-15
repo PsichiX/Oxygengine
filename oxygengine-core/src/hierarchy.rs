@@ -2,6 +2,7 @@ use crate::{
     prefab::{Prefab, PrefabComponent, PrefabError, PrefabProxy},
     state::StateToken,
 };
+use oxygengine_ignite_derive::Ignite;
 use serde::{Deserialize, Serialize};
 use specs::{
     world::EntitiesRes, Component, Entity, FlaggedStorage, Join, ReadStorage, VecStorage, World,
@@ -223,7 +224,7 @@ impl HierarchyChangeRes {
     }
 }
 
-#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Ignite, Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Parent(pub Entity);
 
 impl Component for Parent {

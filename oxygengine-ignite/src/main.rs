@@ -13,7 +13,7 @@ use std::{
     env::{current_dir, current_exe, vars},
     fs::{copy, create_dir_all, read_dir, read_to_string, remove_dir_all, write},
     io::{Error, ErrorKind, Result},
-    path::Path,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
 };
 
@@ -111,19 +111,24 @@ fn main() -> Result<()> {
         current_exe()?
     };
     root_path.pop();
-    let mut presets_path = root_path.join("presets");
-    if !presets_path.exists() {
-        presets_path = if let Some(path) = home_dir() {
-            path
-        } else {
-            return Err(Error::new(
-                ErrorKind::NotFound,
-                "There is no HOME directory on this machine",
-            ));
+    let presets_path = if let Ok(path) = std::env::var("OXY_PRESETS_DIR") {
+        PathBuf::from(path)
+    } else {
+        let mut presets_path = root_path.join("presets");
+        if !presets_path.exists() {
+            presets_path = if let Some(path) = home_dir() {
+                path
+            } else {
+                return Err(Error::new(
+                    ErrorKind::NotFound,
+                    "There is no HOME directory on this machine",
+                ));
+            }
+            .join(".ignite")
+            .join("presets");
         }
-        .join(".ignite")
-        .join("presets");
-    }
+        presets_path
+    };
     let has_presets = if let Ok(iter) = read_dir(&presets_path) {
         iter.count() > 0
     } else {

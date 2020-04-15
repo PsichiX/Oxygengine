@@ -5,12 +5,17 @@
     "build": "rimraf dist pkg && webpack",
     "start": "rimraf dist pkg && webpack-dev-server --open -d"
   },
+  "ignite": {
+    "play-mode-host": ["./node_modules/http-server/bin/http-server", "./dist"],
+    "play-mode-address": "http://localhost:8080"
+  },
   "devDependencies": {
     "@wasm-tool/wasm-pack-plugin": "^0.4.2",
     "copy-webpack-plugin": "^5.0.3",
+    "http-server": "^0.12.1",
+    "rimraf": "^2.6.3",
     "webpack": "^4.33.0",
     "webpack-cli": "^3.3.3",
-    "webpack-dev-server": "^3.7.1",
-    "rimraf": "^2.6.3"
+    "webpack-dev-server": "^3.7.1"
   }
 }

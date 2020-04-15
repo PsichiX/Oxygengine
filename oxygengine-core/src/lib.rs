@@ -43,3 +43,5 @@ pub mod prelude {
 pub type Scalar = f64;
 #[cfg(not(feature = "scalar64"))]
 pub type Scalar = f32;
+
+pub use oxygengine_ignite_derive::Ignite;

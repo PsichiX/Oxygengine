@@ -239,6 +239,7 @@ optional = true
 [workspace]
 members = [
   "oxygengine-ignite",
+  "oxygengine-ignite-derive",
   "oxygengine-core",
   "oxygengine-utils",
   "oxygengine-backend-web",
