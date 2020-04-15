@@ -1,27 +1,29 @@
-#[derive(oxygengine_ignite_derive::Ignite)]
-#[ignite(namespace = test)]
+use oxygengine_ignite_derive::Ignite;
+
+#[derive(Ignite)]
+#[ignite(namespace = "test")]
 struct Foo {
+    #[ignite(ignore)]
     u: (),
+    #[ignite(min = 0, max = 100)]
     a: i32,
-    b: (i32, f64),
-    // #[ignite(ignore)]
+    #[ignite(mapping = "math.Vec2")]
+    b: (f32, f32),
+    #[ignite(readonly)]
     c: [String; 2],
+    #[ignite(default, another_custom_empty_tag)]
     d: std::collections::HashMap<String, Vec<Bar>>,
 }
 
-#[derive(oxygengine_ignite_derive::Ignite)]
+#[derive(Ignite)]
+#[ignite(namespace = "test")]
 enum Bar {
     A,
-    B(i32, f64),
-    C { a: i32, b: f64 },
-}
-
-#[test]
-fn works() {
-    // let foo = Foo {
-    //     a: 42,
-    //     b: 4.2,
-    //     c: "42".to_owned(),
-    //     d: Bar::B(1),
-    // };
+    B(#[ignite(ignore)] i32, f64),
+    C {
+        #[ignite(ignore)]
+        a: i32,
+        #[ignite(readonly)]
+        b: f64,
+    },
 }

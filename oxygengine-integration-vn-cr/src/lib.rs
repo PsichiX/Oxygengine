@@ -17,7 +17,7 @@ use oxygengine_core::{
     hierarchy::{Name, Tag},
     prefab::{Prefab, PrefabError, PrefabManager, PrefabProxy},
     state::StateToken,
-    Scalar,
+    Ignite, Scalar,
 };
 use oxygengine_input::resource::InputController;
 use oxygengine_visual_novel::resource::VnStoryManager;
@@ -154,7 +154,7 @@ impl From<VnRenderingConfig> for VnRenderingManager {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Ignite, Debug, Clone, Copy)]
 pub struct PositionCameraAlignment(pub Entity, pub Vec2);
 
 impl Component for PositionCameraAlignment {

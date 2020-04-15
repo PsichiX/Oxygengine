@@ -3,7 +3,7 @@ use core::prelude::*;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
-#[derive(Debug)]
+#[derive(Ignite, Debug)]
 pub(crate) struct WebScriptComponent {
     id: EntityId,
     components: HashMap<String, Option<JsValue>>,

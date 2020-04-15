@@ -259,7 +259,7 @@ pub struct ParentPrefabProxy(pub String);
 
 impl Prefab for ParentPrefabProxy {}
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Tag(pub Cow<'static, str>);
 
 impl Component for Tag {
@@ -269,7 +269,7 @@ impl Component for Tag {
 impl Prefab for Tag {}
 impl PrefabComponent for Tag {}
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Name(pub Cow<'static, str>);
 
 impl Component for Name {
@@ -279,7 +279,7 @@ impl Component for Name {
 impl Prefab for Name {}
 impl PrefabComponent for Name {}
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct NonPersistent(pub StateToken);
 
 impl Component for NonPersistent {

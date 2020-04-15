@@ -4,6 +4,7 @@ use oxygengine_core::{
     ecs::{Component, Join, ReadStorage, System, VecStorage, Write, WriteStorage},
     hierarchy::Parent,
     prefab::{Prefab, PrefabComponent, PrefabManager},
+    Ignite,
 };
 use oxygengine_physics_2d::{component::RigidBody2d, resource::Physics2dWorld};
 use serde::{Deserialize, Serialize};
@@ -20,7 +21,7 @@ pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>, _: ()) {
     );
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Physics2dSyncCompositeTransform;
 
 impl Component for Physics2dSyncCompositeTransform {
