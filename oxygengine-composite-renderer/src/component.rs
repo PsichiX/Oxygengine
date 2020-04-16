@@ -17,6 +17,7 @@ use std::{borrow::Cow, collections::HashMap};
 use utils::grid_2d::Grid2d;
 
 #[derive(Ignite, Debug, Copy, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeVisibility(pub bool);
 
 impl Component for CompositeVisibility {
@@ -33,6 +34,7 @@ impl Prefab for CompositeVisibility {}
 impl PrefabComponent for CompositeVisibility {}
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeSurfaceCache {
     name: Cow<'static, str>,
     width: usize,
@@ -95,6 +97,7 @@ impl Prefab for CompositeSurfaceCache {
 impl PrefabComponent for CompositeSurfaceCache {}
 
 #[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeRenderable(pub Renderable<'static>);
 
 impl Component for CompositeRenderable {
@@ -117,6 +120,7 @@ impl Prefab for CompositeRenderable {}
 impl PrefabComponent for CompositeRenderable {}
 
 #[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeRenderableStroke(pub Scalar);
 
 impl Default for CompositeRenderableStroke {
@@ -133,6 +137,7 @@ impl Prefab for CompositeRenderableStroke {}
 impl PrefabComponent for CompositeRenderableStroke {}
 
 #[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeTransform {
     #[serde(default)]
     translation: Vec2,
@@ -265,6 +270,7 @@ impl Prefab for CompositeTransform {
 impl PrefabComponent for CompositeTransform {}
 
 #[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeRenderLayer(pub usize);
 
 impl Component for CompositeRenderLayer {
@@ -275,6 +281,7 @@ impl Prefab for CompositeRenderLayer {}
 impl PrefabComponent for CompositeRenderLayer {}
 
 #[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeRenderDepth(pub Scalar);
 
 impl Component for CompositeRenderDepth {
@@ -285,6 +292,7 @@ impl Prefab for CompositeRenderDepth {}
 impl PrefabComponent for CompositeRenderDepth {}
 
 #[derive(Ignite, Debug, Copy, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeRenderAlpha(pub Scalar);
 
 impl Component for CompositeRenderAlpha {
@@ -301,6 +309,7 @@ impl Prefab for CompositeRenderAlpha {}
 impl PrefabComponent for CompositeRenderAlpha {}
 
 #[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeCameraAlignment(pub Vec2);
 
 impl Component for CompositeCameraAlignment {
@@ -311,6 +320,7 @@ impl Prefab for CompositeCameraAlignment {}
 impl PrefabComponent for CompositeCameraAlignment {}
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeEffect(pub Effect);
 
 impl Component for CompositeEffect {
@@ -350,6 +360,7 @@ impl Default for CompositeScalingTarget {
 }
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeCamera {
     #[serde(default)]
     pub scaling: CompositeScalingMode,
@@ -437,6 +448,7 @@ impl Prefab for CompositeCamera {}
 impl PrefabComponent for CompositeCamera {}
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeSprite {
     #[serde(default)]
     pub alignment: Vec2,
@@ -548,6 +560,7 @@ impl From<(Cow<'static, str>, Vec<Cow<'static, str>>)> for SpriteAnimation {
 }
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeSpriteAnimation {
     pub animations: HashMap<Cow<'static, str>, SpriteAnimation>,
     // (name, phase, speed, looped)
@@ -829,6 +842,7 @@ impl From<(usize, usize, bool, bool, TileRotate, bool)> for TileCell {
 }
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeTilemap {
     tileset: Option<Cow<'static, str>>,
     grid: Grid2d<TileCell>,
@@ -908,6 +922,7 @@ impl From<(Cow<'static, str>, Vec<Grid2d<TileCell>>)> for TilemapAnimation {
 }
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeTilemapAnimation {
     pub animations: HashMap<Cow<'static, str>, TilemapAnimation>,
     // (name, phase, speed, looped)
@@ -1055,6 +1070,7 @@ impl Prefab for CompositeTilemapAnimation {
 impl PrefabComponent for CompositeTilemapAnimation {}
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeMapChunk {
     map_name: Cow<'static, str>,
     layer_name: Cow<'static, str>,
@@ -1195,6 +1211,7 @@ impl Default for UiElementType {
 }
 
 #[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "composite-renderer")]
 pub struct CompositeUiElement {
     #[serde(default)]
     pub id: Option<Cow<'static, str>>,

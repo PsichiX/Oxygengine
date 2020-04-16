@@ -225,6 +225,7 @@ impl HierarchyChangeRes {
 }
 
 #[derive(Ignite, Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
+#[ignite(namespace = "core")]
 pub struct Parent(pub Entity);
 
 impl Component for Parent {
@@ -260,6 +261,7 @@ pub struct ParentPrefabProxy(pub String);
 impl Prefab for ParentPrefabProxy {}
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "core")]
 pub struct Tag(pub Cow<'static, str>);
 
 impl Component for Tag {
@@ -270,6 +272,7 @@ impl Prefab for Tag {}
 impl PrefabComponent for Tag {}
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "core")]
 pub struct Name(pub Cow<'static, str>);
 
 impl Component for Name {
@@ -280,6 +283,7 @@ impl Prefab for Name {}
 impl PrefabComponent for Name {}
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "core")]
 pub struct NonPersistent(pub StateToken);
 
 impl Component for NonPersistent {

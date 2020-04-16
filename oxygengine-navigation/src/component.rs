@@ -12,6 +12,7 @@ pub type NavAgentID = ID<NavAgent>;
 
 /// Simple nav driver component tag to mark entity to use simple movement on nav mesh.
 #[derive(Ignite, Debug, Default, Copy, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "navigation")]
 pub struct SimpleNavDriverTag;
 
 impl Component for SimpleNavDriverTag {
@@ -61,6 +62,7 @@ pub struct NavAgentDestination {
 
 /// Nav agent component.
 #[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "navigation")]
 pub struct NavAgent {
     id: NavAgentID,
     /// Current agent position in world space.

@@ -65,6 +65,7 @@ struct IgniteTypeDefinition {
     pub namespace: Option<String>,
     pub generic_args: Vec<String>,
     pub variant: IgniteTypeVariant,
+    pub meta: HashMap<String, IgniteAttribMeta>,
 }
 
 #[derive(Debug, Serialize)]
@@ -137,9 +138,15 @@ struct IgniteTypeGeneric {
 }
 
 #[derive(Debug, Default)]
-struct IgniteAttribs {
+struct IgniteFieldAttribs {
     pub ignore: bool,
     pub mapping: Option<String>,
+    pub meta: HashMap<String, IgniteAttribMeta>,
+}
+
+#[derive(Debug, Default)]
+struct IgniteTypeAttribs {
+    pub namespace: Option<String>,
     pub meta: HashMap<String, IgniteAttribMeta>,
 }
 
@@ -161,7 +168,7 @@ impl Default for IgniteAttribMeta {
 #[proc_macro_derive(Ignite, attributes(ignite))]
 pub fn derive_ignite(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
-    let namespace = parse_type_namespace(&ast.attrs);
+    let attribs = parse_type_attribs(&ast.attrs);
     let generic_args = ast
         .generics
         .params
@@ -182,7 +189,7 @@ pub fn derive_ignite(input: TokenStream) -> TokenStream {
                     .named
                     .iter()
                     .filter_map(|field| {
-                        let attribs = parse_attribs(&field.attrs);
+                        let attribs = parse_field_attribs(&field.attrs);
                         if attribs.ignore {
                             return None;
                         }
@@ -203,7 +210,7 @@ pub fn derive_ignite(input: TokenStream) -> TokenStream {
                     .unnamed
                     .iter()
                     .filter_map(|field| {
-                        let attribs = parse_attribs(&field.attrs);
+                        let attribs = parse_field_attribs(&field.attrs);
                         if attribs.ignore {
                             return None;
                         }
@@ -231,7 +238,7 @@ pub fn derive_ignite(input: TokenStream) -> TokenStream {
                                 .named
                                 .iter()
                                 .filter_map(|field| {
-                                    let attribs = parse_attribs(&field.attrs);
+                                    let attribs = parse_field_attribs(&field.attrs);
                                     if attribs.ignore {
                                         return None;
                                     }
@@ -252,7 +259,7 @@ pub fn derive_ignite(input: TokenStream) -> TokenStream {
                                 .unnamed
                                 .iter()
                                 .filter_map(|field| {
-                                    let attribs = parse_attribs(&field.attrs);
+                                    let attribs = parse_field_attribs(&field.attrs);
                                     if attribs.ignore {
                                         return None;
                                     }
@@ -275,15 +282,16 @@ pub fn derive_ignite(input: TokenStream) -> TokenStream {
         _ => panic!("Ignite can be derived only for structs and enums"),
     };
     store_type(IgniteTypeDefinition {
-        namespace,
+        namespace: attribs.namespace,
         generic_args,
         variant,
+        meta: attribs.meta,
     });
     TokenStream::new()
 }
 
-fn parse_type_namespace(attrs: &[Attribute]) -> Option<String> {
-    let mut result = None;
+fn parse_type_attribs(attrs: &[Attribute]) -> IgniteTypeAttribs {
+    let mut result = IgniteTypeAttribs::default();
     for attrib in attrs {
         match attrib.parse_meta() {
             Err(error) => panic!(
@@ -297,8 +305,21 @@ fn parse_type_namespace(attrs: &[Attribute]) -> Option<String> {
                         if let NestedMeta::Meta(Meta::NameValue(meta)) = &meta {
                             if meta.path.is_ident("namespace") {
                                 if let Lit::Str(value) = &meta.lit {
-                                    result = Some(value.value());
+                                    result.namespace = Some(value.value());
                                 }
+                            } else if let Some(ident) = meta.path.get_ident() {
+                                let value = match &meta.lit {
+                                    Lit::Str(value) => IgniteAttribMeta::String(value.value()),
+                                    Lit::Int(value) => IgniteAttribMeta::Integer(
+                                        value.base10_parse::<i64>().unwrap(),
+                                    ),
+                                    Lit::Float(value) => IgniteAttribMeta::Float(
+                                        value.base10_parse::<f64>().unwrap(),
+                                    ),
+                                    Lit::Bool(value) => IgniteAttribMeta::Bool(value.value),
+                                    _ => IgniteAttribMeta::None,
+                                };
+                                result.meta.insert(ident.to_string(), value);
                             }
                         }
                     }
@@ -310,8 +331,8 @@ fn parse_type_namespace(attrs: &[Attribute]) -> Option<String> {
     result
 }
 
-fn parse_attribs(attrs: &[Attribute]) -> IgniteAttribs {
-    let mut result = IgniteAttribs::default();
+fn parse_field_attribs(attrs: &[Attribute]) -> IgniteFieldAttribs {
+    let mut result = IgniteFieldAttribs::default();
     for attrib in attrs {
         match attrib.parse_meta() {
             Err(error) => panic!(

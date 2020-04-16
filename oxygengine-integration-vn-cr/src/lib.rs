@@ -155,6 +155,7 @@ impl From<VnRenderingConfig> for VnRenderingManager {
 }
 
 #[derive(Ignite, Debug, Clone, Copy)]
+#[ignite(namespace = "visual-novel-composite-renderer")]
 pub struct PositionCameraAlignment(pub Entity, pub Vec2);
 
 impl Component for PositionCameraAlignment {

@@ -116,6 +116,7 @@ impl AudioSourceConfig {
 impl Prefab for AudioSourceConfig {}
 
 #[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[ignite(namespace = "audio")]
 pub struct AudioSource {
     audio: Cow<'static, str>,
     #[serde(default)]
