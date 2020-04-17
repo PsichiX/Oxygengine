@@ -1,9 +1,9 @@
 extern crate proc_macro;
 
 use lazy_static::lazy_static;
+use oxygengine_ignite_types::*;
 use proc_macro::TokenStream;
 use quote::ToTokens;
-use serde::Serialize;
 use std::{
     collections::HashMap,
     fs::{create_dir_all, write},
@@ -32,7 +32,19 @@ lazy_static! {
     };
 }
 
-fn store_type(item: IgniteTypeDefinition) {
+fn store_type(item: &IgniteTypeDefinition) {
+    #[cfg(feature = "target-yaml")]
+    store_type_yaml(&item);
+    #[cfg(feature = "target-json")]
+    store_type_json(&item);
+    #[cfg(feature = "target-ron")]
+    store_type_ron(&item);
+    #[cfg(feature = "target-binary")]
+    store_type_binary(&item);
+}
+
+#[cfg(feature = "target-yaml")]
+fn store_type_yaml(item: &IgniteTypeDefinition) {
     let name = match &item.variant {
         IgniteTypeVariant::StructUnit(item) => &item,
         IgniteTypeVariant::StructNamed(item) => &item.name,
@@ -59,82 +71,96 @@ fn store_type(item: IgniteTypeDefinition) {
     }
 }
 
-#[derive(Debug, Serialize)]
-struct IgniteTypeDefinition {
-    #[serde(default)]
-    pub namespace: Option<String>,
-    pub generic_args: Vec<String>,
-    pub variant: IgniteTypeVariant,
-    pub meta: HashMap<String, IgniteAttribMeta>,
+#[cfg(feature = "target-json")]
+fn store_type_json(item: &IgniteTypeDefinition) {
+    let name = match &item.variant {
+        IgniteTypeVariant::StructUnit(item) => &item,
+        IgniteTypeVariant::StructNamed(item) => &item.name,
+        IgniteTypeVariant::StructUnnamed(item) => &item.name,
+        IgniteTypeVariant::Enum(item) => &item.name,
+    };
+    let path = if let Some(namespace) = &item.namespace {
+        TYPES_DIR
+            .read()
+            .unwrap()
+            .join(format!("{}.{}.ignite-type.json", namespace, name))
+    } else {
+        TYPES_DIR
+            .read()
+            .unwrap()
+            .join(format!("{}.ignite-type.json", name))
+    };
+    #[cfg(feature = "pretty")]
+    let result = serde_json::to_string_pretty(&item);
+    #[cfg(not(feature = "pretty"))]
+    let result = serde_json::to_string(&item);
+    if let Ok(content) = result {
+        if write(&path, content).is_err() {
+            println!("Could not save Ignite type definition to file: {:?}", path);
+        }
+    } else {
+        println!("Could not serialize Ignite type definition: {:?}", path);
+    }
 }
 
-#[derive(Debug, Serialize)]
-enum IgniteTypeVariant {
-    StructUnit(String),
-    StructNamed(IgniteNamed),
-    StructUnnamed(IgniteUnnamed),
-    Enum(IgniteEnum),
+#[cfg(feature = "target-ron")]
+fn store_type_ron(item: &IgniteTypeDefinition) {
+    let name = match &item.variant {
+        IgniteTypeVariant::StructUnit(item) => &item,
+        IgniteTypeVariant::StructNamed(item) => &item.name,
+        IgniteTypeVariant::StructUnnamed(item) => &item.name,
+        IgniteTypeVariant::Enum(item) => &item.name,
+    };
+    let path = if let Some(namespace) = &item.namespace {
+        TYPES_DIR
+            .read()
+            .unwrap()
+            .join(format!("{}.{}.ignite-type.ron", namespace, name))
+    } else {
+        TYPES_DIR
+            .read()
+            .unwrap()
+            .join(format!("{}.ignite-type.ron", name))
+    };
+    #[cfg(feature = "pretty")]
+    let result = ron::ser::to_string_pretty(&item, Default::default());
+    #[cfg(not(feature = "pretty"))]
+    let result = ron::ser::to_string(&item);
+    if let Ok(content) = result {
+        if write(&path, content).is_err() {
+            println!("Could not save Ignite type definition to file: {:?}", path);
+        }
+    } else {
+        println!("Could not serialize Ignite type definition: {:?}", path);
+    }
 }
 
-#[derive(Debug, Serialize)]
-struct IgniteNamed {
-    pub name: String,
-    pub fields: Vec<IgniteNamedField>,
-}
-
-#[derive(Debug, Serialize)]
-struct IgniteUnnamed {
-    pub name: String,
-    pub fields: Vec<IgniteUnnamedField>,
-}
-
-#[derive(Debug, Serialize)]
-struct IgniteNamedField {
-    pub name: String,
-    pub typename: IgniteType,
-    pub mapping: Option<String>,
-    pub meta: HashMap<String, IgniteAttribMeta>,
-}
-
-#[derive(Debug, Serialize)]
-struct IgniteUnnamedField {
-    pub typename: IgniteType,
-    pub mapping: Option<String>,
-    pub meta: HashMap<String, IgniteAttribMeta>,
-}
-
-#[derive(Debug, Serialize)]
-struct IgniteEnum {
-    pub name: String,
-    pub variants: Vec<IgniteVariant>,
-}
-
-#[derive(Debug, Serialize)]
-enum IgniteVariant {
-    Unit(String),
-    Named(IgniteNamed),
-    Unnamed(IgniteUnnamed),
-}
-
-#[derive(Debug, Serialize)]
-enum IgniteType {
-    Unit,
-    Atom(String),
-    Tuple(Vec<IgniteType>),
-    Array(IgniteTypeArray),
-    Generic(IgniteTypeGeneric),
-}
-
-#[derive(Debug, Serialize)]
-struct IgniteTypeArray {
-    pub typename: Box<IgniteType>,
-    pub size: usize,
-}
-
-#[derive(Debug, Serialize)]
-struct IgniteTypeGeneric {
-    pub name: String,
-    pub arguments: Vec<IgniteType>,
+#[cfg(feature = "target-binary")]
+fn store_type_binary(item: &IgniteTypeDefinition) {
+    let name = match &item.variant {
+        IgniteTypeVariant::StructUnit(item) => &item,
+        IgniteTypeVariant::StructNamed(item) => &item.name,
+        IgniteTypeVariant::StructUnnamed(item) => &item.name,
+        IgniteTypeVariant::Enum(item) => &item.name,
+    };
+    let path = if let Some(namespace) = &item.namespace {
+        TYPES_DIR
+            .read()
+            .unwrap()
+            .join(format!("{}.{}.ignite-type.bin", namespace, name))
+    } else {
+        TYPES_DIR
+            .read()
+            .unwrap()
+            .join(format!("{}.ignite-type.bin", name))
+    };
+    if let Ok(content) = bincode::serialize(&item) {
+        if write(&path, content).is_err() {
+            println!("Could not save Ignite type definition to file: {:?}", path);
+        }
+    } else {
+        println!("Could not serialize Ignite type definition: {:?}", path);
+    }
 }
 
 #[derive(Debug, Default)]
@@ -148,21 +174,6 @@ struct IgniteFieldAttribs {
 struct IgniteTypeAttribs {
     pub namespace: Option<String>,
     pub meta: HashMap<String, IgniteAttribMeta>,
-}
-
-#[derive(Debug, Serialize)]
-enum IgniteAttribMeta {
-    None,
-    Bool(bool),
-    String(String),
-    Integer(i64),
-    Float(f64),
-}
-
-impl Default for IgniteAttribMeta {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 #[proc_macro_derive(Ignite, attributes(ignite))]
@@ -281,12 +292,13 @@ pub fn derive_ignite(input: TokenStream) -> TokenStream {
         }
         _ => panic!("Ignite can be derived only for structs and enums"),
     };
-    store_type(IgniteTypeDefinition {
+    let definition = IgniteTypeDefinition {
         namespace: attribs.namespace,
         generic_args,
         variant,
         meta: attribs.meta,
-    });
+    };
+    store_type(&definition);
     TokenStream::new()
 }
 

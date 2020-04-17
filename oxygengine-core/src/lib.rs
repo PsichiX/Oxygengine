@@ -32,11 +32,15 @@ pub mod ecs {
     pub use specs::*;
 }
 
+pub mod ignite {
+    pub use oxygengine_ignite_types as types;
+}
+
 pub mod prelude {
     pub use crate::{
         app::*, assets::prelude::*, ecs::*, fetch::prelude::*, fetch::*, hierarchy::*, id::*,
         localization::*, log::*, prefab::*, state::*, storage::prelude::*, storage::*, Ignite,
-        Scalar,
+        Scalar
     };
 }
 
