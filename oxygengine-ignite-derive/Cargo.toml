@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-ignite-derive"
-version = "0.7.1"
+version = "0.7.2"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Ignite derive module for Oxygen Engine"
