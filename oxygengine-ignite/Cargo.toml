@@ -21,3 +21,4 @@ serde_json = "1"
 oxygengine-build-tools = { version = "0.7", path = "../oxygengine-build-tools" }
 dirs = "2.0"
 reqwest = { version = "0.10", features = ["blocking"] }
+chrobry-core = "1.1"

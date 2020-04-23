@@ -132,8 +132,8 @@ impl Client for WebClient {
             drop(stream.write_u32::<BigEndian>(id.id()));
             drop(stream.write_u32::<BigEndian>(id.version()));
             drop(stream.write(data));
-            let mut data = stream.into_inner();
-            if self.socket.send_with_u8_array(&mut data).is_ok() {
+            let data = stream.into_inner();
+            if self.socket.send_with_u8_array(&data).is_ok() {
                 return Some(0..size);
             }
         }

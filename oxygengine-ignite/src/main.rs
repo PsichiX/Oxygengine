@@ -148,12 +148,12 @@ fn main() -> Result<()> {
             presets_path, url
         );
         let response =
-            reqwest::blocking::get(&url).expect(&format!("Request for {:?} failed", url));
+            reqwest::blocking::get(&url).unwrap_or_else(|_| panic!("Request for {:?} failed", url));
         let bytes = response
             .bytes()
-            .expect(&format!("Could not get bytes from {:?} response", url));
+            .unwrap_or_else(|_| panic!("Could not get bytes from {:?} response", url));
         let files = bincode::deserialize::<HashMap<String, Vec<u8>>>(bytes.as_ref())
-            .expect(&format!("Could not unpack files from {:?} response", url));
+            .unwrap_or_else(|_| panic!("Could not unpack files from {:?} response", url));
         drop(create_dir_all(&presets_path));
         for (fname, bytes) in files {
             let path = presets_path.join(fname);
@@ -648,6 +648,27 @@ fn copy_dir(from: &Path, to: &Path, id: &str) -> Result<()> {
                 create_dir_all(&dir)?;
                 copy_dir(&path, &dir, id)?;
             } else if path.is_file() {
+                if let Some(ext) = path.extension() {
+                    if ext == "chrobry" {
+                        if let Ok(contents) = read_to_string(&path) {
+                            let mut vars = HashMap::new();
+                            vars.insert("IGNITE_ID".to_owned(), id.to_owned());
+                            match chrobry_core::generate(&contents, "\n", vars, |_| Ok("".to_owned())) {
+                                Ok(contents) => {
+                                    let to = to.join(path.file_stem().unwrap());
+                                    write(to, contents)?;
+                                }
+                                Err(error) => println!(
+                                    "Could not generate file from Chrobry template: {:?}. Error: {:?}",
+                                    path, error
+                                ),
+                            }
+                        } else {
+                            println!("Could not open Chrobry template file: {:?}", path);
+                        }
+                        return Ok(());
+                    }
+                }
                 let to = to.join(path.file_name().unwrap());
                 if let Ok(contents) = read_to_string(&path) {
                     let contents = contents.replace("~%IGNITE_ID%~", id);

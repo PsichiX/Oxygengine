@@ -1,0 +1,7 @@
+{
+  "plugins": {
+    "ignite-play-mode-plugin": {
+      "dist": "dist"
+    }
+  }
+}

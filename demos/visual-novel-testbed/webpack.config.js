@@ -23,7 +23,6 @@ module.exports = {
       path.resolve(__dirname, "static/index.html"),
       path.resolve(__dirname, "static/assets.pack"),
     ]),
-
     new WasmPackPlugin({
       crateDirectory: __dirname,
       extraArgs: "--out-name index",
