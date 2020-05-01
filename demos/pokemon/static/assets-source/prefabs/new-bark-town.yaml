@@ -1,0 +1,35 @@
+template_name: new-bark-town
+entities:
+  - Data:
+      components:
+        Name: camera
+        CompositeCamera:
+          scaling: CenterAspect
+          tags:
+            - world
+        CompositeTransform:
+          scale:
+            x: 144
+            y: 144
+        NonPersistent: ~
+  # - Data:
+  #     components:
+  #       Name: camera_ui
+  #       CompositeCamera:
+  #         scaling: Aspect
+  #         tags:
+  #           - ui
+  #       CompositeTransform:
+  #         scale:
+  #           x: 400
+  #           y: 400
+  #       NonPersistent: ~
+  - Data:
+      components:
+        Tag: world
+        CompositeRenderable: None
+        CompositeTransform: {}
+        CompositeMapChunk:
+          map_name: map.map
+          layer_name: world
+        NonPersistent: ~

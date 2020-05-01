@@ -1,0 +1,62 @@
+{
+  "source": "static",
+  "destination": "static",
+  "commands": [
+    {
+      "Pipeline": {
+        "destination": "assets-generated",
+        "clear_destination": true
+      }
+    },
+    {
+      "Pipeline": {
+        "source": "assets-source",
+        "destination": "assets-generated",
+        "commands": [
+          {
+            "Copy": {
+              "from": [
+                "assets.txt",
+                "prefabs/"
+              ]
+            }
+          },
+          {
+            "Atlas": {
+              "paths": [
+                "images"
+              ],
+              "output_image": "sprites.png",
+              "output_atlas": "sprites.json",
+              "pretty": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "Pipeline": {
+        "destination": "assets-generated",
+        "commands": [
+          {
+            "Tiled": {
+              "input": "assets-source/maps/new-bark-town-map.json",
+              "output": "map.map",
+              "spritesheets": [
+                "assets-generated/sprites.0.json"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "Pack": {
+        "paths": [
+          "assets-generated"
+        ],
+        "output": "assets.pack"
+      }
+    }
+  ]
+}

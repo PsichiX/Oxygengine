@@ -1,0 +1,7 @@
+node_modules
+/dist
+/target
+/pkg
+/wasm-pack.log
+/static/*.pack
+/static/assets-generated/

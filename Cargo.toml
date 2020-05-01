@@ -268,4 +268,5 @@ members = [
   "demos/demo-web-game",
   "demos/hybrid-script-game",
   "demos/visual-novel-testbed",
+  "demos/pokemon",
 ]

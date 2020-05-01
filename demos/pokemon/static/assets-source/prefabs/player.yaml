@@ -1,0 +1,59 @@
+template_name: player
+entities:
+  - Data:
+      components:
+        Tag: world
+        CompositeRenderable: None
+        CompositeTransform: {}
+        CompositeRenderDepth: 100
+        CompositeSprite:
+          sheet_frame:
+            - "sprites.0.json"
+            - "player-00.png"
+        CompositeSpriteAnimation:
+          animations:
+            idle-east:
+              sheet: "sprites.0.json"
+              frames:
+                - "player-00.png"
+            idle-west:
+              sheet: "sprites.0.json"
+              frames:
+                - "player-02.png"
+            idle-south:
+              sheet: "sprites.0.json"
+              frames:
+                - "player-04.png"
+            idle-north:
+              sheet: "sprites.0.json"
+              frames:
+                - "player-07.png"
+            walk-east:
+              sheet: "sprites.0.json"
+              frames:
+                - "player-00.png"
+                - "player-01.png"
+            walk-west:
+              sheet: "sprites.0.json"
+              frames:
+                - "player-02.png"
+                - "player-03.png"
+            walk-south:
+              sheet: "sprites.0.json"
+              frames:
+                - "player-04.png"
+                - "player-05.png"
+                - "player-04.png"
+                - "player-06.png"
+            walk-north:
+              sheet: "sprites.0.json"
+              frames:
+                - "player-07.png"
+                - "player-08.png"
+                - "player-07.png"
+                - "player-09.png"
+        KeyboardMovement:
+          direction: East
+          is_moving: false
+        Speed: 32
+        NonPersistent: ~

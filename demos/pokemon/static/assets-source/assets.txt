@@ -1,0 +1,3 @@
+map://map.map
+prefab://prefabs/new-bark-town.yaml
+prefab://prefabs/player.yaml

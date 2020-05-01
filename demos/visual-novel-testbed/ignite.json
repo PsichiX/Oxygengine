@@ -3,5 +3,102 @@
     "ignite-play-mode-plugin": {
       "dist": "dist"
     }
+  },
+  "windows": {
+    "data": {
+      "Asset Browser": {
+        "maximized": false,
+        "data": null
+      },
+      "Play Mode": {
+        "maximized": false,
+        "data": null
+      },
+      "Code": {
+        "maximized": false,
+        "data": null
+      },
+      "Media": {
+        "maximized": false,
+        "data": null
+      },
+      "Itch.io": {
+        "maximized": false,
+        "data": null
+      }
+    },
+    "layout": {
+      "type": "list",
+      "weights": [
+        0.18385416666666654,
+        0.8161458333333333
+      ],
+      "vertical": false,
+      "list": [
+        {
+          "type": "tabs",
+          "tabs": [
+            "Asset Browser"
+          ],
+          "active": 0
+        },
+        {
+          "type": "list",
+          "weights": [
+            1
+          ],
+          "vertical": false,
+          "list": [
+            {
+              "type": "tabs",
+              "tabs": [
+                "Play Mode"
+              ],
+              "active": 0
+            },
+            {
+              "type": "list",
+              "weights": [
+                1
+              ],
+              "vertical": true,
+              "list": [
+                {
+                  "type": "list",
+                  "weights": [
+                    1
+                  ],
+                  "vertical": false,
+                  "list": [
+                    {
+                      "type": "tabs",
+                      "tabs": [
+                        "Code"
+                      ],
+                      "active": 0
+                    },
+                    {
+                      "type": "tabs",
+                      "tabs": [
+                        "Media"
+                      ],
+                      "active": 0
+                    }
+                  ]
+                },
+                {
+                  "type": "tabs",
+                  "tabs": [
+                    "Itch.io"
+                  ],
+                  "active": 0
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "floating": []
   }
 }
