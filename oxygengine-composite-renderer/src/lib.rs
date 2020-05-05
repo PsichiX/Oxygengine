@@ -3,6 +3,8 @@ extern crate oxygengine_utils as utils;
 
 pub mod component;
 pub mod composite_renderer;
+pub mod font_asset_protocol;
+pub mod font_face_asset_protocol;
 pub mod map_asset_protocol;
 pub mod math;
 pub mod png_image_asset_protocol;
@@ -14,9 +16,10 @@ pub mod ui_theme_asset_protocol;
 
 pub mod prelude {
     pub use crate::{
-        component::*, composite_renderer::*, map_asset_protocol::*, math::*,
-        png_image_asset_protocol::*, resource::*, sprite_sheet_asset_protocol::*, system::*,
-        tileset_asset_protocol::*, ui_theme_asset_protocol::*,
+        component::*, composite_renderer::*, font_asset_protocol::*, font_face_asset_protocol::*,
+        map_asset_protocol::*, math::*, png_image_asset_protocol::*, resource::*,
+        sprite_sheet_asset_protocol::*, system::*, tileset_asset_protocol::*,
+        ui_theme_asset_protocol::*,
     };
 }
 
@@ -63,6 +66,8 @@ pub fn protocols_installer(database: &mut AssetsDatabase) {
     database.register(tileset_asset_protocol::TilesetAssetProtocol);
     database.register(map_asset_protocol::MapAssetProtocol);
     database.register(ui_theme_asset_protocol::UiThemeAssetProtocol);
+    database.register(font_asset_protocol::FontAssetProtocol);
+    database.register(font_face_asset_protocol::FontFaceAssetProtocol);
 }
 
 pub fn prefabs_installer(prefabs: &mut PrefabManager) {

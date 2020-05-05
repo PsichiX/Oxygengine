@@ -33,4 +33,7 @@ features = [
   'Window',
   'Blob',
   'Url',
+  'FontFace',
+  'FontFaceDescriptors',
+  'FontFaceSet',
 ]

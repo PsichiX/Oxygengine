@@ -150,7 +150,7 @@ entities:
         Tag: world
         CompositeRenderable:
           Text:
-            font: Verdana
+            font: kato.json
             text: Use WSAD to move
             color:
               r: 255

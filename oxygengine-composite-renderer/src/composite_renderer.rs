@@ -325,6 +325,7 @@ pub struct Stats {
     pub fps: Scalar,
     pub delta_time: Scalar,
     pub images_count: usize,
+    pub fontfaces_count: usize,
     pub surfaces_count: usize,
 }
 
@@ -388,6 +389,10 @@ pub trait CompositeRenderer: Send + Sync {
         I: IntoIterator<Item = Command<'a>>;
 
     fn images_count(&self) -> usize {
+        0
+    }
+
+    fn fontfaces_count(&self) -> usize {
         0
     }
 

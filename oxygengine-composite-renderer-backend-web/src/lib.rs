@@ -10,7 +10,10 @@ use core::{
     Scalar,
 };
 use js_sys::{Array, Uint8Array};
-use renderer::{composite_renderer::*, math::*, png_image_asset_protocol::PngImageAsset};
+use renderer::{
+    composite_renderer::*, font_asset_protocol::FontAsset, font_face_asset_protocol::FontFaceAsset,
+    math::*, png_image_asset_protocol::PngImageAsset,
+};
 use std::collections::HashMap;
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::*;
@@ -20,7 +23,7 @@ pub mod prelude {
 }
 
 pub fn get_canvas_by_id(id: &str) -> HtmlCanvasElement {
-    let document = window().document().expect("no `window.document` exists");
+    let document = window().document().expect("Could not get window document");
     let canvas = document
         .get_element_by_id(id)
         .unwrap_or_else(|| panic!("no `{}` canvas in document", id));
@@ -41,6 +44,8 @@ pub struct WebCompositeRenderer {
     context: CanvasRenderingContext2d,
     images_cache: HashMap<String, HtmlImageElement>,
     images_table: HashMap<AssetID, String>,
+    fontfaces_cache: HashMap<String, FontFace>,
+    fontfaces_table: HashMap<AssetID, String>,
     cached_image_smoothing: Option<bool>,
     surfaces_cache: HashMap<String, (HtmlCanvasElement, CanvasRenderingContext2d)>,
 }
@@ -63,6 +68,8 @@ impl WebCompositeRenderer {
             context,
             images_cache: Default::default(),
             images_table: Default::default(),
+            fontfaces_cache: Default::default(),
+            fontfaces_table: Default::default(),
             cached_image_smoothing: None,
             surfaces_cache: Default::default(),
         }
@@ -117,7 +124,7 @@ impl WebCompositeRenderer {
                     }
                     Renderable::Text(text) => {
                         context.set_fill_style(&text.color.to_string().into());
-                        context.set_font(&format!("{}px {}", text.size, &text.font));
+                        context.set_font(&format!("{}px \"{}\"", text.size, &text.font));
                         context.set_text_align(match text.align {
                             TextAlign::Left => "left",
                             TextAlign::Center => "center",
@@ -344,7 +351,7 @@ impl WebCompositeRenderer {
                     Renderable::Text(text) => {
                         context.set_stroke_style(&text.color.to_string().into());
                         context.set_line_width(line_width.into());
-                        context.set_font(&format!("{}px {}", text.size, &text.font));
+                        context.set_font(&format!("{}px \"{}\"", text.size, &text.font));
                         context.set_text_align(match text.align {
                             TextAlign::Left => "left",
                             TextAlign::Center => "center",
@@ -505,6 +512,10 @@ impl CompositeRenderer for WebCompositeRenderer {
         self.images_cache.len()
     }
 
+    fn fontfaces_count(&self) -> usize {
+        self.fontfaces_cache.len()
+    }
+
     fn surfaces_count(&self) -> usize {
         self.surfaces_cache.len()
     }
@@ -568,13 +579,61 @@ impl CompositeRenderer for WebCompositeRenderer {
                 self.images_cache.remove(&path);
             }
         }
+        for id in assets.lately_loaded_protocol("fontface") {
+            let id = *id;
+            let asset = assets
+                .asset_by_id(id)
+                .expect("trying to use not loaded font face asset");
+            let path = asset.path().to_owned();
+            let asset = asset
+                .get::<FontFaceAsset>()
+                .expect("trying to use non-font-face asset");
+            let font_asset = assets
+                .asset_by_id(asset.font_asset())
+                .expect("trying to use not loaded font asset");
+            let font_asset = font_asset
+                .get::<FontAsset>()
+                .expect("trying to use non-font asset");
+            let mut descriptors = FontFaceDescriptors::new();
+            if let Some(style) = &asset.face().style {
+                descriptors.style(style);
+            }
+            descriptors.weight(&asset.face().weight.to_string());
+            descriptors.stretch(&format!("{}%", asset.face().stretch));
+            if let Some(variant) = &asset.face().variant {
+                descriptors.variant(variant);
+            }
+            let elm = FontFace::new_with_u8_array_and_descriptors(
+                &path,
+                #[allow(mutable_transmutes)]
+                unsafe {
+                    std::mem::transmute(font_asset.bytes())
+                },
+                &descriptors,
+            )
+            .unwrap();
+            drop(elm.load().expect(&format!("Could not load font: {}", path)));
+            window()
+                .document()
+                .expect("Could not get window document")
+                .fonts()
+                .add(&elm)
+                .expect(&format!("Could not add font: {}", path));
+            self.fontfaces_cache.insert(path.clone(), elm);
+            self.fontfaces_table.insert(id, path);
+        }
+        for id in assets.lately_unloaded_protocol("fontface") {
+            if let Some(path) = self.fontfaces_table.remove(id) {
+                self.fontfaces_cache.remove(&path);
+            }
+        }
     }
 
     fn create_surface(&mut self, name: &str, width: usize, height: usize) -> bool {
-        let document = window().document().unwrap();
+        let document = window().document().expect("Could not get window document");
         let canvas = document
             .create_element("canvas")
-            .expect("could not create canvas element")
+            .expect("Could not create canvas element")
             .dyn_into::<web_sys::HtmlCanvasElement>()
             .unwrap();
         canvas.set_width(width as u32);
@@ -617,7 +676,7 @@ impl CompositeRenderer for WebCompositeRenderer {
             context.clear_rect(0.0, 0.0, canvas.width().into(), canvas.height().into());
             self.execute_with(context, 1.0, commands)
         } else {
-            Err(Error::Message(format!("There is no '{}' surface", name)))
+            Err(Error::Message(format!("There is no surface: {}", name)))
         }
     }
 }
