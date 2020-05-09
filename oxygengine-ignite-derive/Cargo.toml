@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-ignite-derive"
-version = "0.7.2"
+version = "0.8.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Ignite derive module for Oxygen Engine"
@@ -24,7 +24,7 @@ pretty = []
 full = ["target-yaml", "target-json", "target-ron", "target-binary"]
 
 [dependencies]
-oxygengine-ignite-types = { version = "0.7", path = "../oxygengine-ignite-types" }
+oxygengine-ignite-types = { version = "0.8", path = "../oxygengine-ignite-types" }
 quote = "1.0.3"
 syn = { version = "1.0.17", features = ["extra-traits"] }
 lazy_static = "1.4"
