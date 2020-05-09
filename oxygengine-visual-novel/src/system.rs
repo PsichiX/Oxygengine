@@ -1,21 +1,48 @@
-use crate::resource::VnStoryManager;
 #[cfg(feature = "script-flow")]
 use crate::story::ScriptFlowEvent;
+use crate::{resource::VnStoryManager, vn_story_asset_protocol::VnStoryAsset};
 use core::{
     app::AppLifeCycle,
+    assets::{asset::AssetID, database::AssetsDatabase},
     ecs::{ReadExpect, System, Write},
     Scalar,
 };
 #[cfg(feature = "script-flow")]
 use flow::{resource::FlowManager, vm::Reference};
+use std::collections::HashMap;
 
 #[derive(Default)]
-pub struct VnStorySystem;
+pub struct VnStorySystem {
+    story_table: HashMap<AssetID, String>,
+}
 
 impl<'s> System<'s> for VnStorySystem {
-    type SystemData = (ReadExpect<'s, AppLifeCycle>, Write<'s, VnStoryManager>);
+    type SystemData = (
+        ReadExpect<'s, AppLifeCycle>,
+        ReadExpect<'s, AssetsDatabase>,
+        Write<'s, VnStoryManager>,
+    );
 
-    fn run(&mut self, (lifecycle, mut manager): Self::SystemData) {
+    fn run(&mut self, (lifecycle, assets, mut manager): Self::SystemData) {
+        for id in assets.lately_loaded_protocol("vn-story") {
+            let id = *id;
+            let asset = assets
+                .asset_by_id(id)
+                .expect("trying to use not loaded visual novel story asset");
+            let path = asset.path().to_owned();
+            let asset = asset
+                .get::<VnStoryAsset>()
+                .expect("trying to use non visual novel story asset");
+            let story = asset.get().clone();
+            manager.register_story(&path, story);
+            self.story_table.insert(id, path);
+        }
+        for id in assets.lately_unloaded_protocol("vn-story") {
+            if let Some(path) = self.story_table.remove(id) {
+                manager.unregister_story(&path);
+            }
+        }
+
         manager.process(lifecycle.delta_time_seconds() as Scalar);
     }
 }

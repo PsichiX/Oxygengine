@@ -199,7 +199,7 @@ impl From<[Scalar; 3]> for Color {
 }
 
 pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>, _: ()) {
-    builder.install_system(VnStorySystem, "vn-story", &[]);
+    builder.install_system(VnStorySystem::default(), "vn-story", &[]);
 }
 
 pub fn protocols_installer(database: &mut AssetsDatabase) {

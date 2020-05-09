@@ -34,6 +34,10 @@ pub fn main_js() -> Result<(), JsValue> {
                 oxygengine::audio::protocols_installer(assets);
                 // register assets protocols from visual novel module.
                 oxygengine::visual_novel::protocols_installer(assets);
+                // register assets protocols from composite renderer with visual novel integration module.
+                oxygengine::integration_visual_novel_composite_renderer::protocols_installer(
+                    assets,
+                );
             }),
         )
         // install core module prefabs management.
@@ -70,13 +74,7 @@ pub fn main_js() -> Result<(), JsValue> {
         // install visual novel to composite renderer integration support.
         .with_bundle(
             oxygengine::integration_visual_novel_composite_renderer::bundle_installer,
-            {
-                let mut config = VnRenderingConfig::default();
-                config.background_camera_resolution = 1.0;
-                config.background_camera_scaling_target =
-                    CompositeScalingTarget::Cover(1280.0, 800.0);
-                config
-            },
+            (),
         )
         // install web storage engine resource.
         .with_resource(WebStorageEngine)

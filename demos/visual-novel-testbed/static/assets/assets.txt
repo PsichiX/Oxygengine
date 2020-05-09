@@ -6,3 +6,4 @@ png://miki-open.png
 png://miki-smile.png
 ui-theme://ui.json
 vn-story://story.yaml
+vn-rendering://vn-ui-config.yaml

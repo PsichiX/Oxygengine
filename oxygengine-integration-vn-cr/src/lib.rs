@@ -10,9 +10,15 @@ use oxygengine_composite_renderer::{
 };
 use oxygengine_core::{
     app::AppBuilder,
+    assets::{
+        asset::AssetID,
+        database::AssetsDatabase,
+        protocol::{AssetLoadResult, AssetProtocol},
+    },
     ecs::{
         world::{Builder, EntitiesRes},
-        Component, Entity, Join, LazyUpdate, Read, System, VecStorage, Write, WriteStorage,
+        Component, Entity, Join, LazyUpdate, Read, ReadExpect, System, VecStorage, Write,
+        WriteStorage,
     },
     hierarchy::{Name, Tag},
     prefab::{Prefab, PrefabError, PrefabManager, PrefabProxy},
@@ -22,26 +28,27 @@ use oxygengine_core::{
 use oxygengine_input::resource::InputController;
 use oxygengine_visual_novel::resource::VnStoryManager;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 #[cfg(not(feature = "scalar64"))]
 use std::f32::consts::PI;
 #[cfg(feature = "scalar64")]
 use std::f64::consts::PI;
+use std::{collections::HashMap, str::from_utf8};
 
 pub mod prelude {
     pub use crate::*;
 }
 
-pub fn bundle_installer<'a, 'b>(
-    builder: &mut AppBuilder<'a, 'b>,
-    vm_rendering_config: VnRenderingConfig,
-) {
-    builder.install_resource(VnRenderingManager::new(vm_rendering_config));
+pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>, _: ()) {
+    builder.install_resource(VnRenderingManager::default());
     builder.install_system(
-        ApplyVisualNovelToCompositeRenderer,
+        ApplyVisualNovelToCompositeRenderer::default(),
         "apply-visual-novel-to-composite-renderer",
-        &[],
+        &["vn-story"],
     );
+}
+
+pub fn protocols_installer(database: &mut AssetsDatabase) {
+    database.register(VnRenderingConfigAssetProtocol);
 }
 
 pub fn prefabs_installer(prefabs: &mut PrefabManager) {
@@ -62,61 +69,201 @@ impl Default for VnRenderingOverlayStyle {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VnRenderingConfig {
+    #[serde(default = "VnRenderingConfig::default_background_camera_scaling_target")]
     pub background_camera_scaling_target: CompositeScalingTarget,
+    #[serde(default = "VnRenderingConfig::default_background_camera_resolution")]
     pub background_camera_resolution: Scalar,
+    #[serde(default = "VnRenderingConfig::default_background_camera_layer")]
     pub background_camera_layer: usize,
+    #[serde(default = "VnRenderingConfig::default_characters_camera_scaling_target")]
     pub characters_camera_scaling_target: CompositeScalingTarget,
+    #[serde(default = "VnRenderingConfig::default_characters_camera_resolution")]
     pub characters_camera_resolution: Scalar,
+    #[serde(default = "VnRenderingConfig::default_characters_camera_layer")]
     pub characters_camera_layer: usize,
+    #[serde(default = "VnRenderingConfig::default_ui_camera_scaling_target")]
     pub ui_camera_scaling_target: CompositeScalingTarget,
+    #[serde(default = "VnRenderingConfig::default_ui_camera_resolution")]
     pub ui_camera_resolution: Scalar,
+    #[serde(default = "VnRenderingConfig::default_ui_camera_layer")]
     pub ui_camera_layer: usize,
+    #[serde(default)]
     pub overlay_style: VnRenderingOverlayStyle,
+    #[serde(default)]
     pub hide_on_story_pause: bool,
+    #[serde(default)]
     pub ui_component_template: Option<CompositeUiElement>,
+    #[serde(default)]
     pub ui_dialogue_option_component_template: Option<CompositeUiElement>,
+    #[serde(default = "VnRenderingConfig::default_ui_dialogue_default_theme")]
     pub ui_dialogue_default_theme: Option<String>,
+    #[serde(default = "VnRenderingConfig::default_ui_dialogue_panel_path")]
     pub ui_dialogue_panel_path: String,
+    #[serde(default = "VnRenderingConfig::default_ui_dialogue_text_path")]
     pub ui_dialogue_text_path: String,
+    #[serde(default = "VnRenderingConfig::default_ui_dialogue_name_path")]
     pub ui_dialogue_name_path: String,
+    #[serde(default = "VnRenderingConfig::default_ui_dialogue_skip_path")]
     pub ui_dialogue_skip_path: String,
+    #[serde(default = "VnRenderingConfig::default_ui_dialogue_options_path")]
     pub ui_dialogue_options_path: String,
+    #[serde(default = "VnRenderingConfig::default_ui_dialogue_option_text_path")]
     pub ui_dialogue_option_text_path: String,
+    #[serde(default = "VnRenderingConfig::default_ui_dialogue_default_name_color")]
     pub ui_dialogue_default_name_color: Color,
+    #[serde(default = "VnRenderingConfig::default_input_pointer_trigger")]
     pub input_pointer_trigger: String,
+    #[serde(default = "VnRenderingConfig::default_input_pointer_axis_x")]
     pub input_pointer_axis_x: String,
+    #[serde(default = "VnRenderingConfig::default_input_pointer_axis_y")]
     pub input_pointer_axis_y: String,
+    #[serde(default = "VnRenderingConfig::default_forced_constant_refresh")]
     pub forced_constant_refresh: bool,
 }
 
 impl Default for VnRenderingConfig {
     fn default() -> Self {
         Self {
-            background_camera_scaling_target: CompositeScalingTarget::BothMinimum,
+            background_camera_scaling_target: Self::default_background_camera_scaling_target(),
             background_camera_resolution: 1080.0,
             background_camera_layer: 1000,
-            characters_camera_scaling_target: CompositeScalingTarget::Height,
-            characters_camera_resolution: 1080.0,
-            characters_camera_layer: 1001,
-            ui_camera_scaling_target: CompositeScalingTarget::Both,
-            ui_camera_resolution: 1080.0,
-            ui_camera_layer: 1002,
+            characters_camera_scaling_target: Self::default_characters_camera_scaling_target(),
+            characters_camera_resolution: Self::default_characters_camera_resolution(),
+            characters_camera_layer: Self::default_characters_camera_layer(),
+            ui_camera_scaling_target: Self::default_ui_camera_scaling_target(),
+            ui_camera_resolution: Self::default_ui_camera_resolution(),
+            ui_camera_layer: Self::default_ui_camera_layer(),
             overlay_style: Default::default(),
             hide_on_story_pause: false,
             ui_component_template: None,
             ui_dialogue_option_component_template: None,
-            ui_dialogue_default_theme: Some("default".to_owned()),
-            ui_dialogue_panel_path: "panel".to_owned(),
-            ui_dialogue_text_path: "panel/text".to_owned(),
-            ui_dialogue_name_path: "panel/name".to_owned(),
-            ui_dialogue_skip_path: "panel/skip".to_owned(),
-            ui_dialogue_options_path: "panel/options".to_owned(),
-            ui_dialogue_option_text_path: "panel/text".to_owned(),
-            ui_dialogue_default_name_color: Color::white(),
-            input_pointer_trigger: "mouse-left".to_owned(),
-            input_pointer_axis_x: "mouse-x".to_owned(),
-            input_pointer_axis_y: "mouse-y".to_owned(),
-            forced_constant_refresh: true,
+            ui_dialogue_default_theme: Self::default_ui_dialogue_default_theme(),
+            ui_dialogue_panel_path: Self::default_ui_dialogue_panel_path(),
+            ui_dialogue_text_path: Self::default_ui_dialogue_text_path(),
+            ui_dialogue_name_path: Self::default_ui_dialogue_name_path(),
+            ui_dialogue_skip_path: Self::default_ui_dialogue_skip_path(),
+            ui_dialogue_options_path: Self::default_ui_dialogue_options_path(),
+            ui_dialogue_option_text_path: Self::default_ui_dialogue_option_text_path(),
+            ui_dialogue_default_name_color: Self::default_ui_dialogue_default_name_color(),
+            input_pointer_trigger: Self::default_input_pointer_trigger(),
+            input_pointer_axis_x: Self::default_input_pointer_axis_x(),
+            input_pointer_axis_y: Self::default_input_pointer_axis_y(),
+            forced_constant_refresh: Self::default_forced_constant_refresh(),
+        }
+    }
+}
+
+impl VnRenderingConfig {
+    fn default_background_camera_scaling_target() -> CompositeScalingTarget {
+        CompositeScalingTarget::BothMinimum
+    }
+
+    fn default_background_camera_resolution() -> Scalar {
+        1080.0
+    }
+
+    fn default_background_camera_layer() -> usize {
+        1000
+    }
+
+    fn default_characters_camera_scaling_target() -> CompositeScalingTarget {
+        CompositeScalingTarget::Height
+    }
+
+    fn default_characters_camera_resolution() -> Scalar {
+        1080.0
+    }
+
+    fn default_characters_camera_layer() -> usize {
+        1001
+    }
+
+    fn default_ui_camera_scaling_target() -> CompositeScalingTarget {
+        CompositeScalingTarget::Both
+    }
+
+    fn default_ui_camera_resolution() -> Scalar {
+        1080.0
+    }
+
+    fn default_ui_camera_layer() -> usize {
+        1002
+    }
+
+    fn default_ui_dialogue_default_theme() -> Option<String> {
+        Some("default".to_owned())
+    }
+
+    fn default_ui_dialogue_panel_path() -> String {
+        "panel".to_owned()
+    }
+
+    fn default_ui_dialogue_text_path() -> String {
+        "panel/text".to_owned()
+    }
+
+    fn default_ui_dialogue_name_path() -> String {
+        "panel/name".to_owned()
+    }
+
+    fn default_ui_dialogue_skip_path() -> String {
+        "panel/skip".to_owned()
+    }
+
+    fn default_ui_dialogue_options_path() -> String {
+        "panel/options".to_owned()
+    }
+
+    fn default_ui_dialogue_option_text_path() -> String {
+        "panel/text".to_owned()
+    }
+
+    fn default_ui_dialogue_default_name_color() -> Color {
+        Color::white()
+    }
+
+    fn default_input_pointer_trigger() -> String {
+        "mouse-left".to_owned()
+    }
+
+    fn default_input_pointer_axis_x() -> String {
+        "mouse-x".to_owned()
+    }
+
+    fn default_input_pointer_axis_y() -> String {
+        "mouse-y".to_owned()
+    }
+
+    fn default_forced_constant_refresh() -> bool {
+        true
+    }
+}
+
+impl Prefab for VnRenderingConfig {}
+
+pub struct VnRenderingConfigAsset(VnRenderingConfig);
+
+impl VnRenderingConfigAsset {
+    pub fn config(&self) -> &VnRenderingConfig {
+        &self.0
+    }
+}
+
+pub struct VnRenderingConfigAssetProtocol;
+
+impl AssetProtocol for VnRenderingConfigAssetProtocol {
+    fn name(&self) -> &str {
+        "vn-rendering"
+    }
+
+    fn on_load(&mut self, data: Vec<u8>) -> AssetLoadResult {
+        let data = from_utf8(&data).unwrap();
+        match VnRenderingConfig::from_prefab_str(&data) {
+            Ok(result) => AssetLoadResult::Data(Box::new(VnRenderingConfigAsset(result))),
+            Err(error) => AssetLoadResult::Error(format!(
+                "Error loading visual novel rendering config asset: {:?}",
+                error
+            )),
         }
     }
 }
@@ -133,24 +280,47 @@ pub struct VnStoryRenderer {
     overlay: Entity,
 }
 
+#[derive(Debug, Clone)]
+pub enum VnRenderingManagerError {
+    RenderingConfigNotFound(String),
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct VnRenderingManager {
-    config: VnRenderingConfig,
+    configs: HashMap<String, VnRenderingConfig>,
     stories: HashMap<String, VnStoryRenderer>,
+    active_config: VnRenderingConfig,
+    dirty_config: bool,
 }
 
 impl VnRenderingManager {
-    pub fn new(config: VnRenderingConfig) -> Self {
-        Self {
-            config,
-            stories: Default::default(),
+    pub fn config(&self) -> &VnRenderingConfig {
+        &self.active_config
+    }
+
+    pub fn register_config(&mut self, name: &str, config: VnRenderingConfig) {
+        self.configs.insert(name.to_owned(), config);
+    }
+
+    pub fn unregister_config(&mut self, name: &str) -> Option<VnRenderingConfig> {
+        self.configs.remove(name)
+    }
+
+    pub fn select_config(&mut self, name: &str) -> Result<(), VnRenderingManagerError> {
+        if let Some(config) = self.configs.get(name) {
+            self.active_config = config.clone();
+            self.dirty_config = true;
+            Ok(())
+        } else {
+            Err(VnRenderingManagerError::RenderingConfigNotFound(
+                name.to_owned(),
+            ))
         }
     }
-}
 
-impl From<VnRenderingConfig> for VnRenderingManager {
-    fn from(config: VnRenderingConfig) -> Self {
-        Self::new(config)
+    pub fn use_default_config(&mut self) {
+        self.active_config = Default::default();
+        self.dirty_config = true;
     }
 }
 
@@ -185,13 +355,16 @@ pub struct PositionCameraAlignmentPrefabProxy(String, Vec2);
 impl Prefab for PositionCameraAlignmentPrefabProxy {}
 
 #[derive(Debug, Default)]
-pub struct ApplyVisualNovelToCompositeRenderer;
+pub struct ApplyVisualNovelToCompositeRenderer {
+    config_table: HashMap<AssetID, String>,
+}
 
 impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
     #[allow(clippy::type_complexity)]
     type SystemData = (
         Read<'s, EntitiesRes>,
         Read<'s, LazyUpdate>,
+        ReadExpect<'s, AssetsDatabase>,
         Write<'s, VnStoryManager>,
         Read<'s, CompositeCameraCache>,
         Read<'s, CompositeUiInteractibles>,
@@ -213,6 +386,7 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
         (
             entities,
             lazy_update,
+            assets,
             mut stories,
             camera_cache,
             interactibles,
@@ -226,7 +400,35 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
             mut ui_elements,
         ): Self::SystemData,
     ) {
-        for id in stories.lately_unregistered() {
+        for id in assets.lately_unloaded_protocol("vn-rendering") {
+            if let Some(path) = self.config_table.remove(id) {
+                rendering.unregister_config(&path);
+            }
+        }
+
+        for id in assets.lately_loaded_protocol("vn-rendering") {
+            let id = *id;
+            let asset = assets
+                .asset_by_id(id)
+                .expect("trying to use not loaded visual novel rendering config asset");
+            let path = asset.path().to_owned();
+            let asset = asset
+                .get::<VnRenderingConfigAsset>()
+                .expect("trying to use non visual novel rendering config asset");
+            let config = asset.config().clone();
+            rendering.register_config(&path, config);
+            self.config_table.insert(id, path);
+        }
+
+        let config_changed = rendering.dirty_config;
+        rendering.dirty_config = false;
+
+        let to_remove = if config_changed {
+            stories.stories_names().collect::<Vec<_>>()
+        } else {
+            stories.lately_unregistered().collect::<Vec<_>>()
+        };
+        for id in to_remove {
             if let Some(story) = rendering.stories.remove(id) {
                 drop(entities.delete(story.background_camera));
                 drop(entities.delete(story.characters_camera));
@@ -240,7 +442,12 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
             }
         }
 
-        for id in stories.lately_registered() {
+        let to_add = if config_changed {
+            stories.stories_names().collect::<Vec<_>>()
+        } else {
+            stories.lately_registered().collect::<Vec<_>>()
+        };
+        for id in to_add {
             if let Some(story) = stories.get(id) {
                 let background_camera = lazy_update
                     .create_entity(&entities)
@@ -248,16 +455,16 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                     .with(
                         CompositeCamera::with_scaling_target(
                             CompositeScalingMode::CenterAspect,
-                            rendering.config.background_camera_scaling_target,
+                            rendering.config().background_camera_scaling_target,
                         )
                         .tag(format!("vn-background-{}", id).into()),
                     )
                     .with(CompositeVisibility(false))
                     .with(CompositeRenderLayer(
-                        rendering.config.background_camera_layer,
+                        rendering.config().background_camera_layer,
                     ))
                     .with(CompositeTransform::scale(
-                        rendering.config.background_camera_resolution.into(),
+                        rendering.config().background_camera_resolution.into(),
                     ))
                     .build();
                 let characters_camera = lazy_update
@@ -266,16 +473,16 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                     .with(
                         CompositeCamera::with_scaling_target(
                             CompositeScalingMode::CenterAspect,
-                            rendering.config.characters_camera_scaling_target,
+                            rendering.config().characters_camera_scaling_target,
                         )
                         .tag(format!("vn-characters-{}", id).into()),
                     )
                     .with(CompositeVisibility(false))
                     .with(CompositeRenderLayer(
-                        rendering.config.characters_camera_layer,
+                        rendering.config().characters_camera_layer,
                     ))
                     .with(CompositeTransform::scale(
-                        rendering.config.characters_camera_resolution.into(),
+                        rendering.config().characters_camera_resolution.into(),
                     ))
                     .build();
                 let ui_camera = lazy_update
@@ -284,14 +491,14 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                     .with(
                         CompositeCamera::with_scaling_target(
                             CompositeScalingMode::Aspect,
-                            rendering.config.ui_camera_scaling_target,
+                            rendering.config().ui_camera_scaling_target,
                         )
                         .tag(format!("vn-ui-{}", id).into()),
                     )
                     .with(CompositeVisibility(false))
-                    .with(CompositeRenderLayer(rendering.config.ui_camera_layer))
+                    .with(CompositeRenderLayer(rendering.config().ui_camera_layer))
                     .with(CompositeTransform::scale(
-                        rendering.config.ui_camera_resolution.into(),
+                        rendering.config().ui_camera_resolution.into(),
                     ))
                     .build();
                 let characters = story
@@ -317,117 +524,119 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                     .with(CompositeRenderable(().into()))
                     .with(CompositeTransform::default())
                     .build();
-                let ui_element = if let Some(mut component) =
-                    rendering.config.ui_component_template.clone()
-                {
-                    component.camera_name = format!("vn-camera-ui-{}", id).into();
-                    if let Some(child) =
-                        component.find_mut(&rendering.config.ui_dialogue_panel_path)
-                    {
-                        child.interactive = Some(format!("vn-ui-panel-{}", id).into());
-                    }
-                    if let Some(child) = component.find_mut(&rendering.config.ui_dialogue_text_path)
-                    {
-                        child.interactive = Some(format!("vn-ui-text-{}", id).into());
-                    }
-                    if let Some(child) = component.find_mut(&rendering.config.ui_dialogue_name_path)
-                    {
-                        child.interactive = Some(format!("vn-ui-name-{}", id).into());
-                    }
-                    if let Some(child) = component.find_mut(&rendering.config.ui_dialogue_skip_path)
-                    {
-                        child.interactive = Some(format!("vn-ui-skip-{}", id).into());
-                    }
-                    component
-                } else {
-                    let mut text = CompositeUiElement::default();
-                    text.id = Some("text".to_owned().into());
-                    text.theme = rendering
-                        .config
-                        .ui_dialogue_default_theme
-                        .as_ref()
-                        .map(|theme| format!("{}@text", theme).into());
-                    text.interactive = Some(format!("vn-ui-text-{}", id).into());
-                    text.element_type = UiElementType::Text(
-                        Text::new_owned("Verdana".to_owned(), "".to_owned())
-                            .size(48.0)
-                            .color(Color::white()),
-                    );
-                    text.padding = UiMargin {
-                        left: 64.0,
-                        right: 64.0,
-                        top: 64.0,
-                        bottom: 0.0,
+                let ui_element =
+                    if let Some(mut component) = rendering.config().ui_component_template.clone() {
+                        component.camera_name = format!("vn-camera-ui-{}", id).into();
+                        if let Some(child) =
+                            component.find_mut(&rendering.config().ui_dialogue_panel_path)
+                        {
+                            child.interactive = Some(format!("vn-ui-panel-{}", id).into());
+                        }
+                        if let Some(child) =
+                            component.find_mut(&rendering.config().ui_dialogue_text_path)
+                        {
+                            child.interactive = Some(format!("vn-ui-text-{}", id).into());
+                        }
+                        if let Some(child) =
+                            component.find_mut(&rendering.config().ui_dialogue_name_path)
+                        {
+                            child.interactive = Some(format!("vn-ui-name-{}", id).into());
+                        }
+                        if let Some(child) =
+                            component.find_mut(&rendering.config().ui_dialogue_skip_path)
+                        {
+                            child.interactive = Some(format!("vn-ui-skip-{}", id).into());
+                        }
+                        component
+                    } else {
+                        let mut text = CompositeUiElement::default();
+                        text.id = Some("text".to_owned().into());
+                        text.theme = rendering
+                            .config()
+                            .ui_dialogue_default_theme
+                            .as_ref()
+                            .map(|theme| format!("{}@text", theme).into());
+                        text.interactive = Some(format!("vn-ui-text-{}", id).into());
+                        text.element_type = UiElementType::Text(
+                            Text::new_owned("Verdana".to_owned(), "".to_owned())
+                                .size(48.0)
+                                .color(Color::white()),
+                        );
+                        text.padding = UiMargin {
+                            left: 64.0,
+                            right: 64.0,
+                            top: 64.0,
+                            bottom: 0.0,
+                        };
+                        text.left_anchor = 0.0;
+                        text.right_anchor = 1.0;
+                        text.top_anchor = 0.0;
+                        text.bottom_anchor = 1.0;
+                        let mut name = CompositeUiElement::default();
+                        name.id = Some("name".to_owned().into());
+                        name.theme = rendering
+                            .config()
+                            .ui_dialogue_default_theme
+                            .as_ref()
+                            .map(|theme| format!("{}@name", theme).into());
+                        name.element_type = UiElementType::Text(
+                            Text::new_owned("Verdana".to_owned(), "".to_owned())
+                                .size(32.0)
+                                .color(Color::white()),
+                        );
+                        name.interactive = Some(format!("vn-ui-name-{}", id).into());
+                        name.padding = UiMargin {
+                            left: 32.0,
+                            right: 32.0,
+                            top: 32.0,
+                            bottom: 0.0,
+                        };
+                        name.left_anchor = 0.0;
+                        name.right_anchor = 1.0;
+                        name.top_anchor = 0.0;
+                        name.bottom_anchor = 0.0;
+                        name.alignment = (0.0, 0.0).into();
+                        name.fixed_height = Some(64.0);
+                        let mut options = CompositeUiElement::default();
+                        options.id = Some("options".to_owned().into());
+                        options.element_type = UiElementType::None;
+                        options.left_anchor = 0.0;
+                        options.right_anchor = 1.0;
+                        options.top_anchor = 0.0;
+                        options.bottom_anchor = 0.0;
+                        options.alignment = (0.0, 1.0).into();
+                        let mut panel = CompositeUiElement::default();
+                        panel.id = Some("panel".to_owned().into());
+                        panel.theme = rendering
+                            .config()
+                            .ui_dialogue_default_theme
+                            .as_ref()
+                            .map(|theme| format!("{}@panel", theme).into());
+                        panel.interactive = Some(format!("vn-ui-panel-{}", id).into());
+                        panel.element_type = UiElementType::Image(Box::new(UiImage::default()));
+                        panel.padding = UiMargin {
+                            left: 128.0,
+                            right: 128.0,
+                            top: 0.0,
+                            bottom: 32.0,
+                        };
+                        panel.left_anchor = 0.0;
+                        panel.right_anchor = 1.0;
+                        panel.top_anchor = 1.0;
+                        panel.bottom_anchor = 1.0;
+                        panel.alignment = (0.0, 1.0).into();
+                        panel.fixed_height = Some(256.0);
+                        panel.children = vec![text, name, options];
+                        let mut root = CompositeUiElement::default();
+                        root.camera_name = format!("vn-camera-ui-{}", id).into();
+                        root.element_type = UiElementType::None;
+                        root.left_anchor = 0.0;
+                        root.right_anchor = 1.0;
+                        root.top_anchor = 0.0;
+                        root.bottom_anchor = 1.0;
+                        root.children = vec![panel];
+                        root
                     };
-                    text.left_anchor = 0.0;
-                    text.right_anchor = 1.0;
-                    text.top_anchor = 0.0;
-                    text.bottom_anchor = 1.0;
-                    let mut name = CompositeUiElement::default();
-                    name.id = Some("name".to_owned().into());
-                    name.theme = rendering
-                        .config
-                        .ui_dialogue_default_theme
-                        .as_ref()
-                        .map(|theme| format!("{}@name", theme).into());
-                    name.element_type = UiElementType::Text(
-                        Text::new_owned("Verdana".to_owned(), "".to_owned())
-                            .size(32.0)
-                            .color(Color::white()),
-                    );
-                    name.interactive = Some(format!("vn-ui-name-{}", id).into());
-                    name.padding = UiMargin {
-                        left: 32.0,
-                        right: 32.0,
-                        top: 32.0,
-                        bottom: 0.0,
-                    };
-                    name.left_anchor = 0.0;
-                    name.right_anchor = 1.0;
-                    name.top_anchor = 0.0;
-                    name.bottom_anchor = 0.0;
-                    name.alignment = (0.0, 0.0).into();
-                    name.fixed_height = Some(64.0);
-                    let mut options = CompositeUiElement::default();
-                    options.id = Some("options".to_owned().into());
-                    options.element_type = UiElementType::None;
-                    options.left_anchor = 0.0;
-                    options.right_anchor = 1.0;
-                    options.top_anchor = 0.0;
-                    options.bottom_anchor = 0.0;
-                    options.alignment = (0.0, 1.0).into();
-                    let mut panel = CompositeUiElement::default();
-                    panel.id = Some("panel".to_owned().into());
-                    panel.theme = rendering
-                        .config
-                        .ui_dialogue_default_theme
-                        .as_ref()
-                        .map(|theme| format!("{}@panel", theme).into());
-                    panel.interactive = Some(format!("vn-ui-panel-{}", id).into());
-                    panel.element_type = UiElementType::Image(Box::new(UiImage::default()));
-                    panel.padding = UiMargin {
-                        left: 128.0,
-                        right: 128.0,
-                        top: 0.0,
-                        bottom: 32.0,
-                    };
-                    panel.left_anchor = 0.0;
-                    panel.right_anchor = 1.0;
-                    panel.top_anchor = 1.0;
-                    panel.bottom_anchor = 1.0;
-                    panel.alignment = (0.0, 1.0).into();
-                    panel.fixed_height = Some(256.0);
-                    panel.children = vec![text, name, options];
-                    let mut root = CompositeUiElement::default();
-                    root.camera_name = format!("vn-camera-ui-{}", id).into();
-                    root.element_type = UiElementType::None;
-                    root.left_anchor = 0.0;
-                    root.right_anchor = 1.0;
-                    root.top_anchor = 0.0;
-                    root.bottom_anchor = 1.0;
-                    root.children = vec![panel];
-                    root
-                };
                 let dialogue_ui_element = lazy_update
                     .create_entity(&entities)
                     .with(Tag(format!("vn-ui-{}", id).into()))
@@ -438,7 +647,7 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                     .with(CompositeTransform::default())
                     .build();
                 let dialogue_option_template = if let Some(mut component) = rendering
-                    .config
+                    .config()
                     .ui_dialogue_option_component_template
                     .clone()
                 {
@@ -452,7 +661,7 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                     let mut text = CompositeUiElement::default();
                     text.id = Some("text".to_owned().into());
                     text.theme = rendering
-                        .config
+                        .config()
                         .ui_dialogue_default_theme
                         .as_ref()
                         .map(|theme| format!("{}@option-text", theme).into());
@@ -474,7 +683,7 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                     let mut panel = CompositeUiElement::default();
                     panel.id = Some("panel".to_owned().into());
                     panel.theme = rendering
-                        .config
+                        .config()
                         .ui_dialogue_default_theme
                         .as_ref()
                         .map(|theme| format!("{}@option", theme).into());
@@ -501,7 +710,7 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                     root.children = vec![panel];
                     root
                 };
-                let overlay_renderable = match &rendering.config.overlay_style {
+                let overlay_renderable = match &rendering.config().overlay_style {
                     VnRenderingOverlayStyle::Color(color) => {
                         Renderable::FullscreenRectangle(*color)
                     }
@@ -537,7 +746,7 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
 
         for (story_name, story_data) in &rendering.stories {
             if let Some(story) = stories.get(story_name) {
-                let show = !story.is_paused() || !rendering.config.hide_on_story_pause;
+                let show = !story.is_paused() || !rendering.config().hide_on_story_pause;
                 if let Some(visibility) = visibilities.get_mut(story_data.background_camera) {
                     visibility.0 = show;
                 }
@@ -552,7 +761,7 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                 }
 
                 let show_characters = !story.is_complete() || story.active_scene().phase() < 0.5;
-                let refresh = rendering.config.forced_constant_refresh;
+                let refresh = rendering.config().forced_constant_refresh;
                 let scene_phase = story.active_scene().phase();
                 let update_scene = refresh || story.active_scene().in_progress();
                 let scene = if scene_phase < 0.5 {
@@ -703,7 +912,7 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                     }
                     if let Some(ui_element) = ui_elements.get_mut(story_data.dialogue_ui_element) {
                         if let Some(child) =
-                            ui_element.find_mut(&rendering.config.ui_dialogue_options_path)
+                            ui_element.find_mut(&rendering.config().ui_dialogue_options_path)
                         {
                             child.alpha = phase;
                             if options.is_empty() {
@@ -720,7 +929,7 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                                 for (i, option) in options.iter().enumerate() {
                                     let mut element = story_data.dialogue_option_template.clone();
                                     if let Some(child) = element
-                                        .find_mut(&rendering.config.ui_dialogue_option_text_path)
+                                        .find_mut(&rendering.config().ui_dialogue_option_text_path)
                                     {
                                         if let UiElementType::Text(t) = &mut child.element_type {
                                             t.text = option.text.clone().into();
@@ -735,7 +944,7 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                             }
                         }
                         if let Some(child) =
-                            ui_element.find_mut(&rendering.config.ui_dialogue_name_path)
+                            ui_element.find_mut(&rendering.config().ui_dialogue_name_path)
                         {
                             child.alpha = name_alpha;
                             if let UiElementType::Text(t) = &mut child.element_type {
@@ -745,7 +954,7 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                             child.rebuild();
                         }
                         if let Some(child) =
-                            ui_element.find_mut(&rendering.config.ui_dialogue_text_path)
+                            ui_element.find_mut(&rendering.config().ui_dialogue_text_path)
                         {
                             if let UiElementType::Text(t) = &mut child.element_type {
                                 t.text = text.to_owned().into();
@@ -822,11 +1031,11 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                 if story.is_waiting_for_dialogue_option_selection()
                     && story.active_dialogue().is_complete()
                     && input
-                        .trigger_or_default(&rendering.config.input_pointer_trigger)
+                        .trigger_or_default(&rendering.config().input_pointer_trigger)
                         .is_pressed()
                 {
-                    let x = input.axis_or_default(&rendering.config.input_pointer_axis_x);
-                    let y = input.axis_or_default(&rendering.config.input_pointer_axis_y);
+                    let x = input.axis_or_default(&rendering.config().input_pointer_axis_x);
+                    let y = input.axis_or_default(&rendering.config().input_pointer_axis_y);
                     let point = [x, y].into();
 
                     if let Some(pos) =

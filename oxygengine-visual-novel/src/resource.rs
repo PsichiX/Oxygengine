@@ -39,6 +39,10 @@ impl VnStoryManager {
         self.stories.values_mut()
     }
 
+    pub fn stories_names(&self) -> impl Iterator<Item = &str> {
+        self.stories.keys().map(|id| id.as_str())
+    }
+
     pub fn lately_registered(&self) -> impl Iterator<Item = &str> {
         self.lately_registered.iter().map(|id| id.as_str())
     }
