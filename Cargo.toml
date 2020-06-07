@@ -16,7 +16,6 @@ exclude = [
   "oxygengine-js",
 ]
 readme = "README.md"
-maintenance = { status = "actively-developed" }
 
 [features]
 web = [

@@ -21,16 +21,16 @@
   "default@text": {
     "Text": {
       "font_name": "Verdana",
-      "font_size": 48
+      "font_size": { "Value": 48 }
     }
   },
   "default@name": {
     "Text": {
       "font_name": "Verdana",
-      "font_size": 32
+      "font_size": { "Value": 32 }
     }
   },
-  "default@option": {
+  "default@option-background": {
     "Image": {
       "image_margin": {
         "left": 0,
@@ -46,13 +46,34 @@
         "y": 64,
         "w": 64,
         "h": 64
-      }
+      },
+      "alpha": { "MapState": [ "../focused", 0, 1, 0.5, 1 ] }
+    }
+  },
+  "default@option-background-focused": {
+    "Image": {
+      "image_margin": {
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "bottom": 0
+      },
+      "image_path": {
+        "Single": "ui-panel-dark.png"
+      },
+      "source_rect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      },
+      "alpha": { "MapState": [ "../focused", 0, 1, 1, 0.5 ] }
     }
   },
   "default@option-text": {
     "Text": {
       "font_name": "Verdana",
-      "font_size": 28
+      "font_size": { "Value": 28 }
     }
   }
 }

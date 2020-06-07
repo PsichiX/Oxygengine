@@ -7,7 +7,7 @@ use crate::{
 };
 #[cfg(feature = "script-flow")]
 use core::prefab::PrefabValue;
-use core::{error, info, log, prefab::Prefab, warn, Scalar};
+use core::{error, info, prefab::Prefab, warn, Scalar};
 #[cfg(feature = "script-flow")]
 use flow::GUID;
 use serde::{Deserialize, Serialize};
@@ -25,8 +25,11 @@ pub enum StoryError {
     ThereIsNoActiveScene,
     ThereIsNoActiveChapter,
     ThereIsNoDialogOptionToSelect,
-    /// (selection index, options count)
+    ThereIsNoDialogOptionToFocus,
+    /// (option index, options count)
     TryingToSelectDialogueOptionWithWrongIndex(usize, usize),
+    /// (option index, options count)
+    TryingToFocusDialogueOptionWithWrongIndex(usize, usize),
 }
 
 #[derive(Debug, Clone)]
@@ -112,7 +115,6 @@ impl Story {
         for character in self.characters.values_mut() {
             character.initialize();
         }
-        self.active_dialogue.end();
     }
 
     pub fn register_scene(&mut self, mut scene: Scene) {
@@ -212,6 +214,31 @@ impl Story {
             !dialogue.options.is_empty()
         } else {
             false
+        }
+    }
+
+    pub fn focus_dialogue_option(&mut self, index: Option<usize>) -> Result<(), StoryError> {
+        if let Some(dialogue) = self.active_dialogue.to_mut() {
+            if let Some(index) = index {
+                if index >= dialogue.options.len() {
+                    return Err(StoryError::TryingToFocusDialogueOptionWithWrongIndex(
+                        index,
+                        dialogue.options.len(),
+                    ));
+                }
+                for (i, option) in dialogue.options.iter_mut().enumerate() {
+                    option.focused.set(i == index);
+                    option.focused.playing = true;
+                }
+            } else {
+                for option in &mut dialogue.options {
+                    option.focused.set(false);
+                    option.focused.playing = true;
+                }
+            }
+            Ok(())
+        } else {
+            Err(StoryError::ThereIsNoDialogOptionToFocus)
         }
     }
 
@@ -355,6 +382,15 @@ impl Story {
         false
     }
 
+    pub fn is_dirty(&self) -> bool {
+        self.in_progress()
+            || self
+                .active_dialogue
+                .to()
+                .as_ref()
+                .map_or(false, |d| d.is_dirty())
+    }
+
     pub fn is_complete(&self) -> bool {
         self.current_chapter.is_none()
     }
@@ -405,6 +441,12 @@ impl Story {
         }
         self.active_scene.process(delta_time);
         self.active_dialogue.process(delta_time);
+        if let Some(dialogue) = self.active_dialogue.from_mut() {
+            dialogue.process(delta_time);
+        }
+        if let Some(dialogue) = self.active_dialogue.to_mut() {
+            dialogue.process(delta_time);
+        }
         if let Some(action) = std::mem::replace(&mut self.dialogue_action_selected, None) {
             match action {
                 DialogueAction::JumpToLabel(name) => self.jump_to_label(&name)?,

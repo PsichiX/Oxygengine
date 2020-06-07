@@ -9,7 +9,6 @@ homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine-network-backend-web"
 readme = "../README.md"
-maintenance = { status = "actively-developed" }
 
 [features]
 default = ["web"]

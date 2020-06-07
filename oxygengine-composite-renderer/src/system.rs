@@ -861,7 +861,7 @@ where
                     })
                 {
                     let commands = ui_element
-                        .build_commands(rect, &mut interactibles, &themes)
+                        .build_commands(rect, &mut interactibles, &themes, &mut vec![])
                         .0;
                     renderable.0 = Renderable::Commands(commands);
                     ui_element.dirty = false;

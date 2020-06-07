@@ -9,7 +9,6 @@ homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine-ignite-types"
 readme = "../README.md"
-maintenance = { status = "actively-developed" }
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

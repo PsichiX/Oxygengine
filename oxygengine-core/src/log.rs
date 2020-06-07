@@ -48,33 +48,65 @@ pub fn logger_log(mode: Log, message: String) {
 
 #[macro_export]
 macro_rules! log {
-    ($lvl:expr, $($arg:tt)+) => ({
+    ($lvl:expr, $($arg:tt)*) => ({
         $crate::log::logger_log($lvl, format!(
             "[{}: {} | {}]:\n{}",
             file!(),
             line!(),
             module_path!(),
-            format_args!($($arg)+)
+            format_args!($($arg)*)
         ))
     })
 }
 
 #[macro_export]
 macro_rules! info {
-    ($($arg:tt)*) => (log!($crate::log::Log::Info, $($arg)*))
+    ($($arg:tt)*) => ({
+        $crate::log::logger_log($crate::log::Log::Info, format!(
+            "[{}: {} | {}]:\n{}",
+            file!(),
+            line!(),
+            module_path!(),
+            format_args!($($arg)*)
+        ))
+    })
 }
 
 #[macro_export]
 macro_rules! warn {
-    ($($arg:tt)*) => (log!($crate::log::Log::Warning, $($arg)*))
+    ($($arg:tt)*) => ({
+        $crate::log::logger_log($crate::log::Log::Warning, format!(
+            "[{}: {} | {}]:\n{}",
+            file!(),
+            line!(),
+            module_path!(),
+            format_args!($($arg)*)
+        ))
+    })
 }
 
 #[macro_export]
 macro_rules! error {
-    ($($arg:tt)*) => (log!($crate::log::Log::Error, $($arg)*))
+    ($($arg:tt)*) => ({
+        $crate::log::logger_log($crate::log::Log::Error, format!(
+            "[{}: {} | {}]:\n{}",
+            file!(),
+            line!(),
+            module_path!(),
+            format_args!($($arg)*)
+        ))
+    })
 }
 
 #[macro_export]
 macro_rules! debug {
-    ($($arg:tt)*) => (log!($crate::log::Log::Debug, $($arg)*))
+    ($($arg:tt)*) => ({
+        $crate::log::logger_log($crate::log::Log::Debug, format!(
+            "[{}: {} | {}]:\n{}",
+            file!(),
+            line!(),
+            module_path!(),
+            format_args!($($arg)*)
+        ))
+    })
 }

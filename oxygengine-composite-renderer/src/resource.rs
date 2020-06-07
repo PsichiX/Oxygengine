@@ -197,6 +197,80 @@ impl CompositeUiInteractibles {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum UiValue {
+    Value(Scalar),
+    State(Cow<'static, str>),
+    // (state name, source lower, source upper, target lower, target upper)
+    MapState(Cow<'static, str>, Scalar, Scalar, Scalar, Scalar),
+}
+
+impl Default for UiValue {
+    fn default() -> Self {
+        Self::Value(0.0)
+    }
+}
+
+impl From<Scalar> for UiValue {
+    fn from(value: Scalar) -> Self {
+        Self::Value(value)
+    }
+}
+
+impl From<&str> for UiValue {
+    fn from(value: &str) -> Self {
+        Self::State(value.to_owned().into())
+    }
+}
+
+impl From<(&str, Scalar, Scalar)> for UiValue {
+    fn from(value: (&str, Scalar, Scalar)) -> Self {
+        Self::MapState(value.0.to_owned().into(), 0.0, 1.0, value.1, value.2)
+    }
+}
+
+impl From<(&str, Scalar, Scalar, Scalar, Scalar)> for UiValue {
+    fn from(value: (&str, Scalar, Scalar, Scalar, Scalar)) -> Self {
+        Self::MapState(
+            value.0.to_owned().into(),
+            value.1,
+            value.2,
+            value.3,
+            value.4,
+        )
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UiValueVec2 {
+    pub x: UiValue,
+    pub y: UiValue,
+}
+
+impl UiValueVec2 {
+    pub fn new(x: UiValue, y: UiValue) -> Self {
+        Self { x, y }
+    }
+}
+
+impl Default for UiValueVec2 {
+    fn default() -> Self {
+        Self::new(0.0.into(), 0.0.into())
+    }
+}
+
+impl From<(UiValue, UiValue)> for UiValueVec2 {
+    fn from((x, y): (UiValue, UiValue)) -> Self {
+        Self::new(x, y)
+    }
+}
+
+impl From<[UiValue; 2]> for UiValueVec2 {
+    fn from([x, y]: [UiValue; 2]) -> Self {
+        Self::new(x, y)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum UiThemed {
     None,
     Image {
@@ -207,15 +281,15 @@ pub enum UiThemed {
         #[serde(default)]
         image_path: UiImagePath,
         #[serde(default = "UiThemed::default_alpha")]
-        alpha: Scalar,
+        alpha: UiValue,
     },
     Text {
         #[serde(default)]
         font_name: Cow<'static, str>,
         #[serde(default)]
-        font_size: Scalar,
+        font_size: UiValue,
         #[serde(default = "UiThemed::default_alpha")]
-        alpha: Scalar,
+        alpha: UiValue,
     },
 }
 
@@ -226,8 +300,8 @@ impl Default for UiThemed {
 }
 
 impl UiThemed {
-    fn default_alpha() -> Scalar {
-        1.0
+    fn default_alpha() -> UiValue {
+        UiValue::Value(1.0)
     }
 }
 

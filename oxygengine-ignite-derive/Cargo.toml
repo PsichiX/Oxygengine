@@ -9,7 +9,6 @@ homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine-ignite-derive"
 readme = "../README.md"
-maintenance = { status = "actively-developed" }
 
 [lib]
 proc-macro = true

@@ -140,7 +140,7 @@ fn main() -> Result<()> {
             drop(remove_dir_all(&presets_path));
         }
         let url = format!(
-            "https://github.com/PsichiX/Oxygengine/releases/download/{}/oxygengine-presets.pack",
+            "https://oxygengine.io/ignite-presets/oxygengine-presets-{}.pack",
             env!("CARGO_PKG_VERSION")
         );
         println!(

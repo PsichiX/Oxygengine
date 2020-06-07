@@ -1,7 +1,7 @@
 use crate::{
     composite_renderer::{Command, Effect, Image, Renderable, Text},
     math::{Mat2d, Rect, Vec2},
-    resource::{CompositeUiInteractibles, CompositeUiThemes, UiThemed},
+    resource::{CompositeUiInteractibles, CompositeUiThemes, UiThemed, UiValue, UiValueVec2},
 };
 use core::{
     ecs::{Component, DenseVecStorage, FlaggedStorage, HashMapStorage, VecStorage},
@@ -1210,6 +1210,14 @@ impl Default for UiElementType {
     }
 }
 
+/// (id?, rectangle, children)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UiRectsTree(
+    pub Option<Cow<'static, str>>,
+    pub Rect,
+    pub Vec<UiRectsTree>,
+);
+
 #[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 #[ignite(namespace = "composite-renderer")]
 pub struct CompositeUiElement {
@@ -1228,27 +1236,31 @@ pub struct CompositeUiElement {
     #[serde(default)]
     pub padding: UiMargin,
     #[serde(default)]
-    pub left_anchor: Scalar,
+    pub left_anchor: UiValue,
     #[serde(default)]
-    pub right_anchor: Scalar,
+    pub right_anchor: UiValue,
     #[serde(default)]
-    pub top_anchor: Scalar,
+    pub top_anchor: UiValue,
     #[serde(default)]
-    pub bottom_anchor: Scalar,
+    pub bottom_anchor: UiValue,
     #[serde(default)]
-    pub alignment: Vec2,
+    pub alignment: UiValueVec2,
     #[serde(default)]
-    pub offset: Vec2,
+    pub offset: UiValueVec2,
     #[serde(default)]
-    pub fixed_width: Option<Scalar>,
+    pub fixed_width: Option<UiValue>,
     #[serde(default)]
-    pub fixed_height: Option<Scalar>,
+    pub fixed_height: Option<UiValue>,
     #[serde(default = "CompositeUiElement::default_scale")]
     pub scale: Vec2,
     #[serde(default = "CompositeUiElement::default_alpha")]
-    pub alpha: Scalar,
+    pub alpha: UiValue,
+    #[serde(default)]
+    pub hidden: bool,
     #[serde(default)]
     pub children: Vec<CompositeUiElement>,
+    #[serde(default)]
+    pub state: HashMap<Cow<'static, str>, Scalar>,
     #[serde(skip)]
     #[ignite(ignore)]
     pub(crate) dirty: bool,
@@ -1264,17 +1276,19 @@ impl Default for CompositeUiElement {
             element_type: Default::default(),
             margin: Default::default(),
             padding: Default::default(),
-            left_anchor: 0.0,
-            right_anchor: 0.0,
-            top_anchor: 0.0,
-            bottom_anchor: 0.0,
+            left_anchor: 0.0.into(),
+            right_anchor: 0.0.into(),
+            top_anchor: 0.0.into(),
+            bottom_anchor: 0.0.into(),
             alignment: Default::default(),
             offset: Default::default(),
             fixed_width: None,
             fixed_height: None,
             scale: Self::default_scale(),
             alpha: Self::default_alpha(),
+            hidden: false,
             children: Default::default(),
+            state: Default::default(),
             dirty: true,
         }
     }
@@ -1285,8 +1299,8 @@ impl CompositeUiElement {
         Vec2::one()
     }
 
-    fn default_alpha() -> Scalar {
-        1.0
+    fn default_alpha() -> UiValue {
+        UiValue::Value(1.0)
     }
 
     pub fn rebuild(&mut self) {
@@ -1358,21 +1372,13 @@ impl CompositeUiElement {
         }
         None
     }
-}
 
-impl Component for CompositeUiElement {
-    type Storage = VecStorage<Self>;
-}
-
-impl Prefab for CompositeUiElement {
-    fn post_from_prefab(&mut self) {
-        self.dirty = true;
-    }
-}
-impl PrefabComponent for CompositeUiElement {}
-
-impl CompositeUiElement {
-    pub fn calculate_rect(&self, parent_rect: Rect, themes: &CompositeUiThemes) -> Rect {
+    pub fn calculate_rect(
+        &self,
+        parent_rect: Rect,
+        themes: &CompositeUiThemes,
+        states: &[&HashMap<Cow<'static, str>, Scalar>],
+    ) -> Rect {
         let margin = if let Some(name) = &self.theme {
             if let Some(UiThemed::Image { image_margin, .. }) = themes.themes.get(name) {
                 *image_margin
@@ -1385,47 +1391,141 @@ impl CompositeUiElement {
 
         let min_width = margin.left + margin.right;
         let min_height = margin.top + margin.bottom;
+        let left_anchor = self.calculate_value(&self.left_anchor, states);
+        let right_anchor = self.calculate_value(&self.right_anchor, states);
+        let top_anchor = self.calculate_value(&self.top_anchor, states);
+        let bottom_anchor = self.calculate_value(&self.bottom_anchor, states);
+        let offset = self.calculate_value_vec2(&self.offset, states);
+        let alignment = self.calculate_value_vec2(&self.alignment, states);
         let (x, width) = {
-            let (x, w) = if let Some(fixed_width) = self.fixed_width {
-                let f = parent_rect.w * self.left_anchor + self.padding.left;
-                let t = parent_rect.w * self.right_anchor - self.padding.right;
+            let (x, w) = if let Some(fixed_width) = &self.fixed_width {
+                let f = parent_rect.w * left_anchor + self.padding.left;
+                let t = parent_rect.w * right_anchor - self.padding.right;
+                let fixed_width = self.calculate_value(fixed_width, states);
                 let o = (f + t) * 0.5;
-                (o, fixed_width)
+                (
+                    o,
+                    (fixed_width - self.padding.left - self.padding.right).max(min_width),
+                )
             } else {
-                let f = parent_rect.w * self.left_anchor + self.padding.left;
-                let t = parent_rect.w * self.right_anchor - self.padding.right;
+                let f = parent_rect.w * left_anchor + self.padding.left;
+                let t = parent_rect.w * right_anchor - self.padding.right;
                 (f, (t - f))
             };
             (x, w.max(min_width) * self.scale.x)
         };
         let (y, height) = {
-            let (y, h) = if let Some(fixed_height) = self.fixed_height {
-                let f = parent_rect.h * self.top_anchor + self.padding.top;
-                let t = parent_rect.h * self.bottom_anchor - self.padding.bottom;
+            let (y, h) = if let Some(fixed_height) = &self.fixed_height {
+                let f = parent_rect.h * top_anchor + self.padding.top;
+                let t = parent_rect.h * bottom_anchor - self.padding.bottom;
                 let o = (f + t) * 0.5;
-                (o, fixed_height)
+                let fixed_height = self.calculate_value(fixed_height, states);
+                (
+                    o,
+                    (fixed_height - self.padding.top - self.padding.bottom).max(min_height),
+                )
             } else {
-                let f = parent_rect.h * self.top_anchor + self.padding.top;
-                let t = parent_rect.h * self.bottom_anchor - self.padding.bottom;
+                let f = parent_rect.h * top_anchor + self.padding.top;
+                let t = parent_rect.h * bottom_anchor - self.padding.bottom;
                 (f, (t - f))
             };
             (y, h.max(min_height) * self.scale.y)
         };
         Rect {
-            x: self.offset.x + x + parent_rect.x - self.alignment.x * width,
-            y: self.offset.y + y + parent_rect.y - self.alignment.y * height,
+            x: offset.x + x + parent_rect.x - alignment.x * width,
+            y: offset.y + y + parent_rect.y - alignment.y * height,
             w: width,
             h: height,
         }
     }
 
-    pub fn build_commands(
+    pub fn calculate_value(
         &self,
+        state: &UiValue,
+        states: &[&HashMap<Cow<'static, str>, Scalar>],
+    ) -> Scalar {
+        match state {
+            UiValue::Value(value) => *value,
+            UiValue::State(state) => {
+                if let Some(index) = state.find('/') {
+                    let levels = state[0..index].chars().filter(|c| *c == '.').count();
+                    let state = &state[(index + 1)..];
+                    states
+                        .get(states.len() - levels)
+                        .map(|states| states.get(state).copied().unwrap_or(0.0))
+                        .unwrap_or(0.0)
+                } else {
+                    self.state.get(state).copied().unwrap_or(0.0)
+                }
+            }
+            UiValue::MapState(state, sl, su, tl, tu) => {
+                if let Some(index) = state.find('/') {
+                    let levels = state[0..index].chars().filter(|c| *c == '.').count();
+                    let state = &state[(index + 1)..];
+                    states
+                        .get(states.len() - levels)
+                        .map(|states| {
+                            states
+                                .get(state)
+                                .map(|value| {
+                                    let f = (*value - sl) / (su - sl);
+                                    f * (tu - tl) + tl
+                                })
+                                .unwrap_or(0.0)
+                        })
+                        .unwrap_or(0.0)
+                } else {
+                    self.state.get(state).copied().unwrap_or(0.0)
+                }
+            }
+        }
+    }
+
+    pub fn calculate_value_vec2(
+        &self,
+        state: &UiValueVec2,
+        states: &[&HashMap<Cow<'static, str>, Scalar>],
+    ) -> Vec2 {
+        Vec2::new(
+            self.calculate_value(&state.x, states),
+            self.calculate_value(&state.y, states),
+        )
+    }
+
+    pub fn build_rects_tree<'a>(
+        &'a self,
+        parent_rect: Rect,
+        themes: &CompositeUiThemes,
+        states: &mut Vec<&'a HashMap<Cow<'static, str>, Scalar>>,
+    ) -> Option<UiRectsTree> {
+        states.push(&self.state);
+        let rect = self.calculate_rect(parent_rect, themes, states);
+        if self.hidden {
+            states.pop();
+            return None;
+        }
+        let children = self
+            .children
+            .iter()
+            .filter_map(|item| item.build_rects_tree(rect, themes, states))
+            .collect::<Vec<_>>();
+        states.pop();
+        Some(UiRectsTree(self.id.clone(), rect, children))
+    }
+
+    pub fn build_commands<'a>(
+        &'a self,
         parent_rect: Rect,
         interactibles: &mut CompositeUiInteractibles,
         themes: &CompositeUiThemes,
+        states: &mut Vec<&'a HashMap<Cow<'static, str>, Scalar>>,
     ) -> (Vec<Command<'static>>, Rect) {
-        let rect = self.calculate_rect(parent_rect, themes);
+        states.push(&self.state);
+        let rect = self.calculate_rect(parent_rect, themes, states);
+        if self.hidden {
+            states.pop();
+            return (vec![], rect);
+        }
         if let Some(name) = &self.interactive {
             interactibles.bounding_boxes.insert(name.clone(), rect);
         }
@@ -1442,14 +1542,15 @@ impl CompositeUiElement {
                     }) = themes.themes.get(name)
                     {
                         text.font = font_name.clone();
-                        text.size = *font_size;
-                        *alpha
+                        text.size = self.calculate_value(font_size, states);
+                        self.calculate_value(alpha, states)
                     } else {
                         1.0
                     }
                 } else {
                     1.0
                 };
+
                 vec![
                     Command::Store,
                     Command::Alpha(alpha),
@@ -1466,7 +1567,12 @@ impl CompositeUiElement {
                         alpha,
                     }) = themes.themes.get(name)
                     {
-                        (*image_margin, *source_rect, image_path, *alpha)
+                        (
+                            *image_margin,
+                            *source_rect,
+                            image_path,
+                            self.calculate_value(alpha, states),
+                        )
                     } else {
                         (self.margin, image.source_rect, &image.image_path, 1.0)
                     }
@@ -1718,8 +1824,20 @@ impl CompositeUiElement {
             _ => vec![],
         };
         for child in &self.children {
-            commands.extend(child.build_commands(rect, interactibles, themes).0);
+            commands.extend(child.build_commands(rect, interactibles, themes, states).0);
         }
+        states.pop();
         (commands, rect)
     }
 }
+
+impl Component for CompositeUiElement {
+    type Storage = VecStorage<Self>;
+}
+
+impl Prefab for CompositeUiElement {
+    fn post_from_prefab(&mut self) {
+        self.dirty = true;
+    }
+}
+impl PrefabComponent for CompositeUiElement {}

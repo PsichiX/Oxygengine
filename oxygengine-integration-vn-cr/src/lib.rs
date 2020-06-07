@@ -109,6 +109,8 @@ pub struct VnRenderingConfig {
     pub ui_dialogue_options_path: String,
     #[serde(default = "VnRenderingConfig::default_ui_dialogue_option_text_path")]
     pub ui_dialogue_option_text_path: String,
+    #[serde(default = "VnRenderingConfig::default_ui_dialogue_option_button_path")]
+    pub ui_dialogue_option_button_path: String,
     #[serde(default = "VnRenderingConfig::default_ui_dialogue_default_name_color")]
     pub ui_dialogue_default_name_color: Color,
     #[serde(default = "VnRenderingConfig::default_input_pointer_trigger")]
@@ -117,6 +119,10 @@ pub struct VnRenderingConfig {
     pub input_pointer_axis_x: String,
     #[serde(default = "VnRenderingConfig::default_input_pointer_axis_y")]
     pub input_pointer_axis_y: String,
+    #[serde(default)]
+    pub pointer_image: Option<String>,
+    #[serde(default)]
+    pub pointer_align: Vec2,
     #[serde(default = "VnRenderingConfig::default_forced_constant_refresh")]
     pub forced_constant_refresh: bool,
 }
@@ -144,10 +150,13 @@ impl Default for VnRenderingConfig {
             ui_dialogue_skip_path: Self::default_ui_dialogue_skip_path(),
             ui_dialogue_options_path: Self::default_ui_dialogue_options_path(),
             ui_dialogue_option_text_path: Self::default_ui_dialogue_option_text_path(),
+            ui_dialogue_option_button_path: Self::default_ui_dialogue_option_button_path(),
             ui_dialogue_default_name_color: Self::default_ui_dialogue_default_name_color(),
             input_pointer_trigger: Self::default_input_pointer_trigger(),
             input_pointer_axis_x: Self::default_input_pointer_axis_x(),
             input_pointer_axis_y: Self::default_input_pointer_axis_y(),
+            pointer_image: None,
+            pointer_align: Default::default(),
             forced_constant_refresh: Self::default_forced_constant_refresh(),
         }
     }
@@ -215,7 +224,11 @@ impl VnRenderingConfig {
     }
 
     fn default_ui_dialogue_option_text_path() -> String {
-        "panel/text".to_owned()
+        "button/text".to_owned()
+    }
+
+    fn default_ui_dialogue_option_button_path() -> String {
+        "button".to_owned()
     }
 
     fn default_ui_dialogue_default_name_color() -> Color {
@@ -278,6 +291,7 @@ pub struct VnStoryRenderer {
     dialogue_ui_element: Entity,
     dialogue_option_template: CompositeUiElement,
     overlay: Entity,
+    pointer: Option<Entity>,
 }
 
 #[derive(Debug, Clone)]
@@ -357,6 +371,7 @@ impl Prefab for PositionCameraAlignmentPrefabProxy {}
 #[derive(Debug, Default)]
 pub struct ApplyVisualNovelToCompositeRenderer {
     config_table: HashMap<AssetID, String>,
+    dialogue_options_focus_phases: Vec<Scalar>,
 }
 
 impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
@@ -439,6 +454,9 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                 drop(entities.delete(story.background));
                 drop(entities.delete(story.dialogue_ui_element));
                 drop(entities.delete(story.overlay));
+                if let Some(pointer) = story.pointer {
+                    drop(entities.delete(pointer));
+                }
             }
         }
 
@@ -550,7 +568,7 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                         component
                     } else {
                         let mut text = CompositeUiElement::default();
-                        text.id = Some("text".to_owned().into());
+                        text.id = Some("text".into());
                         text.theme = rendering
                             .config()
                             .ui_dialogue_default_theme
@@ -568,12 +586,12 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                             top: 64.0,
                             bottom: 0.0,
                         };
-                        text.left_anchor = 0.0;
-                        text.right_anchor = 1.0;
-                        text.top_anchor = 0.0;
-                        text.bottom_anchor = 1.0;
+                        text.left_anchor = 0.0.into();
+                        text.right_anchor = 1.0.into();
+                        text.top_anchor = 0.0.into();
+                        text.bottom_anchor = 1.0.into();
                         let mut name = CompositeUiElement::default();
-                        name.id = Some("name".to_owned().into());
+                        name.id = Some("name".into());
                         name.theme = rendering
                             .config()
                             .ui_dialogue_default_theme
@@ -591,22 +609,22 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                             top: 32.0,
                             bottom: 0.0,
                         };
-                        name.left_anchor = 0.0;
-                        name.right_anchor = 1.0;
-                        name.top_anchor = 0.0;
-                        name.bottom_anchor = 0.0;
-                        name.alignment = (0.0, 0.0).into();
-                        name.fixed_height = Some(64.0);
+                        name.left_anchor = 0.0.into();
+                        name.right_anchor = 1.0.into();
+                        name.top_anchor = 0.0.into();
+                        name.bottom_anchor = 0.0.into();
+                        name.alignment = (0.0.into(), 0.0.into()).into();
+                        name.fixed_height = Some(64.0.into());
                         let mut options = CompositeUiElement::default();
-                        options.id = Some("options".to_owned().into());
+                        options.id = Some("options".into());
                         options.element_type = UiElementType::None;
-                        options.left_anchor = 0.0;
-                        options.right_anchor = 1.0;
-                        options.top_anchor = 0.0;
-                        options.bottom_anchor = 0.0;
-                        options.alignment = (0.0, 1.0).into();
+                        options.left_anchor = 0.0.into();
+                        options.right_anchor = 1.0.into();
+                        options.top_anchor = 0.0.into();
+                        options.bottom_anchor = 0.0.into();
+                        options.alignment = (0.0.into(), 1.0.into()).into();
                         let mut panel = CompositeUiElement::default();
-                        panel.id = Some("panel".to_owned().into());
+                        panel.id = Some("panel".into());
                         panel.theme = rendering
                             .config()
                             .ui_dialogue_default_theme
@@ -620,20 +638,20 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                             top: 0.0,
                             bottom: 32.0,
                         };
-                        panel.left_anchor = 0.0;
-                        panel.right_anchor = 1.0;
-                        panel.top_anchor = 1.0;
-                        panel.bottom_anchor = 1.0;
-                        panel.alignment = (0.0, 1.0).into();
-                        panel.fixed_height = Some(256.0);
+                        panel.left_anchor = 0.0.into();
+                        panel.right_anchor = 1.0.into();
+                        panel.top_anchor = 1.0.into();
+                        panel.bottom_anchor = 1.0.into();
+                        panel.alignment = (0.0.into(), 1.0.into()).into();
+                        panel.fixed_height = Some(256.0.into());
                         panel.children = vec![text, name, options];
                         let mut root = CompositeUiElement::default();
                         root.camera_name = format!("vn-camera-ui-{}", id).into();
                         root.element_type = UiElementType::None;
-                        root.left_anchor = 0.0;
-                        root.right_anchor = 1.0;
-                        root.top_anchor = 0.0;
-                        root.bottom_anchor = 1.0;
+                        root.left_anchor = 0.0.into();
+                        root.right_anchor = 1.0.into();
+                        root.top_anchor = 0.0.into();
+                        root.bottom_anchor = 1.0.into();
                         root.children = vec![panel];
                         root
                     };
@@ -651,15 +669,15 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                     .ui_dialogue_option_component_template
                     .clone()
                 {
-                    component.left_anchor = 0.0;
-                    component.right_anchor = 1.0;
-                    component.top_anchor = 0.0;
-                    component.bottom_anchor = 0.0;
-                    component.alignment = (0.0, 0.0).into();
+                    component.left_anchor = 0.0.into();
+                    component.right_anchor = 1.0.into();
+                    component.top_anchor = 0.0.into();
+                    component.bottom_anchor = 0.0.into();
+                    component.alignment = (0.0.into(), 0.0.into()).into();
                     component
                 } else {
                     let mut text = CompositeUiElement::default();
-                    text.id = Some("text".to_owned().into());
+                    text.id = Some("text".into());
                     text.theme = rendering
                         .config()
                         .ui_dialogue_default_theme
@@ -676,38 +694,56 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                         top: 8.0,
                         bottom: 0.0,
                     };
-                    text.left_anchor = 0.0;
-                    text.right_anchor = 1.0;
-                    text.top_anchor = 0.0;
-                    text.bottom_anchor = 1.0;
-                    let mut panel = CompositeUiElement::default();
-                    panel.id = Some("panel".to_owned().into());
-                    panel.theme = rendering
+                    text.left_anchor = 0.0.into();
+                    text.right_anchor = 1.0.into();
+                    text.top_anchor = 0.0.into();
+                    text.bottom_anchor = 1.0.into();
+                    let mut background = CompositeUiElement::default();
+                    background.theme = rendering
                         .config()
                         .ui_dialogue_default_theme
                         .as_ref()
-                        .map(|theme| format!("{}@option", theme).into());
-                    panel.element_type = UiElementType::Image(Box::new(UiImage::default()));
-                    panel.left_anchor = 0.0;
-                    panel.right_anchor = 1.0;
-                    panel.top_anchor = 0.0;
-                    panel.bottom_anchor = 1.0;
-                    panel.children = vec![text];
+                        .map(|theme| format!("{}@option-background", theme).into());
+                    background.element_type = UiElementType::Image(Box::new(UiImage::default()));
+                    background.left_anchor = 0.0.into();
+                    background.right_anchor = 1.0.into();
+                    background.top_anchor = 0.0.into();
+                    background.bottom_anchor = 1.0.into();
+                    let mut background_focused = CompositeUiElement::default();
+                    background_focused.theme = rendering
+                        .config()
+                        .ui_dialogue_default_theme
+                        .as_ref()
+                        .map(|theme| format!("{}@option-background-focused", theme).into());
+                    background_focused.element_type =
+                        UiElementType::Image(Box::new(UiImage::default()));
+                    background_focused.left_anchor = 0.0.into();
+                    background_focused.right_anchor = 1.0.into();
+                    background_focused.top_anchor = 0.0.into();
+                    background_focused.bottom_anchor = 1.0.into();
+                    let mut button = CompositeUiElement::default();
+                    button.id = Some("button".into());
+                    button.element_type = UiElementType::None;
+                    button.left_anchor = 0.0.into();
+                    button.right_anchor = 1.0.into();
+                    button.top_anchor = 0.0.into();
+                    button.bottom_anchor = 1.0.into();
+                    button.children = vec![background, background_focused, text];
                     let mut root = CompositeUiElement::default();
                     root.camera_name = format!("vn-camera-ui-{}", id).into();
                     root.element_type = UiElementType::None;
-                    panel.padding = UiMargin {
+                    root.padding = UiMargin {
                         left: 256.0,
                         right: 64.0,
                         top: 0.0,
                         bottom: 8.0,
                     };
-                    root.left_anchor = 0.0;
-                    root.right_anchor = 1.0;
-                    root.top_anchor = 0.0;
-                    root.bottom_anchor = 0.0;
-                    root.fixed_height = Some(48.0);
-                    root.children = vec![panel];
+                    root.left_anchor = 0.0.into();
+                    root.right_anchor = 1.0.into();
+                    root.top_anchor = 0.0.into();
+                    root.bottom_anchor = 0.0.into();
+                    root.fixed_height = Some(48.0.into());
+                    root.children = vec![button];
                     root
                 };
                 let overlay_renderable = match &rendering.config().overlay_style {
@@ -728,6 +764,20 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                     .with(CompositeCameraAlignment(0.0.into()))
                     .with(CompositeTransform::default())
                     .build();
+                let pointer = rendering.config().pointer_image.as_ref().map(|image| {
+                    lazy_update
+                        .create_entity(&entities)
+                        .with(Tag(format!("vn-ui-{}", id).into()))
+                        .with(Name(format!("vn-pointer-{}", id).into()))
+                        .with(CompositeRenderLayer(2))
+                        .with(CompositeRenderable(
+                            Image::new_owned(image.to_owned())
+                                .align(rendering.config().pointer_align)
+                                .into(),
+                        ))
+                        .with(CompositeTransform::default())
+                        .build()
+                });
                 rendering.stories.insert(
                     id.to_owned(),
                     VnStoryRenderer {
@@ -739,11 +789,13 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                         dialogue_ui_element,
                         dialogue_option_template,
                         overlay,
+                        pointer,
                     },
                 );
             }
         }
 
+        // apply data to renderers.
         for (story_name, story_data) in &rendering.stories {
             if let Some(story) = stories.get(story_name) {
                 let show = !story.is_paused() || !rendering.config().hide_on_story_pause;
@@ -868,26 +920,22 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                                     from.options.as_slice(),
                                 )
                             } else {
-                                let length = (to.text.len() as Scalar * phase) as usize + 1;
                                 (
                                     1.0,
                                     phase * 2.0,
-                                    &to.text.as_str()[0..length.min(to.text.len())],
+                                    to.text.as_str(),
                                     to.character.as_str(),
                                     to.options.as_slice(),
                                 )
                             }
                         }
-                        (None, Some(to)) => {
-                            let length = (to.text.len() as Scalar * phase) as usize + 1;
-                            (
-                                phase,
-                                1.0,
-                                &to.text.as_str()[0..length.min(to.text.len())],
-                                to.character.as_str(),
-                                to.options.as_slice(),
-                            )
-                        }
+                        (None, Some(to)) => (
+                            phase,
+                            1.0,
+                            to.text.as_str(),
+                            to.character.as_str(),
+                            to.options.as_slice(),
+                        ),
                         (Some(from), None) => (
                             1.0 - phase,
                             1.0,
@@ -911,20 +959,23 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                         alpha.0 = main_alpha;
                     }
                     if let Some(ui_element) = ui_elements.get_mut(story_data.dialogue_ui_element) {
+                        let item_height =
+                            if let Some(v) = &story_data.dialogue_option_template.fixed_height {
+                                ui_element.calculate_value(v, &[])
+                            } else {
+                                0.0
+                            };
                         if let Some(child) =
                             ui_element.find_mut(&rendering.config().ui_dialogue_options_path)
                         {
-                            child.alpha = phase;
+                            child.alpha = phase.into();
                             if options.is_empty() {
                                 child.fixed_height = None;
                                 child.children.clear();
                                 child.rebuild();
                             } else {
-                                let item_height = story_data
-                                    .dialogue_option_template
-                                    .fixed_height
-                                    .unwrap_or(0.0);
-                                child.fixed_height = Some(item_height * options.len() as Scalar);
+                                child.fixed_height =
+                                    Some((item_height * options.len() as Scalar).into());
                                 child.children.clear();
                                 for (i, option) in options.iter().enumerate() {
                                     let mut element = story_data.dialogue_option_template.clone();
@@ -935,9 +986,15 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                                             t.text = option.text.clone().into();
                                         }
                                     }
+                                    let focused_phase = option.focused.phase();
+                                    if let Some(child) = element.find_mut(
+                                        &rendering.config().ui_dialogue_option_button_path,
+                                    ) {
+                                        child.state.insert("focused".into(), focused_phase);
+                                    }
                                     element.interactive =
                                         Some(format!("vn-ui-option-{}-{}", story_name, i).into());
-                                    element.offset.y = i as Scalar * item_height;
+                                    element.offset.y = (i as Scalar * item_height).into();
                                     child.children.push(element);
                                 }
                                 child.rebuild();
@@ -946,7 +1003,7 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
                         if let Some(child) =
                             ui_element.find_mut(&rendering.config().ui_dialogue_name_path)
                         {
-                            child.alpha = name_alpha;
+                            child.alpha = name_alpha.into();
                             if let UiElementType::Text(t) = &mut child.element_type {
                                 t.text = name.to_owned().into();
                                 t.color = name_color;
@@ -1028,34 +1085,42 @@ impl<'s> System<'s> for ApplyVisualNovelToCompositeRenderer {
             }
 
             if let Some(story) = stories.get_mut(story_name) {
-                if story.is_waiting_for_dialogue_option_selection()
-                    && story.active_dialogue().is_complete()
-                    && input
-                        .trigger_or_default(&rendering.config().input_pointer_trigger)
-                        .is_pressed()
-                {
-                    let x = input.axis_or_default(&rendering.config().input_pointer_axis_x);
-                    let y = input.axis_or_default(&rendering.config().input_pointer_axis_y);
-                    let point = [x, y].into();
+                let x = input.axis_or_default(&rendering.config().input_pointer_axis_x);
+                let y = input.axis_or_default(&rendering.config().input_pointer_axis_y);
+                let point = [x, y].into();
 
-                    if let Some(pos) =
-                        camera_cache.screen_to_world_space(story_data.ui_camera, point)
+                if let Some(pos) = camera_cache.screen_to_world_space(story_data.ui_camera, point) {
+                    if let Some(pointer) = &story_data.pointer {
+                        if let Some(transform) = transforms.get_mut(*pointer) {
+                            transform.set_translation(pos);
+                        }
+                    }
+
+                    if story.is_waiting_for_dialogue_option_selection()
+                        && story.active_dialogue().is_complete()
                     {
                         let dialogue = story.active_dialogue().to();
-                        let mut selected = None;
                         if let Some(dialogue) = dialogue {
+                            let mut selected = None;
+                            let mut focused = None;
+                            let click = input
+                                .trigger_or_default(&rendering.config().input_pointer_trigger)
+                                .is_pressed();
                             for i in 0..dialogue.options.len() {
                                 if interactibles.does_rect_contains_point(
                                     &format!("vn-ui-option-{}-{}", story_name, i),
                                     pos,
                                 ) {
-                                    selected = Some(i);
-                                    break;
+                                    focused = Some(i);
+                                    if click {
+                                        selected = Some(i);
+                                    }
                                 }
                             }
-                        }
-                        if let Some(selected) = selected {
-                            drop(story.select_dialogue_option(selected));
+                            drop(story.focus_dialogue_option(focused));
+                            if let Some(selected) = selected {
+                                drop(story.select_dialogue_option(selected));
+                            }
                         }
                     }
                 }

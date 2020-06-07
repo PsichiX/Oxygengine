@@ -1,6 +1,5 @@
-/target
+target/
 **/*.rs.bk
 Cargo.lock
-/*.sh
-/*.bat
-demos/chat/
+*.sh
+*.bat
