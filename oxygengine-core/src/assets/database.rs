@@ -5,7 +5,7 @@ use crate::{
     },
     fetch::{FetchEngine, FetchProcessReader, FetchStatus},
 };
-use std::{any::TypeId, borrow::BorrowMut, collections::HashMap, mem::replace};
+use std::{any::TypeId, borrow::BorrowMut, collections::HashMap};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LoadStatus {
@@ -371,14 +371,11 @@ impl AssetsDatabase {
                 }
             }
         }
-        self.loading.retain(|_, (_, reader)| {
-            if let FetchStatus::InProgress(_) | FetchStatus::Done = reader.status() {
-                true
-            } else {
-                false
-            }
+        self.loading.retain(|_, (_, reader)| match reader.status() {
+            FetchStatus::InProgress(_) | FetchStatus::Done => true,
+            _ => false,
         });
-        let yielded = replace(&mut self.yielded, Default::default());
+        let yielded = std::mem::take(&mut self.yielded);
         for (path, (prot, meta, list)) in yielded {
             if list.iter().all(|(_, path)| self.table.contains_key(path)) {
                 let ptr = self as *const Self;

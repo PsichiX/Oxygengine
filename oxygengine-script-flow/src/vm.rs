@@ -1,7 +1,4 @@
-use crate::{
-    ast::{self, *},
-    GUID,
-};
+use crate::{ast, ast::*, GUID};
 use core::prefab::{PrefabNumber, PrefabValue};
 use petgraph::{
     algo::{has_path_connecting, toposort},
@@ -699,8 +696,9 @@ impl Vm {
     }
 
     pub fn get_completed_events(&mut self) -> impl Iterator<Item = (GUID, Vec<Reference>)> {
-        let map = std::mem::replace(&mut self.completed_events, Default::default());
-        map.into_iter().map(|item| item)
+        std::mem::take(&mut self.completed_events)
+            .into_iter()
+            .map(|item| item)
     }
 
     pub fn process_events(&mut self) -> Result<(), VmError> {

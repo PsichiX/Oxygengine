@@ -17,7 +17,7 @@ lto = true
 #default = ["wee_alloc"]
 
 [build-dependencies]
-oxygengine-build-tools = { version = "0.8", path = "../../oxygengine-build-tools" }
+oxygengine-build-tools = { version = "0.9", path = "../../oxygengine-build-tools" }
 
 [dependencies]
 wasm-bindgen = "0.2.45"
@@ -27,7 +27,7 @@ wasm-bindgen = "0.2.45"
 wee_alloc = { version = "0.4.5", optional = true }
 
 [dependencies.oxygengine]
-version = "0.8"
+version = "0.9"
 features = ["web-composite-game", "script-web"]
 path = "../../"
 

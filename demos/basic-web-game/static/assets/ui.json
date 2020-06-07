@@ -21,7 +21,7 @@
   "text": {
     "Text": {
       "font_name": "kato.json",
-      "font_size": 24
+      "font_size": { "Value": 24 }
     }
   }
 }

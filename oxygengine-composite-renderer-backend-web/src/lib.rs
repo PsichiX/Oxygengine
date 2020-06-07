@@ -605,20 +605,23 @@ impl CompositeRenderer for WebCompositeRenderer {
             }
             let elm = FontFace::new_with_u8_array_and_descriptors(
                 &path,
-                #[allow(mutable_transmutes)]
+                #[allow(mutable_transmutes, clippy::transmute_ptr_to_ptr)]
                 unsafe {
                     std::mem::transmute(font_asset.bytes())
                 },
                 &descriptors,
             )
             .unwrap();
-            drop(elm.load().expect(&format!("Could not load font: {}", path)));
+            drop(
+                elm.load()
+                    .unwrap_or_else(|_| panic!("Could not load font: {}", path)),
+            );
             window()
                 .document()
                 .expect("Could not get window document")
                 .fonts()
                 .add(&elm)
-                .expect(&format!("Could not add font: {}", path));
+                .unwrap_or_else(|_| panic!("Could not add font: {}", path));
             self.fontfaces_cache.insert(path.clone(), elm);
             self.fontfaces_table.insert(id, path);
         }

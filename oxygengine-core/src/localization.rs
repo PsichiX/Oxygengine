@@ -9,18 +9,18 @@ use std::collections::HashMap;
 #[grammar = "localization.pest"]
 struct SentenceParser;
 
-// TODO: swap text id with language.
-/// { text id: { language: text format } }
 #[derive(Default)]
 pub struct Localization {
     default_language: Option<String>,
     current_language: Option<String>,
+    // TODO: swap text id with language.
+    /// { text id: { language: text format } }
     map: HashMap<String, HashMap<String, String>>,
 }
 
 impl Localization {
     pub fn default_language(&self) -> Option<&str> {
-        self.default_language.as_ref().map(|v| v.as_str())
+        self.default_language.as_deref()
     }
 
     pub fn set_default_language(&mut self, value: Option<String>) {
@@ -28,7 +28,7 @@ impl Localization {
     }
 
     pub fn current_language(&self) -> Option<&str> {
-        self.current_language.as_ref().map(|v| v.as_str())
+        self.current_language.as_deref()
     }
 
     pub fn set_current_language(&mut self, value: Option<String>) {

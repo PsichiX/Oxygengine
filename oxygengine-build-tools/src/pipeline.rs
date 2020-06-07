@@ -268,8 +268,7 @@ pub struct Pipeline {
 impl Pipeline {
     pub fn from_file<P: AsRef<Path>>(config: P, project_is_root: bool) -> Result<Self, Error> {
         let config = if project_is_root {
-            let root = var("CARGO_MANIFEST_DIR").unwrap();
-            Path::new(&root).join(config.as_ref()).to_path_buf()
+            Path::new(&var("CARGO_MANIFEST_DIR").unwrap()).join(config.as_ref())
         } else {
             config.as_ref().to_path_buf()
         };
@@ -292,8 +291,7 @@ impl Pipeline {
     }
 
     pub fn project_source<P: AsRef<Path>>(mut self, source: P) -> Self {
-        let root = var("CARGO_MANIFEST_DIR").unwrap();
-        self.source = Path::new(&root).join(source.as_ref()).to_path_buf();
+        self.source = Path::new(&var("CARGO_MANIFEST_DIR").unwrap()).join(source.as_ref());
         self
     }
 
@@ -304,7 +302,7 @@ impl Pipeline {
 
     pub fn project_destination<P: AsRef<Path>>(mut self, destination: P) -> Self {
         let root = var("CARGO_MANIFEST_DIR").unwrap();
-        self.destination = Path::new(&root).join(destination.as_ref()).to_path_buf();
+        self.destination = Path::new(&root).join(destination.as_ref());
         self
     }
 

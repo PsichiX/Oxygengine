@@ -47,12 +47,10 @@ impl<'s> System<'s> for KeyboardMovementSystem {
                 } else {
                     Direction::East
                 }
+            } else if ver < 0.5 {
+                Direction::North
             } else {
-                if ver < 0.5 {
-                    Direction::North
-                } else {
-                    Direction::South
-                }
+                Direction::South
             };
             let was_moving = keyboard_movement.is_moving;
             let old_direction = keyboard_movement.direction;
