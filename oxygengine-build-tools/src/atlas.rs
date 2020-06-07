@@ -121,7 +121,7 @@ pub fn pack_sprites_and_write_to_files<P: AsRef<Path>>(
     for (i, page) in packer.get_pages().iter().enumerate() {
         let image_path = output_image.as_ref().with_extension(&format!("{}.png", i));
         match ImageExporter::export(page) {
-            Ok(exporter) => match exporter.save_with_format(&image_path, image::PNG) {
+            Ok(exporter) => match exporter.save_with_format(&image_path, image::ImageFormat::Png) {
                 Ok(_) => {
                     let path = image_path.file_name().unwrap().to_str().unwrap().to_owned();
                     let info = SpriteSheetInfo {

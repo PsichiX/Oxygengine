@@ -16,8 +16,8 @@ web = ["oxygengine-core/web", "oxygengine-composite-renderer/web"]
 scalar64 = ["oxygengine-core/scalar64", "oxygengine-composite-renderer/scalar64"]
 
 [dependencies]
-js-sys = "0.3"
 wasm-bindgen = "0.2"
+js-sys = "0.3"
 oxygengine-core = { version = "0.9", path = "../oxygengine-core" }
 oxygengine-composite-renderer = { version = "0.9", path = "../oxygengine-composite-renderer" }
 

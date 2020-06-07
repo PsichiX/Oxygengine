@@ -14,9 +14,9 @@ readme = "../README.md"
 serde = { version = "1", features = ["derive"] }
 bincode = "1"
 serde_json = "1"
-pathdiff = "0.1"
-image = "0.22"
+pathdiff = "0.2"
+image = "0.23"
 fs_extra = "1.1"
 
 [dependencies.texture_packer]
-version = "0.18"
+version = "0.21"

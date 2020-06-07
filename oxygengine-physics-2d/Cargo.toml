@@ -20,11 +20,11 @@ oxygengine-core = { version = "0.9", path = "../oxygengine-core" }
 serde = { version = "1", features = ["derive"] }
 
 [dependencies.ncollide2d]
-version = "0.21"
+version = "0.23"
 default-features = false
 features = ["dim2", "serde-serialize"]
 
 [dependencies.nphysics2d]
-version = "0.13"
+version = "0.16"
 default-features = false
 features = ["dim2", "use-wasm-bindgen"]

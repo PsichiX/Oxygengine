@@ -13,14 +13,11 @@ mod components;
 mod states;
 mod systems;
 
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-
 #[wasm_bindgen(start)]
 pub fn main_js() -> Result<(), JsValue> {
-    // #[cfg(debug_assertions)]
-    // console_error_panic_hook::set_once();
+    #[cfg(feature = "console_error_panic_hook")]
+    #[cfg(debug_assertions)]
+    console_error_panic_hook::set_once();
 
     // initialize logger to see logs in web browser (debug only).
     #[cfg(debug_assertions)]
