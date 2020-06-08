@@ -8,5 +8,3 @@ edition = "2018"
 [dependencies.oxygengine]
 version = "0.9"
 features = ["desktop-headless-game"]
-
-[workspace]
