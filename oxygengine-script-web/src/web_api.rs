@@ -1,4 +1,5 @@
 use crate::{component::WebScriptComponent, interface::WebScriptInterface};
+use core::ecs::WorldExt;
 use js_sys::{Array, Function, JsString};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};

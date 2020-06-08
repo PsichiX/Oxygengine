@@ -170,6 +170,8 @@ pub trait FetchEngine: Send + Sync {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
     #[cfg(not(feature = "web"))]
     fn test_general() {
@@ -190,8 +192,8 @@ mod tests {
         assert_eq!(reader.status(), FetchStatus::Done);
         assert_eq!(reader2.status(), FetchStatus::Done);
         assert!(!reader.read().unwrap().is_empty());
-        assert_eq!(reader.status(), FetchStatus::Empty);
-        assert_eq!(reader2.status(), FetchStatus::Empty);
+        assert_eq!(reader.status(), FetchStatus::Read);
+        assert_eq!(reader2.status(), FetchStatus::Read);
         drop(reader);
         drop(reader2);
     }

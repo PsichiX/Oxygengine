@@ -5,7 +5,8 @@ use crate::{
 use oxygengine_ignite_derive::Ignite;
 use serde::{Deserialize, Serialize};
 use specs::{
-    world::EntitiesRes, Component, Entity, FlaggedStorage, Join, ReadStorage, VecStorage, World,
+    world::{EntitiesRes, WorldExt},
+    Component, DenseVecStorage, Entity, FlaggedStorage, Join, ReadStorage, VecStorage, World,
     WriteStorage,
 };
 use specs_hierarchy::Hierarchy;
@@ -229,7 +230,7 @@ impl HierarchyChangeRes {
 pub struct Parent(pub Entity);
 
 impl Component for Parent {
-    type Storage = FlaggedStorage<Self, VecStorage<Self>>;
+    type Storage = FlaggedStorage<Self, DenseVecStorage<Self>>;
 }
 
 impl specs_hierarchy::Parent for Parent {

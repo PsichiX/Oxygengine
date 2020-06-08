@@ -23,7 +23,7 @@ use core::{
     assets::{asset::AssetID, database::AssetsDatabase},
     ecs::{
         storage::ComponentEvent, Entities, Entity, Join, Read, ReadExpect, ReadStorage, ReaderId,
-        Resources, System, Write, WriteStorage,
+        System, World, Write, WriteStorage,
     },
     hierarchy::{HierarchyRes, Name, Parent, Tag},
     Scalar,
@@ -627,10 +627,11 @@ where
         WriteStorage<'s, CompositeRenderable>,
     );
 
-    fn setup(&mut self, res: &mut Resources) {
+    fn setup(&mut self, world: &mut World) {
         use core::ecs::SystemData;
-        Self::SystemData::setup(res);
-        self.reader_id = Some(WriteStorage::<CompositeSurfaceCache>::fetch(&res).register_reader());
+        Self::SystemData::setup(world);
+        self.reader_id =
+            Some(WriteStorage::<CompositeSurfaceCache>::fetch(&world).register_reader());
     }
 
     fn run(&mut self, (entities, renderer, mut caches, mut renderables): Self::SystemData) {

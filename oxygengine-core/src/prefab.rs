@@ -6,7 +6,7 @@ use crate::{
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use specs::{
-    world::{Builder, EntitiesRes, LazyBuilder},
+    world::{Builder, EntitiesRes, LazyBuilder, WorldExt},
     Component, Entity, LazyUpdate, Read, ReadExpect, System, World, Write,
 };
 use std::{

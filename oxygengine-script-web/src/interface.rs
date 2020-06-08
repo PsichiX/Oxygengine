@@ -7,7 +7,7 @@ use crate::{
     state::WebScriptStateScripted,
     web_api::EntityId,
 };
-use core::ecs::{Builder, Component, Entity, EntityBuilder, Resource, World};
+use core::ecs::{Builder, Component, Entity, EntityBuilder, Resource, World, WorldExt};
 use js_sys::{Function, JsString, Object, Reflect};
 use std::{
     collections::{HashMap, HashSet},

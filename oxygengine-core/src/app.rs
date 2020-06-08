@@ -4,8 +4,8 @@ use crate::{
     Scalar,
 };
 use specs::{
-    world::EntitiesRes, Component, Dispatcher, DispatcherBuilder, Entity, Join, RunNow, System,
-    World,
+    world::{EntitiesRes, WorldExt},
+    Component, Dispatcher, DispatcherBuilder, Entity, Join, RunNow, System, World,
 };
 use specs_hierarchy::HierarchySystem;
 use std::{
@@ -180,7 +180,7 @@ impl<'a, 'b> App<'a, 'b> {
             state.on_process_background(&mut self.world);
         }
         let change = self.states.last_mut().unwrap().on_process(&mut self.world);
-        self.dispatcher.dispatch(&self.world.res);
+        self.dispatcher.dispatch(&self.world);
         match &change {
             StateChange::Pop | StateChange::Swap(_) => {
                 let token = {
@@ -303,14 +303,15 @@ impl<'a, 'b> Default for AppBuilder<'a, 'b> {
 impl<'a, 'b> AppBuilder<'a, 'b> {
     #[inline]
     pub fn new() -> Self {
-        let mut result = Self {
-            world: Default::default(),
-            dispatcher_builder: Default::default(),
-        };
-        result
-            .dispatcher_builder
-            .add(HierarchySystem::<Parent>::new(), "hierarchy", &[]);
-        result
+        let mut world = World::new();
+        Self {
+            dispatcher_builder: DispatcherBuilder::new().with(
+                HierarchySystem::<Parent>::new(&mut world),
+                "hierarchy",
+                &[],
+            ),
+            world,
+        }
     }
 
     #[inline]
@@ -356,7 +357,7 @@ impl<'a, 'b> AppBuilder<'a, 'b> {
     where
         T: Send + Sync + 'static,
     {
-        self.world.add_resource(resource);
+        self.world.insert(resource);
         self
     }
 
@@ -403,7 +404,7 @@ impl<'a, 'b> AppBuilder<'a, 'b> {
     where
         T: Send + Sync + 'static,
     {
-        self.world.add_resource(resource);
+        self.world.insert(resource);
     }
 
     #[inline]
@@ -420,15 +421,14 @@ impl<'a, 'b> AppBuilder<'a, 'b> {
         S: State + 'static,
         AT: AppTimer + 'static,
     {
-        self.world
-            .add_resource(AppLifeCycle::new(Box::new(app_timer)));
-        self.world.add_resource(HierarchyChangeRes::default());
+        self.world.insert(AppLifeCycle::new(Box::new(app_timer)));
+        self.world.insert(HierarchyChangeRes::default());
         self.world.register::<Parent>();
         self.world.register::<Name>();
         self.world.register::<Tag>();
         self.world.register::<NonPersistent>();
         let mut dispatcher = self.dispatcher_builder.build();
-        dispatcher.setup(&mut self.world.res);
+        dispatcher.setup(&mut self.world);
         App {
             world: self.world,
             states: vec![Box::new(state)],

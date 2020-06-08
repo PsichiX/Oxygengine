@@ -1,5 +1,6 @@
 use core::{
     app::{App, AppLifeCycle, AppTimer, BackendAppRunner},
+    ecs::WorldExt,
     Scalar,
 };
 use std::{cell::RefCell, rc::Rc, time::Duration};

@@ -7,8 +7,8 @@ use crate::{
 use core::{
     app::AppLifeCycle,
     ecs::{
-        storage::ComponentEvent, Entities, Entity, Join, ReadExpect, ReadStorage, ReaderId,
-        Resources, System, Write, WriteStorage,
+        storage::ComponentEvent, Entities, Entity, Join, ReadExpect, ReadStorage, ReaderId, System,
+        World, Write, WriteStorage,
     },
 };
 use nphysics2d::object::{BodyPartHandle, DefaultBodyHandle, DefaultColliderHandle};
@@ -32,11 +32,12 @@ impl<'s> System<'s> for Physics2dSystem {
         ReadStorage<'s, Collider2dBody>,
     );
 
-    fn setup(&mut self, res: &mut Resources) {
+    fn setup(&mut self, world: &mut World) {
         use core::ecs::SystemData;
-        Self::SystemData::setup(res);
-        self.bodies_reader_id = Some(WriteStorage::<RigidBody2d>::fetch(&res).register_reader());
-        self.colliders_reader_id = Some(WriteStorage::<Collider2d>::fetch(&res).register_reader());
+        Self::SystemData::setup(world);
+        self.bodies_reader_id = Some(WriteStorage::<RigidBody2d>::fetch(&world).register_reader());
+        self.colliders_reader_id =
+            Some(WriteStorage::<Collider2d>::fetch(&world).register_reader());
     }
 
     fn run(

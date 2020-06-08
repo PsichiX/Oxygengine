@@ -8,7 +8,7 @@ use crate::{
 use core::{
     assets::database::AssetsDatabase,
     ecs::{
-        storage::ComponentEvent, Entities, Entity, Join, Read, ReaderId, Resources, System, Write,
+        storage::ComponentEvent, Entities, Entity, Join, Read, ReaderId, System, World, Write,
         WriteStorage,
     },
 };
@@ -47,10 +47,10 @@ where
         WriteStorage<'s, AudioSource>,
     );
 
-    fn setup(&mut self, res: &mut Resources) {
+    fn setup(&mut self, world: &mut World) {
         use core::ecs::SystemData;
-        Self::SystemData::setup(res);
-        self.reader_id = Some(WriteStorage::<AudioSource>::fetch(&res).register_reader());
+        Self::SystemData::setup(world);
+        self.reader_id = Some(WriteStorage::<AudioSource>::fetch(&world).register_reader());
     }
 
     fn run(&mut self, (entities, audio, assets, mut sources): Self::SystemData) {
