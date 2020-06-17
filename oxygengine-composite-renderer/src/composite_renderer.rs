@@ -1,5 +1,9 @@
 use crate::math::{Color, Rect, Vec2};
-use core::{assets::database::AssetsDatabase, error::*, Scalar};
+use core::{
+    assets::{asset::AssetID, database::AssetsDatabase},
+    error::*,
+    Scalar,
+};
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, ops::Range};
 
@@ -421,4 +425,10 @@ pub trait CompositeRenderer: Send + Sync {
     fn update_surface<'a, I>(&mut self, name: &str, commands: I) -> Result<(usize, usize)>
     where
         I: IntoIterator<Item = Command<'a>>;
+}
+
+pub trait CompositeRendererResources<T> {
+    fn add_resource(&mut self, id: String, resource: T) -> Result<AssetID>;
+
+    fn remove_resource(&mut self, id: AssetID) -> Result<T>;
 }

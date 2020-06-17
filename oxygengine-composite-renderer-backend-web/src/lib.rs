@@ -683,3 +683,57 @@ impl CompositeRenderer for WebCompositeRenderer {
         }
     }
 }
+
+impl CompositeRendererResources<HtmlImageElement> for WebCompositeRenderer {
+    fn add_resource(&mut self, id: String, resource: HtmlImageElement) -> Result<AssetID> {
+        let asset_id = AssetID::new();
+        self.images_cache.insert(id.clone(), resource);
+        self.images_table.insert(asset_id, id);
+        Ok(asset_id)
+    }
+
+    fn remove_resource(&mut self, id: AssetID) -> Result<HtmlImageElement> {
+        if let Some(id) = self.images_table.remove(&id) {
+            if let Some(resource) = self.images_cache.remove(&id) {
+                Ok(resource)
+            } else {
+                Err(Error::Message(format!(
+                    "Image resource does not exists in cache: {:?}",
+                    id
+                )))
+            }
+        } else {
+            Err(Error::Message(format!(
+                "Image resource does not exists in table: {:?}",
+                id
+            )))
+        }
+    }
+}
+
+impl CompositeRendererResources<FontFace> for WebCompositeRenderer {
+    fn add_resource(&mut self, id: String, resource: FontFace) -> Result<AssetID> {
+        let asset_id = AssetID::new();
+        self.fontfaces_cache.insert(id.clone(), resource);
+        self.fontfaces_table.insert(asset_id, id);
+        Ok(asset_id)
+    }
+
+    fn remove_resource(&mut self, id: AssetID) -> Result<FontFace> {
+        if let Some(id) = self.fontfaces_table.remove(&id) {
+            if let Some(resource) = self.fontfaces_cache.remove(&id) {
+                Ok(resource)
+            } else {
+                Err(Error::Message(format!(
+                    "Font face resource does not exists in cache: {:?}",
+                    id
+                )))
+            }
+        } else {
+            Err(Error::Message(format!(
+                "Font face esource does not exists in table: {:?}",
+                id
+            )))
+        }
+    }
+}

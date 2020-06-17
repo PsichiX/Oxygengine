@@ -25,6 +25,14 @@
       "Itch.io": {
         "maximized": false,
         "data": null
+      },
+      "Renderer": {
+        "maximized": false,
+        "data": null,
+        "x": 640,
+        "y": 241.5,
+        "width": 640,
+        "height": 480
       }
     },
     "layout": {
@@ -58,40 +66,23 @@
             },
             {
               "type": "list",
-              "weights": [
-                1
-              ],
+              "weights": [],
               "vertical": true,
               "list": [
                 {
                   "type": "list",
-                  "weights": [
-                    1
-                  ],
+                  "weights": [],
                   "vertical": false,
                   "list": [
                     {
                       "type": "tabs",
                       "tabs": [
-                        "Code"
-                      ],
-                      "active": 0
-                    },
-                    {
-                      "type": "tabs",
-                      "tabs": [
+                        "Code",
                         "Media"
                       ],
                       "active": 0
                     }
                   ]
-                },
-                {
-                  "type": "tabs",
-                  "tabs": [
-                    "Itch.io"
-                  ],
-                  "active": 0
                 }
               ]
             }
@@ -99,6 +90,8 @@
         }
       ]
     },
-    "floating": []
+    "floating": [
+      "Renderer"
+    ]
   }
 }
