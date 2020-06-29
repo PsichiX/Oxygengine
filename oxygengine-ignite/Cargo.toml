@@ -17,7 +17,7 @@ toml = "0.5"
 bincode = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-oxygengine-build-tools = { version = "0.9", path = "../oxygengine-build-tools" }
+oxygengine-build-tools = { version = "0.10", path = "../oxygengine-build-tools" }
 dirs = "2.0"
 reqwest = { version = "0.10", features = ["blocking"] }
 chrobry-core = "1"

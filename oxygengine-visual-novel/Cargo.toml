@@ -29,11 +29,11 @@ scalar64 = [
 ]
 
 [dependencies]
-oxygengine-core = { version = "0.9", path = "../oxygengine-core" }
-oxygengine-animation = { version = "0.9", path = "../oxygengine-animation" }
+oxygengine-core = { version = "0.10", path = "../oxygengine-core" }
+oxygengine-animation = { version = "0.10", path = "../oxygengine-animation" }
 serde = { version = "1", features = ["derive"] }
 
 [dependencies.oxygengine-script-flow]
-version = "0.9"
+version = "0.10"
 path = "../oxygengine-script-flow"
 optional = true

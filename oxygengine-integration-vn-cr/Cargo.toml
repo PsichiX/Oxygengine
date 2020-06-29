@@ -28,8 +28,8 @@ scalar64 = [
 ]
 
 [dependencies]
-oxygengine-core = { version = "0.9", path = "../oxygengine-core" }
-oxygengine-visual-novel = { version = "0.9", path = "../oxygengine-visual-novel" }
-oxygengine-composite-renderer = { version = "0.9", path = "../oxygengine-composite-renderer" }
-oxygengine-input = { version = "0.9", path = "../oxygengine-input" }
+oxygengine-core = { version = "0.10", path = "../oxygengine-core" }
+oxygengine-visual-novel = { version = "0.10", path = "../oxygengine-visual-novel" }
+oxygengine-composite-renderer = { version = "0.10", path = "../oxygengine-composite-renderer" }
+oxygengine-input = { version = "0.10", path = "../oxygengine-input" }
 serde = { version = "1", features = ["derive"] }

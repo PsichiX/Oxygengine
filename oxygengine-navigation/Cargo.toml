@@ -16,7 +16,7 @@ parallel = ["oxygengine-core/parallel", "navmesh/parallel"]
 scalar64 = ["oxygengine-core/scalar64", "navmesh/scalar64"]
 
 [dependencies]
-oxygengine-core = { version = "0.9", path = "../oxygengine-core" }
+oxygengine-core = { version = "0.10", path = "../oxygengine-core" }
 navmesh = "0.8"
 serde = { version = "1", features = ["derive"] }
 bincode = "1"

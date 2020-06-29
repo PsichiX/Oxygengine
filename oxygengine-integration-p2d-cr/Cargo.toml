@@ -28,7 +28,7 @@ scalar64 = [
 ]
 
 [dependencies]
-oxygengine-core = { version = "0.9", path = "../oxygengine-core" }
-oxygengine-physics-2d = { version = "0.9", path = "../oxygengine-physics-2d" }
-oxygengine-composite-renderer = { version = "0.9", path = "../oxygengine-composite-renderer" }
+oxygengine-core = { version = "0.10", path = "../oxygengine-core" }
+oxygengine-physics-2d = { version = "0.10", path = "../oxygengine-physics-2d" }
+oxygengine-composite-renderer = { version = "0.10", path = "../oxygengine-composite-renderer" }
 serde = { version = "1", features = ["derive"] }
