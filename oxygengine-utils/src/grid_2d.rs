@@ -109,12 +109,12 @@ where
     }
 
     #[inline]
-    pub fn iter(&self) -> impl Iterator<Item = &T> {
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
         self.cells.iter()
     }
 
     #[inline]
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+    pub fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut T> {
         self.cells.iter_mut()
     }
 }
@@ -344,6 +344,24 @@ where
         Self::with_cells(cols, result)
     }
 
+    pub fn get_part_seamless(&self, range: Range<(usize, usize)>) -> Self {
+        let from_col = range.start.0.min(range.end.0);
+        let to_col = range.start.0.max(range.end.0);
+        let from_row = range.start.1.min(range.end.1);
+        let to_row = range.start.1.max(range.end.1);
+        let cols = to_col - from_col;
+        let rows = to_row - from_row;
+        let mut result = Vec::with_capacity(cols * rows);
+        for row in from_row..to_row {
+            let r = row % self.rows;
+            for col in from_col..to_col {
+                let c = col % self.cols;
+                result.push(self.cells[r * self.cols + c].clone());
+            }
+        }
+        Grid2d::with_cells(cols, result)
+    }
+
     pub fn get_view(&self, mut range: Range<(usize, usize)>) -> Grid2d<&T> {
         range.end.0 = range.end.0.min(self.cols);
         range.end.1 = range.end.1.min(self.rows);
@@ -355,6 +373,24 @@ where
         for row in range.start.1..range.end.1 {
             for col in range.start.0..range.end.0 {
                 result.push(&self.cells[row * self.cols + col]);
+            }
+        }
+        Grid2d::with_cells(cols, result)
+    }
+
+    pub fn get_view_seamless(&self, range: Range<(usize, usize)>) -> Grid2d<&T> {
+        let from_col = range.start.0.min(range.end.0);
+        let to_col = range.start.0.max(range.end.0);
+        let from_row = range.start.1.min(range.end.1);
+        let to_row = range.start.1.max(range.end.1);
+        let cols = to_col - from_col;
+        let rows = to_row - from_row;
+        let mut result = Vec::with_capacity(cols * rows);
+        for row in from_row..to_row {
+            let r = row % self.rows;
+            for col in from_col..to_col {
+                let c = col % self.cols;
+                result.push(&self.cells[r * self.cols + c]);
             }
         }
         Grid2d::with_cells(cols, result)
@@ -375,10 +411,28 @@ where
         self.get_part(min..max)
     }
 
+    pub fn sample_seamless(&self, (col, row): (usize, usize), margin: usize) -> Self {
+        let (cols, rows) = self.size();
+        let ox = (1 + margin / cols) * cols;
+        let oy = (1 + margin / rows) * rows;
+        let min = (col + ox - margin, row + oy - margin);
+        let max = (col + ox + margin + 1, row + oy + margin + 1);
+        self.get_part_seamless(min..max)
+    }
+
     pub fn view_sample(&self, (col, row): (usize, usize), margin: usize) -> Grid2d<&T> {
         let min = (col.max(margin) - margin, row.max(margin) - margin);
         let max = (col + margin + 1, row + margin + 1);
         self.get_view(min..max)
+    }
+
+    pub fn view_sample_seamless(&self, (col, row): (usize, usize), margin: usize) -> Grid2d<&T> {
+        let (cols, rows) = self.size();
+        let ox = (1 + margin / cols) * cols;
+        let oy = (1 + margin / rows) * rows;
+        let min = (col + ox - margin, row + oy - margin);
+        let max = (col + ox + margin + 1, row + oy + margin + 1);
+        self.get_view_seamless(min..max)
     }
 
     pub fn sin_map<F, R>(&self, mut f: F) -> Grid2d<R>
@@ -462,7 +516,7 @@ where
     }
 
     #[inline]
-    pub fn iter(&self) -> impl Iterator<Item = &T> {
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
         self.cells.iter()
     }
 
@@ -475,7 +529,7 @@ where
     pub fn iter_view(
         &self,
         mut range: Range<(usize, usize)>,
-    ) -> impl Iterator<Item = (usize, usize, &T)> {
+    ) -> impl DoubleEndedIterator<Item = (usize, usize, &T)> {
         range.end.0 = range.end.0.min(self.cols);
         range.end.1 = range.end.1.min(self.rows);
         range.start.0 = range.start.0.min(range.end.0);
@@ -495,7 +549,7 @@ where
         &'a self,
         mut range: Range<(usize, usize)>,
         margin: usize,
-    ) -> impl Iterator<Item = (usize, usize, Grid2d<&T>)> + 'a {
+    ) -> impl DoubleEndedIterator<Item = (usize, usize, Grid2d<&T>)> + 'a {
         range.end.0 = range.end.0.min(self.cols);
         range.end.1 = range.end.1.min(self.rows);
         range.start.0 = range.start.0.min(range.end.0);
@@ -512,7 +566,7 @@ where
     }
 
     #[inline]
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+    pub fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut T> {
         self.cells.iter_mut()
     }
 
@@ -525,7 +579,7 @@ where
     pub fn iter_view_mut(
         &mut self,
         mut range: Range<(usize, usize)>,
-    ) -> impl Iterator<Item = (usize, usize, &mut T)> {
+    ) -> impl DoubleEndedIterator<Item = (usize, usize, &mut T)> {
         range.end.0 = range.end.0.min(self.cols);
         range.end.1 = range.end.1.min(self.rows);
         range.start.0 = range.start.0.min(range.end.0);
@@ -561,8 +615,96 @@ where
         Grid2dNeighborSample { cells, cols, rows }
     }
 
+    pub fn windows(
+        &self,
+        (cols, rows): (usize, usize),
+    ) -> impl DoubleEndedIterator<Item = Grid2d<&T>> {
+        let cols = cols.min(self.cols);
+        let rows = rows.min(self.rows);
+        (0..(self.rows - rows + 1)).flat_map(move |row| {
+            (0..(self.cols - cols + 1))
+                .map(move |col| self.get_view((col, row)..(col + cols, row + rows)))
+        })
+    }
+
+    pub fn windows_seamless(
+        &self,
+        (cols, rows): (usize, usize),
+    ) -> impl DoubleEndedIterator<Item = Grid2d<&T>> {
+        (0..self.rows).flat_map(move |row| {
+            (0..self.cols)
+                .map(move |col| self.get_view_seamless((col, row)..(col + cols, row + rows)))
+        })
+    }
+
     pub fn into_inner(self) -> (usize, usize, Vec<T>) {
         (self.cols, self.rows, self.cells)
+    }
+
+    pub fn from_view(view: &Grid2d<&T>) -> Self {
+        Self::with_cells(
+            view.cols(),
+            view.cells()
+                .iter()
+                .map(|c| (*c).clone())
+                .collect::<Vec<T>>(),
+        )
+    }
+
+    pub fn get_common_areas(
+        first_size: (usize, usize),
+        second_size: (usize, usize),
+        second_offset: (usize, usize),
+    ) -> Option<(Range<(usize, usize)>, Range<(usize, usize)>)> {
+        let (cols, rows) = first_size;
+        let (other_cols, other_rows) = second_size;
+        let (offset_col, offset_row) = second_offset;
+        if offset_col >= cols || offset_row >= rows {
+            return None;
+        }
+        let common_cols = {
+            let a = cols - offset_col;
+            let b = other_cols;
+            a.min(b)
+        };
+        let common_rows = {
+            let a = rows - offset_row;
+            let b = other_rows;
+            a.min(b)
+        };
+        let a = (offset_col, offset_row)..(offset_col + common_cols, offset_row + common_rows);
+        let b = (0, 0)..(common_cols, common_rows);
+        Some((a, b))
+    }
+}
+
+impl<T> Grid2d<T>
+where
+    T: Clone + Send + Sync + PartialEq,
+{
+    pub fn has_union_with(&self, other: &Self, offset_col: usize, offset_row: usize) -> bool {
+        if self.cells.is_empty() || other.cells.is_empty() {
+            return false;
+        }
+        if let Some((a, b)) =
+            Self::get_common_areas(self.size(), other.size(), (offset_col, offset_row))
+        {
+            let view = self.get_view(a);
+            let other_view = other.get_view(b);
+            if view.size() == other_view.size() {
+                return !view.iter().zip(other_view.iter()).any(|(a, b)| a != b);
+            }
+        }
+        false
+    }
+}
+
+impl<T> PartialEq for Grid2d<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.cols == other.cols && self.rows == other.rows && self.cells == other.cells
     }
 }
 
