@@ -1,5 +1,4 @@
 use oxygengine_utils::{grid_2d::Grid2d, Scalar};
-use rand::{rngs::ThreadRng, thread_rng, Rng};
 use std::collections::HashSet;
 
 const NEIGHBOR_COORD_DIRS: [(usize, usize, Direction); 4] = [
@@ -221,7 +220,7 @@ where
                     ))
                 } else {
                     max_patterns = max_patterns.max(patterns.len());
-                    let entropy = WaveFunctionCollapseSolver::calculate_entropy(&model, &patterns);
+                    let entropy = calculate_entropy(&model, &patterns);
                     Ok(Cell { patterns, entropy })
                 }
             })
@@ -292,10 +291,7 @@ where
                             } else if patterns.len() < count {
                                 reduced = true;
                             }
-                            let entropy = WaveFunctionCollapseSolver::calculate_entropy(
-                                &self.model,
-                                &patterns,
-                            );
+                            let entropy = calculate_entropy(&self.model, &patterns);
                             self.target().set(col, row, Cell { patterns, entropy });
                         }
                     }
@@ -334,7 +330,6 @@ where
             BuilderPhase::Done => Ok(WaveFunctionCollapseSolver {
                 superposition: self.source().clone(),
                 model: self.model,
-                rng: thread_rng(),
                 cached_progress: 0,
             }),
             BuilderPhase::Process(_) => Err(WaveFunctionCollapseError::BuilderInProgress),
@@ -357,7 +352,6 @@ where
 {
     model: WaveFunctionCollapseModel<T>,
     superposition: Grid2d<Cell>,
-    rng: ThreadRng,
     cached_progress: usize,
 }
 
@@ -369,7 +363,7 @@ where
         f.debug_struct("WaveFunctionCollapseSolver")
             .field("model", &self.model)
             .field("superposition", &self.superposition)
-            .field("rng", &self.rng)
+            .field("cached_progress", &self.cached_progress)
             .finish()
     }
 }
@@ -421,18 +415,28 @@ where
         Self::superposition_to_uncollapsed_world(&self.model, &self.superposition)
     }
 
-    pub fn collapse(&mut self) -> WaveFunctionCollapseResult<T> {
+    pub fn collapse<R>(&mut self, gen_range: R) -> WaveFunctionCollapseResult<T>
+    where
+        R: FnMut(Scalar, Scalar) -> Scalar + Clone,
+    {
         loop {
-            match self.collapse_step(false) {
+            match self.collapse_step(false, gen_range.clone()) {
                 WaveFunctionCollapseResult::Incomplete => continue,
                 result @ _ => return result,
             }
         }
     }
 
-    pub fn collapse_with_tries(&mut self, mut tries: usize) -> WaveFunctionCollapseResult<T> {
+    pub fn collapse_with_tries<R>(
+        &mut self,
+        mut tries: usize,
+        gen_range: R,
+    ) -> WaveFunctionCollapseResult<T>
+    where
+        R: FnMut(Scalar, Scalar) -> Scalar + Clone,
+    {
         while tries > 0 {
-            match self.collapse() {
+            match self.collapse(gen_range.clone()) {
                 WaveFunctionCollapseResult::Impossible => {
                     tries -= 1;
                     continue;
@@ -443,12 +447,17 @@ where
         WaveFunctionCollapseResult::Impossible
     }
 
-    pub fn collapse_inspect<F>(&mut self, mut f: F) -> WaveFunctionCollapseResult<T>
+    pub fn collapse_inspect<R, F>(
+        &mut self,
+        gen_range: R,
+        mut f: F,
+    ) -> WaveFunctionCollapseResult<T>
     where
         F: FnMut(usize, usize, Grid2d<Vec<T>>),
+        R: FnMut(Scalar, Scalar) -> Scalar + Clone,
     {
         loop {
-            match self.collapse_step(true) {
+            match self.collapse_step(true, gen_range.clone()) {
                 WaveFunctionCollapseResult::Uncollapsed(state) => {
                     let (p, m) = self.progress();
                     f(p, m, state);
@@ -459,16 +468,18 @@ where
         }
     }
 
-    pub fn collapse_inspect_with_tries<F>(
+    pub fn collapse_inspect_with_tries<R, F>(
         &mut self,
         mut tries: usize,
+        gen_range: R,
         mut f: F,
     ) -> WaveFunctionCollapseResult<T>
     where
         F: FnMut() -> Box<dyn FnMut(usize, usize, Grid2d<Vec<T>>)>,
+        R: FnMut(Scalar, Scalar) -> Scalar + Clone,
     {
         while tries > 0 {
-            match self.collapse_inspect(f()) {
+            match self.collapse_inspect(gen_range.clone(), f()) {
                 WaveFunctionCollapseResult::Impossible => {
                     tries -= 1;
                     continue;
@@ -479,7 +490,14 @@ where
         WaveFunctionCollapseResult::Impossible
     }
 
-    pub fn collapse_step(&mut self, show_uncollapsed_world: bool) -> WaveFunctionCollapseResult<T> {
+    pub fn collapse_step<R>(
+        &mut self,
+        show_uncollapsed_world: bool,
+        gen_range: R,
+    ) -> WaveFunctionCollapseResult<T>
+    where
+        R: FnMut(Scalar, Scalar) -> Scalar,
+    {
         let coord = if let Ok(coord) = self.get_uncollapsed_coord() {
             coord
         } else {
@@ -496,7 +514,7 @@ where
                 return WaveFunctionCollapseResult::Impossible;
             }
         };
-        if !self.collapse_cell(col, row) {
+        if !self.collapse_cell(col, row, gen_range) {
             return WaveFunctionCollapseResult::Impossible;
         }
         let (cols, rows) = self.superposition.size();
@@ -534,14 +552,17 @@ where
         (self.cached_progress, self.superposition.len())
     }
 
-    fn collapse_cell(&mut self, col: usize, row: usize) -> bool {
+    fn collapse_cell<R>(&mut self, col: usize, row: usize, mut gen_range: R) -> bool
+    where
+        R: FnMut(Scalar, Scalar) -> Scalar,
+    {
         let patterns = self.model.patterns();
         let cell = self.superposition.cell(col, row).unwrap();
         let total = cell
             .patterns
             .iter()
             .fold(0.0, |accum, index| accum + patterns[*index].1);
-        let mut selected = self.rng.gen_range(0.0, total);
+        let mut selected = gen_range(0.0, total);
         for index in cell.patterns.iter() {
             let weight = patterns[*index].1;
             if selected <= weight {
@@ -614,7 +635,7 @@ where
                 .cloned()
                 .collect::<HashSet<_>>();
             if patterns.len() < count {
-                let entropy = Self::calculate_entropy(model, &patterns);
+                let entropy = calculate_entropy(model, &patterns);
                 superposition.set(col, row, Cell { patterns, entropy });
                 let coord = ((col + cols - 1) % cols, row);
                 if !open.contains(&coord) {
@@ -671,28 +692,29 @@ where
             .collect::<Result<Vec<_>, _>>()?;
         Ok(Grid2d::with_cells(cols, cells))
     }
+}
 
-    fn calculate_entropy(
-        model: &WaveFunctionCollapseModel<T>,
-        patterns: &HashSet<usize>,
-    ) -> Scalar {
-        if patterns.is_empty() {
-            return 0.0;
-        }
-        let mut total_weight = 0.0;
-        let mut total_weight_log = 0.0;
-        for index in patterns {
-            let weight = model.patterns()[*index].1;
-            total_weight += weight;
-            total_weight_log += weight * weight.log2();
-        }
-        total_weight.log2() - (total_weight_log / total_weight)
+fn calculate_entropy<T>(model: &WaveFunctionCollapseModel<T>, patterns: &HashSet<usize>) -> Scalar
+where
+    T: Clone + Send + Sync + PartialEq,
+{
+    if patterns.is_empty() {
+        return 0.0;
     }
+    let mut total_weight = 0.0;
+    let mut total_weight_log = 0.0;
+    for index in patterns {
+        let weight = model.patterns()[*index].1;
+        total_weight += weight;
+        total_weight_log += weight * weight.log2();
+    }
+    total_weight.log2() - (total_weight_log / total_weight)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand::{thread_rng, Rng};
 
     #[allow(dead_code)]
     fn parse_view(data: &str) -> Grid2d<Option<char>> {
@@ -788,20 +810,24 @@ mod tests {
         })
         .unwrap();
         let mut timer = std::time::Instant::now();
-        let result = solver.collapse_inspect(|p, m, w| {
-            if timer.elapsed().as_millis() >= 400 {
-                println!();
-                println!();
-                print_uncollapsed_world("= UNCOLLAPSED WORLD:", &w, ' ');
-                timer = std::time::Instant::now();
-                println!(
-                    "= PROGRESS: {} / {} ({}%)",
-                    p,
-                    m,
-                    100.0 * p as Scalar / m as Scalar
-                )
-            }
-        });
+        let mut rng = thread_rng();
+        let result = solver.collapse_inspect(
+            move |f, t| rng.gen_range(f, t),
+            |p, m, w| {
+                if timer.elapsed().as_millis() >= 400 {
+                    println!();
+                    println!();
+                    print_uncollapsed_world("= UNCOLLAPSED WORLD:", &w, ' ');
+                    timer = std::time::Instant::now();
+                    println!(
+                        "= PROGRESS: {} / {} ({}%)",
+                        p,
+                        m,
+                        100.0 * p as Scalar / m as Scalar
+                    )
+                }
+            },
+        );
         match result {
             WaveFunctionCollapseResult::Collapsed(world) => {
                 println!();
