@@ -58,7 +58,7 @@ where
         for (i, (p, f)) in patterns.iter().enumerate() {
             if *f == 0 {
                 return Err(WaveFunctionCollapseError::FoundPatternWithZeroFrequency(i));
-            } else if p.len() == 0 {
+            } else if p.is_empty() {
                 return Err(WaveFunctionCollapseError::FoundEmptyPattern(i));
             }
         }
@@ -422,7 +422,7 @@ where
         loop {
             match self.collapse_step(false, gen_range.clone()) {
                 WaveFunctionCollapseResult::Incomplete => continue,
-                result @ _ => return result,
+                result => return result,
             }
         }
     }
@@ -441,7 +441,7 @@ where
                     tries -= 1;
                     continue;
                 }
-                result @ _ => return result,
+                result => return result,
             }
         }
         WaveFunctionCollapseResult::Impossible
@@ -463,7 +463,7 @@ where
                     f(p, m, state);
                     continue;
                 }
-                result @ _ => return result,
+                result => return result,
             }
         }
     }
@@ -484,7 +484,7 @@ where
                     tries -= 1;
                     continue;
                 }
-                result @ _ => return result,
+                result => return result,
             }
         }
         WaveFunctionCollapseResult::Impossible
@@ -505,14 +505,12 @@ where
         };
         let (col, row) = if let Some(coord) = coord {
             coord
+        } else if let Ok(collapsed) =
+            Self::superposition_to_collapsed_world(&self.model, &self.superposition)
+        {
+            return WaveFunctionCollapseResult::Collapsed(collapsed);
         } else {
-            if let Ok(collapsed) =
-                Self::superposition_to_collapsed_world(&self.model, &self.superposition)
-            {
-                return WaveFunctionCollapseResult::Collapsed(collapsed);
-            } else {
-                return WaveFunctionCollapseResult::Impossible;
-            }
+            return WaveFunctionCollapseResult::Impossible;
         };
         if !self.collapse_cell(col, row, gen_range) {
             return WaveFunctionCollapseResult::Impossible;

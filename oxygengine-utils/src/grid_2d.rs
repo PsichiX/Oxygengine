@@ -3,6 +3,8 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Div, Index, IndexMut, Mul, Neg, Range, Sub};
 
+pub type Grid2dCommonAreas = (Range<(usize, usize)>, Range<(usize, usize)>);
+
 #[derive(Debug, Clone)]
 pub enum Grid2dError {
     DifferentDimensions((usize, usize), (usize, usize)),
@@ -655,7 +657,7 @@ where
         first_size: (usize, usize),
         second_size: (usize, usize),
         second_offset: (usize, usize),
-    ) -> Option<(Range<(usize, usize)>, Range<(usize, usize)>)> {
+    ) -> Option<Grid2dCommonAreas> {
         let (cols, rows) = first_size;
         let (other_cols, other_rows) = second_size;
         let (offset_col, offset_row) = second_offset;
