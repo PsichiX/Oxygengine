@@ -159,6 +159,45 @@ where
     }
 }
 
+pub trait CurvedTangent {
+    fn curved_tangent(&self, other: &Self) -> Self;
+    fn curved_slope(&self, other: &Self) -> Scalar;
+}
+
+impl CurvedTangent for (Scalar, Scalar) {
+    fn curved_tangent(&self, other: &Self) -> Self {
+        let diff0 = other.0 - self.0;
+        let diff1 = other.1 - self.1;
+        let len = (diff0 * diff0 + diff1 * diff1).sqrt();
+        if len > 0.0 {
+            (diff0 / len, diff1 / len)
+        } else {
+            (0.0, 0.0)
+        }
+    }
+
+    fn curved_slope(&self, other: &Self) -> Scalar {
+        self.0 * other.0 + self.1 * other.1
+    }
+}
+
+impl<T> CurvedTangent for Arc<RwLock<T>>
+where
+    T: CurvedTangent,
+{
+    fn curved_tangent(&self, other: &Self) -> Self {
+        let from: &T = &self.read().unwrap();
+        let to: &T = &other.read().unwrap();
+        Arc::new(RwLock::new(from.curved_tangent(to)))
+    }
+
+    fn curved_slope(&self, other: &Self) -> Scalar {
+        let from: &T = &self.read().unwrap();
+        let to: &T = &other.read().unwrap();
+        from.curved_slope(to)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CurveDef<T>(pub T, pub T, pub T, pub T)
 where
@@ -175,7 +214,7 @@ where
 
 impl<T> From<CurveDef<T>> for Curve<T>
 where
-    T: Clone + Curved + CurvedDistance,
+    T: Clone + Curved + CurvedDistance + CurvedTangent,
 {
     fn from(value: CurveDef<T>) -> Self {
         Self::bezier(value.0, value.1, value.2, value.3)
@@ -184,7 +223,7 @@ where
 
 impl<T> Into<CurveDef<T>> for Curve<T>
 where
-    T: Clone + Curved + CurvedDistance,
+    T: Clone + Curved + CurvedDistance + CurvedTangent,
 {
     fn into(self) -> CurveDef<T> {
         CurveDef(self.from, self.from_param, self.to_param, self.to)
@@ -196,7 +235,7 @@ where
 #[serde(into = "CurveDef<T>")]
 pub struct Curve<T>
 where
-    T: Clone + Curved + CurvedDistance,
+    T: Clone + Curved + CurvedDistance + CurvedTangent,
 {
     from: T,
     from_param: T,
@@ -207,7 +246,7 @@ where
 
 impl<T> Default for Curve<T>
 where
-    T: Clone + Curved + CurvedDistance,
+    T: Clone + Curved + CurvedDistance + CurvedTangent,
 {
     fn default() -> Self {
         Self::linear(T::zero(), T::one())
@@ -216,7 +255,7 @@ where
 
 impl<T> Curve<T>
 where
-    T: Clone + Curved + CurvedDistance,
+    T: Clone + Curved + CurvedDistance + CurvedTangent,
 {
     pub fn linear(from: T, to: T) -> Self {
         let mut result = Self {
@@ -370,6 +409,27 @@ where
         self.sample_direction_with_sensitivity_along_axis(axis_value, 1.0e-2, axis_index)
     }
 
+    pub fn sample_tangent_with_sensitivity(&self, factor: Scalar, sensitivity: Scalar) -> T
+    where
+        T: CurvedTangent,
+    {
+        if self.length > 0.0 {
+            let s = sensitivity / self.length;
+            let a = self.sample(factor - s);
+            let b = self.sample(factor + s);
+            a.curved_tangent(&b)
+        } else {
+            T::zero()
+        }
+    }
+
+    pub fn sample_tangent(&self, factor: Scalar) -> T
+    where
+        T: CurvedTangent,
+    {
+        self.sample_tangent_with_sensitivity(factor, 1.0e-2)
+    }
+
     pub fn calculate_length(&self, mut samples: usize) -> Scalar {
         samples = samples.max(1);
         let count = samples as Scalar;
@@ -384,7 +444,7 @@ where
     }
 
     pub fn find_time_for_axis(&self, axis_value: Scalar, axis_index: usize) -> Option<Scalar> {
-        if (self.to.get_axis(axis_index)? - self.from.get_axis(axis_index)?).abs() < 1.0e-4 {
+        if (self.to.get_axis(axis_index)? - self.from.get_axis(axis_index)?).abs() < 1.0e-6 {
             return Some(1.0);
         }
         let mut guess = if self.length > 0.0 {
@@ -392,17 +452,25 @@ where
         } else {
             1.0
         };
-        for _ in 0..10 {
+        let mut last_tangent = None;
+        for _ in 0..5 {
             let dv = self.sample(guess).get_axis(axis_index)? - axis_value;
+            if dv.abs() < 1.0e-6 {
+                return Some(guess);
+            }
             let dv = if self.length > 0.0 {
                 dv / self.length
             } else {
                 0.0
             };
-            if dv.abs() < 1e-4 {
-                return Some(guess);
-            }
-            guess -= dv * 0.5
+            let tangent = self.sample_tangent(guess);
+            let slope = if let Some(last_tangent) = last_tangent {
+                tangent.curved_slope(&last_tangent)
+            } else {
+                1.0
+            };
+            last_tangent = Some(tangent);
+            guess -= dv * slope;
         }
         Some(guess)
     }

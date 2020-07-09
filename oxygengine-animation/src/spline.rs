@@ -113,7 +113,7 @@ pub type SplineDef<T> = Vec<SplinePoint<T>>;
 #[serde(bound = "T: Serialize + DeserializeOwned")]
 pub struct Spline<T>
 where
-    T: Default + Clone + Curved + CurvedDistance + CurvedOffset,
+    T: Default + Clone + Curved + CurvedDistance + CurvedOffset + CurvedTangent,
 {
     #[serde(skip)]
     points: Vec<SplinePoint<T>>,
@@ -127,7 +127,7 @@ where
 
 impl<T> Default for Spline<T>
 where
-    T: Default + Clone + Curved + CurvedDistance + CurvedOffset,
+    T: Default + Clone + Curved + CurvedDistance + CurvedOffset + CurvedTangent,
 {
     fn default() -> Self {
         Self::point(T::zero()).unwrap()
@@ -136,7 +136,7 @@ where
 
 impl<T> Spline<T>
 where
-    T: Default + Clone + Curved + CurvedDistance + CurvedOffset,
+    T: Default + Clone + Curved + CurvedDistance + CurvedOffset + CurvedTangent,
 {
     pub fn new(mut points: Vec<SplinePoint<T>>) -> Result<Self, SplineError> {
         if points.is_empty() {
@@ -284,6 +284,27 @@ where
         self.sample_direction_with_sensitivity_along_axis(axis_value, 1.0e-2, axis_index)
     }
 
+    pub fn sample_tangent_with_sensitivity(&self, factor: Scalar, sensitivity: Scalar) -> T
+    where
+        T: CurvedTangent,
+    {
+        if self.length > 0.0 {
+            let s = sensitivity / self.length;
+            let a = self.sample(factor - s);
+            let b = self.sample(factor + s);
+            a.curved_tangent(&b)
+        } else {
+            T::zero()
+        }
+    }
+
+    pub fn sample_tangent(&self, factor: Scalar) -> T
+    where
+        T: CurvedTangent,
+    {
+        self.sample_tangent_with_sensitivity(factor, 1.0e-2)
+    }
+
     pub fn length(&self) -> Scalar {
         self.length
     }
@@ -315,17 +336,25 @@ where
         } else {
             1.0
         };
-        for _ in 0..10 {
+        let mut last_tangent = None;
+        for _ in 0..5 {
             let dv = self.sample(guess).get_axis(axis_index)? - axis_value;
+            if dv.abs() < 1.0e-4 {
+                return Some(guess);
+            }
             let dv = if self.length > 0.0 {
                 dv / self.length
             } else {
                 0.0
             };
-            if dv.abs() < 1e-4 {
-                return Some(guess);
-            }
-            guess -= dv * 0.5
+            let tangent = self.sample_tangent(guess);
+            let slope = if let Some(last_tangent) = last_tangent {
+                tangent.curved_slope(&last_tangent)
+            } else {
+                1.0
+            };
+            last_tangent = Some(tangent);
+            guess -= dv * slope;
         }
         Some(guess)
     }
@@ -333,7 +362,7 @@ where
 
 impl<T> TryFrom<SplineDef<T>> for Spline<T>
 where
-    T: Default + Clone + Curved + CurvedDistance + CurvedOffset,
+    T: Default + Clone + Curved + CurvedDistance + CurvedOffset + CurvedTangent,
 {
     type Error = SplineError;
 
@@ -344,7 +373,7 @@ where
 
 impl<T> Into<SplineDef<T>> for Spline<T>
 where
-    T: Default + Clone + Curved + CurvedDistance + CurvedOffset,
+    T: Default + Clone + Curved + CurvedDistance + CurvedOffset + CurvedTangent,
 {
     fn into(self) -> SplineDef<T> {
         self.points

@@ -232,7 +232,8 @@ where
             superposition.len() / max_patterns
         } else {
             superposition.len()
-        };
+        }
+        .max(1);
         Ok(Self {
             model,
             superposition: [superposition.clone(), superposition],
@@ -287,7 +288,7 @@ where
                                 self.phase = BuilderPhase::Error(
                                     WaveFunctionCollapseError::FoundImpossibleInitialState,
                                 );
-                                return true;
+                                return false;
                             } else if patterns.len() < count {
                                 reduced = true;
                             }
@@ -797,7 +798,7 @@ mod tests {
         };
         println!("= VALUES: {:?}", values);
         let model = WaveFunctionCollapseModel::from_views((3, 3), true, vec![view]).unwrap();
-        let world = Grid2d::new(100, 50, values);
+        let world = Grid2d::new(50, 25, values);
         let mut solver = WaveFunctionCollapseSolver::new_inspect(model, world, None, |p, m| {
             println!(
                 "= INITIALIZE: {} / {} ({}%)",
