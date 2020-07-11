@@ -698,24 +698,24 @@ where
                 .collect::<HashSet<_>>();
             if patterns.len() < count {
                 self.lately_updated.insert((col, row));
-                let entropy = calculate_entropy(&self.model, &patterns);
-                self.superposition.set(col, row, Cell { patterns, entropy });
                 let coord = ((col + cols - 1) % cols, row);
-                if !self.cached_open.contains(&coord) {
+                if samples[0].patterns.len() > 1 && !self.cached_open.contains(&coord) {
                     self.cached_open.push_back(coord);
                 }
                 let coord = ((col + 1) % cols, row);
-                if !self.cached_open.contains(&coord) {
+                if samples[1].patterns.len() > 1 && !self.cached_open.contains(&coord) {
                     self.cached_open.push_back(coord);
                 }
                 let coord = (col, (row + rows - 1) % rows);
-                if !self.cached_open.contains(&coord) {
+                if samples[2].patterns.len() > 1 && !self.cached_open.contains(&coord) {
                     self.cached_open.push_back(coord);
                 }
                 let coord = (col, (row + 1) % rows);
-                if !self.cached_open.contains(&coord) {
+                if samples[3].patterns.len() > 1 && !self.cached_open.contains(&coord) {
                     self.cached_open.push_back(coord);
                 }
+                let entropy = calculate_entropy(&self.model, &patterns);
+                self.superposition.set(col, row, Cell { patterns, entropy });
             }
         }
     }
