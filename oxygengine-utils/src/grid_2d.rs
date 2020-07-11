@@ -8,6 +8,12 @@ pub type Grid2dCommonAreas = (Range<(usize, usize)>, Range<(usize, usize)>);
 #[derive(Debug, Clone)]
 pub enum Grid2dError {
     DifferentDimensions((usize, usize), (usize, usize)),
+    TryingToReadFromAndWriteToSameLocation(usize, usize),
+    DuplicatedCoord(usize, usize),
+    /// (input size, output size)
+    InputAndOutputBuffersHaveDifferentSizeForReads(usize, usize),
+    /// (input size, output size)
+    InputAndOutputBuffersHaveDifferentSizeForWrites(usize, usize),
 }
 
 #[derive(Debug)]
@@ -216,9 +222,14 @@ where
         if cols == self.cols && rows == self.rows {
             return;
         }
-        self.cells.resize(cols * rows, default);
-        self.cols = cols;
-        self.rows = rows;
+        let old = std::mem::replace(self, Self::new(cols, rows, default));
+        let cols = old.cols().min(self.cols());
+        let rows = old.rows().min(self.rows());
+        for row in 0..rows {
+            for col in 0..cols {
+                self.set(col, row, self.get(col, row).unwrap());
+            }
+        }
     }
 
     #[inline]
@@ -292,10 +303,11 @@ where
 
     pub fn get_col_cells(&self, index: usize) -> Option<Vec<T>> {
         if index < self.cols {
-            let mut result = Vec::with_capacity(self.rows);
-            for row in 0..self.rows {
-                result.push(self.cells[row * self.cols + index].clone());
-            }
+            let result = {
+                (0..self.rows)
+                    .map(|row| self.cells[row * self.cols + index].clone())
+                    .collect::<Vec<_>>()
+            };
             Some(result)
         } else {
             None
@@ -337,12 +349,13 @@ where
         range.start.1 = range.start.1.min(range.end.1);
         let cols = range.end.0 - range.start.0;
         let rows = range.end.1 - range.start.1;
-        let mut result = Vec::with_capacity(cols * rows);
-        for row in range.start.1..range.end.1 {
-            for col in range.start.0..range.end.0 {
-                result.push(self.cells[row * self.cols + col].clone());
-            }
-        }
+        let result = (0..(cols * rows))
+            .map(|i| {
+                let col = range.start.0 + (i % cols);
+                let row = range.start.1 + (i / cols);
+                self.cells[row * self.cols + col].clone()
+            })
+            .collect::<Vec<_>>();
         Self::with_cells(cols, result)
     }
 
@@ -353,14 +366,15 @@ where
         let to_row = range.start.1.max(range.end.1);
         let cols = to_col - from_col;
         let rows = to_row - from_row;
-        let mut result = Vec::with_capacity(cols * rows);
-        for row in from_row..to_row {
-            let r = row % self.rows;
-            for col in from_col..to_col {
+        let result = (0..(cols * rows))
+            .map(|i| {
+                let col = from_col + (i % cols);
+                let row = from_row + (i / cols);
                 let c = col % self.cols;
-                result.push(self.cells[r * self.cols + c].clone());
-            }
-        }
+                let r = row % self.rows;
+                self.cells[r * self.cols + c].clone()
+            })
+            .collect::<Vec<_>>();
         Grid2d::with_cells(cols, result)
     }
 
@@ -371,12 +385,13 @@ where
         range.start.1 = range.start.1.min(range.end.1);
         let cols = range.end.0 - range.start.0;
         let rows = range.end.1 - range.start.1;
-        let mut result = Vec::with_capacity(cols * rows);
-        for row in range.start.1..range.end.1 {
-            for col in range.start.0..range.end.0 {
-                result.push(&self.cells[row * self.cols + col]);
-            }
-        }
+        let result = (0..(cols * rows))
+            .map(|i| {
+                let col = range.start.0 + (i % cols);
+                let row = range.start.1 + (i / cols);
+                &self.cells[row * self.cols + col]
+            })
+            .collect::<Vec<_>>();
         Grid2d::with_cells(cols, result)
     }
 
@@ -387,14 +402,15 @@ where
         let to_row = range.start.1.max(range.end.1);
         let cols = to_col - from_col;
         let rows = to_row - from_row;
-        let mut result = Vec::with_capacity(cols * rows);
-        for row in from_row..to_row {
-            let r = row % self.rows;
-            for col in from_col..to_col {
+        let result = (0..(cols * rows))
+            .map(|i| {
+                let col = from_col + (i % cols);
+                let row = from_row + (i / cols);
                 let c = col % self.cols;
-                result.push(&self.cells[r * self.cols + c]);
-            }
-        }
+                let r = row % self.rows;
+                &self.cells[r * self.cols + c]
+            })
+            .collect::<Vec<_>>();
         Grid2d::with_cells(cols, result)
     }
 
@@ -437,26 +453,26 @@ where
         self.get_view_seamless(min..max)
     }
 
-    pub fn sin_map<F, R>(&self, mut f: F) -> Grid2d<R>
+    pub fn map<F, R>(&self, f: F) -> Grid2d<R>
     where
         F: FnMut(usize, usize, &T) -> R,
         R: Clone + Send + Sync,
     {
-        Grid2d::<R>::with_cells(
-            self.cols,
-            self.cells
-                .iter()
-                .enumerate()
-                .map(|(i, v)| f(i % self.cols, i / self.cols, v))
-                .collect(),
-        )
+        let cols = self.cols;
+        let mut f = f;
+        let cells = self
+            .cells
+            .iter()
+            .enumerate()
+            .map(|(i, v)| f(i % cols, i / cols, v))
+            .collect();
+        Grid2d::<R>::with_cells(cols, cells)
     }
 
     #[cfg(feature = "parallel")]
     pub fn par_map<F, R>(&self, f: F) -> Grid2d<R>
     where
-        F: FnMut(usize, usize, &T) -> R,
-        F: Clone + Send + Sync,
+        F: FnMut(usize, usize, &T) -> R + Clone + Sync,
         R: Clone + Send + Sync,
     {
         let cols = self.cols;
@@ -469,52 +485,25 @@ where
         Grid2d::<R>::with_cells(cols, cells)
     }
 
-    pub fn map<F, R>(&self, f: F) -> Grid2d<R>
-    where
-        F: FnMut(usize, usize, &T) -> R,
-        F: Clone + Send + Sync,
-        R: Clone + Send + Sync,
-    {
-        #[cfg(not(feature = "parallel"))]
-        {
-            self.sin_map(f)
-        }
-        #[cfg(feature = "parallel")]
-        {
-            self.par_map(f)
-        }
-    }
-
-    pub fn sin_with<F>(&mut self, mut f: F)
+    pub fn with<F>(&mut self, mut f: F)
     where
         F: FnMut(usize, usize, &T) -> T,
     {
+        let cols = self.cols;
         for (i, v) in self.cells.iter_mut().enumerate() {
-            *v = f(i % self.cols, i / self.cols, v);
+            *v = f(i % cols, i / cols, v);
         }
     }
 
     #[cfg(feature = "parallel")]
     pub fn par_with<F>(&mut self, f: F)
     where
-        F: FnMut(usize, usize, &T) -> T,
-        F: Clone + Send + Sync,
+        F: FnMut(usize, usize, &T) -> T + Clone + Sync,
     {
         let cols = self.cols;
         self.cells.par_iter_mut().enumerate().for_each(|(i, v)| {
             *v = f.clone()(i % cols, i / cols, v);
         });
-    }
-
-    pub fn with<F>(&mut self, f: F)
-    where
-        F: FnMut(usize, usize, &T) -> T,
-        F: Clone + Send + Sync,
-    {
-        #[cfg(not(feature = "parallel"))]
-        self.sin_with(f);
-        #[cfg(feature = "parallel")]
-        self.par_with(f);
     }
 
     #[inline]
@@ -526,6 +515,17 @@ where
     #[inline]
     pub fn par_iter(&self) -> impl IndexedParallelIterator<Item = &T> {
         self.cells.par_iter()
+    }
+
+    #[inline]
+    pub fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut T> {
+        self.cells.iter_mut()
+    }
+
+    #[cfg(feature = "parallel")]
+    #[inline]
+    pub fn par_iter_mut(&mut self) -> impl IndexedParallelIterator<Item = &mut T> {
+        self.cells.par_iter_mut()
     }
 
     pub fn iter_view(
@@ -547,35 +547,24 @@ where
         })
     }
 
-    pub fn iter_sample<'a>(
-        &'a self,
+    #[cfg(feature = "parallel")]
+    pub fn par_iter_view(
+        &self,
         mut range: Range<(usize, usize)>,
-        margin: usize,
-    ) -> impl DoubleEndedIterator<Item = (usize, usize, Grid2d<&T>)> + 'a {
+    ) -> impl IndexedParallelIterator<Item = (usize, usize, &T)> {
         range.end.0 = range.end.0.min(self.cols);
         range.end.1 = range.end.1.min(self.rows);
         range.start.0 = range.start.0.min(range.end.0);
         range.start.1 = range.start.1.min(range.end.1);
         let cols = range.end.0 - range.start.0;
         let rows = range.end.1 - range.start.1;
-        (0..(cols * rows)).map(move |i| {
+        (0..(cols * rows)).into_par_iter().map(move |i| {
             let lc = i % cols;
             let lr = i / cols;
             let gc = range.start.0 + lc;
             let gr = range.start.1 + lr;
-            (gc, gr, self.view_sample((gc, gr), margin))
+            (gc, gr, &self.cells[gr * self.cols + gc])
         })
-    }
-
-    #[inline]
-    pub fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut T> {
-        self.cells.iter_mut()
-    }
-
-    #[cfg(feature = "parallel")]
-    #[inline]
-    pub fn par_iter_mut(&mut self) -> impl IndexedParallelIterator<Item = &mut T> {
-        self.cells.par_iter_mut()
     }
 
     pub fn iter_view_mut(
@@ -595,6 +584,26 @@ where
             } else {
                 None
             }
+        })
+    }
+
+    pub fn iter_sample<'a>(
+        &'a self,
+        mut range: Range<(usize, usize)>,
+        margin: usize,
+    ) -> impl DoubleEndedIterator<Item = (usize, usize, Grid2d<&T>)> + 'a {
+        range.end.0 = range.end.0.min(self.cols);
+        range.end.1 = range.end.1.min(self.rows);
+        range.start.0 = range.start.0.min(range.end.0);
+        range.start.1 = range.start.1.min(range.end.1);
+        let cols = range.end.0 - range.start.0;
+        let rows = range.end.1 - range.start.1;
+        (0..(cols * rows)).map(move |i| {
+            let lc = i % cols;
+            let lr = i / cols;
+            let gc = range.start.0 + lc;
+            let gr = range.start.1 + lr;
+            (gc, gr, self.view_sample((gc, gr), margin))
         })
     }
 
@@ -629,12 +638,40 @@ where
         })
     }
 
+    #[cfg(feature = "parallel")]
+    pub fn par_windows(
+        &self,
+        (cols, rows): (usize, usize),
+    ) -> impl ParallelIterator<Item = Grid2d<&T>> {
+        let cols = cols.min(self.cols);
+        let rows = rows.min(self.rows);
+        (0..(self.rows - rows + 1))
+            .into_par_iter()
+            .flat_map(move |row| {
+                (0..(self.cols - cols + 1))
+                    .into_par_iter()
+                    .map(move |col| self.get_view((col, row)..(col + cols, row + rows)))
+            })
+    }
+
     pub fn windows_seamless(
         &self,
         (cols, rows): (usize, usize),
     ) -> impl DoubleEndedIterator<Item = Grid2d<&T>> {
         (0..self.rows).flat_map(move |row| {
             (0..self.cols)
+                .map(move |col| self.get_view_seamless((col, row)..(col + cols, row + rows)))
+        })
+    }
+
+    #[cfg(feature = "parallel")]
+    pub fn par_windows_seamless(
+        &self,
+        (cols, rows): (usize, usize),
+    ) -> impl ParallelIterator<Item = Grid2d<&T>> {
+        (0..self.rows).into_par_iter().flat_map(move |row| {
+            (0..self.cols)
+                .into_par_iter()
                 .map(move |col| self.get_view_seamless((col, row)..(col + cols, row + rows)))
         })
     }
@@ -646,10 +683,7 @@ where
     pub fn from_view(view: &Grid2d<&T>) -> Self {
         Self::with_cells(
             view.cols(),
-            view.cells()
-                .iter()
-                .map(|c| (*c).clone())
-                .collect::<Vec<T>>(),
+            view.iter().map(|c| (*c).clone()).collect::<Vec<T>>(),
         )
     }
 
@@ -677,6 +711,70 @@ where
         let a = (offset_col, offset_row)..(offset_col + common_cols, offset_row + common_rows);
         let b = (0, 0)..(common_cols, common_rows);
         Some((a, b))
+    }
+
+    pub fn access_decoupled<'a>(
+        &'a self,
+        read: &[(usize, usize)],
+        write: &[(usize, usize)],
+        reads: &mut [&'a T],
+        writes: &mut [&'a mut T],
+    ) -> Result<(), Grid2dError> {
+        for i in 0..read.len() {
+            let coord = read[i];
+            if read[(i + 1)..].contains(&coord) {
+                return Err(Grid2dError::DuplicatedCoord(coord.0, coord.1));
+            }
+        }
+        for i in 0..write.len() {
+            let coord = write[i];
+            if write[(i + 1)..].contains(&coord) {
+                return Err(Grid2dError::DuplicatedCoord(coord.0, coord.1));
+            }
+        }
+        for coord in read {
+            if write.contains(coord) {
+                return Err(Grid2dError::TryingToReadFromAndWriteToSameLocation(
+                    coord.0, coord.1,
+                ));
+            }
+        }
+        unsafe { self.access_decoupled_unsafe(read, write, reads, writes) }
+    }
+
+    pub unsafe fn access_decoupled_unsafe<'a>(
+        &'a self,
+        read: &[(usize, usize)],
+        write: &[(usize, usize)],
+        reads: &mut [&'a T],
+        writes: &mut [&'a mut T],
+    ) -> Result<(), Grid2dError> {
+        if read.len() != reads.len() {
+            return Err(Grid2dError::InputAndOutputBuffersHaveDifferentSizeForReads(
+                read.len(),
+                reads.len(),
+            ));
+        }
+        if write.len() != writes.len() {
+            return Err(
+                Grid2dError::InputAndOutputBuffersHaveDifferentSizeForWrites(
+                    write.len(),
+                    writes.len(),
+                ),
+            );
+        }
+        for i in 0..read.len() {
+            let (col, row) = read[i];
+            reads[i] = self.cell(col, row).unwrap();
+        }
+        for i in 0..write.len() {
+            #[allow(mutable_transmutes)]
+            {
+                let (col, row) = write[i];
+                writes[i] = std::mem::transmute(self.cell(col, row).unwrap());
+            }
+        }
+        Ok(())
     }
 }
 
@@ -759,9 +857,8 @@ where
     fn add(self, other: &Grid2d<T>) -> Self::Output {
         if self.cols() == other.cols() && self.rows() == other.rows() {
             let cells = self
-                .cells
                 .iter()
-                .zip(other.cells.iter())
+                .zip(other.iter())
                 .map(|(a, b)| a.clone() + b.clone())
                 .collect::<Vec<T>>();
             Ok(Grid2d::with_cells(self.cols(), cells))
@@ -783,9 +880,8 @@ where
     fn sub(self, other: &Grid2d<T>) -> Self::Output {
         if self.cols() == other.cols() && self.rows() == other.rows() {
             let cells = self
-                .cells
                 .iter()
-                .zip(other.cells.iter())
+                .zip(other.iter())
                 .map(|(a, b)| a.clone() - b.clone())
                 .collect::<Vec<T>>();
             Ok(Grid2d::with_cells(self.cols(), cells))
@@ -807,9 +903,8 @@ where
     fn mul(self, other: &Grid2d<T>) -> Self::Output {
         if self.cols() == other.cols() && self.rows() == other.rows() {
             let cells = self
-                .cells
                 .iter()
-                .zip(other.cells.iter())
+                .zip(other.iter())
                 .map(|(a, b)| a.clone() * b.clone())
                 .collect::<Vec<T>>();
             Ok(Grid2d::with_cells(self.cols(), cells))
@@ -831,9 +926,8 @@ where
     fn div(self, other: &Grid2d<T>) -> Self::Output {
         if self.cols() == other.cols() && self.rows() == other.rows() {
             let cells = self
-                .cells
                 .iter()
-                .zip(other.cells.iter())
+                .zip(other.iter())
                 .map(|(a, b)| a.clone() / b.clone())
                 .collect::<Vec<T>>();
             Ok(Grid2d::with_cells(self.cols(), cells))
@@ -853,7 +947,7 @@ where
     type Output = Grid2d<T>;
 
     fn neg(self) -> Self::Output {
-        let cells = self.cells.iter().map(|v| -v.clone()).collect::<Vec<T>>();
+        let cells = self.iter().map(|v| -v.clone()).collect::<Vec<T>>();
         Grid2d::with_cells(self.cols(), cells)
     }
 }
@@ -863,10 +957,23 @@ where
     T: Clone + Send + Sync,
 {
     type Item = T;
-    type IntoIter = ::std::vec::IntoIter<T>;
+    type IntoIter = std::vec::IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.cells.into_iter()
+    }
+}
+
+#[cfg(feature = "parallel")]
+impl<T> IntoParallelIterator for Grid2d<T>
+where
+    T: Clone + Send + Sync,
+{
+    type Item = T;
+    type Iter = rayon::vec::IntoIter<T>;
+
+    fn into_par_iter(self) -> Self::Iter {
+        self.cells.into_par_iter()
     }
 }
 

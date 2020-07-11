@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-ignite"
-version = "0.10.2"
+version = "0.11.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "CLI app used to setup and develop Oxygen Engine projects"
@@ -17,7 +17,7 @@ toml = "0.5"
 bincode = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-oxygengine-build-tools = { version = "0.10", path = "../oxygengine-build-tools" }
+oxygengine-build-tools = { version = "0.11", path = "../oxygengine-build-tools" }
 dirs = "2.0"
 reqwest = { version = "0.10", features = ["blocking"] }
 chrobry-core = "1"
