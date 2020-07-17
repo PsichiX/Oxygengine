@@ -835,39 +835,40 @@ where
 
         let renderer = renderer.unwrap();
         let view_size = renderer.view_size();
-        let force_update = (self.last_view_size - view_size).sqr_magnitude() > 1.0e-4;
+        // let force_update = (self.last_view_size - view_size).sqr_magnitude() > 1.0e-4;
         self.last_view_size = view_size;
 
         interactibles.bounding_boxes.clear();
         for (mut ui_element, mut renderable) in (&mut ui_elements, &mut renderables).join() {
-            if ui_element.dirty || force_update {
-                if let Some(rect) = (&cameras, &names, &transforms)
-                    .join()
-                    .find_map(|(c, n, t)| {
-                        if ui_element.camera_name == n.0 {
-                            if let Some(inv_mat) = !c.view_matrix(t, view_size) {
-                                let size = view_size * inv_mat;
-                                Some(Rect {
-                                    x: 0.0,
-                                    y: 0.0,
-                                    w: size.x,
-                                    h: size.y,
-                                })
-                            } else {
-                                None
-                            }
+            // TODO: add elements to interactibles while not rebuilding commands if not dirty.
+            // if ui_element.dirty || force_update {
+            if let Some(rect) = (&cameras, &names, &transforms)
+                .join()
+                .find_map(|(c, n, t)| {
+                    if ui_element.camera_name == n.0 {
+                        if let Some(inv_mat) = !c.view_matrix(t, view_size) {
+                            let size = view_size * inv_mat;
+                            Some(Rect {
+                                x: 0.0,
+                                y: 0.0,
+                                w: size.x,
+                                h: size.y,
+                            })
                         } else {
                             None
                         }
-                    })
-                {
-                    let commands = ui_element
-                        .build_commands(rect, &mut interactibles, &themes, &mut vec![])
-                        .0;
-                    renderable.0 = Renderable::Commands(commands);
-                    ui_element.dirty = false;
-                }
+                    } else {
+                        None
+                    }
+                })
+            {
+                let commands = ui_element
+                    .build_commands(rect, &mut interactibles, &themes, &mut vec![])
+                    .0;
+                renderable.0 = Renderable::Commands(commands);
+                ui_element.dirty = false;
             }
+            // }
         }
     }
 }
