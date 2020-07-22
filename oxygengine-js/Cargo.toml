@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-js"
-version = "0.12.0"
+version = "0.12.1"
 edition = "2018"
 build = "build.rs"
 publish = false
