@@ -1,23 +1,16 @@
 {
-  "source": "static",
-  "destination": "static",
   "commands": [
     {
       "Pipeline": {
-        "destination": "assets-generated",
-        "clear_destination": true
-      }
-    },
-    {
-      "Pipeline": {
-        "source": "assets-source",
-        "destination": "assets-generated",
+        "source": "assets",
+        "destination": "assets-intermediate",
+        "clear_destination": true,
         "commands": [
           {
             "Copy": {
               "from": [
-                "assets.txt",
-                "prefabs/"
+                "prefabs/",
+                "assets.txt"
               ]
             }
           },
@@ -30,20 +23,13 @@
               "output_atlas": "sprites.json",
               "pretty": true
             }
-          }
-        ]
-      }
-    },
-    {
-      "Pipeline": {
-        "destination": "assets-generated",
-        "commands": [
+          },
           {
             "Tiled": {
-              "input": "assets-source/maps/new-bark-town-map.json",
+              "input": "maps/new-bark-town-map.json",
               "output": "map.map",
               "spritesheets": [
-                "assets-generated/sprites.0.json"
+                "../assets-intermediate/sprites.0.json"
               ]
             }
           }
@@ -51,11 +37,22 @@
       }
     },
     {
-      "Pack": {
-        "paths": [
-          "assets-generated"
-        ],
-        "output": "assets.pack"
+      "Pipeline": {
+        "destination": "assets-baked",
+        "clear_destination": true,
+        "commands": [
+          {
+            "Pack": {
+              "paths": ["assets-intermediate/"],
+              "output": "assets.pack"
+            }
+          },
+          {
+            "Copy": {
+              "from": ["assets/index.html"]
+            }
+          }
+        ]
       }
     }
   ]

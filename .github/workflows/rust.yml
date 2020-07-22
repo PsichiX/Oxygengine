@@ -19,9 +19,5 @@ jobs:
       run: rm -rf ./* && ls -al
     - name: Create project with Ignite CLI
       run: OXY_UPDATE_PRESETS=1 oxygengine-ignite new test
-    - name: Setup Node.js
-      uses: actions/setup-node@v1.1.0
-    - name: Install test project dependencies
-      run: cd test && npm install
     - name: Build test project
-      run: cd test && npm run build
+      run: cd test && oxygengine-ignite package

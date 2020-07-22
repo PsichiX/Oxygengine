@@ -1,8 +1,7 @@
-node_modules
+/assets-intermediate
+/assets-baked
+/assets/embed
+/bin
 /dist
 /target
-/pkg
-/wasm-pack.log
-/static/*.pack
-/static/assets-generated
-/static/embed
+wasm-pack.log

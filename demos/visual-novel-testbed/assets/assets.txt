@@ -1,0 +1,9 @@
+png://images/logo.png
+png://images/bg-street.png
+png://images/miki-frown.png
+png://images/miki-open.png
+png://images/miki-smile.png
+png://ui/ui-panel-dark.png
+ui-theme://ui/ui.json
+vn-story://vn/story.yaml
+vn-rendering://vn/ui-config.yaml

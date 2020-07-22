@@ -1,0 +1,220 @@
+template_name: scene
+entities:
+  - Data:
+      components:
+        Name: camera
+        CompositeCamera:
+          scaling: CenterAspect
+          tags:
+            - world
+        CompositeTransform:
+          scale:
+            x: 400
+            y: 400
+        AudioSource:
+          audio: audio/ambient.ogg
+          streaming: true
+          play: true
+        NonPersistent: ~
+  - Data:
+      components:
+        Name: camera_ui
+        CompositeCamera:
+          scaling: Aspect
+          tags:
+            - ui
+        CompositeTransform:
+          scale:
+            x: 400
+            y: 400
+        NonPersistent: ~
+  - Data:
+      components:
+        Tag: world
+        CompositeRenderable:
+          Rectangle:
+            color:
+              r: 0
+              g: 255
+              b: 0
+              a: 128
+            rect:
+              x: -512
+              y: -32
+              w: 1024
+              h: 64
+        CompositeTransform: {}
+        RigidBody2d:
+          position:
+            - 0
+            - 150
+        Collider2d:
+          shape:
+            Cuboid:
+              half_extents:
+                - 512
+                - 32
+        Collider2dBody: Me
+        Physics2dSyncCompositeTransform: ~
+        NonPersistent: ~
+  - Data:
+      components:
+        Tag: world
+        CompositeRenderable:
+          Rectangle:
+            color:
+              r: 255
+              g: 0
+              b: 0
+              a: 128
+            rect:
+              x: -10
+              y: -10
+              w: 20
+              h: 20
+        CompositeTransform: {}
+        RigidBody2d:
+          position:
+            - 20
+            - 108
+        Collider2d:
+          shape:
+            Cuboid:
+              half_extents:
+                - 10
+                - 10
+        Collider2dBody: Me
+        Physics2dSyncCompositeTransform: ~
+        NonPersistent: ~
+  - Data:
+      components:
+        Tag: world
+        CompositeRenderable:
+          Rectangle:
+            color:
+              r: 255
+              g: 0
+              b: 0
+              a: 128
+            rect:
+              x: -10
+              y: -10
+              w: 20
+              h: 20
+        CompositeTransform: {}
+        RigidBody2d:
+          position:
+            - -100
+            - 108
+        Collider2d:
+          shape:
+            Cuboid:
+              half_extents:
+                - 10
+                - 10
+        Collider2dBody: Me
+        Physics2dSyncCompositeTransform: ~
+        NonPersistent: ~
+  - Data:
+      components:
+        Tag: world
+        Name: player
+        CompositeRenderable:
+          Image:
+            image: images/logo.png
+            alignment:
+              x: 0.5
+              y: 0.5
+        CompositeTransform:
+          scale:
+            x: 0.5
+            y: 0.5
+        KeyboardMovementTag: ~
+        Speed: 50
+        RigidBody2d:
+          position:
+            - 0
+            - -100
+          linear_damping: 0.05
+          angular_damping: 0.5
+        Collider2d:
+          shape:
+            Ball:
+              radius: 64
+          density: 1
+        Collider2dBody: Me
+        Physics2dSyncCompositeTransform: ~
+        NonPersistent: ~
+  - Data:
+      components:
+        Tag: world
+        CompositeRenderable:
+          Text:
+            font: fonts/kato.json
+            text: Use WSAD to move
+            color:
+              r: 255
+              g: 255
+              b: 255
+              a: 255
+            align: Center
+            size: 24
+        CompositeTransform:
+          translation:
+            x: 0
+            y: -100
+        CompositeRenderDepth: 1
+        NonPersistent: ~
+  - Data:
+      components:
+        Tag: ui
+        CompositeRenderable: None
+        CompositeTransform: {}
+        CompositeUiElement:
+          camera_name: camera_ui
+          theme: panel
+          interactive: panel
+          padding:
+            left: 8
+            right: 8
+            bottom: 8
+          left_anchor:
+            Value: 0
+          right_anchor:
+            Value: 1
+          top_anchor:
+            Value: 1
+          bottom_anchor:
+            Value: 1
+          alignment:
+            x:
+              Value: 0
+            y:
+              Value: 1
+          fixed_height:
+            Value: 50
+          element_type:
+            Image: {}
+          children:
+            - padding:
+                left: 8
+                right: 8
+                top: 8
+              left_anchor:
+                Value: 0
+              right_anchor:
+                Value: 1
+              top_anchor:
+                Value: 0
+              bottom_anchor:
+                Value: 1
+              theme: text
+              element_type:
+                Text:
+                  text: Hello, World!
+                  color:
+                    r: 255
+                    g: 255
+                    b: 0
+                    a: 255
+        NonPersistent: ~

@@ -1,0 +1,27 @@
+{
+  "panel": {
+    "Image": {
+      "image_path": {
+        "Single": "images/ui.png"
+      },
+      "image_margin": {
+        "left": 8,
+        "right": 8,
+        "top": 8,
+        "bottom": 8
+      },
+      "source_rect": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      }
+    }
+  },
+  "text": {
+    "Text": {
+      "font_name": "fonts/kato.json",
+      "font_size": { "Value": 24 }
+    }
+  }
+}

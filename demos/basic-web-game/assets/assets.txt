@@ -1,0 +1,8 @@
+audio://audio/ambient.ogg
+font://fonts/kato.ttf
+fontface://fonts/kato.json
+png://images/logo.png
+png://images/ui.png
+prefab://prefabs/scene.yaml
+prefab://prefabs/instance.yaml
+ui-theme://ui/ui.json

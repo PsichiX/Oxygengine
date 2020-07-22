@@ -1,25 +1,17 @@
 {
-  "source": "static",
-  "destination": "static",
   "commands": [
     {
       "Pipeline": {
-        "destination": "assets-generated",
-        "clear_destination": true
-      }
-    },
-    {
-      "Pipeline": {
-        "source": "assets-source",
-        "destination": "assets-generated",
+        "source": "assets",
+        "destination": "assets-intermediate",
+        "clear_destination": true,
         "commands": [
           {
             "Copy": {
               "from": [
-                "assets.txt",
+                "audio/",
                 "splash.png",
-                "sounds/",
-                "music/"
+                "assets.txt"
               ]
             }
           },
@@ -32,20 +24,13 @@
               "output_atlas": "sprites.json",
               "pretty": true
             }
-          }
-        ]
-      }
-    },
-    {
-      "Pipeline": {
-        "destination": "assets-generated",
-        "commands": [
+          },
           {
             "Tiled": {
-              "input": "assets-source/maps/map.json",
+              "input": "maps/map.json",
               "output": "map.map",
               "spritesheets": [
-                "assets-generated/sprites.0.json"
+                "../assets-intermediate/sprites.0.json"
               ]
             }
           }
@@ -53,11 +38,22 @@
       }
     },
     {
-      "Pack": {
-        "paths": [
-          "assets-generated"
-        ],
-        "output": "assets.pack"
+      "Pipeline": {
+        "destination": "assets-baked",
+        "clear_destination": true,
+        "commands": [
+          {
+            "Pack": {
+              "paths": ["assets-intermediate/"],
+              "output": "assets.pack"
+            }
+          },
+          {
+            "Copy": {
+              "from": ["assets/index.html"]
+            }
+          }
+        ]
       }
     }
   ]

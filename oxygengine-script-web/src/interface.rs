@@ -519,7 +519,7 @@ impl WebScriptInterface {
             }
         }
         if let Ok(mut interface) = INTERFACE.lock() {
-            std::mem::replace(&mut interface.systems_cache, meta);
+            interface.systems_cache = meta;
         }
     }
 

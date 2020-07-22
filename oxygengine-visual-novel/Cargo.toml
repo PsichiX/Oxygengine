@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-visual-novel"
-version = "0.11.2"
+version = "0.12.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Visual Novel module for Oxygen Engine"
@@ -29,11 +29,11 @@ scalar64 = [
 ]
 
 [dependencies]
-oxygengine-core = { version = "0.11", path = "../oxygengine-core" }
-oxygengine-animation = { version = "0.11", path = "../oxygengine-animation" }
+oxygengine-core = { version = "0.12", path = "../oxygengine-core" }
+oxygengine-animation = { version = "0.12", path = "../oxygengine-animation" }
 serde = { version = "1", features = ["derive"] }
 
 [dependencies.oxygengine-script-flow]
-version = "0.11"
+version = "0.12"
 path = "../oxygengine-script-flow"
 optional = true

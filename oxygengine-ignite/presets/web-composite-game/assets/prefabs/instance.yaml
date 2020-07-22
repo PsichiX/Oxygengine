@@ -1,0 +1,16 @@
+template_name: instance
+entities:
+  - Data:
+      components:
+        Tag: world
+        CompositeRenderable:
+          Image:
+            image: images/logo.png
+            alignment:
+              x: 0.5
+              y: 0.5
+        CompositeTransform:
+          scale:
+            x: 0.15
+            y: 0.15
+        NonPersistent: ~

@@ -1,13 +1,41 @@
 {
-  "source": "static",
-  "destination": "static",
   "commands": [
     {
-      "Pack": {
-        "paths": [
-          "assets"
-        ],
-        "output": "assets.pack"
+      "Pipeline": {
+        "source": "assets",
+        "destination": "assets-intermediate",
+        "clear_destination": true,
+        "commands": [
+          {
+            "Copy": {
+              "from": [
+                "images/",
+                "ui/",
+                "vn/",
+                "assets.txt"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "Pipeline": {
+        "destination": "assets-baked",
+        "clear_destination": true,
+        "commands": [
+          {
+            "Pack": {
+              "paths": ["assets-intermediate/"],
+              "output": "assets.pack"
+            }
+          },
+          {
+            "Copy": {
+              "from": ["assets/index.html"]
+            }
+          }
+        ]
       }
     }
   ]

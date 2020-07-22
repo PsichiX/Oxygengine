@@ -1,8 +1,10 @@
 use cargo_metadata::MetadataCommand;
 use clap::{App, Arg, SubCommand};
 use dirs::home_dir;
+use hotwatch::{Event, Hotwatch};
 use oxygengine_build_tools::{
     atlas::pack_sprites_and_write_to_files,
+    build::{build_project, BuildProfile},
     pack::pack_assets_and_write_to_file,
     pipeline::{AtlasPhase, CopyPhase, PackPhase, Pipeline, TiledPhase},
     tiled::build_map_and_write_to_file,
@@ -10,11 +12,14 @@ use oxygengine_build_tools::{
 use serde::Deserialize;
 use std::{
     collections::HashMap,
-    env::{current_dir, current_exe, vars},
-    fs::{copy, create_dir_all, read_dir, read_to_string, remove_dir_all, write},
+    env::{current_dir, current_exe, set_current_dir, vars},
+    fs::{copy, create_dir_all, read_dir, read_to_string, remove_dir_all, remove_file, write},
     io::{Error, ErrorKind, Result},
     path::{Path, PathBuf},
     process::{Command, Stdio},
+    sync::mpsc::channel,
+    thread::spawn,
+    time::Instant,
 };
 
 enum ActionType {
@@ -94,7 +99,8 @@ impl Actions {
 }
 
 #[allow(clippy::cognitive_complexity)]
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let meta = MetadataCommand::new().exec();
     let mut root_path = if let Ok(meta) = meta {
         meta.packages
@@ -187,7 +193,7 @@ fn main() -> Result<()> {
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .subcommand(
             SubCommand::with_name("new")
-                .about("Create new Oxygen Engine project")
+                .about("Create new project")
                 .arg(
                     Arg::with_name("id")
                         .value_name("ID")
@@ -231,7 +237,7 @@ fn main() -> Result<()> {
         )
         .subcommand(
             SubCommand::with_name("pack")
-                .about("Pack assets for Oxygen Engine")
+                .about("Pack assets")
                 .arg(
                     Arg::with_name("input")
                         .short("i")
@@ -261,7 +267,7 @@ fn main() -> Result<()> {
         )
         .subcommand(
             SubCommand::with_name("atlas")
-                .about("Pack images into sprite sheet (texture atlas) for Oxygen Engine")
+                .about("Pack images into sprite sheet (texture atlas)")
                 .arg(
                     Arg::with_name("input")
                         .short("i")
@@ -347,7 +353,7 @@ fn main() -> Result<()> {
         )
         .subcommand(
             SubCommand::with_name("tiled")
-                .about("Build map for Oxygen Engine from Tiled JSON format")
+                .about("Build Tiled JSON file into set of engine map related files")
                 .arg(
                     Arg::with_name("input")
                         .short("i")
@@ -395,7 +401,7 @@ fn main() -> Result<()> {
         )
         .subcommand(
             SubCommand::with_name("pipeline")
-                .about("Execute pipeline for Oxygen Engine")
+                .about("Execute project pipeline")
                 .arg(
                     Arg::with_name("config")
                         .short("c")
@@ -403,7 +409,8 @@ fn main() -> Result<()> {
                         .value_name("PATH")
                         .help("Pipeline JSON descriptor file")
                         .takes_value(true)
-                        .required(false),
+                        .required(false)
+                        .default_value("./pipeline.json")
                 )
                 .arg(
                     Arg::with_name("template")
@@ -421,6 +428,172 @@ fn main() -> Result<()> {
                         .takes_value(false)
                         .required(false),
                 ),
+        )
+        .subcommand(
+            SubCommand::with_name("build")
+                .about("Build project")
+                .arg(
+                    Arg::with_name("profile")
+                        .short("p")
+                        .long("profile")
+                        .value_name("PROFILE")
+                        .help("Project build profile. Possible values: debug, release")
+                        .takes_value(true)
+                        .required(false)
+                        .default_value("debug"),
+                )
+                .arg(
+                    Arg::with_name("crate_dir")
+                        .short("c")
+                        .long("crate_dir")
+                        .value_name("PATH")
+                        .help("Project crate directory")
+                        .takes_value(true)
+                        .required(false),
+                )
+                .arg(
+                    Arg::with_name("out_dir")
+                        .short("o")
+                        .long("out_dir")
+                        .value_name("PATH")
+                        .help("Binaries output directory relative to crate directory")
+                        .takes_value(true)
+                        .required(false),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("serve")
+                .about("Serve project binary and baked asset files to browsers")
+                .arg(
+                    Arg::with_name("port")
+                        .short("p")
+                        .long("port")
+                        .value_name("NUMBER")
+                        .help("HTTP server port")
+                        .takes_value(true)
+                        .required(false)
+                        .default_value("8080")
+                )
+                .arg(
+                    Arg::with_name("binaries")
+                        .short("b")
+                        .long("binaries")
+                        .value_name("PATH")
+                        .help("Path to the binaries folder")
+                        .takes_value(true)
+                        .required(false)
+                        .default_value("./bin/")
+                )
+                .arg(
+                    Arg::with_name("assets")
+                        .short("a")
+                        .long("assets")
+                        .value_name("PATH")
+                        .help("Path to the baked assets folder")
+                        .takes_value(true)
+                        .required(false)
+                        .default_value("./assets-baked/")
+                )
+                .arg(
+                    Arg::with_name("open")
+                        .short("o")
+                        .long("open")
+                        .help("Open URL in the browser")
+                        .required(false)
+                )
+        )
+        .subcommand(
+            SubCommand::with_name("live")
+                .about("Listen for changes in binary and asset sources and rebuild them when they change")
+                .arg(
+                    Arg::with_name("binaries")
+                        .short("b")
+                        .long("binaries")
+                        .value_name("PATH")
+                        .help("Path to the binaries source folders (Rust or JS code)")
+                        .takes_value(true)
+                        .required(false)
+                        .multiple(true)
+                )
+                .arg(
+                    Arg::with_name("assets")
+                        .short("a")
+                        .long("assets")
+                        .value_name("PATH")
+                        .help("Path to the assets sources folders")
+                        .takes_value(true)
+                        .required(false)
+                        .multiple(true)
+                )
+                .arg(
+                    Arg::with_name("crate_dir")
+                        .short("c")
+                        .long("crate_dir")
+                        .value_name("PATH")
+                        .help("Project crate directory")
+                        .takes_value(true)
+                        .required(false)
+                        .default_value("./")
+                )
+                .arg(
+                    Arg::with_name("pipeline")
+                        .short("p")
+                        .long("pipeline")
+                        .value_name("PATH")
+                        .help("Pipeline JSON descriptor file")
+                        .takes_value(true)
+                        .required(false)
+                        .default_value("./pipeline.json")
+                )
+                .arg(
+                    Arg::with_name("serve")
+                        .help("Arguments passed to serve subcommand")
+                        .multiple(true)
+                )
+        )
+        .subcommand(
+            SubCommand::with_name("package")
+                .about("Make distribution package of the project")
+                .arg(
+                    Arg::with_name("crate_dir")
+                        .short("c")
+                        .long("crate_dir")
+                        .value_name("PATH")
+                        .help("Crate directory")
+                        .takes_value(true)
+                        .required(false)
+                        .default_value("./")
+                )
+                .arg(
+                    Arg::with_name("pipeline")
+                        .short("p")
+                        .long("pipeline")
+                        .value_name("PATH")
+                        .help("Assets pipeline config file")
+                        .takes_value(true)
+                        .required(false)
+                        .default_value("./pipeline.json")
+                )
+                .arg(
+                    Arg::with_name("assets")
+                        .short("a")
+                        .long("assets")
+                        .value_name("PATH")
+                        .help("Baked assets directory")
+                        .takes_value(true)
+                        .required(false)
+                        .default_value("./assets-baked/")
+                )
+                .arg(
+                    Arg::with_name("out_dir")
+                        .short("o")
+                        .long("out_dir")
+                        .value_name("PATH")
+                        .help("Output directory relative to crate directory")
+                        .takes_value(true)
+                        .required(false)
+                        .default_value("./dist/")
+                )
         )
         .get_matches();
 
@@ -558,12 +731,10 @@ fn main() -> Result<()> {
         let quiet = matches.is_present("quiet");
         build_map_and_write_to_file(input, output, &spritesheets, full_names, quiet)?;
     } else if let Some(matches) = matches.subcommand_matches("pipeline") {
-        let config = matches
-            .value_of("config")
-            .unwrap_or_else(|| "pipeline.json");
+        let config = matches.value_of("config").unwrap();
+        let config = Path::new(&config).to_owned();
         let dry_run = matches.is_present("dry-run");
         let template = matches.is_present("template");
-        let config = Path::new(&config);
         if template {
             let pipeline = Pipeline::default()
                 .source("static")
@@ -617,12 +788,19 @@ fn main() -> Result<()> {
                 write(config, &contents)?;
             }
         } else if config.exists() {
-            let contents = read_to_string(config)?;
+            let contents = read_to_string(&config)?;
             match serde_json::from_str::<Pipeline>(&contents) {
                 Ok(pipeline) => {
                     if dry_run {
                         pipeline.dry_run();
                     } else {
+                        set_current_dir(if config.is_file() {
+                            let mut path = config.clone();
+                            path.pop();
+                            path
+                        } else {
+                            config.clone()
+                        })?;
                         pipeline.execute()?;
                     }
                 }
@@ -634,8 +812,162 @@ fn main() -> Result<()> {
         } else {
             println!("Could not find pipeline config file: {:?}", config);
         }
+    } else if let Some(matches) = matches.subcommand_matches("build") {
+        let profile = match matches.value_of("profile").unwrap() {
+            "debug" => BuildProfile::Debug,
+            "release" => BuildProfile::Release,
+            profile => {
+                return Err(Error::new(
+                    ErrorKind::NotFound,
+                    format!("Unknown build profile: {}", profile),
+                ))
+            }
+        };
+        let crate_dir = matches.value_of("crate_dir").map(|v| v.to_owned());
+        let out_dir = matches.value_of("out_dir").map(|v| v.to_owned());
+        build_project(profile, crate_dir, out_dir, vec![])?;
+    } else if let Some(matches) = matches.subcommand_matches("serve") {
+        let port = matches
+            .value_of("port")
+            .unwrap()
+            .parse::<u16>()
+            .expect("Could not parse port number");
+        let binaries = matches.value_of("binaries").unwrap().to_owned();
+        let assets = matches.value_of("assets").unwrap().to_owned();
+        if matches.is_present("open") {
+            open::that(format!("http://localhost:{}", port))
+                .expect("Could not open URL in the browser");
+        }
+        serve_files(port, binaries, assets).await;
+    } else if let Some(matches) = matches.subcommand_matches("live") {
+        let binaries = matches
+            .values_of("binaries")
+            .map(|v| v.collect::<Vec<_>>())
+            .unwrap_or_else(|| vec![]);
+        let assets = matches
+            .values_of("assets")
+            .map(|v| v.collect::<Vec<_>>())
+            .unwrap_or_else(|| vec![]);
+        let crate_dir = matches.value_of("crate_dir").unwrap().to_owned();
+        let pipeline = matches.value_of("pipeline").unwrap().to_owned();
+        let serve = matches.values_of("serve");
+        let mut watcher = Hotwatch::new().expect("Could not start files watcher");
+        let (build_sender, build_receiver) = channel();
+        let (pipeline_sender, pipeline_receiver) = channel();
+        drop(build_sender.send(()));
+        drop(pipeline_sender.send(()));
+        for path in binaries {
+            let build_sender = build_sender.clone();
+            watcher
+                .watch(&path, move |event| match event {
+                    Event::Create(_) | Event::Write(_) | Event::Remove(_) => {
+                        if build_sender.send(()).is_ok() {
+                            println!("* Rebuild project binaries");
+                        }
+                    }
+                    _ => {}
+                })
+                .unwrap_or_else(|_| panic!("Could not watch for binaries sources: {:?}", path));
+            println!("* Watching binaries sources: {:?}", path);
+        }
+        for path in assets {
+            let pipeline_sender = pipeline_sender.clone();
+            watcher
+                .watch(&path, move |event| match event {
+                    Event::Create(_) | Event::Write(_) | Event::Remove(_) => {
+                        if pipeline_sender.send(()).is_ok() {
+                            println!("* Rebake project assets");
+                        }
+                    }
+                    _ => {}
+                })
+                .unwrap_or_else(|_| panic!("Could not watch for assets sources: {:?}", path));
+            println!("* Watching assets sources: {:?}", path);
+        }
+        let builds = spawn(move || {
+            let exe = current_exe().expect("Could not get path to the running executable");
+            while build_receiver.recv().is_ok() {
+                if let Err(error) = Command::new(&exe)
+                    .arg("build")
+                    .arg("--crate_dir")
+                    .arg(&crate_dir)
+                    .status()
+                {
+                    println!("Error during build process execution: {:#?}", error);
+                } else {
+                    println!("* Done building binaries!");
+                }
+            }
+        });
+        let pipelines = spawn(move || {
+            let exe = current_exe().expect("Could not get path to the running executable");
+            while pipeline_receiver.recv().is_ok() {
+                if let Err(error) = Command::new(&exe)
+                    .arg("pipeline")
+                    .arg("--config")
+                    .arg(&pipeline)
+                    .status()
+                {
+                    println!("* Error during pipeline process execution: {:#?}", error);
+                } else {
+                    println!("* Done baking assets!");
+                }
+            }
+        });
+        let exe = current_exe().expect("Could not get path to the running executable");
+        if let Some(serve) = serve {
+            Command::new(exe)
+                .arg("serve")
+                .args(serve)
+                .status()
+                .expect("Could not run HTTP server");
+        }
+        drop(builds.join());
+        drop(pipelines.join());
+    } else if let Some(matches) = matches.subcommand_matches("package") {
+        let crate_dir = matches.value_of("crate_dir").unwrap();
+        let pipeline = matches.value_of("pipeline").unwrap();
+        let assets = Path::new(matches.value_of("assets").unwrap());
+        let out_dir = matches.value_of("out_dir").unwrap();
+        let exe = current_exe().expect("Could not get path to the running executable");
+        let timer = Instant::now();
+        println!("* Building application in release mode");
+        Command::new(&exe)
+            .arg("build")
+            .arg("--profile")
+            .arg("release")
+            .arg("--crate_dir")
+            .arg(crate_dir)
+            .arg("--out_dir")
+            .arg(out_dir)
+            .status()
+            .expect("Could not run build in release mode");
+        let out_dir = Path::new(crate_dir).join(out_dir);
+        remove_file(out_dir.join(".gitignore")).expect("Could not remove .gitignore file");
+        remove_file(out_dir.join("package.json")).expect("Could not remove package.json file");
+        println!("* Executing assets pipeline");
+        Command::new(exe)
+            .arg("pipeline")
+            .arg("--config")
+            .arg(pipeline)
+            .status()
+            .expect("Could not run assets pipeline");
+        println!("* Copying assets to output directory");
+        copy_dir(assets, &out_dir, "").expect("Could not copy baked assets to output directory");
+        println!("* Done in: {:?}", timer.elapsed());
     }
     Ok(())
+}
+
+async fn serve_files(port: u16, binaries: String, assets: String) {
+    println!("* Serve project files at: localhost:{}", port);
+    println!("- binaries:\t{:?}", binaries);
+    println!("- assets:\t{:?}", assets);
+    use warp::Filter;
+    let binaries = warp::fs::dir(binaries);
+    let assets = warp::fs::dir(assets);
+    let routes = warp::get().and(binaries.or(assets));
+    warp::serve(routes).run(([127, 0, 0, 1], port)).await;
 }
 
 fn copy_dir(from: &Path, to: &Path, id: &str) -> Result<()> {
