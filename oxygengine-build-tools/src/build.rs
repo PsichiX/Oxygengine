@@ -28,7 +28,7 @@ pub fn build_project(
     let options = BuildOptions {
         path: crate_dir.map(|p| p.into()),
         scope: None,
-        mode: InstallMode::Noinstall,
+        mode: InstallMode::Normal,
         disable_dts: true,
         target: Target::Web,
         debug: false,
