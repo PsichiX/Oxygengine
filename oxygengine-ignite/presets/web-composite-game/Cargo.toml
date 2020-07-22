@@ -21,4 +21,3 @@ serde = { version = "1", features = ["derive"] }
 [dependencies.oxygengine]
 version = "0.12"
 features = ["web-composite-game"]
-path = "../../"
