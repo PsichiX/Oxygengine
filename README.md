@@ -16,9 +16,7 @@ Oxygengine is highly based on `specs` crate used for its ECS framework.
 You can get understanding of it by reading `specs` book and tutorials here: https://specs.amethyst.rs/docs/tutorials/
 
 ## Installation
-1. Make sure that you have latest `node.js` with `npm` tools installed (https://nodejs.org/)
-1. Make sure that you have latest `wasm-pack` toolset installed (https://rustwasm.github.io/wasm-pack/installer/)
-1. Make sure that you have latest `oxygengine-ignite` binary installed (`cargo install oxygengine-ignite`)
+Make sure that you have latest `oxygengine-ignite` binary installed (`cargo install oxygengine-ignite`) - this binary is a set of vital tools that will govern managing most of your project.
 
 ## Teaser
 ![Visual Novel](https://raw.githubusercontent.com/PsichiX/Oxygengine/master/media/oxygengine-visual-novel-teaser.gif)
@@ -30,10 +28,9 @@ cd /path/to/parent/
 oxygengine-ignite new <project-name>
 ```
 Which will create default web game project using `web-composite-game` preset.
-Then you have to go to your project directory and run `npm install` to install all nodejs dependencies.
 You can create projects with different presets:
 - __desktop-headless-game__ - typical server-like project without graphics.
-- __hybrid-script-game__ - it's a `web-composite-game` with JavaScript scripting module to make prototyping with Oxygengine faster and easier. Please note that JS scripting compared to pure Rust version is slower so it's not a great idea to use it in a production-ready game with lots of entities and logic, it should only help to prototype a game systems that will be later rewritten in Rust for best optimization.
+- __hybrid-script-game__ - it's a `web-composite-game` with JavaScript scripting module to make prototyping with Oxygengine faster and easier. Please note that JS scripting compared to pure Rust version is slower so it's not a great idea to use it in a production-ready game with lots of entities and logic, it should only help to prototype a game systems that will be later rewritten in Rust for best optimization. __NOTE: Because of engine not using NPM at all since version 0.12.0, this template is forced to use version 0.11.2 of the engine until new way of JavaScript scripting method will be developed.__
 
 using:
 ```bash
@@ -52,26 +49,33 @@ oxygengine-ignite new <project-name> -d /path/to/parent/
   OXY_UPDATE_PRESETS=1 oxygengine-ignite --help
   ```
 - update `oxygengine` version either in `Cargo.toml` or by calling: `cargo update`
+- upgrading from versions before 0.12.0 requires to create new project with  latest ignite tool, then copy by hand your source files to the new project sources, as well as put assets from old project `/static/assets` directory into new project `/assets` directory, preferably using new way of assets directory structure (so you won't have to modify pipeline.json file a lot).
 
 ## Building for development and production
-- Launch live development with hot reloading (app will be automatically
-  recompiled in background):
-```bash
-npm start
-```
-- Build production distribution (will be available in `/dist` folder):
+- Launch live development with active code recompilation and assets baking in the background on change:
+  ```bash
+  oxygengine-ignite live
+  ```
+  Files will be served from: http://localhost:8080.
+- Build binaries in debug or release mode (binaries will be put in `/bin` folder):
+
   with debug symbols:
   ```bash
-  npm run build
+  oxygengine-ignite build
   ```
   optimized release mode:
   ```bash
-  OXY_RELEASE=1 npm run build
+  oxygengine-ignite build -p release
   ```
-- Build crate without of running dev env:
-```bash
-cargo build
-```
+- Build only the crate:
+  ```bash
+  cargo build
+  ```
+- Package application build with assets ready for distribution (package files will be put in `/dist` folder):
+  ```bash
+  oxygengine-ignite package
+  ```
+  this command will run release build, assets pipeline and bundle package.
 
 ## Roadmap
 Current milestone progress: https://github.com/PsichiX/Oxygengine/projects/1
