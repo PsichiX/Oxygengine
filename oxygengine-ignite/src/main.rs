@@ -843,11 +843,11 @@ async fn main() -> Result<()> {
         let binaries = matches
             .values_of("binaries")
             .map(|v| v.collect::<Vec<_>>())
-            .unwrap_or_else(|| vec![]);
+            .unwrap_or_else(|| vec!["./src"]);
         let assets = matches
             .values_of("assets")
             .map(|v| v.collect::<Vec<_>>())
-            .unwrap_or_else(|| vec![]);
+            .unwrap_or_else(|| vec!["./assets"]);
         let crate_dir = matches.value_of("crate_dir").unwrap().to_owned();
         let pipeline = matches.value_of("pipeline").unwrap().to_owned();
         let serve = matches.values_of("serve");
