@@ -56,7 +56,11 @@ oxygengine-ignite new <project-name> -d /path/to/parent/
   ```bash
   oxygengine-ignite live
   ```
-  Files will be served from: http://localhost:8080.
+  additionally to allow it to start http server to serve your build files in the browser, run:
+  ```bash
+  oxygengine-ignite live -- -p 8080
+  ```
+  files will be served from: http://localhost:8080.
 - Build binaries in debug or release mode (binaries will be put in `/bin` folder):
 
   with debug symbols:
