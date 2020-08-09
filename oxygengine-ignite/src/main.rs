@@ -9,11 +9,14 @@ use oxygengine_build_tools::{
     pipeline::{AtlasPhase, CopyPhase, PackPhase, Pipeline, TiledPhase},
     tiled::build_map_and_write_to_file,
 };
+use oxygengine_ignite_types::IgniteTypeDefinition;
 use serde::Deserialize;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     env::{current_dir, current_exe, set_current_dir, vars},
-    fs::{copy, create_dir_all, read_dir, read_to_string, remove_dir_all, remove_file, write},
+    fs::{
+        copy, create_dir_all, read, read_dir, read_to_string, remove_dir_all, remove_file, write,
+    },
     io::{Error, ErrorKind, Result},
     path::{Path, PathBuf},
     process::{Command, Stdio},
@@ -595,6 +598,23 @@ async fn main() -> Result<()> {
                         .default_value("./dist/")
                 )
         )
+        .subcommand(
+            SubCommand::with_name("types")
+                .about("Performs operation on ignite type definitions")
+                .subcommand(
+                    SubCommand::with_name("validate")
+                        .about("Validate types")
+                        .arg(
+                            Arg::with_name("path")
+                                .short("p")
+                                .long("path")
+                                .value_name("PATH")
+                                .help("Path to the crate root directory")
+                                .takes_value(true)
+                                .required(false)
+                        )
+                )
+        )
         .get_matches();
 
     if let Some(matches) = matches.subcommand_matches("new") {
@@ -955,6 +975,90 @@ async fn main() -> Result<()> {
         println!("* Copying assets to output directory");
         copy_dir(assets, &out_dir, "").expect("Could not copy baked assets to output directory");
         println!("* Done in: {:?}", timer.elapsed());
+    } else if let Some(matches) = matches.subcommand_matches("types") {
+        if let Some(matches) = matches.subcommand_matches("validate") {
+            let path = if let Some(path) = matches.value_of("path") {
+                Path::new(path).to_owned()
+            } else {
+                std::env::current_dir().unwrap()
+            };
+            let path = path.join("target").join("ignite").join("types");
+            if !path.is_dir() {
+                panic!("Ignite types directory does not exists: {:?}", path);
+            }
+            let types = path
+                .read_dir()
+                .expect("Could not scan ignite types directory")
+                .filter_map(|entry| {
+                    if let Ok(entry) = entry {
+                        let path = entry.path();
+                        if path.is_file() {
+                            let extension = path
+                                .extension()
+                                .unwrap_or_else(|| panic!("Unknown file type: {:?}", path));
+                            let extension = extension.to_str().unwrap_or_else(|| {
+                                panic!("Could not parse file extension: {:?}", path)
+                            });
+                            let definition = {
+                                match extension {
+                                    "yaml" => {
+                                        let contents = read_to_string(path.to_owned())
+                                            .unwrap_or_else(|_| {
+                                                panic!(
+                                                    "Could not read ignite type file: {:?}",
+                                                    path
+                                                )
+                                            });
+                                        serde_yaml::from_str::<IgniteTypeDefinition>(&contents)
+                                            .expect("Could not parse YAML type definition file")
+                                    }
+                                    "json" => {
+                                        let contents = read_to_string(path.to_owned())
+                                            .unwrap_or_else(|_| {
+                                                panic!(
+                                                    "Could not read ignite type file: {:?}",
+                                                    path
+                                                )
+                                            });
+                                        serde_json::from_str::<IgniteTypeDefinition>(&contents)
+                                            .expect("Could not parse YAML type definition file")
+                                    }
+                                    "ron" => {
+                                        let contents = read_to_string(path.to_owned())
+                                            .unwrap_or_else(|_| {
+                                                panic!(
+                                                    "Could not read ignite type file: {:?}",
+                                                    path
+                                                )
+                                            });
+                                        ron::from_str::<IgniteTypeDefinition>(&contents)
+                                            .expect("Could not parse YAML type definition file")
+                                    }
+                                    "bin" => {
+                                        let contents = read(path.to_owned()).unwrap_or_else(|_| {
+                                            panic!("Could not read ignite type file: {:?}", path)
+                                        });
+                                        bincode::deserialize::<IgniteTypeDefinition>(&contents)
+                                            .expect("Could not parse YAML type definition file")
+                                    }
+                                    extension => panic!("Unsupported file type: {:?}", extension),
+                                }
+                            };
+                            let key = definition.name();
+                            let value = definition.referenced();
+                            return Some((key, value));
+                        }
+                    }
+                    None
+                })
+                .collect::<HashMap<_, _>>();
+            let referenced = types.values().cloned().flatten().collect::<HashSet<_>>();
+            let types = types.keys().cloned().collect::<HashSet<_>>();
+            println!("* Referenced types without definition:");
+            for name in referenced.difference(&types) {
+                println!("- {}", name);
+            }
+        }
     }
     Ok(())
 }

@@ -14,10 +14,13 @@ readme = "../README.md"
 clap = "2.33"
 cargo_metadata = "0.10"
 toml = "0.5"
-bincode = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+bincode = "1"
+serde_yaml = "0.8"
+ron = "0.6"
 oxygengine-build-tools = { version = "0.12", path = "../oxygengine-build-tools" }
+oxygengine-ignite-types = { version = "0.12", path = "../oxygengine-ignite-types" }
 dirs = "2.0"
 reqwest = { version = "0.10", features = ["blocking"] }
 chrobry-core = "1"
