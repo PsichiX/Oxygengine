@@ -1,3 +1,4 @@
+use crate::resource::text_inputs::TextInputs;
 use oxygengine::prelude::*;
 
 #[derive(Debug, Default)]
@@ -13,6 +14,7 @@ impl State for GameState {
             .write_resource::<PrefabManager>()
             .instantiate_world("scene", world)
             .unwrap();
+        world.write_resource::<TextInputs>().focused = Some("commands".to_owned());
     }
 
     fn on_process(&mut self, world: &mut World) -> StateChange {

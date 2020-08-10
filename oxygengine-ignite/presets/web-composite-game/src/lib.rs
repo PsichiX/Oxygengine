@@ -1,17 +1,22 @@
 #[macro_use]
 extern crate oxygengine;
 
+mod components;
+mod resource;
+mod states;
+mod systems;
+
 use crate::{
     components::{speed::Speed, KeyboardMovementTag},
+    resource::text_inputs::TextInputs,
     states::loading::LoadingState,
-    systems::keyboard_movement::KeyboardMovementSystem,
+    systems::{
+        keyboard_movement::KeyboardMovementSystem,
+        text_input::{TextInputRendererSystem, TextInputWriterSystem},
+    },
 };
 use oxygengine::prelude::*;
 use wasm_bindgen::prelude::*;
-
-mod components;
-mod states;
-mod systems;
 
 #[wasm_bindgen(start)]
 pub fn main_js() -> Result<(), JsValue> {
@@ -91,7 +96,14 @@ pub fn main_js() -> Result<(), JsValue> {
         )
         // install web storage engine resource.
         .with_resource(WebStorageEngine)
+        .with_resource(TextInputs::default())
         .with_system(KeyboardMovementSystem, "keyboard_movement", &[])
+        .with_system(TextInputWriterSystem, "text_input_writer", &[])
+        .with_system(
+            TextInputRendererSystem::default(),
+            "text_input_renderer",
+            &[],
+        )
         .build(LoadingState::default(), WebAppTimer::default());
 
     // Application run phase - spawn runner that ticks our app.
