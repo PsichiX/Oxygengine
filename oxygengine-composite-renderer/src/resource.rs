@@ -4,7 +4,7 @@ use crate::{
 };
 use core::{
     ecs::{storage::UnprotectedStorage, world::Index, BitSet, DenseVecStorage, Entity, Join},
-    Scalar,
+    Ignite, Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, collections::HashMap};
@@ -196,7 +196,7 @@ impl CompositeUiInteractibles {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub enum UiValue {
     Value(Scalar),
     State(Cow<'static, str>),
@@ -240,7 +240,7 @@ impl From<(&str, Scalar, Scalar, Scalar, Scalar)> for UiValue {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub struct UiValueVec2 {
     pub x: UiValue,
     pub y: UiValue,

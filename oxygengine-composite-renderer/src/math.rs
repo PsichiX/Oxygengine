@@ -1,4 +1,4 @@
-use core::Scalar;
+use core::{Ignite, Scalar};
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
@@ -17,7 +17,7 @@ pub fn unlerp(a: Scalar, b: Scalar, v: Scalar) -> Scalar {
     (v - a) / (b - a)
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Mat2d(pub [Scalar; 6]);
 
 impl Default for Mat2d {
@@ -119,7 +119,7 @@ impl Into<(Scalar, Scalar, Scalar, Scalar, Scalar, Scalar)> for Mat2d {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -272,7 +272,7 @@ impl ToString for Color {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Vec2 {
     pub x: Scalar,
     pub y: Scalar,
@@ -477,7 +477,7 @@ impl From<[Scalar; 2]> for Vec2 {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Rect {
     pub x: Scalar,
     pub y: Scalar,

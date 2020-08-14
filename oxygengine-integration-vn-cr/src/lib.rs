@@ -339,8 +339,7 @@ impl VnRenderingManager {
 }
 
 #[derive(Ignite, Debug, Clone, Copy)]
-#[ignite(namespace = "visual-novel-composite-renderer")]
-pub struct PositionCameraAlignment(pub Entity, pub Vec2);
+pub struct PositionCameraAlignment(#[ignite(ignore)] pub Entity, pub Vec2);
 
 impl Component for PositionCameraAlignment {
     type Storage = VecStorage<Self>;

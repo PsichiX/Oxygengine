@@ -1,7 +1,7 @@
 use oxygengine::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Ignite, Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Direction {
     East,
     West,

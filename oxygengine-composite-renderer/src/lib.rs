@@ -33,7 +33,13 @@ use crate::{
         CompositeUiSystem,
     },
 };
-use core::{app::AppBuilder, assets::database::AssetsDatabase, prefab::PrefabManager};
+use core::{
+    app::AppBuilder, assets::database::AssetsDatabase, ignite_proxy, prefab::PrefabManager,
+};
+
+ignite_proxy! {
+    struct Grid2d<T> {}
+}
 
 pub fn bundle_installer<'a, 'b, CR>(builder: &mut AppBuilder<'a, 'b>, data: CR)
 where

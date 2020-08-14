@@ -1,7 +1,7 @@
 use oxygengine_ignite_derive::Ignite;
 
 #[derive(Ignite)]
-#[ignite(namespace = "test")]
+#[ignite(namespace = "test")] // when omitted crate name is used.
 struct Foo {
     #[ignite(ignore)]
     u: (),

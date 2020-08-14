@@ -613,6 +613,16 @@ async fn main() -> Result<()> {
                                 .takes_value(true)
                                 .required(false)
                         )
+                        .arg(
+                            Arg::with_name("ignore")
+                                .short("i")
+                                .long("ignore")
+                                .value_name("NAME")
+                                .help("Names of types to ignore in report")
+                                .takes_value(true)
+                                .required(false)
+                                .multiple(true)
+                        )
                 )
         )
         .get_matches();
@@ -986,6 +996,11 @@ async fn main() -> Result<()> {
             if !path.is_dir() {
                 panic!("Ignite types directory does not exists: {:?}", path);
             }
+            let ignore = if let Some(ignore) = matches.values_of("ignore") {
+                ignore.map(|item| item.to_owned()).collect::<Vec<_>>()
+            } else {
+                vec![]
+            };
             let types = path
                 .read_dir()
                 .expect("Could not scan ignite types directory")
@@ -1053,10 +1068,19 @@ async fn main() -> Result<()> {
                 })
                 .collect::<HashMap<_, _>>();
             let referenced = types.values().cloned().flatten().collect::<HashSet<_>>();
-            let types = types.keys().cloned().collect::<HashSet<_>>();
+            let type_names = types.keys().cloned().collect::<HashSet<_>>();
+            let mut diff = referenced.difference(&type_names).collect::<Vec<_>>();
+            diff.sort();
             println!("* Referenced types without definition:");
-            for name in referenced.difference(&types) {
-                println!("- {}", name);
+            for name in diff {
+                if !ignore.contains(name) {
+                    println!("{}:", name);
+                    for (n, item) in &types {
+                        if item.contains(name) {
+                            println!("- {}", n);
+                        }
+                    }
+                }
             }
         }
     }

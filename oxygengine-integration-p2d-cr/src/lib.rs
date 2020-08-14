@@ -22,7 +22,6 @@ pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>, _: ()) {
 }
 
 #[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[ignite(namespace = "physics2d-composite-renderer")]
 pub struct Physics2dSyncCompositeTransform;
 
 impl Component for Physics2dSyncCompositeTransform {

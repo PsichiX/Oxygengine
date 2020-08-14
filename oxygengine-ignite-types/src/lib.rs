@@ -4,15 +4,21 @@ use std::{
     hash::{Hash, Hasher},
 };
 
+fn is_false(value: &bool) -> bool {
+    !value
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IgniteTypeDefinition {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub namespace: Option<String>,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub namespace: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub generic_args: Vec<String>,
     pub variant: IgniteTypeVariant,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub meta: HashMap<String, IgniteAttribMeta>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub is_proxy: bool,
 }
 
 impl IgniteTypeDefinition {
@@ -188,11 +194,7 @@ pub enum IgniteVariant {
 impl IgniteVariant {
     pub fn referenced(&self) -> HashSet<String> {
         match self {
-            Self::Unit(name) => {
-                let mut result = HashSet::new();
-                result.insert(name.clone());
-                result
-            }
+            Self::Unit(_) => HashSet::new(),
             Self::Named(value) => value.referenced(),
             Self::Unnamed(value) => value.referenced(),
         }

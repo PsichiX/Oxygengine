@@ -14,7 +14,19 @@ use crate::{
     resource::NavMeshesRes,
     system::{NavAgentMaintainSystem, SimpleNavDriverSystem},
 };
-use core::{app::AppBuilder, prefab::PrefabManager};
+use core::{app::AppBuilder, ignite_proxy, prefab::PrefabManager};
+
+ignite_proxy! {
+    struct NavAgentID {}
+}
+
+ignite_proxy! {
+    struct NavVec3 {
+        pub x: Scalar,
+        pub y: Scalar,
+        pub z: Scalar,
+    }
+}
 
 pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>) {
     builder.install_resource(NavMeshesRes::default());

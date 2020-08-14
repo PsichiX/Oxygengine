@@ -51,17 +51,10 @@ fn store_type_yaml(item: &IgniteTypeDefinition) {
         IgniteTypeVariant::StructUnnamed(item) => &item.name,
         IgniteTypeVariant::Enum(item) => &item.name,
     };
-    let path = if let Some(namespace) = &item.namespace {
-        TYPES_DIR
-            .read()
-            .unwrap()
-            .join(format!("{}.{}.ignite-type.yaml", namespace, name))
-    } else {
-        TYPES_DIR
-            .read()
-            .unwrap()
-            .join(format!("{}.ignite-type.yaml", name))
-    };
+    let path = TYPES_DIR
+        .read()
+        .unwrap()
+        .join(format!("{}.{}.ignite-type.yaml", item.namespace, name));
     if let Ok(content) = serde_yaml::to_string(&item) {
         if write(&path, content).is_err() {
             println!("Could not save Ignite type definition to file: {:?}", path);
@@ -176,19 +169,28 @@ struct IgniteTypeAttribs {
     pub meta: HashMap<String, IgniteAttribMeta>,
 }
 
+#[proc_macro]
+pub fn ignite_proxy(input: TokenStream) -> TokenStream {
+    derive_ignite_inner(input, true)
+}
+
 #[proc_macro_derive(Ignite, attributes(ignite))]
 pub fn derive_ignite(input: TokenStream) -> TokenStream {
+    derive_ignite_inner(input, false)
+}
+
+fn derive_ignite_inner(input: TokenStream, is_proxy: bool) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     let attribs = parse_type_attribs(&ast.attrs);
     let generic_args = ast
         .generics
         .params
         .iter()
-        .map(|param| {
+        .filter_map(|param| {
             if let GenericParam::Type(param) = param {
-                param.ident.to_string()
+                Some(param.ident.to_string())
             } else {
-                unreachable!()
+                None
             }
         })
         .collect::<Vec<_>>();
@@ -293,10 +295,15 @@ pub fn derive_ignite(input: TokenStream) -> TokenStream {
         _ => panic!("Ignite can be derived only for structs and enums"),
     };
     let definition = IgniteTypeDefinition {
-        namespace: attribs.namespace,
+        namespace: if let Some(namespace) = attribs.namespace {
+            namespace
+        } else {
+            std::env::var("CARGO_PKG_NAME").unwrap_or_else(|_| env!("CARGO_PKG_NAME").to_owned())
+        },
         generic_args,
         variant,
         meta: attribs.meta,
+        is_proxy,
     };
     store_type(&definition);
     TokenStream::new()
