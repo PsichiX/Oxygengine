@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-integration-p2d-cr"
-version = "0.12.2"
+version = "0.12.3"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Integration module of 2D physics and composite rendering for Oxygen Engine"
