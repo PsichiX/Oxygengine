@@ -51,6 +51,24 @@ oxygengine-ignite new <project-name> -d /path/to/parent/
 - update `oxygengine` version either in `Cargo.toml` or by calling: `cargo update`
 - upgrading from versions before 0.12.0 requires to create new project with  latest ignite tool, then copy by hand your source files to the new project sources, as well as put assets from old project `/static/assets` directory into new project `/assets` directory, preferably using new way of assets directory structure (so you won't have to modify pipeline.json file a lot).
 
+**Speeding up compilation for new projects (best use case for gamejams):**
+- install SCCACHE, a tool for caching and sharing prebuilt dependencies between multiple game projects (https://github.com/mozilla/sccache):
+  ```bash
+  cargo install sccache
+  ```
+- add line to the `/.cargo/config` into the `[build]` section:
+
+  windows:
+  ```toml
+  rustc-wrapper = "sccache.exe"
+  ```
+  unix and many other platforms:
+  ```toml
+  rustc-wrapper = "sccache"
+  ```
+
+From now on you will have to wait for full long engine build only once, for any other new game project you create, it will perform first compilation in matter of minute, not 20.
+
 ## Building for development and production
 - Launch live development with active code recompilation and assets baking in the background on change:
   ```bash
