@@ -4,11 +4,12 @@ use core::{
         protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
     },
     Scalar,
+    Ignite,
 };
 use serde::{Deserialize, Serialize};
 use std::{any::Any, str::from_utf8};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub struct FontFace {
     pub font: String,
     #[serde(default)]

@@ -1,8 +1,8 @@
-use crate::assets::protocol::{AssetLoadResult, AssetProtocol};
+use crate::{Ignite, assets::protocol::{AssetLoadResult, AssetProtocol}};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::from_utf8};
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct LocalizationAsset {
     pub language: String,
     pub dictionary: HashMap<String, String>,

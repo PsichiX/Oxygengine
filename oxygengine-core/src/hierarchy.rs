@@ -226,7 +226,7 @@ impl HierarchyChangeRes {
 }
 
 #[derive(Ignite, Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
-pub struct Parent(#[ignite(ignore)] pub Entity);
+pub struct Parent(pub Entity);
 
 impl Component for Parent {
     type Storage = FlaggedStorage<Self, DenseVecStorage<Self>>;

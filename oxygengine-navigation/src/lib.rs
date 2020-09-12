@@ -28,6 +28,14 @@ ignite_proxy! {
     }
 }
 
+ignite_proxy! {
+    struct NavTriangle {
+        pub first: u32,
+        pub second: u32,
+        pub third: u32,
+    }
+}
+
 pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>) {
     builder.install_resource(NavMeshesRes::default());
     builder.install_system(NavAgentMaintainSystem::default(), "nav-agent-maintain", &[]);

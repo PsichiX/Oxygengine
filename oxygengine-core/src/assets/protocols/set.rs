@@ -29,7 +29,7 @@ impl AssetProtocol for SetAssetProtocol {
     fn on_load(&mut self, data: Vec<u8>) -> AssetLoadResult {
         let data = from_utf8(&data).unwrap().to_owned();
         let list = data
-            .split(|c| c == '\n' || c == '\r')
+            .lines()
             .enumerate()
             .filter_map(|(i, line)| {
                 let path = line.trim();

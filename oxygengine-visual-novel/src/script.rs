@@ -1,7 +1,7 @@
 use crate::{dialogue::Dialogue, Color, Position, Scale};
 #[cfg(feature = "script-flow")]
 use core::prefab::PrefabValue;
-use core::{prefab::Prefab, Scalar};
+use core::{prefab::Prefab, Scalar, Ignite};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
@@ -57,7 +57,7 @@ impl Default for Action {
 
 impl Prefab for Action {}
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Chapter {
     pub name: String,
     pub actions: Vec<Action>,

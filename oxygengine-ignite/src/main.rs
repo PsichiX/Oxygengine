@@ -623,6 +623,15 @@ async fn main() -> Result<()> {
                                 .required(false)
                                 .multiple(true)
                         )
+                        .arg(
+                            Arg::with_name("ignore-file")
+                                .short("f")
+                                .long("ignore-file")
+                                .value_name("PATH")
+                                .help("Path to list of type names to ignore in report")
+                                .takes_value(true)
+                                .required(false)
+                        )
                 )
         )
         .get_matches();
@@ -996,11 +1005,20 @@ async fn main() -> Result<()> {
             if !path.is_dir() {
                 panic!("Ignite types directory does not exists: {:?}", path);
             }
-            let ignore = if let Some(ignore) = matches.values_of("ignore") {
+            let mut ignore = if let Some(ignore) = matches.values_of("ignore") {
                 ignore.map(|item| item.to_owned()).collect::<Vec<_>>()
             } else {
                 vec![]
             };
+            if let Some(path) = matches.value_of("ignore-file") {
+                let contents = read_to_string(path).expect("Could not read ignored types file");
+                for line in contents.lines() {
+                    let line = line.trim();
+                    if !line.is_empty() {
+                        ignore.push(line.to_owned());
+                    }
+                }
+            }
             let types = path
                 .read_dir()
                 .expect("Could not scan ignite types directory")

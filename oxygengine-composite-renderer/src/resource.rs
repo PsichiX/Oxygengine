@@ -270,7 +270,7 @@ impl From<[UiValue; 2]> for UiValueVec2 {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub enum UiThemed {
     None,
     Image {

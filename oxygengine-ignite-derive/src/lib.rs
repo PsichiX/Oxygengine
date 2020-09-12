@@ -174,6 +174,11 @@ pub fn ignite_proxy(input: TokenStream) -> TokenStream {
     derive_ignite_inner(input, true)
 }
 
+#[proc_macro]
+pub fn ignite_alias(input: TokenStream) -> TokenStream {
+    input
+}
+
 #[proc_macro_derive(Ignite, attributes(ignite))]
 pub fn derive_ignite(input: TokenStream) -> TokenStream {
     derive_ignite_inner(input, false)

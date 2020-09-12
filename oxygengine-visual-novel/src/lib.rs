@@ -30,13 +30,13 @@ pub mod prelude {
 
 use crate::system::VnStorySystem;
 use anim::curve::{Curved, CurvedDistance, CurvedOffset};
-use core::{app::AppBuilder, assets::database::AssetsDatabase, Scalar};
+use core::{app::AppBuilder, assets::database::AssetsDatabase, Scalar, Ignite};
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Mul, Sub};
 
 pub type Scale = Position;
 
-#[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct Position(pub Scalar, pub Scalar);
 
 impl Curved for Position {
@@ -116,7 +116,7 @@ impl From<[Scalar; 2]> for Position {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct Color(pub Scalar, pub Scalar, pub Scalar);
 
 impl Curved for Color {

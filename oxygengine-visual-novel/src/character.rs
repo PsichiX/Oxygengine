@@ -1,12 +1,12 @@
 use crate::{Color, Position, Scale};
 use anim::{animation::Interpolation, transition::Transition};
-use core::{prefab::Prefab, Scalar};
+use core::{prefab::Prefab, Scalar, Ignite};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 pub type CharacterStyle = Transition<String>;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub struct Character {
     name: String,
     /// {style name: image name}

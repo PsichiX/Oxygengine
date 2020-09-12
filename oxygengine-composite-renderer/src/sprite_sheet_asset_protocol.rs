@@ -5,18 +5,19 @@ use core::{
         protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
     },
     Scalar,
+    Ignite,
 };
 use serde::{Deserialize, Serialize};
 use std::{any::Any, collections::HashMap, str::from_utf8};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub struct SpriteSheetInfo {
     pub meta: SpriteSheetInfoMeta,
     #[serde(default)]
     pub frames: HashMap<String, SpriteSheetInfoFrame>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub struct SpriteSheetInfoMeta {
     pub image: String,
     #[serde(default)]
@@ -36,7 +37,7 @@ impl SpriteSheetInfoMeta {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Clone, Copy, Serialize, Deserialize)]
 pub struct SpriteSheetInfoMetaSize {
     #[serde(default)]
     pub w: Scalar,
@@ -44,7 +45,7 @@ pub struct SpriteSheetInfoMetaSize {
     pub h: Scalar,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SpriteSheetInfoFrame {
     #[serde(default)]
     pub frame: Rect,

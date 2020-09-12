@@ -1,11 +1,11 @@
 use crate::{background::BackgroundStyle, Position};
 use anim::{animation::Interpolation, transition::Transition};
-use core::{prefab::Prefab, Scalar};
+use core::{prefab::Prefab, Scalar, Ignite};
 use serde::{Deserialize, Serialize};
 
 pub type ActiveScene = Transition<Option<String>>;
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Scene {
     #[serde(default)]
     pub name: String,

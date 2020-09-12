@@ -9,11 +9,12 @@ use core::{
         protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
     },
     Scalar,
+    Ignite,
 };
 use serde::{Deserialize, Serialize};
 use std::{any::Any, collections::HashMap};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub struct LayerObject {
     pub name: String,
     pub object_type: String,
@@ -24,7 +25,7 @@ pub struct LayerObject {
     pub height: usize,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub enum LayerData {
     Tiles(Vec<usize>),
     Objects(Vec<LayerObject>),
@@ -48,13 +49,13 @@ impl LayerData {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub struct Layer {
     pub name: String,
     pub data: LayerData,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub struct Map {
     pub cols: usize,
     pub rows: usize,

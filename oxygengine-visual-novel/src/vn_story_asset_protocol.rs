@@ -3,10 +3,8 @@ use core::{
     assets::protocol::{AssetLoadResult, AssetProtocol},
     prefab::Prefab,
 };
-use serde::{Deserialize, Serialize};
 use std::str::from_utf8;
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct VnStoryAsset(Story);
 
 impl VnStoryAsset {

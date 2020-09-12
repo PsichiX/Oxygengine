@@ -55,7 +55,7 @@ pub fn prefabs_installer(prefabs: &mut PrefabManager) {
     prefabs.register_component_factory_proxy::<PositionCameraAlignment, PositionCameraAlignmentPrefabProxy>("PositionCameraAlignment");
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub enum VnRenderingOverlayStyle {
     Color(Color),
     Image(String),
@@ -67,7 +67,7 @@ impl Default for VnRenderingOverlayStyle {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub struct VnRenderingConfig {
     #[serde(default = "VnRenderingConfig::default_background_camera_scaling_target")]
     pub background_camera_scaling_target: CompositeScalingTarget,
@@ -339,7 +339,7 @@ impl VnRenderingManager {
 }
 
 #[derive(Ignite, Debug, Clone, Copy)]
-pub struct PositionCameraAlignment(#[ignite(ignore)] pub Entity, pub Vec2);
+pub struct PositionCameraAlignment(pub Entity, pub Vec2);
 
 impl Component for PositionCameraAlignment {
     type Storage = VecStorage<Self>;

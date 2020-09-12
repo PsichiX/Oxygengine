@@ -1,10 +1,10 @@
 use anim::transition::Transition;
-use core::{prefab::Prefab, Scalar};
+use core::{prefab::Prefab, Scalar, Ignite};
 use serde::{Deserialize, Serialize};
 
 pub type BackgroundStyle = Transition<String>;
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Background {
     pub name: String,
     pub image: String,

@@ -7,7 +7,7 @@ use crate::{
 };
 #[cfg(feature = "script-flow")]
 use core::prefab::PrefabValue;
-use core::{error, info, prefab::Prefab, warn, Scalar};
+use core::{error, info, prefab::Prefab, warn, Scalar, Ignite};
 #[cfg(feature = "script-flow")]
 use flow::GUID;
 use serde::{Deserialize, Serialize};
@@ -75,7 +75,7 @@ impl ScriptFlowEvent {
     }
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Story {
     #[serde(default)]
     active_scene: ActiveScene,
