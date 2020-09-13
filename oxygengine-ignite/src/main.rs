@@ -1005,8 +1005,12 @@ async fn main() -> Result<()> {
             .status()
             .expect("Could not run build in release mode");
         let out_dir = Path::new(crate_dir).join(out_dir);
-        remove_file(out_dir.join(".gitignore")).expect("Could not remove .gitignore file");
-        remove_file(out_dir.join("package.json")).expect("Could not remove package.json file");
+        if remove_file(out_dir.join(".gitignore")).is_err() {
+            println!("Could not remove .gitignore file");
+        }
+        if remove_file(out_dir.join("package.json")).is_err() {
+            println!("Could not remove package.json file");
+        }
         println!("* Executing assets pipeline");
         Command::new(exe)
             .arg("pipeline")

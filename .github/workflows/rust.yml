@@ -20,4 +20,4 @@ jobs:
     - name: Create project with Ignite CLI
       run: OXY_UPDATE_PRESETS=1 oxygengine-ignite new test
     - name: Build test project
-      run: cd test && ls -al && oxygengine-ignite package
+      run: cd test && ls -al && cat Cargo.toml && oxygengine-ignite package
