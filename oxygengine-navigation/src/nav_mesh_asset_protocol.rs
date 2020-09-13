@@ -1,6 +1,9 @@
 use crate::resource::{NavMesh, NavResult, NavTriangle, NavVec3};
 use bincode::deserialize;
-use core::{Ignite, assets::protocol::{AssetLoadResult, AssetProtocol}};
+use core::{
+    assets::protocol::{AssetLoadResult, AssetProtocol},
+    Ignite,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]

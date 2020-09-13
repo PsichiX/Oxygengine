@@ -7,7 +7,7 @@ use crate::{
 };
 #[cfg(feature = "script-flow")]
 use core::prefab::PrefabValue;
-use core::{error, info, prefab::Prefab, warn, Scalar, Ignite};
+use core::{error, info, prefab::Prefab, warn, Ignite, Scalar};
 #[cfg(feature = "script-flow")]
 use flow::GUID;
 use serde::{Deserialize, Serialize};

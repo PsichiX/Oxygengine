@@ -1,7 +1,7 @@
 use crate::{dialogue::Dialogue, Color, Position, Scale};
 #[cfg(feature = "script-flow")]
 use core::prefab::PrefabValue;
-use core::{prefab::Prefab, Scalar, Ignite};
+use core::{prefab::Prefab, Ignite, Scalar};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]

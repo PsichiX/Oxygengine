@@ -101,23 +101,39 @@ impl Actions {
     }
 }
 
+#[derive(Default, Deserialize)]
+struct ProjectMeta {
+    #[serde(default)]
+    pub sccache_bin: Option<PathBuf>,
+    #[serde(default)]
+    pub sccache_dir: Option<PathBuf>,
+}
+
 #[allow(clippy::cognitive_complexity)]
 #[tokio::main]
 async fn main() -> Result<()> {
     let meta = MetadataCommand::new().exec();
-    let mut root_path = if let Ok(meta) = meta {
+    let (mut root_path, project_meta) = if let Ok(meta) = meta {
         meta.packages
             .iter()
             .find_map(|p| {
                 if p.name == env!("CARGO_PKG_NAME") {
-                    Some(p.manifest_path.clone())
+                    let root_path = p.manifest_path.clone();
+                    let project_meta = if let Ok(project_meta) =
+                        serde_json::from_value::<ProjectMeta>(p.metadata.clone())
+                    {
+                        project_meta
+                    } else {
+                        ProjectMeta::default()
+                    };
+                    Some((root_path, project_meta))
                 } else {
                     None
                 }
             })
-            .unwrap_or_else(|| current_exe().unwrap())
+            .unwrap_or_else(|| (current_exe().unwrap(), ProjectMeta::default()))
     } else {
-        current_exe()?
+        (current_exe()?, ProjectMeta::default())
     };
     root_path.pop();
     let presets_path = if let Ok(path) = std::env::var("OXY_PRESETS_DIR") {
@@ -188,6 +204,13 @@ async fn main() -> Result<()> {
             ErrorKind::NotFound,
             "There are no presets installed - consider reinstalling oxygengine-ignite, it might be corrupted",
         ));
+    }
+
+    if let Some(path) = &project_meta.sccache_bin {
+        std::env::set_var("RUSTC_WRAPPER", path.to_str().unwrap());
+    }
+    if let Some(path) = &project_meta.sccache_dir {
+        std::env::set_var("SCCACHE_DIR", path.to_str().unwrap());
     }
 
     let matches = App::new(env!("CARGO_PKG_NAME"))

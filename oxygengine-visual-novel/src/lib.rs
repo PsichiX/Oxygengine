@@ -30,7 +30,7 @@ pub mod prelude {
 
 use crate::system::VnStorySystem;
 use anim::curve::{Curved, CurvedDistance, CurvedOffset};
-use core::{app::AppBuilder, assets::database::AssetsDatabase, Scalar, Ignite};
+use core::{app::AppBuilder, assets::database::AssetsDatabase, Ignite, Scalar};
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Mul, Sub};
 

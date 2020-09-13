@@ -8,8 +8,7 @@ use core::{
         database::AssetsDatabase,
         protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
     },
-    Scalar,
-    Ignite,
+    Ignite, Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::{any::Any, collections::HashMap};

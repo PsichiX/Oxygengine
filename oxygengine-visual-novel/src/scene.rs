@@ -1,6 +1,6 @@
 use crate::{background::BackgroundStyle, Position};
 use anim::{animation::Interpolation, transition::Transition};
-use core::{prefab::Prefab, Scalar, Ignite};
+use core::{prefab::Prefab, Ignite, Scalar};
 use serde::{Deserialize, Serialize};
 
 pub type ActiveScene = Transition<Option<String>>;

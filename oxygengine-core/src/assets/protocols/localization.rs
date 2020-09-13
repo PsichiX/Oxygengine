@@ -1,4 +1,7 @@
-use crate::{Ignite, assets::protocol::{AssetLoadResult, AssetProtocol}};
+use crate::{
+    assets::protocol::{AssetLoadResult, AssetProtocol},
+    Ignite,
+};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::from_utf8};
 

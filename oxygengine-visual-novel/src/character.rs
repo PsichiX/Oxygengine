@@ -1,6 +1,6 @@
 use crate::{Color, Position, Scale};
 use anim::{animation::Interpolation, transition::Transition};
-use core::{prefab::Prefab, Scalar, Ignite};
+use core::{prefab::Prefab, Ignite, Scalar};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

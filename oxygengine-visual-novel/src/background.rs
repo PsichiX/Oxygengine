@@ -1,5 +1,5 @@
 use anim::transition::Transition;
-use core::{prefab::Prefab, Scalar, Ignite};
+use core::{prefab::Prefab, Ignite, Scalar};
 use serde::{Deserialize, Serialize};
 
 pub type BackgroundStyle = Transition<String>;

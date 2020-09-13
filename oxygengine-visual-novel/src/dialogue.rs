@@ -1,5 +1,5 @@
 use anim::transition::{SwitchTransition, Transition};
-use core::{prefab::Prefab, Scalar, Ignite};
+use core::{prefab::Prefab, Ignite, Scalar};
 use serde::{Deserialize, Serialize};
 
 pub type ActiveDialogue = Transition<Option<Dialogue>>;

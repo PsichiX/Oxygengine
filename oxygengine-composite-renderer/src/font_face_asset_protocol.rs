@@ -3,8 +3,7 @@ use core::{
         asset::{Asset, AssetID},
         protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
     },
-    Scalar,
-    Ignite,
+    Ignite, Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::{any::Any, str::from_utf8};

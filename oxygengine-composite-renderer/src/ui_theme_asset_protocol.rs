@@ -1,5 +1,8 @@
 use crate::resource::UiThemed;
-use core::{Ignite, assets::protocol::{AssetLoadResult, AssetProtocol}};
+use core::{
+    assets::protocol::{AssetLoadResult, AssetProtocol},
+    Ignite,
+};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::from_utf8};
 
