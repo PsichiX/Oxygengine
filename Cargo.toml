@@ -9,6 +9,9 @@ homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine"
 exclude = [
+  ".github/**",
+  ".travis.yml",
+  "ignore-ignite-types.txt",
   "demos/**",
   "media/**",
   "oxygengine-ignite",
