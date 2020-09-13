@@ -1,5 +1,7 @@
+inject
+```
 {
-  "name": "~%IGNITE_ID%~",
+  "name": "%{ $IGNITE_ID }%",
   "version": "0.1.0",
   "scripts": {
     "build": "rimraf dist pkg && webpack",
@@ -14,3 +16,4 @@
     "rimraf": "^2.6.3"
   }
 }
+```

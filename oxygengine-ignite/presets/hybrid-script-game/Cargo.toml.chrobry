@@ -1,5 +1,7 @@
+inject
+```
 [package]
-name = "~%IGNITE_ID%~"
+name = "%{ $IGNITE_ID }%"
 version = "0.1.0"
 edition = "2018"
 build = "build.rs"
@@ -24,3 +26,4 @@ serde = { version = "1", features = ["derive"] }
 [dependencies.oxygengine]
 version = "0.11"
 features = ["web-composite-game", "script-web"]
+```
