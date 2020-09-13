@@ -7,7 +7,7 @@ use core::{
     ecs::Entity,
     Scalar,
 };
-use futures::{future, Future};
+use futures::{future, TryFutureExt};
 use js_sys::*;
 use std::{
     collections::HashMap,

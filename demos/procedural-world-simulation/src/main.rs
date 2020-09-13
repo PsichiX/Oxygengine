@@ -121,7 +121,7 @@ fn main() {
 
     let mut world = build_world(altitude_seed);
     let buffer = world_to_buffer(mode, &world);
-    window.update_with_buffer(&buffer).unwrap();
+    window.update_with_buffer(&buffer, SIZE, SIZE).unwrap();
 
     println!("LOOP START");
     while window.is_open() && !window.is_key_down(Key::Escape) {
@@ -202,7 +202,7 @@ fn main() {
                 mode, year, day
             ));
             window
-                .update_with_buffer(&world_to_buffer(mode, &world))
+                .update_with_buffer(&world_to_buffer(mode, &world), SIZE, SIZE)
                 .unwrap();
         } else {
             window.update();

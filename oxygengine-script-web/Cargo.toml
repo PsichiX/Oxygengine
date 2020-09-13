@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-script-web"
-version = "0.12.4"
+version = "0.12.5"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Web scripting module for Oxygen Engine"
@@ -39,7 +39,7 @@ js-sys = "0.3"
 lazy_static = "1.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
-num = "0.2"
+num = "0.3"
 
 [dependencies.oxygengine-composite-renderer]
 version = "0.12"

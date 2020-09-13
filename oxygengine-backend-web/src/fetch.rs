@@ -1,5 +1,5 @@
 use core::fetch::{FetchEngine, FetchProcess, FetchProcessReader, FetchStatus};
-use futures::{future, Future};
+use futures::{future, TryFutureExt};
 use js_sys::*;
 use wasm_bindgen::{prelude::*, JsCast};
 use wasm_bindgen_futures::{future_to_promise, JsFuture};
@@ -37,9 +37,8 @@ impl FetchEngine for WebFetchEngine {
             .and_then(|resp| {
                 assert!(resp.is_instance_of::<Response>());
                 let resp: Response = resp.dyn_into().unwrap();
-                resp.array_buffer()
+                JsFuture::from(resp.array_buffer().unwrap())
             })
-            .and_then(JsFuture::from)
             .and_then(move |buff| {
                 assert!(buff.is_instance_of::<ArrayBuffer>());
                 let typebuf: Uint8Array = Uint8Array::new(&buff);

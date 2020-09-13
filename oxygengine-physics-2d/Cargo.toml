@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-physics-2d"
-version = "0.12.4"
+version = "0.12.5"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "2D physics module for Oxygen Engine"
@@ -20,11 +20,11 @@ oxygengine-core = { version = "0.12", path = "../oxygengine-core" }
 serde = { version = "1", features = ["derive"] }
 
 [dependencies.ncollide2d]
-version = "0.23"
+version = "0.24"
 default-features = false
 features = ["dim2", "serde-serialize"]
 
 [dependencies.nphysics2d]
-version = "0.16"
+version = "0.17"
 default-features = false
 features = ["dim2", "use-wasm-bindgen"]
