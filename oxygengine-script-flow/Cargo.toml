@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-script-flow"
-version = "0.12.3"
+version = "0.12.4"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Visual graph scripting module for Oxygen Engine"
