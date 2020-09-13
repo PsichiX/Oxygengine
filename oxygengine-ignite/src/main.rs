@@ -243,7 +243,7 @@ async fn main() -> Result<()> {
                         .help(&format!("Project preset ({})", presets_list.join(", ")))
                         .takes_value(false)
                         .required(false)
-                        .default_value(presets_list.last().unwrap()),
+                        .default_value("web-composite-game"),
                 )
                 .arg(
                     Arg::with_name("dont-build")
