@@ -72,17 +72,10 @@ fn store_type_json(item: &IgniteTypeDefinition) {
         IgniteTypeVariant::StructUnnamed(item) => &item.name,
         IgniteTypeVariant::Enum(item) => &item.name,
     };
-    let path = if let Some(namespace) = &item.namespace {
-        TYPES_DIR
-            .read()
-            .unwrap()
-            .join(format!("{}.{}.ignite-type.json", namespace, name))
-    } else {
-        TYPES_DIR
-            .read()
-            .unwrap()
-            .join(format!("{}.ignite-type.json", name))
-    };
+    let path = TYPES_DIR
+        .read()
+        .unwrap()
+        .join(format!("{}.{}.ignite-type.json", item.namespace, name));
     #[cfg(feature = "pretty")]
     let result = serde_json::to_string_pretty(&item);
     #[cfg(not(feature = "pretty"))]
@@ -104,17 +97,10 @@ fn store_type_ron(item: &IgniteTypeDefinition) {
         IgniteTypeVariant::StructUnnamed(item) => &item.name,
         IgniteTypeVariant::Enum(item) => &item.name,
     };
-    let path = if let Some(namespace) = &item.namespace {
-        TYPES_DIR
-            .read()
-            .unwrap()
-            .join(format!("{}.{}.ignite-type.ron", namespace, name))
-    } else {
-        TYPES_DIR
-            .read()
-            .unwrap()
-            .join(format!("{}.ignite-type.ron", name))
-    };
+    let path = TYPES_DIR
+        .read()
+        .unwrap()
+        .join(format!("{}.{}.ignite-type.ron", item.namespace, name));
     #[cfg(feature = "pretty")]
     let result = ron::ser::to_string_pretty(&item, Default::default());
     #[cfg(not(feature = "pretty"))]
@@ -136,17 +122,10 @@ fn store_type_binary(item: &IgniteTypeDefinition) {
         IgniteTypeVariant::StructUnnamed(item) => &item.name,
         IgniteTypeVariant::Enum(item) => &item.name,
     };
-    let path = if let Some(namespace) = &item.namespace {
-        TYPES_DIR
-            .read()
-            .unwrap()
-            .join(format!("{}.{}.ignite-type.bin", namespace, name))
-    } else {
-        TYPES_DIR
-            .read()
-            .unwrap()
-            .join(format!("{}.ignite-type.bin", name))
-    };
+    let path = TYPES_DIR
+        .read()
+        .unwrap()
+        .join(format!("{}.{}.ignite-type.bin", item.namespace, name));
     if let Ok(content) = bincode::serialize(&item) {
         if write(&path, content).is_err() {
             println!("Could not save Ignite type definition to file: {:?}", path);

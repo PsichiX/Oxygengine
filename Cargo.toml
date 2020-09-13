@@ -16,7 +16,6 @@ exclude = [
   "media/**",
   "oxygengine-ignite",
   "oxygengine-build-tools",
-  "oxygengine-js",
 ]
 readme = "README.md"
 
@@ -74,20 +73,18 @@ scalar64 = [
   "oxygengine-physics-2d/scalar64",
   "oxygengine-procedural/scalar64",
   "oxygengine-script-flow/scalar64",
-  "oxygengine-script-web/scalar64",
   "oxygengine-utils/scalar64",
   "oxygengine-visual-novel/scalar64",
 ]
 desktop = ["parallel"]
-input = ["oxygengine-input", "oxygengine-script-web/input"]
-composite-renderer = ["oxygengine-composite-renderer", "oxygengine-script-web/composite-renderer"]
+input = ["oxygengine-input"]
+composite-renderer = ["oxygengine-composite-renderer"]
 animation = ["oxygengine-animation"]
 network = ["oxygengine-network"]
 procedural = ["oxygengine-procedural"]
 navigation = ["oxygengine-navigation"]
-audio = ["oxygengine-audio", "oxygengine-script-web/audio"]
+audio = ["oxygengine-audio"]
 physics-2d = ["oxygengine-physics-2d"]
-script-web = ["oxygengine-script-web"]
 script-flow = ["oxygengine-script-flow", "oxygengine-visual-novel/script-flow"]
 integration-physics-2d-composite-renderer = ["oxygengine-integration-p2d-cr"]
 integration-visual-novel-composite-renderer = ["oxygengine-integration-vn-cr"]
@@ -216,11 +213,6 @@ version = "0.12"
 path = "./oxygengine-integration-vn-cr"
 optional = true
 
-[dependencies.oxygengine-script-web]
-version = "0.12"
-path = "./oxygengine-script-web"
-optional = true
-
 [dependencies.oxygengine-script-flow]
 version = "0.12"
 path = "./oxygengine-script-flow"
@@ -259,12 +251,10 @@ members = [
   "oxygengine-physics-2d",
   "oxygengine-integration-p2d-cr",
   "oxygengine-integration-vn-cr",
-  "oxygengine-script-web",
   "oxygengine-script-flow",
   "oxygengine-visual-novel",
   "oxygengine-animation",
   "oxygengine-build-tools",
-  # "oxygengine-js",
   "demos/procedural-world-simulation",
   "demos/basic-web-game",
   "demos/demo-web-game",

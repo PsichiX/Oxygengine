@@ -30,7 +30,6 @@ oxygengine-ignite new <project-name>
 Which will create default web game project using `web-composite-game` preset.
 You can create projects with different presets:
 - __desktop-headless-game__ - typical server-like project without graphics.
-- __hybrid-script-game__ - it's a `web-composite-game` with JavaScript scripting module to make prototyping with Oxygengine faster and easier. Please note that JS scripting compared to pure Rust version is slower so it's not a great idea to use it in a production-ready game with lots of entities and logic, it should only help to prototype a game systems that will be later rewritten in Rust for best optimization. __NOTE: Because of engine not using NPM at all since version 0.12.0, this template is forced to use version 0.11.2 of the engine until new way of JavaScript scripting method will be developed.__
 
 using:
 ```bash

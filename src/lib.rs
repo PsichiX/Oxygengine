@@ -72,10 +72,6 @@ pub mod integration_visual_novel_composite_renderer {
     pub use oxygengine_integration_vn_cr::*;
 }
 pub mod script {
-    pub mod web {
-        #[cfg(feature = "script-web")]
-        pub use oxygengine_script_web::*;
-    }
     #[cfg(feature = "script-flow")]
     pub use oxygengine_script_flow::*;
 }
@@ -137,9 +133,6 @@ pub mod prelude {
     pub use oxygengine_procedural::prelude::*;
     #[cfg(feature = "script-flow")]
     pub use oxygengine_script_flow::prelude::*;
-    #[cfg(feature = "web")]
-    #[cfg(feature = "script-web")]
-    pub use oxygengine_script_web::prelude::*;
     pub use oxygengine_utils::prelude::*;
     #[cfg(feature = "visual-novel")]
     pub use oxygengine_visual_novel::prelude::*;
