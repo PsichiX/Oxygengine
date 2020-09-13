@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build
-      run: cargo build --all --verbose
+      run: cargo build --all --verbose --exclude oxygengine-pws
     - name: Run tests
       run: cargo test --all --verbose
     - name: Install Ignite CLI
