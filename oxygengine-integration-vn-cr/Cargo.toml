@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-integration-vn-cr"
-version = "0.13.0"
+version = "0.13.1"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Integration module of visual novel and composite rendering for Oxygen Engine"
