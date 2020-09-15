@@ -1,0 +1,43 @@
+[package]
+name = "oxygengine-editor-tools"
+version = "0.13.0"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+edition = "2018"
+description = "Editor tools for Oxygen Engine"
+license-file = "../LICENSE"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine-editor-tools"
+readme = "../README.md"
+
+[features]
+web = ["oxygengine-backend-web/web", "wasm-bindgen", "web-sys"]
+parallel = ["oxygengine-backend-web/parallel"]
+scalar64 = ["oxygengine-backend-web/scalar64"]
+composite-renderer = ["oxygengine-composite-renderer-backend-web"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+
+[dependencies.wasm-bindgen]
+version = "0.2"
+features = ["serde-serialize"]
+optional = true
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+  'HtmlCanvasElement',
+]
+optional = true
+
+[dependencies.oxygengine-backend-web]
+version = "0.13"
+path = "../oxygengine-backend-web"
+features = ["ipc"]
+optional = true
+
+[dependencies.oxygengine-composite-renderer-backend-web]
+version = "0.13"
+path = "../oxygengine-composite-renderer-backend-web"
+optional = true

@@ -62,7 +62,7 @@ pub fn main_js() -> Result<(), JsValue> {
         .with_bundle(
             oxygengine::composite_renderer::bundle_installer,
             WebCompositeRenderer::with_state(
-                get_canvas_by_id("screen"), // canvas target.
+                get_canvas_by_id("screen"),
                 RenderState::new(Some(Color::black())),
             ),
         )

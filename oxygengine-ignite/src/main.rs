@@ -927,8 +927,12 @@ async fn main() -> Result<()> {
         let mut watcher = Hotwatch::new().expect("Could not start files watcher");
         let (build_sender, build_receiver) = channel();
         let (pipeline_sender, pipeline_receiver) = channel();
-        build_sender.send(()).expect("Cannot send build run command");
-        pipeline_sender.send(()).expect("Cannot send pipeline run command");
+        build_sender
+            .send(())
+            .expect("Cannot send build run command");
+        pipeline_sender
+            .send(())
+            .expect("Cannot send pipeline run command");
         for path in binaries {
             let build_sender = build_sender.clone();
             watcher

@@ -83,6 +83,10 @@ pub mod visual_novel {
 pub mod animation {
     pub use oxygengine_animation::*;
 }
+#[cfg(feature = "editor-tools")]
+pub mod editor_tools {
+    pub use oxygengine_editor_tools::*;
+}
 
 pub mod prelude {
     #[cfg(feature = "animation")]
@@ -101,6 +105,8 @@ pub mod prelude {
     pub use oxygengine_composite_renderer_backend_web::prelude::*;
     pub use oxygengine_core::prelude::*;
     pub use oxygengine_core::Scalar;
+    #[cfg(feature = "editor-tools")]
+    pub use oxygengine_editor_tools::prelude::*;
     #[cfg(feature = "input")]
     pub use oxygengine_input::prelude::*;
     #[cfg(feature = "web")]

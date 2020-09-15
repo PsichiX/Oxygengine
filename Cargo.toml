@@ -34,6 +34,7 @@ web = [
   "oxygengine-physics-2d/web",
   "oxygengine-script-flow/web",
   "oxygengine-visual-novel/web",
+  "oxygengine-editor-tools/web",
 ]
 parallel = [
   "oxygengine-audio/parallel",
@@ -52,6 +53,7 @@ parallel = [
   "oxygengine-script-flow/parallel",
   "oxygengine-utils/parallel",
   "oxygengine-visual-novel/parallel",
+  "oxygengine-editor-tools/parallel",
 ]
 scalar64 = [
   "oxygengine-audio/scalar64",
@@ -75,11 +77,15 @@ scalar64 = [
   "oxygengine-script-flow/scalar64",
   "oxygengine-utils/scalar64",
   "oxygengine-visual-novel/scalar64",
+  "oxygengine-editor-tools/scalar64",
 ]
 ipc = ["oxygengine-backend-web/ipc"]
 desktop = ["parallel"]
 input = ["oxygengine-input"]
-composite-renderer = ["oxygengine-composite-renderer"]
+composite-renderer = [
+  "oxygengine-composite-renderer",
+  "oxygengine-editor-tools/composite-renderer",
+]
 animation = ["oxygengine-animation"]
 network = ["oxygengine-network"]
 procedural = ["oxygengine-procedural"]
@@ -129,6 +135,7 @@ desktop-native-headless-game = [
   "navigation",
   "oxygengine-network-backend-native",
 ]
+editor-tools = ["oxygengine-editor-tools"]
 
 [dependencies]
 oxygengine-core = { version = "0.13", path = "./oxygengine-core" }
@@ -229,6 +236,11 @@ version = "0.13"
 path = "./oxygengine-animation"
 optional = true
 
+[dependencies.oxygengine-editor-tools]
+version = "0.13"
+path = "./oxygengine-editor-tools"
+optional = true
+
 [workspace]
 members = [
   "oxygengine-ignite",
@@ -256,6 +268,7 @@ members = [
   "oxygengine-visual-novel",
   "oxygengine-animation",
   "oxygengine-build-tools",
+  "oxygengine-editor-tools",
   "demos/procedural-world-simulation",
   "demos/basic-web-game",
   "demos/demo-web-game",

@@ -57,24 +57,38 @@ impl AppTimer for WebAppTimer {
 }
 
 #[cfg(feature = "ipc")]
+pub type WebIpcId = core::id::ID<WebIpc>;
+
+#[cfg(feature = "ipc")]
 #[derive(Default)]
 pub struct WebIpc {
     /// {id, fn(data, origin) -> response?}
-    callbacks: std::collections::HashMap<String, Box<dyn FnMut(JsValue, &str) -> Option<JsValue>>>,
+    callbacks: std::collections::HashMap<WebIpcId, Box<WebIpcCallback>>,
 }
 
 #[cfg(feature = "ipc")]
+unsafe impl Send for WebIpc {}
+#[cfg(feature = "ipc")]
+unsafe impl Sync for WebIpc {}
+
+#[cfg(feature = "ipc")]
+pub type WebIpcCallback = dyn FnMut(JsValue, &str) -> Option<JsValue>;
+
+#[cfg(feature = "ipc")]
 impl WebIpc {
-    pub fn register(
-        &mut self,
-        id: String,
-        callback: Box<dyn FnMut(JsValue, &str) -> Option<JsValue>>,
-    ) {
+    pub fn register(&mut self, callback: Box<WebIpcCallback>) -> WebIpcId {
+        let id = WebIpcId::default();
         self.callbacks.insert(id, callback);
+        id
     }
 
-    pub fn unregister(&mut self, id: &str) {
-        self.callbacks.remove(id);
+    pub fn with_callback(mut self, callback: Box<WebIpcCallback>) -> Self {
+        self.register(callback);
+        self
+    }
+
+    pub fn unregister(&mut self, id: WebIpcId) {
+        self.callbacks.remove(&id);
     }
 }
 
@@ -116,7 +130,7 @@ impl BackendAppRunner<'static, 'static, JsValue> for WebAppRunner {
                         }
                     }
                 }
-            }) as Box<dyn FnMut(web_sys::MessageEvent)>);
+            }) as Box<dyn FnMut(_)>);
             window()
                 .add_event_listener_with_callback("message", f.as_ref().unchecked_ref())
                 .expect("Could not perform `add_event_listener`");
