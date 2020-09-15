@@ -96,5 +96,10 @@ From now on you will have to wait for full long engine build only once, for any 
   ```
   this command will run release build, assets pipeline and bundle package.
 
+  To produce a debug mode package you have to run:
+  ```bash
+  oxygengine-ignite package -d
+  ```
+
 ## Roadmap
 Current milestone progress: https://github.com/PsichiX/Oxygengine/projects/1

@@ -118,15 +118,19 @@ async fn main() -> Result<()> {
             .iter()
             .find_map(|p| {
                 if p.name == env!("CARGO_PKG_NAME") {
-                    let root_path = p.manifest_path.clone();
-                    let project_meta = if let Ok(project_meta) =
-                        serde_json::from_value::<ProjectMeta>(p.metadata.clone())
-                    {
-                        project_meta
+                    if !p.metadata.is_null() {
+                        let root_path = p.manifest_path.clone();
+                        let project_meta = if let Ok(project_meta) =
+                            serde_json::from_value::<ProjectMeta>(p.metadata.clone())
+                        {
+                            project_meta
+                        } else {
+                            ProjectMeta::default()
+                        };
+                        Some((root_path, project_meta))
                     } else {
-                        ProjectMeta::default()
-                    };
-                    Some((root_path, project_meta))
+                        None
+                    }
                 } else {
                     None
                 }
@@ -581,6 +585,14 @@ async fn main() -> Result<()> {
             SubCommand::with_name("package")
                 .about("Make distribution package of the project")
                 .arg(
+                    Arg::with_name("debug")
+                        .short("d")
+                        .long("debug")
+                        .help("Package with debug profile")
+                        .takes_value(false)
+                        .required(false)
+                )
+                .arg(
                     Arg::with_name("crate_dir")
                         .short("c")
                         .long("crate_dir")
@@ -794,7 +806,7 @@ async fn main() -> Result<()> {
         build_map_and_write_to_file(input, output, &spritesheets, full_names, quiet)?;
     } else if let Some(matches) = matches.subcommand_matches("pipeline") {
         let config = matches.value_of("config").unwrap();
-        let config = Path::new(&config).to_owned();
+        let mut config = Path::new(&config).to_owned();
         let dry_run = matches.is_present("dry-run");
         let template = matches.is_present("template");
         if template {
@@ -857,11 +869,10 @@ async fn main() -> Result<()> {
                         pipeline.dry_run();
                     } else {
                         set_current_dir(if config.is_file() {
-                            let mut path = config.clone();
-                            path.pop();
-                            path
+                            config.pop();
+                            config
                         } else {
-                            config.clone()
+                            config
                         })?;
                         pipeline.execute()?;
                     }
@@ -916,8 +927,8 @@ async fn main() -> Result<()> {
         let mut watcher = Hotwatch::new().expect("Could not start files watcher");
         let (build_sender, build_receiver) = channel();
         let (pipeline_sender, pipeline_receiver) = channel();
-        drop(build_sender.send(()));
-        drop(pipeline_sender.send(()));
+        build_sender.send(()).expect("Cannot send build run command");
+        pipeline_sender.send(()).expect("Cannot send pipeline run command");
         for path in binaries {
             let build_sender = build_sender.clone();
             watcher
@@ -987,23 +998,25 @@ async fn main() -> Result<()> {
         drop(builds.join());
         drop(pipelines.join());
     } else if let Some(matches) = matches.subcommand_matches("package") {
+        let debug = matches.is_present("debug");
         let crate_dir = matches.value_of("crate_dir").unwrap();
         let pipeline = matches.value_of("pipeline").unwrap();
         let assets = Path::new(matches.value_of("assets").unwrap());
         let out_dir = matches.value_of("out_dir").unwrap();
         let exe = current_exe().expect("Could not get path to the running executable");
         let timer = Instant::now();
-        println!("* Building application in release mode");
+        let mode = if debug { "debug" } else { "release" };
+        println!("* Packaging application in {} mode", mode);
         Command::new(&exe)
             .arg("build")
             .arg("--profile")
-            .arg("release")
+            .arg(mode)
             .arg("--crate_dir")
             .arg(crate_dir)
             .arg("--out_dir")
             .arg(out_dir)
             .status()
-            .expect("Could not run build in release mode");
+            .unwrap_or_else(|_| panic!("Could not run build in {} mode", mode));
         let out_dir = Path::new(crate_dir).join(out_dir);
         if remove_file(out_dir.join(".gitignore")).is_err() {
             println!("Could not remove .gitignore file");

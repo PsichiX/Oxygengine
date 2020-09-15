@@ -1,0 +1,6 @@
+[book]
+authors = ["Patryk 'PsichiX' Budzynski"]
+language = "en"
+multilingual = false
+src = "src"
+title = "Oxygengine Essentials Book"

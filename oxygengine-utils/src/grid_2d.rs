@@ -742,6 +742,7 @@ where
         unsafe { self.access_decoupled_unsafe(read, write, reads, writes) }
     }
 
+    #[allow(clippy::missing_safety_doc)]
     pub unsafe fn access_decoupled_unsafe<'a>(
         &'a self,
         read: &[(usize, usize)],
@@ -769,6 +770,7 @@ where
         }
         for i in 0..write.len() {
             #[allow(mutable_transmutes)]
+            #[allow(clippy::transmute_ptr_to_ptr)]
             {
                 let (col, row) = write[i];
                 writes[i] = std::mem::transmute(self.cell(col, row).unwrap());

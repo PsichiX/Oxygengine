@@ -12,7 +12,7 @@ impl<'s> System<'s> for TextInputWriterSystem {
                 let entry = text_inputs
                     .inputs
                     .entry(focused)
-                    .or_insert(Default::default());
+                    .or_insert_with(Default::default);
                 entry.1 = entry.1.min(entry.0.len());
                 for (key, code) in device.last_sequence() {
                     match code.as_str() {

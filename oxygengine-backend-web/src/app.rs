@@ -13,7 +13,7 @@ fn window() -> web_sys::Window {
 fn request_animation_frame(f: &Closure<dyn FnMut()>) {
     window()
         .request_animation_frame(f.as_ref().unchecked_ref())
-        .expect("should register `requestAnimationFrame` OK");
+        .expect("Could not perform `requestAnimationFrame`");
 }
 
 fn performance() -> web_sys::Performance {
@@ -56,11 +56,35 @@ impl AppTimer for WebAppTimer {
     }
 }
 
+#[cfg(feature = "ipc")]
+#[derive(Default)]
+pub struct WebIpc {
+    /// {id, fn(data, origin) -> response?}
+    callbacks: std::collections::HashMap<String, Box<dyn FnMut(JsValue, &str) -> Option<JsValue>>>,
+}
+
+#[cfg(feature = "ipc")]
+impl WebIpc {
+    pub fn register(
+        &mut self,
+        id: String,
+        callback: Box<dyn FnMut(JsValue, &str) -> Option<JsValue>>,
+    ) {
+        self.callbacks.insert(id, callback);
+    }
+
+    pub fn unregister(&mut self, id: &str) {
+        self.callbacks.remove(id);
+    }
+}
+
 #[derive(Default)]
 pub struct WebAppRunner;
 
 impl BackendAppRunner<'static, 'static, JsValue> for WebAppRunner {
     fn run(&mut self, app: Rc<RefCell<App<'static, 'static>>>) -> Result<(), JsValue> {
+        #[cfg(feature = "ipc")]
+        let app2 = Rc::clone(&app);
         let f = Rc::new(RefCell::new(None));
         let g = f.clone();
         *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
@@ -72,6 +96,32 @@ impl BackendAppRunner<'static, 'static, JsValue> for WebAppRunner {
             request_animation_frame(f.borrow().as_ref().unwrap());
         }) as Box<dyn FnMut()>));
         request_animation_frame(g.borrow().as_ref().unwrap());
+        #[cfg(feature = "ipc")]
+        {
+            let f = Closure::wrap(Box::new(move |event: web_sys::MessageEvent| {
+                for cb in app2
+                    .borrow()
+                    .world()
+                    .write_resource::<WebIpc>()
+                    .callbacks
+                    .values_mut()
+                {
+                    if let Some(response) = (cb)(event.data(), &event.origin()) {
+                        if let Some(source) = event.source() {
+                            source
+                                .dyn_ref::<web_sys::Window>()
+                                .expect("Could not convert sender to `Window`")
+                                .post_message(&response, &event.origin())
+                                .expect("Could not post message back to the sender");
+                        }
+                    }
+                }
+            }) as Box<dyn FnMut(web_sys::MessageEvent)>);
+            window()
+                .add_event_listener_with_callback("message", f.as_ref().unchecked_ref())
+                .expect("Could not perform `add_event_listener`");
+            f.forget();
+        }
         Ok(())
     }
 }

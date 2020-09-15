@@ -1,7 +1,17 @@
 {
   "plugins": {
     "ignite-play-mode-plugin": {
-      "dist": "dist"
+      "dist": "dist",
+      "build_debug": {
+        "name": "#>ignite-oxygengine-plugin/package",
+        "args": [
+          "--debug"
+        ]
+      },
+      "build_release": {
+        "name": "#>ignite-oxygengine-plugin/package"
+      },
+      "log_level": 2
     }
   },
   "windows": {
@@ -80,7 +90,7 @@
                         "Code",
                         "Media"
                       ],
-                      "active": 0
+                      "active": 1
                     }
                   ]
                 }

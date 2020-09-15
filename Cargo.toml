@@ -76,6 +76,7 @@ scalar64 = [
   "oxygengine-utils/scalar64",
   "oxygengine-visual-novel/scalar64",
 ]
+ipc = ["oxygengine-backend-web/ipc"]
 desktop = ["parallel"]
 input = ["oxygengine-input"]
 composite-renderer = ["oxygengine-composite-renderer"]
