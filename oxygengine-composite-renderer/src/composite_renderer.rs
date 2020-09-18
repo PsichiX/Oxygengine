@@ -149,6 +149,12 @@ pub struct Path {
 }
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+pub struct Mask {
+    #[serde(default)]
+    pub elements: Vec<PathElement>,
+}
+
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Image<'a> {
     #[serde(default)]
     pub image: Cow<'a, str>,
@@ -202,6 +208,7 @@ pub enum Renderable<'a> {
     FullscreenRectangle(Color),
     Text(Text<'a>),
     Path(Path),
+    Mask(Mask),
     Image(Image<'a>),
     Commands(Vec<Command<'a>>),
 }
@@ -227,6 +234,12 @@ impl<'a> From<Text<'a>> for Renderable<'a> {
 impl<'a> From<Path> for Renderable<'a> {
     fn from(path: Path) -> Self {
         Renderable::Path(path)
+    }
+}
+
+impl<'a> From<Mask> for Renderable<'a> {
+    fn from(mask: Mask) -> Self {
+        Renderable::Mask(mask)
     }
 }
 

@@ -228,6 +228,75 @@ impl WebCompositeRenderer {
                         render_ops += 3 + ops;
                         renderables += 1;
                     }
+                    Renderable::Mask(mask) => {
+                        let mut ops = 0;
+                        context.begin_path();
+                        for element in &mask.elements {
+                            match element {
+                                PathElement::MoveTo(pos) => {
+                                    context.move_to(pos.x.into(), pos.y.into());
+                                    ops += 1;
+                                }
+                                PathElement::LineTo(pos) => {
+                                    context.line_to(pos.x.into(), pos.y.into());
+                                    ops += 1;
+                                }
+                                PathElement::BezierCurveTo(cpa, cpb, pos) => {
+                                    context.bezier_curve_to(
+                                        cpa.x.into(),
+                                        cpa.y.into(),
+                                        cpb.x.into(),
+                                        cpb.y.into(),
+                                        pos.x.into(),
+                                        pos.y.into(),
+                                    );
+                                    ops += 1;
+                                }
+                                PathElement::QuadraticCurveTo(cp, pos) => {
+                                    context.quadratic_curve_to(
+                                        cp.x.into(),
+                                        cp.y.into(),
+                                        pos.x.into(),
+                                        pos.y.into(),
+                                    );
+                                    ops += 1;
+                                }
+                                PathElement::Arc(pos, r, a) => {
+                                    drop(context.arc(
+                                        pos.x.into(),
+                                        pos.y.into(),
+                                        (*r).into(),
+                                        a.start.into(),
+                                        a.end.into(),
+                                    ));
+                                    ops += 1;
+                                }
+                                PathElement::Ellipse(pos, r, rot, a) => {
+                                    drop(context.ellipse(
+                                        pos.x.into(),
+                                        pos.y.into(),
+                                        r.x.into(),
+                                        r.y.into(),
+                                        (*rot).into(),
+                                        a.start.into(),
+                                        a.end.into(),
+                                    ));
+                                    ops += 1;
+                                }
+                                PathElement::Rectangle(rect) => {
+                                    context.rect(
+                                        rect.x.into(),
+                                        rect.y.into(),
+                                        rect.w.into(),
+                                        rect.h.into(),
+                                    );
+                                    ops += 1;
+                                }
+                            }
+                        }
+                        context.clip();
+                        render_ops += 2 + ops;
+                    }
                     Renderable::Image(image) => {
                         let path: &str = &image.image;
                         if let Some(elm) = self.images_cache.get(path) {
@@ -456,6 +525,7 @@ impl WebCompositeRenderer {
                         render_ops += 4 + ops;
                         renderables += 1;
                     }
+                    Renderable::Mask(_) => error!("Trying to make stroked mask"),
                     Renderable::Image(image) => {
                         error!("Trying to render stroked image: {}", image.image)
                     }
