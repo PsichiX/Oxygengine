@@ -155,6 +155,19 @@ pub struct Mask {
 }
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+pub struct Triangles<'a> {
+    #[serde(default)]
+    pub image: Cow<'a, str>,
+    #[serde(default)]
+    pub color: Color,
+    /// [(position, tex coord)]
+    #[serde(default)]
+    pub vertices: Vec<(Vec2, Vec2)>,
+    #[serde(default)]
+    pub indices: Vec<usize>,
+}
+
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Image<'a> {
     #[serde(default)]
     pub image: Cow<'a, str>,
@@ -210,6 +223,7 @@ pub enum Renderable<'a> {
     Path(Path),
     Mask(Mask),
     Image(Image<'a>),
+    Triangles(Triangles<'a>),
     Commands(Vec<Command<'a>>),
 }
 

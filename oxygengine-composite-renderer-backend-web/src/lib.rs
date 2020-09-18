@@ -224,8 +224,9 @@ impl WebCompositeRenderer {
                             }
                         }
                         context.set_fill_style(&path.color.to_string().into());
+                        context.close_path();
                         context.fill();
-                        render_ops += 3 + ops;
+                        render_ops += 4 + ops;
                         renderables += 1;
                     }
                     Renderable::Mask(mask) => {
@@ -294,8 +295,9 @@ impl WebCompositeRenderer {
                                 }
                             }
                         }
+                        context.close_path();
                         context.clip();
-                        render_ops += 2 + ops;
+                        render_ops += 3 + ops;
                     }
                     Renderable::Image(image) => {
                         let path: &str = &image.image;
@@ -379,6 +381,141 @@ impl WebCompositeRenderer {
                                 ));
                             render_ops += 1;
                             renderables += 1;
+                        }
+                    }
+                    Renderable::Triangles(triangles) => {
+                        let path: &str = &triangles.image;
+                        if let Some(elm) = self.images_cache.get(path) {
+                            let w = elm.width() as Scalar;
+                            let h = elm.height() as Scalar;
+                            let s = Vec2::new(w, h);
+                            for triangle in triangles.indices.chunks(3) {
+                                if triangle.len() == 3 {
+                                    context.save();
+                                    let a = triangles.vertices[triangle[0]];
+                                    let b = triangles.vertices[triangle[1]];
+                                    let c = triangles.vertices[triangle[2]];
+                                    context.begin_path();
+                                    context.move_to(a.0.x.into(), a.0.y.into());
+                                    context.line_to(b.0.x.into(), b.0.y.into());
+                                    context.line_to(c.0.x.into(), c.0.y.into());
+                                    context.close_path();
+                                    context.clip();
+                                    let s0 = a.1 * s;
+                                    let s1 = b.1 * s;
+                                    let s2 = c.1 * s;
+                                    let denom = s0.x * (s2.y - s1.y) - s1.x * s2.y
+                                        + s2.x * s1.y
+                                        + (s1.x - s2.x) * s0.y;
+                                    if denom.abs() > 0.0 {
+                                        let m11 = -(s0.y * (c.0.x - b.0.x) - s1.y * c.0.x
+                                            + s2.y * b.0.x
+                                            + (s1.y - s2.y) * a.0.x)
+                                            / denom;
+                                        let m12 = (s1.y * c.0.y + s0.y * (b.0.y - c.0.y)
+                                            - s2.y * b.0.y
+                                            + (s2.y - s1.y) * a.0.y)
+                                            / denom;
+                                        let m21 = (s0.x * (c.0.x - b.0.x) - s1.x * c.0.x
+                                            + s2.x * b.0.x
+                                            + (s1.x - s2.x) * a.0.x)
+                                            / denom;
+                                        let m22 = -(s1.x * c.0.y + s0.x * (b.0.y - c.0.y)
+                                            - s2.x * b.0.y
+                                            + (s2.x - s1.x) * a.0.y)
+                                            / denom;
+                                        let dx = (s0.x * (s2.y * b.0.x - s1.y * c.0.x)
+                                            + s0.y * (s1.x * c.0.x - s2.x * b.0.x)
+                                            + (s2.x * s1.y - s1.x * s2.y) * a.0.x)
+                                            / denom;
+                                        let dy = (s0.x * (s2.y * b.0.y - s1.y * c.0.y)
+                                            + s0.y * (s1.x * c.0.y - s2.x * b.0.y)
+                                            + (s2.x * s1.y - s1.x * s2.y) * a.0.y)
+                                            / denom;
+                                        drop(context.transform(
+                                            m11.into(),
+                                            m12.into(),
+                                            m21.into(),
+                                            m22.into(),
+                                            dx.into(),
+                                            dy.into(),
+                                        ));
+                                        drop(
+                                            context
+                                                .draw_image_with_html_image_element(elm, 0.0, 0.0),
+                                        );
+                                        render_ops += 2;
+                                        renderables += 1;
+                                    }
+                                    context.restore();
+                                    render_ops += 8;
+                                }
+                            }
+                        } else if let Some((elm, _)) = self.surfaces_cache.get(path) {
+                            let w = elm.width() as Scalar;
+                            let h = elm.height() as Scalar;
+                            let s = Vec2::new(w, h);
+                            for triangle in triangles.indices.chunks(3) {
+                                if triangle.len() == 3 {
+                                    context.save();
+                                    let a = triangles.vertices[triangle[0]];
+                                    let b = triangles.vertices[triangle[1]];
+                                    let c = triangles.vertices[triangle[2]];
+                                    context.begin_path();
+                                    context.move_to(a.0.x.into(), a.0.y.into());
+                                    context.line_to(b.0.x.into(), b.0.y.into());
+                                    context.line_to(c.0.x.into(), c.0.y.into());
+                                    context.clip();
+                                    let s0 = a.1 * s;
+                                    let s1 = b.1 * s;
+                                    let s2 = c.1 * s;
+                                    let denom = s0.x * (s2.y - s1.y) - s1.x * s2.y
+                                        + s2.x * s1.y
+                                        + (s1.x - s2.x) * s0.y;
+                                    if denom.abs() > 0.0 {
+                                        let m11 = -(s0.y * (c.0.x - b.0.x) - s1.y * c.0.x
+                                            + s2.y * b.0.x
+                                            + (s1.y - s2.y) * a.0.x)
+                                            / denom;
+                                        let m12 = (s1.y * c.0.y + s0.y * (b.0.y - c.0.y)
+                                            - s2.y * b.0.y
+                                            + (s2.y - s1.y) * a.0.y)
+                                            / denom;
+                                        let m21 = (s0.x * (c.0.x - b.0.x) - s1.x * c.0.x
+                                            + s2.x * b.0.x
+                                            + (s1.x - s2.x) * a.0.x)
+                                            / denom;
+                                        let m22 = -(s1.x * c.0.y + s0.x * (b.0.y - c.0.y)
+                                            - s2.x * b.0.y
+                                            + (s2.x - s1.x) * a.0.y)
+                                            / denom;
+                                        let dx = (s0.x * (s2.y * b.0.x - s1.y * c.0.x)
+                                            + s0.y * (s1.x * c.0.x - s2.x * b.0.x)
+                                            + (s2.x * s1.y - s1.x * s2.y) * a.0.x)
+                                            / denom;
+                                        let dy = (s0.x * (s2.y * b.0.y - s1.y * c.0.y)
+                                            + s0.y * (s1.x * c.0.y - s2.x * b.0.y)
+                                            + (s2.x * s1.y - s1.x * s2.y) * a.0.y)
+                                            / denom;
+                                        drop(context.transform(
+                                            m11.into(),
+                                            m12.into(),
+                                            m21.into(),
+                                            m22.into(),
+                                            dx.into(),
+                                            dy.into(),
+                                        ));
+                                        drop(
+                                            context
+                                                .draw_image_with_html_canvas_element(elm, 0.0, 0.0),
+                                        );
+                                        render_ops += 2;
+                                        renderables += 1;
+                                    }
+                                    context.restore();
+                                    render_ops += 8;
+                                }
+                            }
                         }
                     }
                     Renderable::Commands(commands) => {
@@ -521,13 +658,36 @@ impl WebCompositeRenderer {
                         }
                         context.set_stroke_style(&path.color.to_string().into());
                         context.set_line_width(line_width.into());
+                        context.close_path();
                         context.stroke();
-                        render_ops += 4 + ops;
+                        render_ops += 5 + ops;
                         renderables += 1;
                     }
                     Renderable::Mask(_) => error!("Trying to make stroked mask"),
                     Renderable::Image(image) => {
                         error!("Trying to render stroked image: {}", image.image)
+                    }
+                    Renderable::Triangles(triangles) => {
+                        context.save();
+                        context.set_stroke_style(&triangles.color.to_string().into());
+                        context.set_line_width(line_width.into());
+                        for triangle in triangles.indices.chunks(3) {
+                            if triangle.len() == 3 {
+                                let a = triangles.vertices[triangle[0]];
+                                let b = triangles.vertices[triangle[1]];
+                                let c = triangles.vertices[triangle[2]];
+                                context.begin_path();
+                                context.move_to(a.0.x.into(), a.0.y.into());
+                                context.line_to(b.0.x.into(), b.0.y.into());
+                                context.line_to(c.0.x.into(), c.0.y.into());
+                                context.close_path();
+                                context.stroke();
+                                render_ops += 6;
+                                renderables += 1;
+                            }
+                        }
+                        context.restore();
+                        render_ops += 4;
                     }
                     Renderable::Commands(commands) => {
                         error!("Trying to render stroked subcommands: {:#?}", commands)
