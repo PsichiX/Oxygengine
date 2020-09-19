@@ -7,12 +7,13 @@ mod states;
 mod systems;
 
 use crate::{
-    components::{speed::Speed, KeyboardMovementTag},
+    components::{speed::Speed, triangles::Triangles, KeyboardMovementTag},
     resource::text_inputs::TextInputs,
     states::loading::LoadingState,
     systems::{
         keyboard_movement::KeyboardMovementSystem,
         text_input::{TextInputRendererSystem, TextInputWriterSystem},
+        triangles::TrianglesSystem,
     },
 };
 use oxygengine::prelude::*;
@@ -56,6 +57,7 @@ pub fn main_js() -> Result<(), JsValue> {
             // register game prefabs component factories.
             prefabs.register_component_factory::<Speed>("Speed");
             prefabs.register_component_factory::<KeyboardMovementTag>("KeyboardMovementTag");
+            prefabs.register_component_factory::<Triangles>("Triangles");
         })
         // install input managment.
         .with_bundle(oxygengine::input::bundle_installer, |input| {
@@ -85,7 +87,7 @@ pub fn main_js() -> Result<(), JsValue> {
         .with_bundle(
             oxygengine::physics_2d::bundle_installer,
             (
-                Vector::y() * 9.81,
+                Vector::y() * 9.81 * 7.0,
                 Physics2dWorldSimulationMode::FixedTimestepMaxIterations(3),
             ),
         )
@@ -104,6 +106,7 @@ pub fn main_js() -> Result<(), JsValue> {
             "text_input_renderer",
             &[],
         )
+        .with_system(TrianglesSystem::default(), "triangles", &[])
         .build(LoadingState::default(), WebAppTimer::default());
 
     // Application run phase - spawn runner that ticks our app.

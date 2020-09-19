@@ -389,132 +389,132 @@ impl WebCompositeRenderer {
                             let w = elm.width() as Scalar;
                             let h = elm.height() as Scalar;
                             let s = Vec2::new(w, h);
-                            for triangle in triangles.indices.chunks(3) {
-                                if triangle.len() == 3 {
-                                    context.save();
-                                    let a = triangles.vertices[triangle[0]];
-                                    let b = triangles.vertices[triangle[1]];
-                                    let c = triangles.vertices[triangle[2]];
-                                    context.begin_path();
-                                    context.move_to(a.0.x.into(), a.0.y.into());
-                                    context.line_to(b.0.x.into(), b.0.y.into());
-                                    context.line_to(c.0.x.into(), c.0.y.into());
-                                    context.close_path();
-                                    context.clip();
-                                    let s0 = a.1 * s;
-                                    let s1 = b.1 * s;
-                                    let s2 = c.1 * s;
-                                    let denom = s0.x * (s2.y - s1.y) - s1.x * s2.y
-                                        + s2.x * s1.y
-                                        + (s1.x - s2.x) * s0.y;
-                                    if denom.abs() > 0.0 {
-                                        let m11 = -(s0.y * (c.0.x - b.0.x) - s1.y * c.0.x
-                                            + s2.y * b.0.x
-                                            + (s1.y - s2.y) * a.0.x)
-                                            / denom;
-                                        let m12 = (s1.y * c.0.y + s0.y * (b.0.y - c.0.y)
-                                            - s2.y * b.0.y
-                                            + (s2.y - s1.y) * a.0.y)
-                                            / denom;
-                                        let m21 = (s0.x * (c.0.x - b.0.x) - s1.x * c.0.x
-                                            + s2.x * b.0.x
-                                            + (s1.x - s2.x) * a.0.x)
-                                            / denom;
-                                        let m22 = -(s1.x * c.0.y + s0.x * (b.0.y - c.0.y)
-                                            - s2.x * b.0.y
-                                            + (s2.x - s1.x) * a.0.y)
-                                            / denom;
-                                        let dx = (s0.x * (s2.y * b.0.x - s1.y * c.0.x)
-                                            + s0.y * (s1.x * c.0.x - s2.x * b.0.x)
-                                            + (s2.x * s1.y - s1.x * s2.y) * a.0.x)
-                                            / denom;
-                                        let dy = (s0.x * (s2.y * b.0.y - s1.y * c.0.y)
-                                            + s0.y * (s1.x * c.0.y - s2.x * b.0.y)
-                                            + (s2.x * s1.y - s1.x * s2.y) * a.0.y)
-                                            / denom;
-                                        drop(context.transform(
-                                            m11.into(),
-                                            m12.into(),
-                                            m21.into(),
-                                            m22.into(),
-                                            dx.into(),
-                                            dy.into(),
-                                        ));
-                                        drop(
-                                            context
-                                                .draw_image_with_html_image_element(elm, 0.0, 0.0),
-                                        );
-                                        render_ops += 2;
-                                        renderables += 1;
-                                    }
-                                    context.restore();
-                                    render_ops += 8;
+                            for triangle in &triangles.faces {
+                                context.save();
+                                let a = triangles.vertices[triangle.a];
+                                let b = triangles.vertices[triangle.b];
+                                let c = triangles.vertices[triangle.c];
+                                context.begin_path();
+                                context.move_to(a.0.x.into(), a.0.y.into());
+                                context.line_to(b.0.x.into(), b.0.y.into());
+                                context.line_to(c.0.x.into(), c.0.y.into());
+                                context.close_path();
+                                context.clip();
+                                let s0 = a.1 * s;
+                                let s1 = b.1 * s;
+                                let s2 = c.1 * s;
+                                let denom = s0.x * (s2.y - s1.y) - s1.x * s2.y
+                                    + s2.x * s1.y
+                                    + (s1.x - s2.x) * s0.y;
+                                if denom.abs() > 0.0 {
+                                    let m11 = -(s0.y * (c.0.x - b.0.x) - s1.y * c.0.x
+                                        + s2.y * b.0.x
+                                        + (s1.y - s2.y) * a.0.x)
+                                        / denom;
+                                    let m12 = (s1.y * c.0.y + s0.y * (b.0.y - c.0.y)
+                                        - s2.y * b.0.y
+                                        + (s2.y - s1.y) * a.0.y)
+                                        / denom;
+                                    let m21 = (s0.x * (c.0.x - b.0.x) - s1.x * c.0.x
+                                        + s2.x * b.0.x
+                                        + (s1.x - s2.x) * a.0.x)
+                                        / denom;
+                                    let m22 = -(s1.x * c.0.y + s0.x * (b.0.y - c.0.y)
+                                        - s2.x * b.0.y
+                                        + (s2.x - s1.x) * a.0.y)
+                                        / denom;
+                                    let dx = (s0.x * (s2.y * b.0.x - s1.y * c.0.x)
+                                        + s0.y * (s1.x * c.0.x - s2.x * b.0.x)
+                                        + (s2.x * s1.y - s1.x * s2.y) * a.0.x)
+                                        / denom;
+                                    let dy = (s0.x * (s2.y * b.0.y - s1.y * c.0.y)
+                                        + s0.y * (s1.x * c.0.y - s2.x * b.0.y)
+                                        + (s2.x * s1.y - s1.x * s2.y) * a.0.y)
+                                        / denom;
+                                    drop(context.transform(
+                                        m11.into(),
+                                        m12.into(),
+                                        m21.into(),
+                                        m22.into(),
+                                        dx.into(),
+                                        dy.into(),
+                                    ));
+                                    current_alpha =
+                                        alpha_stack.last().copied().unwrap_or(1.0) * triangle.alpha;
+                                    context
+                                        .set_global_alpha(current_alpha.max(0.0).min(1.0).into());
+                                    drop(context.draw_image_with_html_image_element(elm, 0.0, 0.0));
+                                    render_ops += 3;
+                                    renderables += 1;
                                 }
+                                context.restore();
+                                render_ops += 8;
                             }
                         } else if let Some((elm, _)) = self.surfaces_cache.get(path) {
                             let w = elm.width() as Scalar;
                             let h = elm.height() as Scalar;
                             let s = Vec2::new(w, h);
-                            for triangle in triangles.indices.chunks(3) {
-                                if triangle.len() == 3 {
-                                    context.save();
-                                    let a = triangles.vertices[triangle[0]];
-                                    let b = triangles.vertices[triangle[1]];
-                                    let c = triangles.vertices[triangle[2]];
-                                    context.begin_path();
-                                    context.move_to(a.0.x.into(), a.0.y.into());
-                                    context.line_to(b.0.x.into(), b.0.y.into());
-                                    context.line_to(c.0.x.into(), c.0.y.into());
-                                    context.clip();
-                                    let s0 = a.1 * s;
-                                    let s1 = b.1 * s;
-                                    let s2 = c.1 * s;
-                                    let denom = s0.x * (s2.y - s1.y) - s1.x * s2.y
-                                        + s2.x * s1.y
-                                        + (s1.x - s2.x) * s0.y;
-                                    if denom.abs() > 0.0 {
-                                        let m11 = -(s0.y * (c.0.x - b.0.x) - s1.y * c.0.x
-                                            + s2.y * b.0.x
-                                            + (s1.y - s2.y) * a.0.x)
-                                            / denom;
-                                        let m12 = (s1.y * c.0.y + s0.y * (b.0.y - c.0.y)
-                                            - s2.y * b.0.y
-                                            + (s2.y - s1.y) * a.0.y)
-                                            / denom;
-                                        let m21 = (s0.x * (c.0.x - b.0.x) - s1.x * c.0.x
-                                            + s2.x * b.0.x
-                                            + (s1.x - s2.x) * a.0.x)
-                                            / denom;
-                                        let m22 = -(s1.x * c.0.y + s0.x * (b.0.y - c.0.y)
-                                            - s2.x * b.0.y
-                                            + (s2.x - s1.x) * a.0.y)
-                                            / denom;
-                                        let dx = (s0.x * (s2.y * b.0.x - s1.y * c.0.x)
-                                            + s0.y * (s1.x * c.0.x - s2.x * b.0.x)
-                                            + (s2.x * s1.y - s1.x * s2.y) * a.0.x)
-                                            / denom;
-                                        let dy = (s0.x * (s2.y * b.0.y - s1.y * c.0.y)
-                                            + s0.y * (s1.x * c.0.y - s2.x * b.0.y)
-                                            + (s2.x * s1.y - s1.x * s2.y) * a.0.y)
-                                            / denom;
-                                        drop(context.transform(
-                                            m11.into(),
-                                            m12.into(),
-                                            m21.into(),
-                                            m22.into(),
-                                            dx.into(),
-                                            dy.into(),
-                                        ));
-                                        drop(
-                                            context
-                                                .draw_image_with_html_canvas_element(elm, 0.0, 0.0),
-                                        );
-                                        render_ops += 2;
-                                        renderables += 1;
-                                    }
-                                    context.restore();
-                                    render_ops += 8;
+                            for triangle in &triangles.faces {
+                                context.save();
+                                let a = triangles.vertices[triangle.a];
+                                let b = triangles.vertices[triangle.b];
+                                let c = triangles.vertices[triangle.c];
+                                context.begin_path();
+                                context.move_to(a.0.x.into(), a.0.y.into());
+                                context.line_to(b.0.x.into(), b.0.y.into());
+                                context.line_to(c.0.x.into(), c.0.y.into());
+                                context.clip();
+                                let s0 = a.1 * s;
+                                let s1 = b.1 * s;
+                                let s2 = c.1 * s;
+                                let denom = s0.x * (s2.y - s1.y) - s1.x * s2.y
+                                    + s2.x * s1.y
+                                    + (s1.x - s2.x) * s0.y;
+                                if denom.abs() > 0.0 {
+                                    let m11 = -(s0.y * (c.0.x - b.0.x) - s1.y * c.0.x
+                                        + s2.y * b.0.x
+                                        + (s1.y - s2.y) * a.0.x)
+                                        / denom;
+                                    let m12 = (s1.y * c.0.y + s0.y * (b.0.y - c.0.y)
+                                        - s2.y * b.0.y
+                                        + (s2.y - s1.y) * a.0.y)
+                                        / denom;
+                                    let m21 = (s0.x * (c.0.x - b.0.x) - s1.x * c.0.x
+                                        + s2.x * b.0.x
+                                        + (s1.x - s2.x) * a.0.x)
+                                        / denom;
+                                    let m22 = -(s1.x * c.0.y + s0.x * (b.0.y - c.0.y)
+                                        - s2.x * b.0.y
+                                        + (s2.x - s1.x) * a.0.y)
+                                        / denom;
+                                    let dx = (s0.x * (s2.y * b.0.x - s1.y * c.0.x)
+                                        + s0.y * (s1.x * c.0.x - s2.x * b.0.x)
+                                        + (s2.x * s1.y - s1.x * s2.y) * a.0.x)
+                                        / denom;
+                                    let dy = (s0.x * (s2.y * b.0.y - s1.y * c.0.y)
+                                        + s0.y * (s1.x * c.0.y - s2.x * b.0.y)
+                                        + (s2.x * s1.y - s1.x * s2.y) * a.0.y)
+                                        / denom;
+                                    drop(context.transform(
+                                        m11.into(),
+                                        m12.into(),
+                                        m21.into(),
+                                        m22.into(),
+                                        dx.into(),
+                                        dy.into(),
+                                    ));
+                                    current_alpha =
+                                        alpha_stack.last().copied().unwrap_or(1.0) * triangle.alpha;
+                                    context
+                                        .set_global_alpha(current_alpha.max(0.0).min(1.0).into());
+                                    drop(
+                                        context.draw_image_with_html_canvas_element(elm, 0.0, 0.0),
+                                    );
+                                    render_ops += 3;
+                                    renderables += 1;
                                 }
+                                context.restore();
+                                render_ops += 8;
                             }
                         }
                     }
@@ -671,20 +671,18 @@ impl WebCompositeRenderer {
                         context.save();
                         context.set_stroke_style(&triangles.color.to_string().into());
                         context.set_line_width(line_width.into());
-                        for triangle in triangles.indices.chunks(3) {
-                            if triangle.len() == 3 {
-                                let a = triangles.vertices[triangle[0]];
-                                let b = triangles.vertices[triangle[1]];
-                                let c = triangles.vertices[triangle[2]];
-                                context.begin_path();
-                                context.move_to(a.0.x.into(), a.0.y.into());
-                                context.line_to(b.0.x.into(), b.0.y.into());
-                                context.line_to(c.0.x.into(), c.0.y.into());
-                                context.close_path();
-                                context.stroke();
-                                render_ops += 6;
-                                renderables += 1;
-                            }
+                        for triangle in &triangles.faces {
+                            let a = triangles.vertices[triangle.a];
+                            let b = triangles.vertices[triangle.b];
+                            let c = triangles.vertices[triangle.c];
+                            context.begin_path();
+                            context.move_to(a.0.x.into(), a.0.y.into());
+                            context.line_to(b.0.x.into(), b.0.y.into());
+                            context.line_to(c.0.x.into(), c.0.y.into());
+                            context.close_path();
+                            context.stroke();
+                            render_ops += 6;
+                            renderables += 1;
                         }
                         context.restore();
                         render_ops += 4;

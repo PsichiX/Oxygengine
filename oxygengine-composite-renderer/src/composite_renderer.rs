@@ -155,6 +155,37 @@ pub struct Mask {
 }
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+pub struct TriangleFace {
+    #[serde(default)]
+    pub a: usize,
+    #[serde(default)]
+    pub b: usize,
+    #[serde(default)]
+    pub c: usize,
+    #[serde(default = "TriangleFace::default_alpha")]
+    pub alpha: Scalar,
+}
+
+impl TriangleFace {
+    pub fn new(a: usize, b: usize, c: usize) -> Self {
+        Self {
+            a,
+            b,
+            c,
+            alpha: 1.0,
+        }
+    }
+
+    pub fn new_alpha(a: usize, b: usize, c: usize, alpha: Scalar) -> Self {
+        Self { a, b, c, alpha }
+    }
+
+    fn default_alpha() -> Scalar {
+        1.0
+    }
+}
+
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Triangles<'a> {
     #[serde(default)]
     pub image: Cow<'a, str>,
@@ -164,7 +195,7 @@ pub struct Triangles<'a> {
     #[serde(default)]
     pub vertices: Vec<(Vec2, Vec2)>,
     #[serde(default)]
-    pub indices: Vec<usize>,
+    pub faces: Vec<TriangleFace>,
 }
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
@@ -225,6 +256,16 @@ pub enum Renderable<'a> {
     Image(Image<'a>),
     Triangles(Triangles<'a>),
     Commands(Vec<Command<'a>>),
+}
+
+impl<'a> Renderable<'a> {
+    pub fn is_none(&self) -> bool {
+        if let Self::None = self {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl<'a> From<()> for Renderable<'a> {

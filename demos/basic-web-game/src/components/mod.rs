@@ -2,6 +2,7 @@ use oxygengine::prelude::*;
 use serde::{Deserialize, Serialize};
 
 pub mod speed;
+pub mod triangles;
 
 // component that tags entity as moved with keyboard.
 #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
