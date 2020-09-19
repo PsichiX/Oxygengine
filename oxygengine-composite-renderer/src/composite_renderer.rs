@@ -263,6 +263,12 @@ impl<'a> From<Image<'a>> for Renderable<'a> {
     }
 }
 
+impl<'a> From<Triangles<'a>> for Renderable<'a> {
+    fn from(triangles: Triangles<'a>) -> Self {
+        Renderable::Triangles(triangles)
+    }
+}
+
 #[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Effect {
     SourceOver,
