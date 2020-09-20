@@ -154,7 +154,7 @@ pub struct Mask {
     pub elements: Vec<PathElement>,
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct TriangleFace {
     #[serde(default)]
     pub a: usize,

@@ -3,14 +3,15 @@
 use crate::{
     component::{
         CompositeCamera, CompositeCameraAlignment, CompositeEffect, CompositeMapChunk,
-        CompositeRenderAlpha, CompositeRenderDepth, CompositeRenderLayer, CompositeRenderable,
-        CompositeRenderableStroke, CompositeSprite, CompositeSpriteAnimation,
+        CompositeMesh, CompositeRenderAlpha, CompositeRenderDepth, CompositeRenderLayer,
+        CompositeRenderable, CompositeRenderableStroke, CompositeSprite, CompositeSpriteAnimation,
         CompositeSurfaceCache, CompositeTilemap, CompositeTilemapAnimation, CompositeTransform,
         CompositeUiElement, CompositeVisibility, TileCell,
     },
-    composite_renderer::{Command, CompositeRenderer, Image, Renderable, Stats},
+    composite_renderer::{Command, CompositeRenderer, Image, Renderable, Stats, Triangles},
     map_asset_protocol::{Map, MapAsset},
     math::{Mat2d, Rect, Vec2},
+    mesh_asset_protocol::{Mesh, MeshAsset, MeshVertex, SubMesh},
     resource::{
         CompositeCameraCache, CompositeTransformRes, CompositeUiInteractibles, CompositeUiThemes,
     },
@@ -749,6 +750,132 @@ impl<'s> System<'s> for CompositeMapSystem {
                 }
             }
         }
+    }
+}
+
+#[derive(Default)]
+pub struct CompositeMeshSystem {
+    meshes_cache: HashMap<String, Mesh>,
+    meshes_table: HashMap<AssetID, String>,
+}
+
+impl<'s> System<'s> for CompositeMeshSystem {
+    type SystemData = (
+        Entities<'s>,
+        ReadExpect<'s, AssetsDatabase>,
+        WriteStorage<'s, CompositeMesh>,
+        WriteStorage<'s, CompositeRenderable>,
+        WriteStorage<'s, CompositeSurfaceCache>,
+    );
+
+    fn run(
+        &mut self,
+        (entities, assets, mut meshes, mut renderables, mut caches): Self::SystemData,
+    ) {
+        for id in assets.lately_loaded_protocol("mesh") {
+            let id = *id;
+            let asset = assets
+                .asset_by_id(id)
+                .expect("trying to use not loaded mesh asset");
+            let path = asset.path().to_owned();
+            let asset = asset
+                .get::<MeshAsset>()
+                .expect("trying to use non-mesh asset");
+            let mesh = asset.mesh().clone();
+            self.meshes_cache.insert(path.clone(), mesh);
+            self.meshes_table.insert(id, path);
+        }
+        for id in assets.lately_unloaded_protocol("mesh") {
+            if let Some(path) = self.meshes_table.remove(id) {
+                self.meshes_cache.remove(&path);
+            }
+        }
+
+        for (entity, mesh, renderable) in (&entities, &mut meshes, &mut renderables).join() {
+            if mesh.dirty_mesh || mesh.dirty_visuals {
+                if let Some(asset) = self.meshes_cache.get(mesh.mesh()) {
+                    if mesh.dirty_mesh {
+                        if let Some(root) = &asset.rig {
+                            mesh.setup_bones_from_rig(root);
+                        }
+                    }
+                    if mesh.dirty_visuals {
+                        let vertices = if let Some(root) = &asset.rig {
+                            mesh.rebuild_model_space(root);
+                            Self::build_skined_vertices(&asset.vertices, mesh)
+                        } else {
+                            Self::build_vertices(&asset.vertices)
+                        };
+                        let commands = asset
+                            .submeshes
+                            .iter()
+                            .zip(mesh.images().iter())
+                            .map(|(submesh, image)| {
+                                Self::build_command(&vertices, submesh, image.to_string())
+                            })
+                            .collect::<Vec<_>>();
+                        renderable.0 = Renderable::Commands(commands);
+                    }
+                    if let Some(cache) = caches.get_mut(entity) {
+                        cache.rebuild();
+                    }
+                    mesh.dirty_mesh = false;
+                    mesh.dirty_visuals = false;
+                }
+            }
+        }
+    }
+}
+
+impl CompositeMeshSystem {
+    fn build_skined_vertices(vertices: &[MeshVertex], mesh: &CompositeMesh) -> Vec<(Vec2, Vec2)> {
+        vertices
+            .iter()
+            .map(|v| {
+                let a = if let Some(m) = mesh.bones_model_space.get(&v.bone_info[0].name) {
+                    *m * v.position
+                } else {
+                    v.position
+                } * v.bone_info[0].weight;
+                let b = if let Some(m) = mesh.bones_model_space.get(&v.bone_info[1].name) {
+                    *m * v.position
+                } else {
+                    v.position
+                } * v.bone_info[1].weight;
+                let c = if let Some(m) = mesh.bones_model_space.get(&v.bone_info[2].name) {
+                    *m * v.position
+                } else {
+                    v.position
+                } * v.bone_info[2].weight;
+                let d = if let Some(m) = mesh.bones_model_space.get(&v.bone_info[3].name) {
+                    *m * v.position
+                } else {
+                    v.position
+                } * v.bone_info[3].weight;
+                (a + b + c + d, v.tex_coord)
+            })
+            .collect::<Vec<_>>()
+    }
+
+    fn build_vertices(vertices: &[MeshVertex]) -> Vec<(Vec2, Vec2)> {
+        vertices
+            .iter()
+            .map(|v| (v.position, v.tex_coord))
+            .collect::<Vec<_>>()
+    }
+
+    fn build_command<'a>(
+        vertices: &[(Vec2, Vec2)],
+        submesh: &SubMesh,
+        image: String,
+    ) -> Command<'a> {
+        let triangles = Triangles {
+            image: image.into(),
+            color: Default::default(),
+            vertices: vertices.to_vec(),
+            faces: submesh.cached_faces().to_vec(),
+        };
+        Command::Draw(triangles.into())
     }
 }
 

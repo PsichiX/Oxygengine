@@ -351,7 +351,7 @@ impl AssetsDatabase {
         };
         for (path, prot, data) in to_dispatch {
             if let Some(protocol) = self.protocols.get_mut(&prot) {
-                match protocol.on_load(data) {
+                match protocol.on_load_with_path(&path, data) {
                     AssetLoadResult::Data(data) => {
                         let asset = Asset::new(&prot, &path, data);
                         self.insert(&asset.to_full_path(), asset);

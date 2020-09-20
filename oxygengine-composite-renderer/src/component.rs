@@ -1,6 +1,7 @@
 use crate::{
     composite_renderer::{Command, Effect, Image, Renderable, Text},
     math::{Mat2d, Rect, Vec2},
+    mesh_asset_protocol::MeshBone,
     resource::{CompositeUiInteractibles, CompositeUiThemes, UiThemed, UiValue, UiValueVec2},
 };
 use core::{
@@ -1133,6 +1134,141 @@ impl Prefab for CompositeMapChunk {
     }
 }
 impl PrefabComponent for CompositeMapChunk {}
+
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+pub struct CompositeMesh {
+    mesh: Cow<'static, str>,
+    images: Vec<Cow<'static, str>>,
+    #[serde(skip)]
+    #[ignite(ignore)]
+    pub(crate) bones_local_transform: HashMap<String, CompositeTransform>,
+    #[serde(skip)]
+    #[ignite(ignore)]
+    pub(crate) bones_model_space: HashMap<String, Mat2d>,
+    #[serde(skip)]
+    #[ignite(ignore)]
+    pub(crate) dirty_mesh: bool,
+    #[serde(skip)]
+    #[ignite(ignore)]
+    pub(crate) dirty_visuals: bool,
+}
+
+impl CompositeMesh {
+    pub fn new(mesh: Cow<'static, str>, images: Vec<Cow<'static, str>>) -> Self {
+        Self {
+            mesh,
+            images,
+            bones_local_transform: Default::default(),
+            bones_model_space: Default::default(),
+            dirty_mesh: true,
+            dirty_visuals: true,
+        }
+    }
+
+    pub fn mesh(&self) -> &str {
+        &self.mesh
+    }
+
+    pub fn set_mesh(&mut self, mesh: Cow<'static, str>) {
+        self.mesh = mesh;
+        self.dirty_mesh = true;
+        self.dirty_visuals = true;
+    }
+
+    pub fn images(&self) -> &[Cow<'static, str>] {
+        &self.images
+    }
+
+    pub fn set_images(&mut self, images: Vec<Cow<'static, str>>) {
+        self.images = images;
+        self.dirty_visuals = true;
+    }
+
+    pub fn bone_local_transform(&self, name: &str) -> Option<&CompositeTransform> {
+        self.bones_local_transform.get(name)
+    }
+
+    pub fn bone_local_transform_mut(&mut self, name: &str) -> Option<&mut CompositeTransform> {
+        self.bones_local_transform.get_mut(name)
+    }
+
+    pub fn set_bone_local_transform(&mut self, name: &str, transform: CompositeTransform) {
+        if let Some(t) = self.bones_local_transform.get_mut(name) {
+            *t = transform;
+            self.dirty_visuals = true;
+        }
+    }
+
+    pub fn with_bone_local_transform<F>(&mut self, name: &str, mut f: F)
+    where
+        F: FnMut(&mut CompositeTransform),
+    {
+        if let Some(t) = self.bones_local_transform.get_mut(name) {
+            f(t);
+            self.dirty_visuals = true;
+        }
+    }
+
+    pub fn apply(&mut self) {
+        self.dirty_visuals = true;
+    }
+
+    pub(crate) fn rebuild_model_space(&mut self, root: &MeshBone) {
+        self.rebuild_bone_model_space(root, "", Mat2d::default())
+    }
+
+    fn rebuild_bone_model_space(&mut self, bone: &MeshBone, name: &str, parent: Mat2d) {
+        if let Some(t) = self.bones_local_transform.get(name) {
+            let m = parent * t.matrix();
+            self.bones_model_space.insert(name.to_owned(), m);
+            for (name, bone) in &bone.children {
+                self.rebuild_bone_model_space(bone, name, m);
+            }
+        }
+    }
+
+    pub(crate) fn setup_bones_from_rig(&mut self, root: &MeshBone) {
+        let count = root.bones_count();
+        let mut bones_local_transform = HashMap::with_capacity(count);
+        let mut bones_model_space = HashMap::with_capacity(count);
+        Self::register_bone(
+            root,
+            "",
+            Mat2d::default(),
+            &mut bones_local_transform,
+            &mut bones_model_space,
+        );
+        self.bones_local_transform = bones_local_transform;
+        self.bones_model_space = bones_model_space;
+    }
+
+    fn register_bone(
+        bone: &MeshBone,
+        name: &str,
+        parent: Mat2d,
+        bones_local_transform: &mut HashMap<String, CompositeTransform>,
+        bones_model_space: &mut HashMap<String, Mat2d>,
+    ) {
+        bones_local_transform.insert(name.to_owned(), bone.transform.clone());
+        let m = parent * bone.transform.matrix();
+        bones_model_space.insert(name.to_owned(), m);
+        for (name, bone) in &bone.children {
+            Self::register_bone(bone, name, m, bones_local_transform, bones_model_space);
+        }
+    }
+}
+
+impl Component for CompositeMesh {
+    type Storage = VecStorage<Self>;
+}
+
+impl Prefab for CompositeMesh {
+    fn post_from_prefab(&mut self) {
+        self.dirty_mesh = true;
+        self.dirty_visuals = true;
+    }
+}
+impl PrefabComponent for CompositeMesh {}
 
 #[derive(Ignite, Debug, Copy, Clone, Default, Serialize, Deserialize)]
 pub struct UiMargin {

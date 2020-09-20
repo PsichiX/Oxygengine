@@ -7,6 +7,7 @@ pub mod font_asset_protocol;
 pub mod font_face_asset_protocol;
 pub mod map_asset_protocol;
 pub mod math;
+pub mod mesh_asset_protocol;
 pub mod png_image_asset_protocol;
 pub mod resource;
 pub mod sprite_sheet_asset_protocol;
@@ -17,8 +18,8 @@ pub mod ui_theme_asset_protocol;
 pub mod prelude {
     pub use crate::{
         component::*, composite_renderer::*, font_asset_protocol::*, font_face_asset_protocol::*,
-        map_asset_protocol::*, math::*, png_image_asset_protocol::*, resource::*,
-        sprite_sheet_asset_protocol::*, system::*, tileset_asset_protocol::*,
+        map_asset_protocol::*, math::*, mesh_asset_protocol::*, png_image_asset_protocol::*,
+        resource::*, sprite_sheet_asset_protocol::*, system::*, tileset_asset_protocol::*,
         ui_theme_asset_protocol::*,
     };
 }
@@ -27,10 +28,10 @@ use crate::{
     component::*,
     composite_renderer::CompositeRenderer,
     system::{
-        CompositeCameraCacheSystem, CompositeMapSystem, CompositeRendererSystem,
-        CompositeSpriteAnimationSystem, CompositeSpriteSheetSystem, CompositeSurfaceCacheSystem,
-        CompositeTilemapAnimationSystem, CompositeTilemapSystem, CompositeTransformSystem,
-        CompositeUiSystem,
+        CompositeCameraCacheSystem, CompositeMapSystem, CompositeMeshSystem,
+        CompositeRendererSystem, CompositeSpriteAnimationSystem, CompositeSpriteSheetSystem,
+        CompositeSurfaceCacheSystem, CompositeTilemapAnimationSystem, CompositeTilemapSystem,
+        CompositeTransformSystem, CompositeUiSystem,
     },
 };
 use core::{
@@ -60,6 +61,7 @@ where
         &["tilemap_animation"],
     );
     builder.install_system(CompositeMapSystem::default(), "map", &[]);
+    builder.install_system(CompositeMeshSystem::default(), "mesh", &[]);
     builder.install_thread_local_system(CompositeUiSystem::<CR>::default());
     builder.install_thread_local_system(CompositeCameraCacheSystem::<CR>::default());
     builder.install_thread_local_system(CompositeSurfaceCacheSystem::<CR>::default());
@@ -74,6 +76,7 @@ pub fn protocols_installer(database: &mut AssetsDatabase) {
     database.register(ui_theme_asset_protocol::UiThemeAssetProtocol);
     database.register(font_asset_protocol::FontAssetProtocol);
     database.register(font_face_asset_protocol::FontFaceAssetProtocol);
+    database.register(mesh_asset_protocol::MeshAssetProtocol);
 }
 
 pub fn prefabs_installer(prefabs: &mut PrefabManager) {
@@ -93,5 +96,6 @@ pub fn prefabs_installer(prefabs: &mut PrefabManager) {
     prefabs.register_component_factory::<CompositeTilemap>("CompositeTilemap");
     prefabs.register_component_factory::<CompositeTilemapAnimation>("CompositeTilemapAnimation");
     prefabs.register_component_factory::<CompositeMapChunk>("CompositeMapChunk");
+    prefabs.register_component_factory::<CompositeMesh>("CompositeMesh");
     prefabs.register_component_factory::<CompositeUiElement>("CompositeUiElement");
 }

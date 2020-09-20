@@ -274,4 +274,5 @@ members = [
   "demos/demo-web-game",
   "demos/visual-novel-testbed",
   "demos/pokemon",
+  "demos/mesh-deformers-testbed",
 ]

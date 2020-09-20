@@ -1,0 +1,21 @@
+template_name: scene
+entities:
+  - Data:
+      components:
+        Name: camera
+        CompositeCamera:
+          scaling: CenterAspect
+        CompositeTransform:
+          scale:
+            x: 1024
+            y: 1024
+        NonPersistent: ~
+  - Data:
+      components:
+        CompositeRenderable: None
+        CompositeTransform: {}
+        CompositeMesh:
+          mesh: meshes/test.json
+          images:
+            - images/logo.png
+        NonPersistent: ~

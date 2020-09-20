@@ -1,0 +1,3 @@
+png://images/logo.png
+mesh://meshes/test.json
+prefab://prefabs/scene.yaml

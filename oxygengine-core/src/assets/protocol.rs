@@ -43,6 +43,10 @@ pub enum AssetLoadResult {
 pub trait AssetProtocol: Send + Sync {
     fn name(&self) -> &str;
 
+    fn on_load_with_path(&mut self, _path: &str, data: Vec<u8>) -> AssetLoadResult {
+        self.on_load(data)
+    }
+
     fn on_load(&mut self, data: Vec<u8>) -> AssetLoadResult;
 
     fn on_resume(&mut self, _meta: Meta, _list: &[(&str, &Asset)]) -> AssetLoadResult {
