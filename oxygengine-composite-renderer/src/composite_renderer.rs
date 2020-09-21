@@ -412,6 +412,7 @@ pub struct RenderState {
     pub clear_color: Option<Color>,
     pub image_smoothing: bool,
     pub image_source_inner_margin: Scalar,
+    pub triangles_outer_margin: Scalar,
     stats: Stats,
 }
 
@@ -421,6 +422,7 @@ impl Default for RenderState {
             clear_color: Some(Color::black()),
             image_smoothing: true,
             image_source_inner_margin: 0.0,
+            triangles_outer_margin: 0.0,
             stats: Stats::default(),
         }
     }
@@ -432,6 +434,7 @@ impl RenderState {
             clear_color,
             image_smoothing: true,
             image_source_inner_margin: 0.0,
+            triangles_outer_margin: 0.0,
             stats: Stats::default(),
         }
     }
@@ -448,6 +451,11 @@ impl RenderState {
 
     pub fn image_source_inner_margin(mut self, image_source_inner_margin: Scalar) -> Self {
         self.image_source_inner_margin = image_source_inner_margin;
+        self
+    }
+
+    pub fn triangles_outer_margin(mut self, triangles_outer_margin: Scalar) -> Self {
+        self.triangles_outer_margin = triangles_outer_margin;
         self
     }
 

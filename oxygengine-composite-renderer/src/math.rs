@@ -315,6 +315,14 @@ impl Vec2 {
     }
 
     #[inline]
+    pub fn right(self) -> Vec2 {
+        Self {
+            x: self.y,
+            y: -self.x,
+        }
+    }
+
+    #[inline]
     pub fn lerp(self, other: Vec2, factor: Scalar) -> Self {
         Self {
             x: lerp(self.x, other.x, factor),

@@ -11,7 +11,7 @@ use crate::{
     composite_renderer::{Command, CompositeRenderer, Image, Renderable, Stats, Triangles},
     map_asset_protocol::{Map, MapAsset},
     math::{Mat2d, Rect, Vec2},
-    mesh_asset_protocol::{Mesh, MeshAsset, MeshVertex, SubMesh},
+    mesh_asset_protocol::{Mesh, MeshAsset, MeshVertex},
     resource::{
         CompositeCameraCache, CompositeTransformRes, CompositeUiInteractibles, CompositeUiThemes,
     },
@@ -806,14 +806,28 @@ impl<'s> System<'s> for CompositeMeshSystem {
                         } else {
                             Self::build_vertices(&asset.vertices)
                         };
-                        let commands = asset
+                        let mut meta = asset
                             .submeshes
                             .iter()
-                            .zip(mesh.images().iter())
-                            .map(|(submesh, image)| {
-                                Self::build_command(&vertices, submesh, image.to_string())
+                            .zip(mesh.materials().iter())
+                            .map(|(submesh, material)| {
+                                let triangles = Triangles {
+                                    image: material.image.to_string().into(),
+                                    color: Default::default(),
+                                    vertices: vertices.to_vec(),
+                                    faces: submesh.cached_faces().to_vec(),
+                                };
+                                (triangles, material.alpha, material.order)
                             })
                             .collect::<Vec<_>>();
+                        meta.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
+                        let mut commands = Vec::with_capacity(meta.len() * 4);
+                        for (triangles, alpha, _) in meta {
+                            commands.push(Command::Store);
+                            commands.push(Command::Alpha(alpha));
+                            commands.push(Command::Draw(triangles.into()));
+                            commands.push(Command::Restore);
+                        }
                         renderable.0 = Renderable::Commands(commands);
                     }
                     if let Some(cache) = caches.get_mut(entity) {
@@ -862,20 +876,6 @@ impl CompositeMeshSystem {
             .iter()
             .map(|v| (v.position, v.tex_coord))
             .collect::<Vec<_>>()
-    }
-
-    fn build_command<'a>(
-        vertices: &[(Vec2, Vec2)],
-        submesh: &SubMesh,
-        image: String,
-    ) -> Command<'a> {
-        let triangles = Triangles {
-            image: image.into(),
-            color: Default::default(),
-            vertices: vertices.to_vec(),
-            faces: submesh.cached_faces().to_vec(),
-        };
-        Command::Draw(triangles.into())
     }
 }
 

@@ -42,7 +42,7 @@ pub fn main_js() -> Result<(), JsValue> {
             oxygengine::composite_renderer::bundle_installer,
             WebCompositeRenderer::with_state(
                 get_canvas_by_id("screen"),
-                RenderState::new(Some(Color::black())),
+                RenderState::new(Some(Color::black())).triangles_outer_margin(1.0),
             ),
         )
         .build(LoadingState::default(), WebAppTimer::default());

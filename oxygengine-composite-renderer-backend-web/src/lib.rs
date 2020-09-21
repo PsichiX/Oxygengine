@@ -394,10 +394,16 @@ impl WebCompositeRenderer {
                                 let a = triangles.vertices[triangle.a];
                                 let b = triangles.vertices[triangle.b];
                                 let c = triangles.vertices[triangle.c];
+                                let nab = (b.0 - a.0).normalized();
+                                let nbc = (c.0 - b.0).normalized();
+                                let nca = (a.0 - c.0).normalized();
+                                let pa = a.0 - nbc.right() * self.state.triangles_outer_margin;
+                                let pb = b.0 - nca.right() * self.state.triangles_outer_margin;
+                                let pc = c.0 - nab.right() * self.state.triangles_outer_margin;
                                 context.begin_path();
-                                context.move_to(a.0.x.into(), a.0.y.into());
-                                context.line_to(b.0.x.into(), b.0.y.into());
-                                context.line_to(c.0.x.into(), c.0.y.into());
+                                context.move_to(pa.x.into(), pa.y.into());
+                                context.line_to(pb.x.into(), pb.y.into());
+                                context.line_to(pc.x.into(), pc.y.into());
                                 context.close_path();
                                 context.clip();
                                 let s0 = a.1 * s;
@@ -441,10 +447,14 @@ impl WebCompositeRenderer {
                                     ));
                                     current_alpha =
                                         alpha_stack.last().copied().unwrap_or(1.0) * triangle.alpha;
-                                    context
-                                        .set_global_alpha(current_alpha.max(0.0).min(1.0).into());
+                                    if triangle.alpha >= 1.0 {
+                                        context.set_global_alpha(
+                                            current_alpha.max(0.0).min(1.0).into(),
+                                        );
+                                        render_ops += 1;
+                                    }
                                     drop(context.draw_image_with_html_image_element(elm, 0.0, 0.0));
-                                    render_ops += 3;
+                                    render_ops += 2;
                                     renderables += 1;
                                 }
                                 context.restore();
@@ -505,12 +515,16 @@ impl WebCompositeRenderer {
                                     ));
                                     current_alpha =
                                         alpha_stack.last().copied().unwrap_or(1.0) * triangle.alpha;
-                                    context
-                                        .set_global_alpha(current_alpha.max(0.0).min(1.0).into());
+                                    if triangle.alpha >= 1.0 {
+                                        context.set_global_alpha(
+                                            current_alpha.max(0.0).min(1.0).into(),
+                                        );
+                                        render_ops += 1;
+                                    }
                                     drop(
                                         context.draw_image_with_html_canvas_element(elm, 0.0, 0.0),
                                     );
-                                    render_ops += 3;
+                                    render_ops += 2;
                                     renderables += 1;
                                 }
                                 context.restore();

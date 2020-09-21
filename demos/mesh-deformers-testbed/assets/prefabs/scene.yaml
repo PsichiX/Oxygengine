@@ -16,6 +16,6 @@ entities:
         CompositeTransform: {}
         CompositeMesh:
           mesh: meshes/test.json
-          images:
-            - images/logo.png
+          materials:
+            - image: images/logo.png
         NonPersistent: ~

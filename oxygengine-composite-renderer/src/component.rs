@@ -1136,9 +1136,24 @@ impl Prefab for CompositeMapChunk {
 impl PrefabComponent for CompositeMapChunk {}
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+pub struct MeshMaterial {
+    pub image: Cow<'static, str>,
+    #[serde(default = "MeshMaterial::default_alpha")]
+    pub alpha: Scalar,
+    #[serde(default)]
+    pub order: Scalar,
+}
+
+impl MeshMaterial {
+    fn default_alpha() -> Scalar {
+        1.0
+    }
+}
+
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CompositeMesh {
     mesh: Cow<'static, str>,
-    images: Vec<Cow<'static, str>>,
+    materials: Vec<MeshMaterial>,
     #[serde(skip)]
     #[ignite(ignore)]
     pub(crate) bones_local_transform: HashMap<String, CompositeTransform>,
@@ -1154,10 +1169,10 @@ pub struct CompositeMesh {
 }
 
 impl CompositeMesh {
-    pub fn new(mesh: Cow<'static, str>, images: Vec<Cow<'static, str>>) -> Self {
+    pub fn new(mesh: Cow<'static, str>, materials: Vec<MeshMaterial>) -> Self {
         Self {
             mesh,
-            images,
+            materials,
             bones_local_transform: Default::default(),
             bones_model_space: Default::default(),
             dirty_mesh: true,
@@ -1175,12 +1190,24 @@ impl CompositeMesh {
         self.dirty_visuals = true;
     }
 
-    pub fn images(&self) -> &[Cow<'static, str>] {
-        &self.images
+    pub fn materials(&self) -> &[MeshMaterial] {
+        &self.materials
     }
 
-    pub fn set_images(&mut self, images: Vec<Cow<'static, str>>) {
-        self.images = images;
+    pub fn materials_mut(&mut self) -> &mut [MeshMaterial] {
+        &mut self.materials
+    }
+
+    pub fn set_materials(&mut self, materials: Vec<MeshMaterial>) {
+        self.materials = materials;
+        self.dirty_visuals = true;
+    }
+
+    pub fn with_materials<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&mut Vec<MeshMaterial>),
+    {
+        f(&mut self.materials);
         self.dirty_visuals = true;
     }
 
