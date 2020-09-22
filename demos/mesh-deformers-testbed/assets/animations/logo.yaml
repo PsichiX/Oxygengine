@@ -1,31 +1,49 @@
 sequences:
-  swing:
+  A:
     bone_rotation:
       "":
-        - time: 0
-          value: -0.05
-        - time: 1
-          value: 0.05
-        - time: 2
-          value: -0.05
+        - point: [0, -0.05]
+          direction:
+            Single: [0.5, 0]
+        - point: [1, 0.05]
+          direction:
+            Single: [0.5, 0]
+        - point: [2, -0.05]
+          direction:
+            Single: [0.5, 0]
+  B:
+    bone_rotation:
       a:
-        - time: 0
-          value: -0.1
-        - time: 1.5
-          value: 0.1
-        - time: 3
-          value: -0.1
+        - point: [0, -0.1]
+          direction:
+            Single: [0.5, 0]
+        - point: [1.5, 0.1]
+          direction:
+            Single: [0.5, 0]
+        - point: [3, -0.1]
+          direction:
+            Single: [0.5, 0]
+  C:
+    bone_rotation:
       b:
-        - time: 0
-          value: -0.2
-        - time: 2
-          value: 0.2
-        - time: 4
-          value: -0.2
+        - point: [0, -0.15]
+          direction:
+            Single: [0.5, 0]
+        - point: [2, 0.15]
+          direction:
+            Single: [0.5, 0]
+        - point: [4, -0.15]
+          direction:
+            Single: [0.5, 0]
+  D:
+    bone_rotation:
       c:
-        - time: 0
-          value: -0.25
-        - time: 2.5
-          value: 0.25
-        - time: 5
-          value: -0.25
+        - point: [0, -0.2]
+          direction:
+            Single: [0.5, 0]
+        - point: [2.5, 0.2]
+          direction:
+            Single: [0.5, 0]
+        - point: [5, -0.2]
+          direction:
+            Single: [0.5, 0]

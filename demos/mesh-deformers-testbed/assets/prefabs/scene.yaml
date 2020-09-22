@@ -21,7 +21,22 @@ entities:
         CompositeMeshAnimation:
           animation: animations/logo.yaml
           current:
-            swing:
+            A:
+              - 0
+              - 1
+              - true
+              - 1
+            B:
+              - 0
+              - 1
+              - true
+              - 1
+            C:
+              - 0
+              - 1
+              - true
+              - 1
+            D:
               - 0
               - 1
               - true

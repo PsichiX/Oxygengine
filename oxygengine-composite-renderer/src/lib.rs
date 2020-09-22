@@ -1,3 +1,4 @@
+extern crate oxygengine_animation as anims;
 extern crate oxygengine_core as core;
 extern crate oxygengine_utils as utils;
 

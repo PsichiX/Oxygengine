@@ -18,6 +18,7 @@ scalar64 = ["oxygengine-core/scalar64", "oxygengine-utils/scalar64"]
 [dependencies]
 oxygengine-core = { version = "0.14", path = "../oxygengine-core" }
 oxygengine-utils = { version = "0.14", path = "../oxygengine-utils" }
+oxygengine-animation = { version = "0.14", path = "../oxygengine-animation" }
 png = "0.16"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
