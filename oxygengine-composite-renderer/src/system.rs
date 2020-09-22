@@ -9,7 +9,9 @@ use crate::{
         CompositeTilemapAnimation, CompositeTransform, CompositeUiElement, CompositeVisibility,
         TileCell,
     },
-    composite_renderer::{Command, CompositeRenderer, Image, Renderable, Stats, Triangles},
+    composite_renderer::{
+        Command, CompositeRenderer, Image, Mask, PathElement, Renderable, Stats, Triangles,
+    },
     map_asset_protocol::{Map, MapAsset},
     math::{Mat2d, Rect, Vec2},
     mesh_animation_asset_protocol::{MeshAnimation, MeshAnimationAsset},
@@ -808,24 +810,43 @@ impl<'s> System<'s> for CompositeMeshSystem {
                         } else {
                             Self::build_vertices(&asset.vertices)
                         };
+                        let masks = asset
+                            .masks
+                            .iter()
+                            .map(|indices| Self::build_mask(&vertices, &indices.indices))
+                            .collect::<Vec<_>>();
                         let mut meta = asset
                             .submeshes
                             .iter()
                             .zip(mesh.materials().iter())
-                            .map(|(submesh, material)| {
-                                let triangles = Triangles {
-                                    image: material.image.to_string().into(),
-                                    color: Default::default(),
-                                    vertices: vertices.to_vec(),
-                                    faces: submesh.cached_faces().to_vec(),
-                                };
-                                (triangles, material.alpha, material.order)
+                            .filter_map(|(submesh, material)| {
+                                if material.alpha > 0.0 {
+                                    let triangles = Triangles {
+                                        image: material.image.to_string().into(),
+                                        color: Default::default(),
+                                        vertices: vertices.to_vec(),
+                                        faces: submesh.cached_faces().to_vec(),
+                                    };
+                                    let masks = submesh
+                                        .masks
+                                        .iter()
+                                        .map(|i| masks[*i].to_vec())
+                                        .collect::<Vec<_>>();
+                                    Some((triangles, material.alpha, material.order, masks))
+                                } else {
+                                    None
+                                }
                             })
                             .collect::<Vec<_>>();
                         meta.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
-                        let mut commands = Vec::with_capacity(meta.len() * 4);
-                        for (triangles, alpha, _) in meta {
+                        let count = meta.len() * 4 + meta.iter().fold(0, |a, v| a + v.3.len());
+                        let mut commands = Vec::with_capacity(count);
+                        for (triangles, alpha, _, masks) in meta {
                             commands.push(Command::Store);
+                            for mask in masks {
+                                let mask = Mask { elements: mask };
+                                commands.push(Command::Draw(mask.into()));
+                            }
                             commands.push(Command::Alpha(alpha));
                             commands.push(Command::Draw(triangles.into()));
                             commands.push(Command::Restore);
@@ -866,6 +887,18 @@ impl CompositeMeshSystem {
             .iter()
             .map(|v| (v.position, v.tex_coord))
             .collect::<Vec<_>>()
+    }
+
+    fn build_mask(vertices: &[(Vec2, Vec2)], indices: &[usize]) -> Vec<PathElement> {
+        let mut result = Vec::with_capacity(indices.len());
+        for index in indices {
+            if *index == 0 {
+                result.push(PathElement::MoveTo(vertices[*index].0));
+            } else {
+                result.push(PathElement::LineTo(vertices[*index].0));
+            }
+        }
+        result
     }
 }
 

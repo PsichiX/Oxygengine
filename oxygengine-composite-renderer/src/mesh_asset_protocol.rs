@@ -60,6 +60,8 @@ impl MeshBone {
 #[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub struct SubMesh {
     pub faces: Vec<MeshFace>,
+    #[serde(default)]
+    pub masks: Vec<usize>,
     #[serde(skip)]
     #[ignite(ignore)]
     cached_faces: Vec<TriangleFace>,
@@ -80,9 +82,26 @@ impl SubMesh {
 }
 
 #[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+pub struct MeshMask {
+    pub indices: Vec<usize>,
+    #[serde(default = "MeshMask::default_enabled")]
+    pub enabled: bool,
+}
+
+impl MeshMask {
+    fn default_enabled() -> bool {
+        true
+    }
+}
+
+#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub struct Mesh {
     pub vertices: Vec<MeshVertex>,
     pub submeshes: Vec<SubMesh>,
+    /// [polygon: [vertex index]]
+    #[serde(default)]
+    pub masks: Vec<MeshMask>,
+    #[serde(default)]
     pub rig: Option<MeshBone>,
 }
 
