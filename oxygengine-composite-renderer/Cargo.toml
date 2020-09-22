@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-composite-renderer"
-version = "0.14.0"
+version = "0.14.1"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Composite renderer module for Oxygen Engine"
