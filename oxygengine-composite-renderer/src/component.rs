@@ -1,6 +1,7 @@
 use crate::{
     composite_renderer::{Command, Effect, Image, Renderable, Text},
     math::{Mat2d, Rect, Vec2},
+    mesh_animation_asset_protocol::{MeshAnimation, MeshAnimationSequence},
     mesh_asset_protocol::MeshBone,
     resource::{CompositeUiInteractibles, CompositeUiThemes, UiThemed, UiValue, UiValueVec2},
 };
@@ -551,7 +552,7 @@ impl From<(Cow<'static, str>, Vec<Cow<'static, str>>)> for SpriteAnimation {
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CompositeSpriteAnimation {
     pub animations: HashMap<Cow<'static, str>, SpriteAnimation>,
-    // (name, phase, speed, looped)
+    // (name, phase, speed, looped)?
     #[serde(default)]
     pub(crate) current: Option<(Cow<'static, str>, Scalar, Scalar, bool)>,
     #[serde(skip)]
@@ -1295,7 +1296,224 @@ impl Prefab for CompositeMesh {
         self.dirty_visuals = true;
     }
 }
+
 impl PrefabComponent for CompositeMesh {}
+
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+pub struct CompositeMeshAnimation {
+    animation: Cow<'static, str>,
+    /// {name: (phase, speed, looped, blend weight)}
+    #[serde(default)]
+    pub(crate) current: HashMap<String, (Scalar, Scalar, bool, Scalar)>,
+    #[serde(skip)]
+    #[ignite(ignore)]
+    pub(crate) dirty: bool,
+}
+
+impl CompositeMeshAnimation {
+    pub fn animation(&self) -> &str {
+        &self.animation
+    }
+
+    pub fn autoplay(
+        mut self,
+        name: &str,
+        speed: Scalar,
+        looped: bool,
+        blend_weight: Scalar,
+    ) -> Self {
+        self.play(name, speed, looped, blend_weight);
+        self
+    }
+
+    pub fn play(&mut self, name: &str, speed: Scalar, looped: bool, blend_weight: Scalar) {
+        self.current
+            .insert(name.to_owned(), (0.0, speed, looped, blend_weight));
+        self.dirty = true;
+    }
+
+    pub fn stop(&mut self, name: &str) {
+        self.current.remove(name);
+    }
+
+    pub fn is_playing_any(&self) -> bool {
+        !self.current.is_empty()
+    }
+
+    pub fn is_playing(&self, name: &str) -> bool {
+        self.current.contains_key(name)
+    }
+
+    pub fn current(&self) -> impl Iterator<Item = &String> {
+        self.current.keys()
+    }
+
+    pub fn phase(&self, name: &str) -> Option<Scalar> {
+        self.current.get(name).map(|(phase, _, _, _)| *phase)
+    }
+
+    pub fn set_phase(&mut self, name: &str, value: Scalar) -> bool {
+        if let Some((phase, _, _, _)) = self.current.get_mut(name) {
+            *phase = value.max(0.0);
+            self.dirty = true;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn speed(&self, name: &str) -> Option<Scalar> {
+        self.current.get(name).map(|(_, speed, _, _)| *speed)
+    }
+
+    pub fn set_speed(&mut self, name: &str, value: Scalar) -> bool {
+        if let Some((_, speed, _, _)) = self.current.get_mut(name) {
+            *speed = value;
+            self.dirty = true;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn looped(&self, name: &str) -> Option<bool> {
+        self.current.get(name).map(|(_, _, looped, _)| *looped)
+    }
+
+    pub fn set_looped(&mut self, name: &str, value: bool) -> bool {
+        if let Some((_, _, looped, _)) = self.current.get_mut(name) {
+            *looped = value;
+            self.dirty = true;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn blend_weight(&self, name: &str) -> Option<Scalar> {
+        self.current
+            .get(name)
+            .map(|(_, _, _, blend_weight)| *blend_weight)
+    }
+
+    pub fn set_blend_weight(&mut self, name: &str, value: Scalar) -> bool {
+        if let Some((_, _, _, blend_weight)) = self.current.get_mut(name) {
+            *blend_weight = value.max(0.0);
+            self.dirty = true;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn apply(&mut self) {
+        self.dirty = true;
+    }
+
+    pub(crate) fn process(
+        &mut self,
+        delta_time: Scalar,
+        animation: &MeshAnimation,
+        mesh: &mut CompositeMesh,
+    ) {
+        if !self.dirty || self.current.is_empty() {
+            return;
+        }
+        self.dirty = false;
+        for (name, (phase, speed, looped, _)) in &mut self.current {
+            if let Some(sequence) = animation.sequences.get(name) {
+                let old = *phase;
+                *phase = (*phase + *speed * delta_time)
+                    .max(0.0)
+                    .min(sequence.length());
+                if (*phase - old).abs() > 0.0 {
+                    self.dirty = true;
+                } else if *looped {
+                    if *phase > 0.0 {
+                        *phase = 0.0;
+                    } else {
+                        *phase = sequence.length();
+                    }
+                    self.dirty = true;
+                }
+            }
+        }
+        if !self.dirty {
+            return;
+        }
+        let meta = self
+            .current
+            .iter()
+            .filter_map(|(n, (p, _, _, bw))| animation.sequences.get(n).map(|s| (s, *p, *bw)))
+            .collect::<Vec<_>>();
+        if meta.is_empty() {
+            return;
+        }
+        let total_blend_weight = meta.iter().fold(0.0, |a, v| a + v.2);
+        for (index, material) in mesh.materials.iter_mut().enumerate() {
+            Self::apply_mesh_material(material, index, &meta, total_blend_weight);
+        }
+        for (name, transform) in mesh.bones_local_transform.iter_mut() {
+            Self::apply_mesh_bone_transform(transform, name, &meta, total_blend_weight);
+        }
+        mesh.apply();
+    }
+
+    fn apply_mesh_material(
+        material: &mut MeshMaterial,
+        index: usize,
+        // [(sequence, phase, blend weight)]
+        meta: &[(&MeshAnimationSequence, Scalar, Scalar)],
+        total_blend_weight: Scalar,
+    ) {
+        material.alpha = meta.iter().fold(0.0, |a, v| {
+            a + v.0.sample_submesh_alpha(v.1, index, material.alpha) * v.2
+        }) / total_blend_weight;
+        material.order = meta.iter().fold(0.0, |a, v| {
+            a + v.0.sample_submesh_order(v.1, index, material.order) * v.2
+        }) / total_blend_weight;
+    }
+
+    fn apply_mesh_bone_transform(
+        transform: &mut CompositeTransform,
+        name: &str,
+        // [(sequence, phase, blend weight)]
+        meta: &[(&MeshAnimationSequence, Scalar, Scalar)],
+        total_blend_weight: Scalar,
+    ) {
+        let position = transform.get_translation();
+        let rotation = transform.get_rotation();
+        let scale = transform.get_scale();
+        let px = meta.iter().fold(0.0, |a, v| {
+            a + v.0.sample_bone_position_x(v.1, name, position.x) * v.2
+        }) / total_blend_weight;
+        let py = meta.iter().fold(0.0, |a, v| {
+            a + v.0.sample_bone_position_y(v.1, name, position.y) * v.2
+        }) / total_blend_weight;
+        let rt = meta.iter().fold(0.0, |a, v| {
+            a + v.0.sample_bone_rotation(v.1, name, rotation) * v.2
+        }) / total_blend_weight;
+        let sx = meta.iter().fold(0.0, |a, v| {
+            a + v.0.sample_bone_scale_x(v.1, name, scale.x) * v.2
+        }) / total_blend_weight;
+        let sy = meta.iter().fold(0.0, |a, v| {
+            a + v.0.sample_bone_scale_y(v.1, name, scale.x) * v.2
+        }) / total_blend_weight;
+        *transform = CompositeTransform::new((px, py).into(), rt, (sx, sy).into());
+    }
+}
+
+impl Component for CompositeMeshAnimation {
+    type Storage = VecStorage<Self>;
+}
+
+impl Prefab for CompositeMeshAnimation {
+    fn post_from_prefab(&mut self) {
+        self.dirty = true;
+    }
+}
+
+impl PrefabComponent for CompositeMeshAnimation {}
 
 #[derive(Ignite, Debug, Copy, Clone, Default, Serialize, Deserialize)]
 pub struct UiMargin {

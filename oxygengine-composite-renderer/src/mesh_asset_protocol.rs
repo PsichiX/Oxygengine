@@ -26,7 +26,7 @@ pub struct MeshVertex {
     pub position: Vec2,
     pub tex_coord: Vec2,
     #[serde(default)]
-    pub bone_info: [MeshVertexBoneInfo; 4],
+    pub bone_info: Vec<MeshVertexBoneInfo>,
 }
 
 impl MeshVertex {
@@ -116,6 +116,9 @@ impl AssetProtocol for MeshAssetProtocol {
         let mut mesh = if path.ends_with(".json") {
             let data = from_utf8(&data).unwrap();
             serde_json::from_str::<Mesh>(&data).unwrap()
+        } else if path.ends_with(".yaml") {
+            let data = from_utf8(&data).unwrap();
+            serde_yaml::from_str::<Mesh>(&data).unwrap()
         } else {
             bincode::deserialize::<Mesh>(&data).unwrap()
         };

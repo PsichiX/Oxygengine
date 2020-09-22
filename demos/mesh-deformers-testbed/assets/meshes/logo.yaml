@@ -1,0 +1,116 @@
+vertices:
+- position:
+    x: -256
+    y: -256
+  tex_coord:
+    x: 0
+    y: 0
+  bone_info:
+  - name: a
+    weight: 1
+  - name: b
+    weight: 0
+  - name: c
+    weight: 0
+- position:
+    x: 256
+    y: -256
+  tex_coord:
+    x: 1
+    y: 0
+  bone_info:
+  - name: a
+    weight: 1
+  - name: b
+    weight: 0
+  - name: c
+    weight: 0
+- position:
+    x: -256
+    y: 0
+  tex_coord:
+    x: 0
+    y: 0.5
+  bone_info:
+  - name: a
+    weight: 0
+  - name: b
+    weight: 1
+  - name: c
+    weight: 0
+- position:
+    x: 256
+    y: 0
+  tex_coord:
+    x: 1
+    y: 0.5
+  bone_info:
+  - name: a
+    weight: 0
+  - name: b
+    weight: 1
+  - name: c
+    weight: 0
+- position:
+    x: -256
+    y: 256
+  tex_coord:
+    x: 0
+    y: 1
+  bone_info:
+  - name: a
+    weight: 0
+  - name: b
+    weight: 0
+  - name: c
+    weight: 1
+- position:
+    x: 256
+    y: 256
+  tex_coord:
+    x: 1
+    y: 1
+  bone_info:
+  - name: a
+    weight: 0
+  - name: b
+    weight: 0
+  - name: c
+    weight: 1
+submeshes:
+- faces:
+  - a: 0
+    b: 1
+    c: 3
+  - a: 3
+    b: 2
+    c: 0
+  - a: 2
+    b: 3
+    c: 5
+  - a: 5
+    b: 4
+    c: 2
+rig:
+  transform:
+    position:
+      x: 0
+      y: -256
+  children:
+    a:
+      transform:
+        position:
+          x: 0
+          y: 0
+      children:
+        b:
+          transform:
+            position:
+              x: 0
+              y: 256
+          children:
+            c:
+              transform:
+                position:
+                  x: 0
+                  y: 256

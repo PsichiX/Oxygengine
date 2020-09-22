@@ -15,7 +15,15 @@ entities:
         CompositeRenderable: None
         CompositeTransform: {}
         CompositeMesh:
-          mesh: meshes/test.json
+          mesh: meshes/logo.yaml
           materials:
             - image: images/logo.png
+        CompositeMeshAnimation:
+          animation: animations/logo.yaml
+          current:
+            swing:
+              - 0
+              - 1
+              - true
+              - 1
         NonPersistent: ~

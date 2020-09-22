@@ -390,16 +390,19 @@ impl WebCompositeRenderer {
                             let h = elm.height() as Scalar;
                             let s = Vec2::new(w, h);
                             for triangle in &triangles.faces {
-                                context.save();
                                 let a = triangles.vertices[triangle.a];
                                 let b = triangles.vertices[triangle.b];
                                 let c = triangles.vertices[triangle.c];
                                 let nab = (b.0 - a.0).normalized();
                                 let nbc = (c.0 - b.0).normalized();
                                 let nca = (a.0 - c.0).normalized();
+                                if !Vec2::is_clockwise(nab, nbc) {
+                                    continue;
+                                }
                                 let pa = a.0 - nbc.right() * self.state.triangles_outer_margin;
                                 let pb = b.0 - nca.right() * self.state.triangles_outer_margin;
                                 let pc = c.0 - nab.right() * self.state.triangles_outer_margin;
+                                context.save();
                                 context.begin_path();
                                 context.move_to(pa.x.into(), pa.y.into());
                                 context.line_to(pb.x.into(), pb.y.into());
@@ -465,14 +468,24 @@ impl WebCompositeRenderer {
                             let h = elm.height() as Scalar;
                             let s = Vec2::new(w, h);
                             for triangle in &triangles.faces {
-                                context.save();
                                 let a = triangles.vertices[triangle.a];
                                 let b = triangles.vertices[triangle.b];
                                 let c = triangles.vertices[triangle.c];
+                                let nab = (b.0 - a.0).normalized();
+                                let nbc = (c.0 - b.0).normalized();
+                                let nca = (a.0 - c.0).normalized();
+                                if !Vec2::is_clockwise(nab, nbc) {
+                                    continue;
+                                }
+                                let pa = a.0 - nbc.right() * self.state.triangles_outer_margin;
+                                let pb = b.0 - nca.right() * self.state.triangles_outer_margin;
+                                let pc = c.0 - nab.right() * self.state.triangles_outer_margin;
+                                context.save();
                                 context.begin_path();
-                                context.move_to(a.0.x.into(), a.0.y.into());
-                                context.line_to(b.0.x.into(), b.0.y.into());
-                                context.line_to(c.0.x.into(), c.0.y.into());
+                                context.move_to(pa.x.into(), pa.y.into());
+                                context.line_to(pb.x.into(), pb.y.into());
+                                context.line_to(pc.x.into(), pc.y.into());
+                                context.close_path();
                                 context.clip();
                                 let s0 = a.1 * s;
                                 let s1 = b.1 * s;

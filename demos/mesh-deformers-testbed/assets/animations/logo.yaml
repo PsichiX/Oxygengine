@@ -1,0 +1,31 @@
+sequences:
+  swing:
+    bone_rotation:
+      "":
+        - time: 0
+          value: -0.05
+        - time: 1
+          value: 0.05
+        - time: 2
+          value: -0.05
+      a:
+        - time: 0
+          value: -0.1
+        - time: 1.5
+          value: 0.1
+        - time: 3
+          value: -0.1
+      b:
+        - time: 0
+          value: -0.2
+        - time: 2
+          value: 0.2
+        - time: 4
+          value: -0.2
+      c:
+        - time: 0
+          value: -0.25
+        - time: 2.5
+          value: 0.25
+        - time: 5
+          value: -0.25

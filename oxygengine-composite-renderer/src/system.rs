@@ -3,14 +3,16 @@
 use crate::{
     component::{
         CompositeCamera, CompositeCameraAlignment, CompositeEffect, CompositeMapChunk,
-        CompositeMesh, CompositeRenderAlpha, CompositeRenderDepth, CompositeRenderLayer,
-        CompositeRenderable, CompositeRenderableStroke, CompositeSprite, CompositeSpriteAnimation,
-        CompositeSurfaceCache, CompositeTilemap, CompositeTilemapAnimation, CompositeTransform,
-        CompositeUiElement, CompositeVisibility, TileCell,
+        CompositeMesh, CompositeMeshAnimation, CompositeRenderAlpha, CompositeRenderDepth,
+        CompositeRenderLayer, CompositeRenderable, CompositeRenderableStroke, CompositeSprite,
+        CompositeSpriteAnimation, CompositeSurfaceCache, CompositeTilemap,
+        CompositeTilemapAnimation, CompositeTransform, CompositeUiElement, CompositeVisibility,
+        TileCell,
     },
     composite_renderer::{Command, CompositeRenderer, Image, Renderable, Stats, Triangles},
     map_asset_protocol::{Map, MapAsset},
     math::{Mat2d, Rect, Vec2},
+    mesh_animation_asset_protocol::{MeshAnimation, MeshAnimationAsset},
     mesh_asset_protocol::{Mesh, MeshAsset, MeshVertex},
     resource::{
         CompositeCameraCache, CompositeTransformRes, CompositeUiInteractibles, CompositeUiThemes,
@@ -846,27 +848,15 @@ impl CompositeMeshSystem {
         vertices
             .iter()
             .map(|v| {
-                let a = if let Some(m) = mesh.bones_model_space.get(&v.bone_info[0].name) {
-                    *m * v.position
-                } else {
-                    v.position
-                } * v.bone_info[0].weight;
-                let b = if let Some(m) = mesh.bones_model_space.get(&v.bone_info[1].name) {
-                    *m * v.position
-                } else {
-                    v.position
-                } * v.bone_info[1].weight;
-                let c = if let Some(m) = mesh.bones_model_space.get(&v.bone_info[2].name) {
-                    *m * v.position
-                } else {
-                    v.position
-                } * v.bone_info[2].weight;
-                let d = if let Some(m) = mesh.bones_model_space.get(&v.bone_info[3].name) {
-                    *m * v.position
-                } else {
-                    v.position
-                } * v.bone_info[3].weight;
-                (a + b + c + d, v.tex_coord)
+                let p = v.bone_info.iter().fold(Vec2::default(), |a, i| {
+                    let p = if let Some(m) = mesh.bones_model_space.get(&i.name) {
+                        *m * v.position
+                    } else {
+                        v.position
+                    };
+                    a + p * i.weight
+                });
+                (p, v.tex_coord)
             })
             .collect::<Vec<_>>()
     }
@@ -876,6 +866,51 @@ impl CompositeMeshSystem {
             .iter()
             .map(|v| (v.position, v.tex_coord))
             .collect::<Vec<_>>()
+    }
+}
+
+#[derive(Default)]
+pub struct CompositeMeshAnimationSystem {
+    animations_cache: HashMap<String, MeshAnimation>,
+    animations_table: HashMap<AssetID, String>,
+}
+
+impl<'s> System<'s> for CompositeMeshAnimationSystem {
+    type SystemData = (
+        ReadExpect<'s, AppLifeCycle>,
+        ReadExpect<'s, AssetsDatabase>,
+        WriteStorage<'s, CompositeMesh>,
+        WriteStorage<'s, CompositeMeshAnimation>,
+    );
+
+    fn run(&mut self, (lifecycle, assets, mut meshes, mut animations): Self::SystemData) {
+        for id in assets.lately_loaded_protocol("mesh-anim") {
+            let id = *id;
+            let asset = assets
+                .asset_by_id(id)
+                .expect("trying to use not loaded mesh animation asset");
+            let path = asset.path().to_owned();
+            let asset = asset
+                .get::<MeshAnimationAsset>()
+                .expect("trying to use non-mesh-animation asset");
+            let animation = asset.animation().clone();
+            self.animations_cache.insert(path.clone(), animation);
+            self.animations_table.insert(id, path);
+        }
+        for id in assets.lately_unloaded_protocol("mesh-anim") {
+            if let Some(path) = self.animations_table.remove(id) {
+                self.animations_cache.remove(&path);
+            }
+        }
+
+        let dt = lifecycle.delta_time_seconds() as Scalar;
+        for (mesh, animation) in (&mut meshes, &mut animations).join() {
+            if animation.dirty {
+                if let Some(asset) = self.animations_cache.get(animation.animation()) {
+                    animation.process(dt, asset, mesh);
+                }
+            }
+        }
     }
 }
 

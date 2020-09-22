@@ -7,6 +7,7 @@ pub mod font_asset_protocol;
 pub mod font_face_asset_protocol;
 pub mod map_asset_protocol;
 pub mod math;
+pub mod mesh_animation_asset_protocol;
 pub mod mesh_asset_protocol;
 pub mod png_image_asset_protocol;
 pub mod resource;
@@ -18,9 +19,9 @@ pub mod ui_theme_asset_protocol;
 pub mod prelude {
     pub use crate::{
         component::*, composite_renderer::*, font_asset_protocol::*, font_face_asset_protocol::*,
-        map_asset_protocol::*, math::*, mesh_asset_protocol::*, png_image_asset_protocol::*,
-        resource::*, sprite_sheet_asset_protocol::*, system::*, tileset_asset_protocol::*,
-        ui_theme_asset_protocol::*,
+        map_asset_protocol::*, math::*, mesh_animation_asset_protocol::*, mesh_asset_protocol::*,
+        png_image_asset_protocol::*, resource::*, sprite_sheet_asset_protocol::*, system::*,
+        tileset_asset_protocol::*, ui_theme_asset_protocol::*,
     };
 }
 
@@ -28,10 +29,10 @@ use crate::{
     component::*,
     composite_renderer::CompositeRenderer,
     system::{
-        CompositeCameraCacheSystem, CompositeMapSystem, CompositeMeshSystem,
-        CompositeRendererSystem, CompositeSpriteAnimationSystem, CompositeSpriteSheetSystem,
-        CompositeSurfaceCacheSystem, CompositeTilemapAnimationSystem, CompositeTilemapSystem,
-        CompositeTransformSystem, CompositeUiSystem,
+        CompositeCameraCacheSystem, CompositeMapSystem, CompositeMeshAnimationSystem,
+        CompositeMeshSystem, CompositeRendererSystem, CompositeSpriteAnimationSystem,
+        CompositeSpriteSheetSystem, CompositeSurfaceCacheSystem, CompositeTilemapAnimationSystem,
+        CompositeTilemapSystem, CompositeTransformSystem, CompositeUiSystem,
     },
 };
 use core::{
@@ -51,6 +52,11 @@ where
     builder.install_system(CompositeSpriteAnimationSystem, "sprite_animation", &[]);
     builder.install_system(CompositeTilemapAnimationSystem, "tilemap_animation", &[]);
     builder.install_system(
+        CompositeMeshAnimationSystem::default(),
+        "mesh_animation",
+        &[],
+    );
+    builder.install_system(
         CompositeSpriteSheetSystem::default(),
         "sprite_sheet",
         &["sprite_animation"],
@@ -60,8 +66,8 @@ where
         "tilemap",
         &["tilemap_animation"],
     );
+    builder.install_system(CompositeMeshSystem::default(), "mesh", &["mesh_animation"]);
     builder.install_system(CompositeMapSystem::default(), "map", &[]);
-    builder.install_system(CompositeMeshSystem::default(), "mesh", &[]);
     builder.install_thread_local_system(CompositeUiSystem::<CR>::default());
     builder.install_thread_local_system(CompositeCameraCacheSystem::<CR>::default());
     builder.install_thread_local_system(CompositeSurfaceCacheSystem::<CR>::default());
@@ -77,6 +83,7 @@ pub fn protocols_installer(database: &mut AssetsDatabase) {
     database.register(font_asset_protocol::FontAssetProtocol);
     database.register(font_face_asset_protocol::FontFaceAssetProtocol);
     database.register(mesh_asset_protocol::MeshAssetProtocol);
+    database.register(mesh_animation_asset_protocol::MeshAnimationAssetProtocol);
 }
 
 pub fn prefabs_installer(prefabs: &mut PrefabManager) {
@@ -97,5 +104,6 @@ pub fn prefabs_installer(prefabs: &mut PrefabManager) {
     prefabs.register_component_factory::<CompositeTilemapAnimation>("CompositeTilemapAnimation");
     prefabs.register_component_factory::<CompositeMapChunk>("CompositeMapChunk");
     prefabs.register_component_factory::<CompositeMesh>("CompositeMesh");
+    prefabs.register_component_factory::<CompositeMeshAnimation>("CompositeMeshAnimation");
     prefabs.register_component_factory::<CompositeUiElement>("CompositeUiElement");
 }

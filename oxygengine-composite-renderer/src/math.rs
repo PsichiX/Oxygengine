@@ -323,6 +323,11 @@ impl Vec2 {
     }
 
     #[inline]
+    pub fn is_clockwise(a: Self, b: Self) -> bool {
+        a.x * b.y - a.y * b.x > 0.0
+    }
+
+    #[inline]
     pub fn lerp(self, other: Vec2, factor: Scalar) -> Self {
         Self {
             x: lerp(self.x, other.x, factor),

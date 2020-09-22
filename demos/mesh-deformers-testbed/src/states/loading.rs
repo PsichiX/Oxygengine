@@ -11,7 +11,7 @@ impl State for LoadingState {
         let assets = &mut world.write_resource::<AssetsDatabase>();
         if let Some(preloader) = &mut self.preloader {
             if preloader.process(assets).unwrap() {
-                return StateChange::Swap(Box::new(GameState::default()));
+                return StateChange::Swap(Box::new(GameState));
             }
         } else {
             self.preloader = Some(
