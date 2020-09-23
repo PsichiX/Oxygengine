@@ -98,7 +98,6 @@ impl MeshMask {
 pub struct Mesh {
     pub vertices: Vec<MeshVertex>,
     pub submeshes: Vec<SubMesh>,
-    /// [polygon: [vertex index]]
     #[serde(default)]
     pub masks: Vec<MeshMask>,
     #[serde(default)]
