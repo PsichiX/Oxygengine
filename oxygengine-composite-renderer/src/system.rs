@@ -414,19 +414,26 @@ impl<'s> System<'s> for CompositeSpriteSheetSystem {
         }
 
         for (renderable, sprite) in (&mut renderables, &mut sprites).join() {
-            if sprite.dirty {
-                if let Some(r) =
-                    Self::build_renderable(sprite, &self.images_cache, &self.frames_cache)
-                {
-                    renderable.0 = r;
-                    sprite.dirty = false;
-                }
-            }
+            Self::update_item(sprite, renderable, &self.images_cache, &self.frames_cache);
         }
     }
 }
 
 impl CompositeSpriteSheetSystem {
+    pub fn update_item(
+        sprite: &mut CompositeSprite,
+        renderable: &mut CompositeRenderable,
+        images: &HashMap<String, String>,
+        frames: &HashMap<String, HashMap<String, Rect>>,
+    ) {
+        if sprite.dirty {
+            if let Some(r) = Self::build_renderable(sprite, images, frames) {
+                renderable.0 = r;
+                sprite.dirty = false;
+            }
+        }
+    }
+
     pub fn build_renderable<'a>(
         sprite: &CompositeSprite,
         images: &HashMap<String, String>,
@@ -489,19 +496,26 @@ impl<'s> System<'s> for CompositeTilemapSystem {
         }
 
         for (renderable, tilemap) in (&mut renderables, &mut tilemaps).join() {
-            if tilemap.dirty {
-                if let Some(r) =
-                    Self::build_renderable(tilemap, &self.images_cache, &self.infos_cache)
-                {
-                    renderable.0 = r;
-                    tilemap.dirty = false;
-                }
-            }
+            Self::update_item(tilemap, renderable, &self.images_cache, &self.infos_cache);
         }
     }
 }
 
 impl CompositeTilemapSystem {
+    pub fn update_item(
+        tilemap: &mut CompositeTilemap,
+        renderable: &mut CompositeRenderable,
+        images: &HashMap<String, String>,
+        infos: &HashMap<String, TilesetInfo>,
+    ) {
+        if tilemap.dirty {
+            if let Some(r) = Self::build_renderable(tilemap, images, infos) {
+                renderable.0 = r;
+                tilemap.dirty = false;
+            }
+        }
+    }
+
     pub fn build_renderable<'a>(
         tilemap: &CompositeTilemap,
         images: &HashMap<String, String>,
@@ -559,33 +573,42 @@ pub struct CompositeSpriteAnimationSystem;
 impl<'s> System<'s> for CompositeSpriteAnimationSystem {
     type SystemData = (
         ReadExpect<'s, AppLifeCycle>,
-        Entities<'s>,
         WriteStorage<'s, CompositeSprite>,
         WriteStorage<'s, CompositeSpriteAnimation>,
         WriteStorage<'s, CompositeSurfaceCache>,
     );
 
-    fn run(
-        &mut self,
-        (lifecycle, entities, mut sprites, mut animations, mut caches): Self::SystemData,
-    ) {
+    fn run(&mut self, (lifecycle, mut sprites, mut animations, mut caches): Self::SystemData) {
         let dt = lifecycle.delta_time_seconds() as Scalar;
-        for (entity, sprite, animation) in (&entities, &mut sprites, &mut animations).join() {
-            if animation.dirty {
-                animation.dirty = false;
-                if let Some((name, phase, _, _)) = &animation.current {
-                    if let Some(anim) = animation.animations.get(name) {
-                        if let Some(frame) = anim.frames.get(*phase as usize) {
-                            sprite.set_sheet_frame(Some((anim.sheet.clone(), frame.clone())));
-                            if let Some(cache) = caches.get_mut(entity) {
-                                cache.rebuild();
-                            }
+        for (sprite, animation, cache) in
+            (&mut sprites, &mut animations, (&mut caches).maybe()).join()
+        {
+            Self::update_item(dt, animation, sprite, cache);
+        }
+    }
+}
+
+impl CompositeSpriteAnimationSystem {
+    pub fn update_item(
+        dt: Scalar,
+        animation: &mut CompositeSpriteAnimation,
+        sprite: &mut CompositeSprite,
+        cache: Option<&mut CompositeSurfaceCache>,
+    ) {
+        if animation.dirty {
+            animation.dirty = false;
+            if let Some((name, phase, _, _)) = &animation.current {
+                if let Some(anim) = animation.animations.get(name) {
+                    if let Some(frame) = anim.frames.get(*phase as usize) {
+                        sprite.set_sheet_frame(Some((anim.sheet.clone(), frame.clone())));
+                        if let Some(cache) = cache {
+                            cache.rebuild();
                         }
                     }
                 }
             }
-            animation.process(dt);
         }
+        animation.process(dt);
     }
 }
 
@@ -594,34 +617,43 @@ pub struct CompositeTilemapAnimationSystem;
 impl<'s> System<'s> for CompositeTilemapAnimationSystem {
     type SystemData = (
         ReadExpect<'s, AppLifeCycle>,
-        Entities<'s>,
         WriteStorage<'s, CompositeTilemap>,
         WriteStorage<'s, CompositeTilemapAnimation>,
         WriteStorage<'s, CompositeSurfaceCache>,
     );
 
-    fn run(
-        &mut self,
-        (lifecycle, entities, mut tilemaps, mut animations, mut caches): Self::SystemData,
-    ) {
+    fn run(&mut self, (lifecycle, mut tilemaps, mut animations, mut caches): Self::SystemData) {
         let dt = lifecycle.delta_time_seconds() as Scalar;
-        for (entity, tilemap, animation) in (&entities, &mut tilemaps, &mut animations).join() {
-            if animation.dirty {
-                animation.dirty = false;
-                if let Some((name, phase, _, _)) = &animation.current {
-                    if let Some(anim) = animation.animations.get(name) {
-                        if let Some(frame) = anim.frames.get(*phase as usize) {
-                            tilemap.set_tileset(Some(anim.tileset.clone()));
-                            tilemap.set_grid(frame.clone());
-                            if let Some(cache) = caches.get_mut(entity) {
-                                cache.rebuild();
-                            }
+        for (tilemap, animation, cache) in
+            (&mut tilemaps, &mut animations, (&mut caches).maybe()).join()
+        {
+            Self::update_item(dt, animation, tilemap, cache);
+        }
+    }
+}
+
+impl CompositeTilemapAnimationSystem {
+    pub fn update_item(
+        dt: Scalar,
+        animation: &mut CompositeTilemapAnimation,
+        tilemap: &mut CompositeTilemap,
+        cache: Option<&mut CompositeSurfaceCache>,
+    ) {
+        if animation.dirty {
+            animation.dirty = false;
+            if let Some((name, phase, _, _)) = &animation.current {
+                if let Some(anim) = animation.animations.get(name) {
+                    if let Some(frame) = anim.frames.get(*phase as usize) {
+                        tilemap.set_tileset(Some(anim.tileset.clone()));
+                        tilemap.set_grid(frame.clone());
+                        if let Some(cache) = cache {
+                            cache.rebuild();
                         }
                     }
                 }
             }
-            animation.process(dt);
         }
+        animation.process(dt);
     }
 }
 
@@ -689,32 +721,50 @@ where
         }
 
         for (entity, cache, renderable) in (&entities, &mut caches, &mut renderables).join() {
-            if cache.dirty {
-                cache.dirty = false;
-                if !renderer.has_surface(cache.name()) {
+            Self::update_item(
+                entity,
+                cache,
+                renderable,
+                &mut self.cached_surfaces,
+                renderer,
+            );
+        }
+    }
+}
+
+impl<CR: CompositeRenderer> CompositeSurfaceCacheSystem<CR> {
+    pub fn update_item(
+        entity: Entity,
+        cache: &mut CompositeSurfaceCache,
+        renderable: &mut CompositeRenderable,
+        surfaces: &mut HashMap<Entity, String>,
+        renderer: &mut CR,
+    ) {
+        if cache.dirty {
+            cache.dirty = false;
+            if !renderer.has_surface(cache.name()) {
+                renderer.create_surface(cache.name(), cache.width(), cache.height());
+                surfaces.insert(entity, cache.name().to_owned());
+            } else if let Some((width, height)) = renderer.get_surface_size(cache.name()) {
+                if width != cache.width() || height != cache.height() {
+                    renderer.destroy_surface(cache.name());
                     renderer.create_surface(cache.name(), cache.width(), cache.height());
-                    self.cached_surfaces.insert(entity, cache.name().to_owned());
-                } else if let Some((width, height)) = renderer.get_surface_size(cache.name()) {
-                    if width != cache.width() || height != cache.height() {
-                        renderer.destroy_surface(cache.name());
-                        renderer.create_surface(cache.name(), cache.width(), cache.height());
-                        self.cached_surfaces.insert(entity, cache.name().to_owned());
-                    }
+                    surfaces.insert(entity, cache.name().to_owned());
                 }
-                let commands = vec![
-                    Command::Store,
-                    Command::Draw(renderable.0.clone()),
-                    Command::Restore,
-                ];
-                if renderer.update_surface(cache.name(), commands).is_ok() {
-                    renderable.0 = Image {
-                        image: cache.name().to_owned().into(),
-                        source: None,
-                        destination: None,
-                        alignment: 0.0.into(),
-                    }
-                    .into();
+            }
+            let commands = vec![
+                Command::Store,
+                Command::Draw(renderable.0.clone()),
+                Command::Restore,
+            ];
+            if renderer.update_surface(cache.name(), commands).is_ok() {
+                renderable.0 = Image {
+                    image: cache.name().to_owned().into(),
+                    source: None,
+                    destination: None,
+                    alignment: 0.0.into(),
                 }
+                .into();
             }
         }
     }
@@ -728,17 +778,13 @@ pub struct CompositeMapSystem {
 
 impl<'s> System<'s> for CompositeMapSystem {
     type SystemData = (
-        Entities<'s>,
         ReadExpect<'s, AssetsDatabase>,
         WriteStorage<'s, CompositeMapChunk>,
         WriteStorage<'s, CompositeRenderable>,
         WriteStorage<'s, CompositeSurfaceCache>,
     );
 
-    fn run(
-        &mut self,
-        (entities, assets, mut chunks, mut renderables, mut caches): Self::SystemData,
-    ) {
+    fn run(&mut self, (assets, mut chunks, mut renderables, mut caches): Self::SystemData) {
         for id in assets.lately_loaded_protocol("map") {
             let id = *id;
             let asset = assets
@@ -758,21 +804,33 @@ impl<'s> System<'s> for CompositeMapSystem {
             }
         }
 
-        for (entity, chunk, renderable) in (&entities, &mut chunks, &mut renderables).join() {
-            if chunk.dirty {
-                if let Some(r) = Self::build_renderable(chunk, &self.maps_cache, &assets) {
-                    renderable.0 = r;
-                    if let Some(cache) = caches.get_mut(entity) {
-                        cache.rebuild();
-                    }
-                    chunk.dirty = false;
-                }
-            }
+        for (chunk, renderable, cache) in
+            (&mut chunks, &mut renderables, (&mut caches).maybe()).join()
+        {
+            Self::update_item(chunk, renderable, cache, &self.maps_cache, &assets);
         }
     }
 }
 
 impl CompositeMapSystem {
+    pub fn update_item(
+        chunk: &mut CompositeMapChunk,
+        renderable: &mut CompositeRenderable,
+        cache: Option<&mut CompositeSurfaceCache>,
+        maps: &HashMap<String, Map>,
+        assets: &AssetsDatabase,
+    ) {
+        if chunk.dirty {
+            if let Some(r) = Self::build_renderable(chunk, maps, assets) {
+                renderable.0 = r;
+                if let Some(cache) = cache {
+                    cache.rebuild();
+                }
+                chunk.dirty = false;
+            }
+        }
+    }
+
     pub fn build_renderable<'a>(
         chunk: &CompositeMapChunk,
         maps: &HashMap<String, Map>,
@@ -803,17 +861,13 @@ pub struct CompositeMeshSystem {
 
 impl<'s> System<'s> for CompositeMeshSystem {
     type SystemData = (
-        Entities<'s>,
         ReadExpect<'s, AssetsDatabase>,
         WriteStorage<'s, CompositeMesh>,
         WriteStorage<'s, CompositeRenderable>,
         WriteStorage<'s, CompositeSurfaceCache>,
     );
 
-    fn run(
-        &mut self,
-        (entities, assets, mut meshes, mut renderables, mut caches): Self::SystemData,
-    ) {
+    fn run(&mut self, (assets, mut meshes, mut renderables, mut caches): Self::SystemData) {
         for id in assets.lately_loaded_protocol("mesh") {
             let id = *id;
             let asset = assets
@@ -833,22 +887,33 @@ impl<'s> System<'s> for CompositeMeshSystem {
             }
         }
 
-        for (entity, mesh, renderable) in (&entities, &mut meshes, &mut renderables).join() {
-            if mesh.dirty_mesh || mesh.dirty_visuals {
-                if let Some(r) = Self::build_renderable(mesh, &self.meshes_cache) {
-                    renderable.0 = r;
-                    if let Some(cache) = caches.get_mut(entity) {
-                        cache.rebuild();
-                    }
-                    mesh.dirty_mesh = false;
-                    mesh.dirty_visuals = false;
-                }
-            }
+        for (mesh, renderable, cache) in
+            (&mut meshes, &mut renderables, (&mut caches).maybe()).join()
+        {
+            Self::update_item(mesh, renderable, &self.meshes_cache, cache);
         }
     }
 }
 
 impl CompositeMeshSystem {
+    pub fn update_item(
+        mesh: &mut CompositeMesh,
+        renderable: &mut CompositeRenderable,
+        meshes: &HashMap<String, Mesh>,
+        cache: Option<&mut CompositeSurfaceCache>,
+    ) {
+        if mesh.dirty_mesh || mesh.dirty_visuals {
+            if let Some(r) = Self::build_renderable(mesh, meshes) {
+                renderable.0 = r;
+                if let Some(cache) = cache {
+                    cache.rebuild();
+                }
+                mesh.dirty_mesh = false;
+                mesh.dirty_visuals = false;
+            }
+        }
+    }
+
     pub fn build_renderable<'a>(
         mesh: &mut CompositeMesh,
         meshes: &HashMap<String, Mesh>,
@@ -986,10 +1051,21 @@ impl<'s> System<'s> for CompositeMeshAnimationSystem {
 
         let dt = lifecycle.delta_time_seconds() as Scalar;
         for (mesh, animation) in (&mut meshes, &mut animations).join() {
-            if animation.dirty {
-                if let Some(asset) = self.animations_cache.get(animation.animation()) {
-                    animation.process(dt, asset, mesh);
-                }
+            Self::update_item(dt, animation, mesh, &self.animations_cache);
+        }
+    }
+}
+
+impl CompositeMeshAnimationSystem {
+    pub fn update_item(
+        dt: Scalar,
+        animation: &mut CompositeMeshAnimation,
+        mesh: &mut CompositeMesh,
+        animations: &HashMap<String, MeshAnimation>,
+    ) {
+        if animation.dirty {
+            if let Some(asset) = animations.get(animation.animation()) {
+                animation.process(dt, asset, mesh);
             }
         }
     }

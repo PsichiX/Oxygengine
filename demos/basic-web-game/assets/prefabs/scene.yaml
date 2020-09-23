@@ -119,14 +119,16 @@ entities:
       components:
         Tag: world
         Name: player
-        CompositeRenderable: None
-        Triangles:
-          image: images/logo.png
-          size: 256
+        CompositeRenderable:
+          Image:
+            image: images/logo.png
+            alignment:
+              x: 0.5
+              y: 0.5
         CompositeTransform:
           scale:
-            x: 0.75
-            y: 0.75
+            x: 0.5
+            y: 0.5
         KeyboardMovementTag: ~
         Speed: 50
         RigidBody2d:
