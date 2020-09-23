@@ -8,6 +8,6 @@ impl State for GameState {
         world
             .write_resource::<PrefabManager>()
             .instantiate_world("scene", world)
-            .unwrap()[1];
+            .unwrap();
     }
 }

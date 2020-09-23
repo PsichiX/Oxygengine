@@ -415,24 +415,39 @@ impl<'s> System<'s> for CompositeSpriteSheetSystem {
 
         for (renderable, sprite) in (&mut renderables, &mut sprites).join() {
             if sprite.dirty {
-                if let Some((sheet, frame)) = sprite.sheet_frame() {
-                    if let Some(name) = self.images_cache.get(sheet) {
-                        if let Some(frames) = self.frames_cache.get(sheet) {
-                            renderable.0 = Image {
-                                image: name.clone().into(),
-                                source: frames.get(frame).copied(),
-                                destination: None,
-                                alignment: sprite.alignment,
-                            }
-                            .into();
-                            sprite.dirty = false;
-                        }
-                    }
-                } else {
+                if let Some(r) =
+                    Self::build_renderable(sprite, &self.images_cache, &self.frames_cache)
+                {
+                    renderable.0 = r;
                     sprite.dirty = false;
                 }
             }
         }
+    }
+}
+
+impl CompositeSpriteSheetSystem {
+    pub fn build_renderable<'a>(
+        sprite: &CompositeSprite,
+        images: &HashMap<String, String>,
+        frames: &HashMap<String, HashMap<String, Rect>>,
+    ) -> Option<Renderable<'a>> {
+        if let Some((sheet, frame)) = sprite.sheet_frame() {
+            if let Some(name) = images.get(sheet) {
+                if let Some(frames) = frames.get(sheet) {
+                    return Some(
+                        Image {
+                            image: name.clone().into(),
+                            source: frames.get(frame).copied(),
+                            destination: None,
+                            alignment: sprite.alignment,
+                        }
+                        .into(),
+                    );
+                }
+            }
+        }
+        None
     }
 }
 
@@ -475,17 +490,10 @@ impl<'s> System<'s> for CompositeTilemapSystem {
 
         for (renderable, tilemap) in (&mut renderables, &mut tilemaps).join() {
             if tilemap.dirty {
-                if let Some(tileset) = tilemap.tileset() {
-                    if let Some(name) = self.images_cache.get(tileset) {
-                        let commands = if let Some(info) = self.infos_cache.get(tileset) {
-                            Self::build_commands(name, info, tilemap.grid())
-                        } else {
-                            vec![]
-                        };
-                        renderable.0 = Renderable::Commands(commands);
-                        tilemap.dirty = false;
-                    }
-                } else {
+                if let Some(r) =
+                    Self::build_renderable(tilemap, &self.images_cache, &self.infos_cache)
+                {
+                    renderable.0 = r;
                     tilemap.dirty = false;
                 }
             }
@@ -494,6 +502,24 @@ impl<'s> System<'s> for CompositeTilemapSystem {
 }
 
 impl CompositeTilemapSystem {
+    pub fn build_renderable<'a>(
+        tilemap: &CompositeTilemap,
+        images: &HashMap<String, String>,
+        infos: &HashMap<String, TilesetInfo>,
+    ) -> Option<Renderable<'a>> {
+        if let Some(tileset) = tilemap.tileset() {
+            if let Some(name) = images.get(tileset) {
+                let commands = if let Some(info) = infos.get(tileset) {
+                    Self::build_commands(name, info, tilemap.grid())
+                } else {
+                    vec![]
+                };
+                return Some(Renderable::Commands(commands));
+            }
+        }
+        None
+    }
+
     fn build_commands<'a>(
         name: &str,
         info: &TilesetInfo,
@@ -734,19 +760,8 @@ impl<'s> System<'s> for CompositeMapSystem {
 
         for (entity, chunk, renderable) in (&entities, &mut chunks, &mut renderables).join() {
             if chunk.dirty {
-                if let Some(map) = self.maps_cache.get(chunk.map_name()) {
-                    let commands = if let Some(commands) = map
-                        .build_render_commands_from_layer_by_name(
-                            chunk.layer_name(),
-                            chunk.offset(),
-                            chunk.size(),
-                            &assets,
-                        ) {
-                        commands
-                    } else {
-                        vec![]
-                    };
-                    renderable.0 = Renderable::Commands(commands);
+                if let Some(r) = Self::build_renderable(chunk, &self.maps_cache, &assets) {
+                    renderable.0 = r;
                     if let Some(cache) = caches.get_mut(entity) {
                         cache.rebuild();
                     }
@@ -754,6 +769,29 @@ impl<'s> System<'s> for CompositeMapSystem {
                 }
             }
         }
+    }
+}
+
+impl CompositeMapSystem {
+    pub fn build_renderable<'a>(
+        chunk: &CompositeMapChunk,
+        maps: &HashMap<String, Map>,
+        assets: &AssetsDatabase,
+    ) -> Option<Renderable<'a>> {
+        if let Some(map) = maps.get(chunk.map_name()) {
+            let commands = if let Some(commands) = map.build_render_commands_from_layer_by_name(
+                chunk.layer_name(),
+                chunk.offset(),
+                chunk.size(),
+                &assets,
+            ) {
+                commands
+            } else {
+                vec![]
+            };
+            return Some(Renderable::Commands(commands));
+        }
+        None
     }
 }
 
@@ -797,62 +835,8 @@ impl<'s> System<'s> for CompositeMeshSystem {
 
         for (entity, mesh, renderable) in (&entities, &mut meshes, &mut renderables).join() {
             if mesh.dirty_mesh || mesh.dirty_visuals {
-                if let Some(asset) = self.meshes_cache.get(mesh.mesh()) {
-                    if mesh.dirty_mesh {
-                        if let Some(root) = &asset.rig {
-                            mesh.setup_bones_from_rig(root);
-                        }
-                    }
-                    if mesh.dirty_visuals {
-                        let vertices = if let Some(root) = &asset.rig {
-                            mesh.rebuild_model_space(root);
-                            Self::build_skined_vertices(&asset.vertices, mesh)
-                        } else {
-                            Self::build_vertices(&asset.vertices)
-                        };
-                        let masks = asset
-                            .masks
-                            .iter()
-                            .map(|indices| Self::build_mask(&vertices, &indices.indices))
-                            .collect::<Vec<_>>();
-                        let mut meta = asset
-                            .submeshes
-                            .iter()
-                            .zip(mesh.materials().iter())
-                            .filter_map(|(submesh, material)| {
-                                if material.alpha > 0.0 {
-                                    let triangles = Triangles {
-                                        image: material.image.to_string().into(),
-                                        color: Default::default(),
-                                        vertices: vertices.to_vec(),
-                                        faces: submesh.cached_faces().to_vec(),
-                                    };
-                                    let masks = submesh
-                                        .masks
-                                        .iter()
-                                        .map(|i| masks[*i].to_vec())
-                                        .collect::<Vec<_>>();
-                                    Some((triangles, material.alpha, material.order, masks))
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect::<Vec<_>>();
-                        meta.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
-                        let count = meta.len() * 4 + meta.iter().fold(0, |a, v| a + v.3.len());
-                        let mut commands = Vec::with_capacity(count);
-                        for (triangles, alpha, _, masks) in meta {
-                            commands.push(Command::Store);
-                            for mask in masks {
-                                let mask = Mask { elements: mask };
-                                commands.push(Command::Draw(mask.into()));
-                            }
-                            commands.push(Command::Alpha(alpha));
-                            commands.push(Command::Draw(triangles.into()));
-                            commands.push(Command::Restore);
-                        }
-                        renderable.0 = Renderable::Commands(commands);
-                    }
+                if let Some(r) = Self::build_renderable(mesh, &self.meshes_cache) {
+                    renderable.0 = r;
                     if let Some(cache) = caches.get_mut(entity) {
                         cache.rebuild();
                     }
@@ -865,6 +849,70 @@ impl<'s> System<'s> for CompositeMeshSystem {
 }
 
 impl CompositeMeshSystem {
+    pub fn build_renderable<'a>(
+        mesh: &mut CompositeMesh,
+        meshes: &HashMap<String, Mesh>,
+    ) -> Option<Renderable<'a>> {
+        if let Some(asset) = meshes.get(mesh.mesh()) {
+            if mesh.dirty_mesh {
+                if let Some(root) = &asset.rig {
+                    mesh.setup_bones_from_rig(root);
+                }
+            }
+            if mesh.dirty_visuals {
+                let vertices = if let Some(root) = &asset.rig {
+                    mesh.rebuild_model_space(root);
+                    Self::build_skined_vertices(&asset.vertices, mesh)
+                } else {
+                    Self::build_vertices(&asset.vertices)
+                };
+                let masks = asset
+                    .masks
+                    .iter()
+                    .map(|indices| Self::build_mask(&vertices, &indices.indices))
+                    .collect::<Vec<_>>();
+                let mut meta = asset
+                    .submeshes
+                    .iter()
+                    .zip(mesh.materials().iter())
+                    .filter_map(|(submesh, material)| {
+                        if material.alpha > 0.0 {
+                            let triangles = Triangles {
+                                image: material.image.to_string().into(),
+                                color: Default::default(),
+                                vertices: vertices.to_vec(),
+                                faces: submesh.cached_faces().to_vec(),
+                            };
+                            let masks = submesh
+                                .masks
+                                .iter()
+                                .map(|i| masks[*i].to_vec())
+                                .collect::<Vec<_>>();
+                            Some((triangles, material.alpha, material.order, masks))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                meta.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
+                let count = meta.len() * 4 + meta.iter().fold(0, |a, v| a + v.3.len());
+                let mut commands = Vec::with_capacity(count);
+                for (triangles, alpha, _, masks) in meta {
+                    commands.push(Command::Store);
+                    for mask in masks {
+                        let mask = Mask { elements: mask };
+                        commands.push(Command::Draw(mask.into()));
+                    }
+                    commands.push(Command::Alpha(alpha));
+                    commands.push(Command::Draw(triangles.into()));
+                    commands.push(Command::Restore);
+                }
+                return Some(Renderable::Commands(commands));
+            }
+        }
+        None
+    }
+
     fn build_skined_vertices(vertices: &[MeshVertex], mesh: &CompositeMesh) -> Vec<(Vec2, Vec2)> {
         vertices
             .iter()
