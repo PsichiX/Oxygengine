@@ -732,7 +732,10 @@ where
     }
 }
 
-impl<CR: CompositeRenderer> CompositeSurfaceCacheSystem<CR> {
+impl<CR> CompositeSurfaceCacheSystem<CR>
+where
+    CR: CompositeRenderer,
+{
     pub fn update_item(
         entity: Entity,
         cache: &mut CompositeSurfaceCache,
