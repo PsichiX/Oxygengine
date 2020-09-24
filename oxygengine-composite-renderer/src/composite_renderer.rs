@@ -162,26 +162,11 @@ pub struct TriangleFace {
     pub b: usize,
     #[serde(default)]
     pub c: usize,
-    #[serde(default = "TriangleFace::default_alpha")]
-    pub alpha: Scalar,
 }
 
 impl TriangleFace {
     pub fn new(a: usize, b: usize, c: usize) -> Self {
-        Self {
-            a,
-            b,
-            c,
-            alpha: 1.0,
-        }
-    }
-
-    pub fn new_alpha(a: usize, b: usize, c: usize, alpha: Scalar) -> Self {
-        Self { a, b, c, alpha }
-    }
-
-    fn default_alpha() -> Scalar {
-        1.0
+        Self { a, b, c }
     }
 }
 

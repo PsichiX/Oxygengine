@@ -448,14 +448,6 @@ impl WebCompositeRenderer {
                                         dx.into(),
                                         dy.into(),
                                     ));
-                                    current_alpha =
-                                        alpha_stack.last().copied().unwrap_or(1.0) * triangle.alpha;
-                                    if triangle.alpha >= 1.0 {
-                                        context.set_global_alpha(
-                                            current_alpha.max(0.0).min(1.0).into(),
-                                        );
-                                        render_ops += 1;
-                                    }
                                     drop(context.draw_image_with_html_image_element(elm, 0.0, 0.0));
                                     render_ops += 2;
                                     renderables += 1;
@@ -526,14 +518,6 @@ impl WebCompositeRenderer {
                                         dx.into(),
                                         dy.into(),
                                     ));
-                                    current_alpha =
-                                        alpha_stack.last().copied().unwrap_or(1.0) * triangle.alpha;
-                                    if triangle.alpha >= 1.0 {
-                                        context.set_global_alpha(
-                                            current_alpha.max(0.0).min(1.0).into(),
-                                        );
-                                        render_ops += 1;
-                                    }
                                     drop(
                                         context.draw_image_with_html_canvas_element(elm, 0.0, 0.0),
                                     );
