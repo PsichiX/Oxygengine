@@ -32,7 +32,6 @@ widget_component! {
         let container_props = Props::new(ContentBoxProps {
             transform: Transform {
                 align: Vec2 { x: phase - 1.0, y: 0.0 },
-                // skew: Vec2 { x: (1.0 - phase) * std::f32::consts::PI * 0.25, y: 0.0 },
                 ..Default::default()
             },
             ..Default::default()
@@ -68,8 +67,7 @@ widget_component! {
             align: Vec2 { x: 0.5, y: 0.5 },
             ..Default::default()
         })
-        // .with(NavJumpActive(NavJumpMode::StepHorizontal))
-        .with(NavJumpActive(NavJumpMode::Direction))
+        .with(NavJumpActive(NavJumpMode::StepHorizontal))
         .with(NavJumpLooped)
         .with(NavItemActive);
         let bar_props = Props::new(ContentBoxProps {
