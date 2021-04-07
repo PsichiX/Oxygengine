@@ -1,4 +1,3 @@
-use crate::resource::text_inputs::TextInputs;
 use oxygengine::prelude::*;
 
 #[derive(Debug, Default)]
@@ -14,17 +13,16 @@ impl State for GameState {
             .write_resource::<PrefabManager>()
             .instantiate_world("scene", world)
             .unwrap();
-        world.write_resource::<TextInputs>().focused = Some("commands".to_owned());
     }
 
     fn on_process(&mut self, world: &mut World) -> StateChange {
         if let Some(camera) = self.camera {
             // check if we pressed left mouse button.
             let input = &world.read_resource::<InputController>();
-            if input.trigger_or_default("mouse-left").is_pressed() {
+            if input.trigger_or_default("pointer-action").is_pressed() {
                 // get mouse screen space coords.
-                let x = input.axis_or_default("mouse-x");
-                let y = input.axis_or_default("mouse-y");
+                let x = input.axis_or_default("pointer-x");
+                let y = input.axis_or_default("pointer-y");
                 let point = [x, y].into();
 
                 // convert mouse coords from screen space to world space.
@@ -59,29 +57,6 @@ impl State for GameState {
         } else {
             // find and store camera entity by its name.
             self.camera = entity_find_world("camera", world);
-        }
-
-        if let Some(camera) = self.camera_ui {
-            let input = &world.read_resource::<InputController>();
-            if input.trigger_or_default("mouse-left").is_pressed() {
-                let x = input.axis_or_default("mouse-x");
-                let y = input.axis_or_default("mouse-y");
-                let point = [x, y].into();
-
-                if let Some(pos) = world
-                    .read_resource::<CompositeCameraCache>()
-                    .screen_to_world_space(camera, point)
-                {
-                    if world
-                        .read_resource::<CompositeUiInteractibles>()
-                        .does_rect_contains_point("panel", pos)
-                    {
-                        info!("PANEL GOT CLICKED!");
-                    }
-                }
-            }
-        } else {
-            self.camera_ui = entity_find_world("camera_ui", world);
         }
 
         StateChange::None

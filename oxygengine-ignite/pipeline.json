@@ -1,0 +1,10 @@
+{
+  "commands": [
+    {
+      "Pack": {
+        "paths": ["presets/"],
+        "output": "../target/oxygengine-presets.pack"
+      }
+    }
+  ]
+}
