@@ -20,6 +20,7 @@ Make sure that you have latest `oxygengine-ignite` binary installed (`cargo inst
 
 ## Teaser
 ![Visual Novel](https://raw.githubusercontent.com/PsichiX/Oxygengine/master/media/oxygengine-visual-novel-teaser.gif)
+![RPG](https://raw.githubusercontent.com/PsichiX/Oxygengine/master/media/oxygengine-raui-navigation.gif)
 
 ## Project Setup
 Create Oxygen Engine project with `oxygengine-ignite`:
