@@ -19,6 +19,6 @@ console_error_panic_hook = { version = "0.1", optional = true }
 serde = { version = "1", features = ["derive"] }
 
 [dependencies.oxygengine]
-version = "0.15"
+version = "0.16"
 features = ["web-composite-game"]
 path = "../../"

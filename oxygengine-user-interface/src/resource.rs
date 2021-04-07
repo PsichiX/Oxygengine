@@ -79,23 +79,27 @@ impl UserInterfaceRes {
         self
     }
 
-    pub fn with_navigation(
+    pub fn with_navigation_actions(mut self, accept: &str, cancel: &str) -> Self {
+        self.navigate_accept = accept.to_owned();
+        self.navigate_cancel = cancel.to_owned();
+        self
+    }
+
+    pub fn with_navigation_directions(
         mut self,
-        accept: &str,
-        cancel: &str,
         up: &str,
         down: &str,
         left: &str,
         right: &str,
-        prev: &str,
-        next: &str,
     ) -> Self {
-        self.navigate_accept = accept.to_owned();
-        self.navigate_cancel = cancel.to_owned();
         self.navigate_up = up.to_owned();
         self.navigate_down = down.to_owned();
         self.navigate_left = left.to_owned();
         self.navigate_right = right.to_owned();
+        self
+    }
+
+    pub fn with_navigation_tabs(mut self, prev: &str, next: &str) -> Self {
         self.navigate_prev = prev.to_owned();
         self.navigate_next = next.to_owned();
         self

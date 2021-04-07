@@ -97,7 +97,8 @@ pub fn main_js() -> Result<(), JsValue> {
             UserInterfaceRes::new(ui::setup)
                 .with_pointer_axis("pointer-x", "pointer-y")
                 .with_pointer_trigger("pointer-action", "pointer-context")
-                .with_navigation("enter", "escape", "up", "down", "left", "right", "", "")
+                .with_navigation_actions("enter", "escape")
+                .with_navigation_directions("up", "down", "left", "right")
                 .with_text_move_cursor("text-left", "text-right", "text-start", "text-end")
                 .with_text_delete("text-delete-left", "text-delete-right"),
         )

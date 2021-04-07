@@ -1188,16 +1188,11 @@ fn copy_dir(from: &Path, to: &Path, id: &str) -> Result<()> {
                         } else {
                             println!("Could not open Chrobry template file: {:?}", path);
                         }
-                        return Ok(());
+                        continue;
                     }
                 }
                 let to = to.join(path.file_name().unwrap());
-                if let Ok(contents) = read_to_string(&path) {
-                    let contents = contents.replace("~%IGNITE_ID%~", id);
-                    write(to, contents)?;
-                } else {
-                    copy(&path, to)?;
-                }
+                copy(&path, to)?;
             }
         }
     }

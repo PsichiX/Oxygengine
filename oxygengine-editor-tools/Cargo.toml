@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-editor-tools"
-version = "0.15.0"
+version = "0.16.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Editor tools for Oxygen Engine"
@@ -32,12 +32,12 @@ features = [
 optional = true
 
 [dependencies.oxygengine-backend-web]
-version = "0.15"
+version = "0.16"
 path = "../oxygengine-backend-web"
 features = ["ipc"]
 optional = true
 
 [dependencies.oxygengine-composite-renderer-backend-web]
-version = "0.15"
+version = "0.16"
 path = "../oxygengine-composite-renderer-backend-web"
 optional = true
