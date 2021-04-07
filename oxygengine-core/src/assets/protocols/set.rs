@@ -1,12 +1,12 @@
 use crate::assets::{
-    asset::{Asset, AssetID},
+    asset::{Asset, AssetId},
     protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
 };
 use std::str::from_utf8;
 
 pub struct SetAsset {
     paths: Vec<String>,
-    ids: Vec<AssetID>,
+    ids: Vec<AssetId>,
 }
 
 impl SetAsset {
@@ -14,7 +14,7 @@ impl SetAsset {
         &self.paths
     }
 
-    pub fn ids(&self) -> &[AssetID] {
+    pub fn ids(&self) -> &[AssetId] {
         &self.ids
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
-    client::{Client, ClientID, ClientState},
-    server::{Server, ServerID, ServerState},
+    client::{Client, ClientId, ClientState},
+    server::{Server, ServerId, ServerState},
 };
 use std::collections::HashMap;
 
@@ -8,7 +8,7 @@ pub struct NetworkHost<S>
 where
     S: Server,
 {
-    servers: HashMap<ServerID, S>,
+    servers: HashMap<ServerId, S>,
 }
 
 impl<S> Default for NetworkHost<S>
@@ -26,7 +26,7 @@ impl<S> NetworkHost<S>
 where
     S: Server,
 {
-    pub fn open_server(&mut self, url: &str) -> Option<ServerID> {
+    pub fn open_server(&mut self, url: &str) -> Option<ServerId> {
         if let Some(server) = S::open(url) {
             let id = server.id();
             self.servers.insert(id, server);
@@ -36,7 +36,7 @@ where
         }
     }
 
-    pub fn close_server(&mut self, id: ServerID) -> bool {
+    pub fn close_server(&mut self, id: ServerId) -> bool {
         if let Some(server) = self.servers.remove(&id) {
             server.close();
             true
@@ -45,15 +45,15 @@ where
         }
     }
 
-    pub fn server(&self, id: ServerID) -> Option<&S> {
+    pub fn server(&self, id: ServerId) -> Option<&S> {
         self.servers.get(&id)
     }
 
-    pub fn server_mut(&mut self, id: ServerID) -> Option<&mut S> {
+    pub fn server_mut(&mut self, id: ServerId) -> Option<&mut S> {
         self.servers.get_mut(&id)
     }
 
-    pub fn has_server(&self, id: ServerID) -> bool {
+    pub fn has_server(&self, id: ServerId) -> bool {
         self.servers.contains_key(&id)
     }
 
@@ -70,7 +70,7 @@ pub struct Network<C>
 where
     C: Client,
 {
-    clients: HashMap<ClientID, C>,
+    clients: HashMap<ClientId, C>,
 }
 
 impl<C> Default for Network<C>
@@ -88,7 +88,7 @@ impl<C> Network<C>
 where
     C: Client,
 {
-    pub fn open_client(&mut self, url: &str) -> Option<ClientID> {
+    pub fn open_client(&mut self, url: &str) -> Option<ClientId> {
         if let Some(client) = C::open(url) {
             let id = client.id();
             self.clients.insert(id, client);
@@ -98,7 +98,7 @@ where
         }
     }
 
-    pub fn close_client(&mut self, id: ClientID) -> bool {
+    pub fn close_client(&mut self, id: ClientId) -> bool {
         if let Some(client) = self.clients.remove(&id) {
             client.close();
             true
@@ -107,15 +107,15 @@ where
         }
     }
 
-    pub fn client(&self, id: ClientID) -> Option<&C> {
+    pub fn client(&self, id: ClientId) -> Option<&C> {
         self.clients.get(&id)
     }
 
-    pub fn client_mut(&mut self, id: ClientID) -> Option<&mut C> {
+    pub fn client_mut(&mut self, id: ClientId) -> Option<&mut C> {
         self.clients.get_mut(&id)
     }
 
-    pub fn has_client(&self, id: ClientID) -> bool {
+    pub fn has_client(&self, id: ClientId) -> bool {
         self.clients.contains_key(&id)
     }
 

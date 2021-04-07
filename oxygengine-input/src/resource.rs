@@ -56,6 +56,7 @@ pub struct InputController {
     mapping_triggers: HashMap<String, (String, String)>,
     axes: HashMap<String, Scalar>,
     triggers: HashMap<String, TriggerState>,
+    text: String,
 }
 
 impl InputController {
@@ -162,9 +163,19 @@ impl InputController {
         self.triggers.insert(name.to_owned(), value);
     }
 
+    pub fn text(&self) -> &str {
+        &self.text
+    }
+
     pub fn process(&mut self) {
         for device in self.devices.values_mut() {
             device.process();
+        }
+        self.text.clear();
+        for device in self.devices.values() {
+            if let Some(text) = device.query_text() {
+                self.text.push_str(&text);
+            }
         }
         self.axes.clear();
         for (name_from, (dev, name_to)) in &self.mapping_axes {

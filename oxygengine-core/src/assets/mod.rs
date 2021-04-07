@@ -27,8 +27,8 @@ use crate::{
     localization::LocalizationSystem,
 };
 
-pub fn bundle_installer<'a, 'b, FE: 'static, ADS>(
-    builder: &mut AppBuilder<'a, 'b>,
+pub fn bundle_installer<FE: 'static, ADS>(
+    builder: &mut AppBuilder,
     (fetch_engine, mut assets_database_setup): (FE, ADS),
 ) where
     FE: FetchEngine,

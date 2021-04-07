@@ -16,7 +16,7 @@ use crate::{
 };
 use core::{app::AppBuilder, assets::database::AssetsDatabase, prefab::PrefabManager};
 
-pub fn bundle_installer<'a, 'b, A>(builder: &mut AppBuilder<'a, 'b>, data: A)
+pub fn bundle_installer<A>(builder: &mut AppBuilder, data: A)
 where
     A: Audio + 'static,
 {

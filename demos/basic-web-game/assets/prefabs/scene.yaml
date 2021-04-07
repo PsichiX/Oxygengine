@@ -20,13 +20,9 @@ entities:
       components:
         Name: camera_ui
         CompositeCamera:
-          scaling: Aspect
           tags:
             - ui
-        CompositeTransform:
-          scale:
-            x: 400
-            y: 400
+        CompositeTransform: {}
         NonPersistent: ~
   - Data:
       components:
@@ -121,14 +117,14 @@ entities:
         Name: player
         CompositeRenderable:
           Image:
-            image: images/logo.png
+            image: images/logo.svg
             alignment:
               x: 0.5
               y: 0.5
         CompositeTransform:
           scale:
-            x: 0.5
-            y: 0.5
+            x: 0.25
+            y: 0.25
         KeyboardMovementTag: ~
         Speed: 50
         RigidBody2d:
@@ -170,116 +166,16 @@ entities:
         Tag: ui
         CompositeRenderable: None
         CompositeTransform: {}
-        CompositeUiElement:
+        UserInterfaceView:
+          root:
+            Component:
+              type_name: gui
+              key: gui
+        UserInterfaceViewSyncCompositeRenderable:
           camera_name: camera_ui
-          theme: panel
-          interactive: panel
-          padding:
-            left: 8
-            right: 8
-            bottom: 8
-          left_anchor:
-            Value: 0
-          right_anchor:
-            Value: 1
-          top_anchor:
-            Value: 1
-          bottom_anchor:
-            Value: 1
-          alignment:
-            x:
-              Value: 0
-            y:
-              Value: 1
-          fixed_height:
-            Value: 50
-          element_type:
-            Image: {}
-          children:
-            - padding:
-                left: 8
-                right: 8
-                top: 8
-              left_anchor:
-                Value: 0
-              right_anchor:
-                Value: 1
-              top_anchor:
-                Value: 0
-              bottom_anchor:
-                Value: 1
-              theme: text
-              element_type:
-                Text:
-                  text: Hello, World!
-                  color:
-                    r: 255
-                    g: 255
-                    b: 0
-                    a: 255
-        NonPersistent: ~
-  - Data:
-      components:
-        Tag: ui
-        CompositeRenderable: None
-        CompositeTransform: {}
-        CompositeUiElement:
-          camera_name: camera_ui
-          theme: commands
-          interactive: commands
-          left_anchor:
-            Value: 0
-          right_anchor:
-            Value: 1
-          top_anchor:
-            Value: 0
-          bottom_anchor:
-            Value: 0
-          fixed_height:
-            Value: 10
-          element_type:
-            Image: {}
-          children:
-            - padding:
-                left: 2
-                right: 2
-                top: 2
-              left_anchor:
-                Value: 0
-              right_anchor:
-                Value: 1
-              top_anchor:
-                Value: 0
-              bottom_anchor:
-                Value: 1
-              theme: commands-title
-              element_type:
-                Text:
-                  text: "Command:"
-                  color:
-                    r: 0
-                    g: 0
-                    b: 0
-                    a: 255
-            - id: commands
-              padding:
-                left: 2
-                right: 2
-                top: 20
-              left_anchor:
-                Value: 0
-              right_anchor:
-                Value: 1
-              top_anchor:
-                Value: 0
-              bottom_anchor:
-                Value: 1
-              theme: commands-input
-              element_type:
-                Text:
-                  color:
-                    r: 255
-                    g: 255
-                    b: 255
-                    a: 255
+          mapping_scaling:
+            FitMaximum:
+              - 400
+              - 400
+          approx_rect_values: Round
         NonPersistent: ~

@@ -1,5 +1,9 @@
 // reexport core macros.
 pub use oxygengine_core::{debug, error, info, log, warn};
+#[cfg(feature = "user-interface")]
+pub use oxygengine_user_interface::{
+    destruct, unpack_named_slots, widget, widget_component, widget_hook, widget_wrap,
+};
 
 pub mod core {
     pub use oxygengine_core::*;
@@ -71,6 +75,12 @@ pub mod integration_physics_2d_composite_renderer {
 pub mod integration_visual_novel_composite_renderer {
     pub use oxygengine_integration_vn_cr::*;
 }
+#[cfg(feature = "user-interface")]
+#[cfg(feature = "composite-renderer")]
+#[cfg(feature = "integration-user-interface-composite-renderer")]
+pub mod integration_user_interface_composite_renderer {
+    pub use oxygengine_integration_ui_cr::*;
+}
 pub mod script {
     #[cfg(feature = "script-flow")]
     pub use oxygengine_script_flow::*;
@@ -82,6 +92,10 @@ pub mod visual_novel {
 #[cfg(feature = "animation")]
 pub mod animation {
     pub use oxygengine_animation::*;
+}
+#[cfg(feature = "user-interface")]
+pub mod user_interface {
+    pub use oxygengine_user_interface::*;
 }
 #[cfg(feature = "editor-tools")]
 pub mod editor_tools {
@@ -116,6 +130,10 @@ pub mod prelude {
     #[cfg(feature = "composite-renderer")]
     #[cfg(feature = "integration-physics-2d-composite-renderer")]
     pub use oxygengine_integration_p2d_cr::prelude::*;
+    #[cfg(feature = "user-interface")]
+    #[cfg(feature = "composite-renderer")]
+    #[cfg(feature = "integration-user-interface-composite-renderer")]
+    pub use oxygengine_integration_ui_cr::prelude::*;
     #[cfg(feature = "visual-novel")]
     #[cfg(feature = "composite-renderer")]
     #[cfg(feature = "integration-visual-novel-composite-renderer")]
@@ -139,6 +157,8 @@ pub mod prelude {
     pub use oxygengine_procedural::prelude::*;
     #[cfg(feature = "script-flow")]
     pub use oxygengine_script_flow::prelude::*;
+    #[cfg(feature = "user-interface")]
+    pub use oxygengine_user_interface::prelude::*;
     pub use oxygengine_utils::prelude::*;
     #[cfg(feature = "visual-novel")]
     pub use oxygengine_visual_novel::prelude::*;

@@ -32,14 +32,8 @@ pub fn build_project(
         disable_dts: true,
         target: Target::Web,
         debug: false,
-        dev: match profile {
-            BuildProfile::Debug => true,
-            _ => false,
-        },
-        release: match profile {
-            BuildProfile::Release => true,
-            _ => false,
-        },
+        dev: matches!(profile, BuildProfile::Debug),
+        release: matches!(profile, BuildProfile::Release),
         profiling: false,
         out_dir: out_dir.unwrap_or_else(|| "bin".to_owned()),
         out_name: Some("index".to_owned()),

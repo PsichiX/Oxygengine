@@ -1,16 +1,16 @@
-use crate::assets::asset::{Asset, AssetID};
+use crate::assets::asset::{Asset, AssetId};
 use std::any::Any;
 
 pub type Meta = Option<Box<dyn Any + Send + Sync>>;
 
 #[derive(Debug, Clone)]
 pub enum AssetVariant {
-    Id(AssetID),
+    Id(AssetId),
     Path(String),
 }
 
-impl From<AssetID> for AssetVariant {
-    fn from(id: AssetID) -> Self {
+impl From<AssetId> for AssetVariant {
+    fn from(id: AssetId) -> Self {
         AssetVariant::Id(id)
     }
 }

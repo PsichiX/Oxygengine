@@ -40,11 +40,7 @@ impl RigidBody2d {
     }
 
     pub fn is_created(&self) -> bool {
-        if let RigidBody2dInner::Handle(_) = &self.0 {
-            true
-        } else {
-            false
-        }
+        matches!(&self.0, RigidBody2dInner::Handle(_))
     }
 
     pub fn handle(&self) -> Option<DefaultBodyHandle> {
@@ -188,6 +184,7 @@ impl RigidBody2dPrefabProxy {
         RigidBody2dPrefabProxyBodyStatus::Dynamic
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     fn default_sleep_threshold() -> Option<Scalar> {
         Some(ActivationStatus::default_threshold())
     }
@@ -251,11 +248,7 @@ impl Collider2d {
     }
 
     pub fn is_created(&self) -> bool {
-        if let Collider2dInner::Handle(_) = &self.0 {
-            true
-        } else {
-            false
-        }
+        matches!(&self.0, Collider2dInner::Handle(_))
     }
 
     pub fn handle(&self) -> Option<DefaultColliderHandle> {

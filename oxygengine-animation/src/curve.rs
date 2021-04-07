@@ -221,12 +221,12 @@ where
     }
 }
 
-impl<T> Into<CurveDef<T>> for Curve<T>
+impl<T> From<Curve<T>> for CurveDef<T>
 where
     T: Clone + Curved + CurvedDistance + CurvedTangent,
 {
-    fn into(self) -> CurveDef<T> {
-        CurveDef(self.from, self.from_param, self.to_param, self.to)
+    fn from(v: Curve<T>) -> Self {
+        Self(v.from, v.from_param, v.to_param, v.to)
     }
 }
 
@@ -345,15 +345,15 @@ where
         Some(self.sample(factor))
     }
 
-    pub fn calculate_samples<'a>(&'a self, count: usize) -> impl Iterator<Item = T> + 'a {
+    pub fn calculate_samples(&self, count: usize) -> impl Iterator<Item = T> + '_ {
         (0..=count).map(move |i| self.sample(i as Scalar / count as Scalar))
     }
 
-    pub fn calculate_samples_along_axis<'a>(
-        &'a self,
+    pub fn calculate_samples_along_axis(
+        &self,
         count: usize,
         axis_index: usize,
-    ) -> Option<impl Iterator<Item = T> + 'a> {
+    ) -> Option<impl Iterator<Item = T> + '_> {
         let from = self.from.get_axis(axis_index)?;
         let diff = self.to.get_axis(axis_index)? - from;
         Some((0..=count).filter_map(move |i| {

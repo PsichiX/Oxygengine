@@ -1,6 +1,6 @@
 use crate::{
     assets::{
-        asset::{Asset, AssetID},
+        asset::{Asset, AssetId},
         protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
     },
     fetch::{FetchEngine, FetchProcessReader, FetchStatus},
@@ -34,13 +34,13 @@ pub struct AssetsDatabase {
     pub max_bytes_per_frame: Option<usize>,
     fetch_engines: Vec<Box<dyn FetchEngine>>,
     protocols: HashMap<String, Box<dyn AssetProtocol>>,
-    assets: HashMap<AssetID, (String, Asset)>,
-    table: HashMap<String, AssetID>,
+    assets: HashMap<AssetId, (String, Asset)>,
+    table: HashMap<String, AssetId>,
     loading: HashMap<String, (String, Box<dyn FetchProcessReader>)>,
     #[allow(clippy::type_complexity)]
     yielded: HashMap<String, (String, Meta, Vec<(String, String)>)>,
-    lately_loaded: Vec<(String, AssetID)>,
-    lately_unloaded: Vec<(String, AssetID)>,
+    lately_loaded: Vec<(String, AssetId)>,
+    lately_unloaded: Vec<(String, AssetId)>,
     error_reporters: HashMap<TypeId, Box<dyn AssetsDatabaseErrorReporter>>,
 }
 
@@ -89,7 +89,7 @@ impl AssetsDatabase {
             .collect()
     }
 
-    pub fn loaded_ids(&self) -> Vec<AssetID> {
+    pub fn loaded_ids(&self) -> Vec<AssetId> {
         self.assets.iter().map(|(id, _)| *id).collect()
     }
 
@@ -141,7 +141,7 @@ impl AssetsDatabase {
         result
     }
 
-    pub fn lately_loaded(&self) -> impl Iterator<Item = &AssetID> {
+    pub fn lately_loaded(&self) -> impl Iterator<Item = &AssetId> {
         self.lately_loaded.iter().map(|(_, id)| id)
     }
 
@@ -152,13 +152,13 @@ impl AssetsDatabase {
     pub fn lately_loaded_protocol<'a>(
         &'a self,
         protocol: &'a str,
-    ) -> impl Iterator<Item = &'a AssetID> {
+    ) -> impl Iterator<Item = &'a AssetId> {
         self.lately_loaded
             .iter()
             .filter_map(move |(prot, id)| if protocol == prot { Some(id) } else { None })
     }
 
-    pub fn lately_unloaded(&self) -> impl Iterator<Item = &AssetID> {
+    pub fn lately_unloaded(&self) -> impl Iterator<Item = &AssetId> {
         self.lately_unloaded.iter().map(|(_, id)| id)
     }
 
@@ -169,7 +169,7 @@ impl AssetsDatabase {
     pub fn lately_unloaded_protocol<'a>(
         &'a self,
         protocol: &'a str,
-    ) -> impl Iterator<Item = &'a AssetID> {
+    ) -> impl Iterator<Item = &'a AssetId> {
         self.lately_unloaded
             .iter()
             .filter_map(move |(prot, id)| if protocol == prot { Some(id) } else { None })
@@ -263,7 +263,7 @@ impl AssetsDatabase {
         }
     }
 
-    pub fn insert(&mut self, path: &str, asset: Asset) -> AssetID {
+    pub fn insert(&mut self, path: &str, asset: Asset) -> AssetId {
         let id = asset.id();
         self.lately_loaded.push((asset.protocol().to_owned(), id));
         self.assets.insert(id, (path.to_owned(), asset));
@@ -271,7 +271,7 @@ impl AssetsDatabase {
         id
     }
 
-    pub fn remove_by_id(&mut self, id: AssetID) -> Option<Asset> {
+    pub fn remove_by_id(&mut self, id: AssetId) -> Option<Asset> {
         if let Some((path, asset)) = self.assets.remove(&id) {
             self.table.remove(&path);
             self.lately_unloaded.push((asset.protocol().to_owned(), id));
@@ -310,15 +310,15 @@ impl AssetsDatabase {
         }
     }
 
-    pub fn id_by_path(&self, path: &str) -> Option<AssetID> {
+    pub fn id_by_path(&self, path: &str) -> Option<AssetId> {
         self.table.get(path).cloned()
     }
 
-    pub fn path_by_id(&self, id: AssetID) -> Option<&str> {
+    pub fn path_by_id(&self, id: AssetId) -> Option<&str> {
         self.assets.get(&id).map(|(path, _)| path.as_str())
     }
 
-    pub fn asset_by_id(&self, id: AssetID) -> Option<&Asset> {
+    pub fn asset_by_id(&self, id: AssetId) -> Option<&Asset> {
         self.assets.get(&id).map(|(_, asset)| asset)
     }
 
@@ -371,9 +371,11 @@ impl AssetsDatabase {
                 }
             }
         }
-        self.loading.retain(|_, (_, reader)| match reader.status() {
-            FetchStatus::InProgress(_) | FetchStatus::Done => true,
-            _ => false,
+        self.loading.retain(|_, (_, reader)| {
+            matches!(
+                reader.status(),
+                FetchStatus::InProgress(_) | FetchStatus::Done
+            )
         });
         let yielded = std::mem::take(&mut self.yielded);
         for (path, (prot, meta, list)) in yielded {

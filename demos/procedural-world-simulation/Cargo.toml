@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-pws"
-version = "0.14.2"
+version = "0.15.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygen Engine procedural world simulation"
@@ -11,9 +11,9 @@ documentation = "https://docs.rs/oxygengine-pws"
 
 [dependencies]
 minifb = "0.19"
-rand = "0.7"
+rand = "0.8"
 
 [dependencies.oxygengine-procedural]
-version = "0.14"
+version = "0.15"
 path = "../../oxygengine-procedural"
 features = ["parallel"]

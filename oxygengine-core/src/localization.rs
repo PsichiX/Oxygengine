@@ -1,5 +1,6 @@
+#![allow(clippy::upper_case_acronyms)]
 use crate::assets::{
-    asset::AssetID, database::AssetsDatabase, protocols::localization::LocalizationAsset,
+    asset::AssetId, database::AssetsDatabase, protocols::localization::LocalizationAsset,
 };
 use pest::{iterators::Pair, Parser};
 use specs::{ReadExpect, System, Write};
@@ -134,7 +135,7 @@ macro_rules! localization_format_text {
 
 #[derive(Default)]
 pub struct LocalizationSystem {
-    language_table: HashMap<AssetID, String>,
+    language_table: HashMap<AssetId, String>,
 }
 
 impl<'s> System<'s> for LocalizationSystem {

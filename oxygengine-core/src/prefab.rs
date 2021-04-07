@@ -1,6 +1,6 @@
 use crate::{
     app::{AppBuilder, AppLifeCycle},
-    assets::{asset::AssetID, database::AssetsDatabase, protocols::prefab::PrefabAsset},
+    assets::{asset::AssetId, database::AssetsDatabase, protocols::prefab::PrefabAsset},
     hierarchy::{Name, NonPersistent, NonPersistentPrefabProxy, Parent, ParentPrefabProxy, Tag},
     state::StateToken,
 };
@@ -408,7 +408,7 @@ impl PrefabManager {
 
 #[derive(Default)]
 pub struct PrefabSystem {
-    templates_table: HashMap<AssetID, String>,
+    templates_table: HashMap<AssetId, String>,
 }
 
 impl<'s> System<'s> for PrefabSystem {
@@ -452,10 +452,8 @@ impl<'s> System<'s> for PrefabSystem {
     }
 }
 
-pub fn bundle_installer<'a, 'b, PMS>(
-    builder: &mut AppBuilder<'a, 'b>,
-    mut prefab_manager_setup: PMS,
-) where
+pub fn bundle_installer<PMS>(builder: &mut AppBuilder, mut prefab_manager_setup: PMS)
+where
     PMS: FnMut(&mut PrefabManager),
 {
     let mut manager = PrefabManager::default();

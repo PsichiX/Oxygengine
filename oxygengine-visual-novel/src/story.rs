@@ -9,7 +9,7 @@ use crate::{
 use core::prefab::PrefabValue;
 use core::{error, info, prefab::Prefab, warn, Ignite, Scalar};
 #[cfg(feature = "script-flow")]
-use flow::GUID;
+use flow::Guid;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
@@ -54,7 +54,7 @@ pub(crate) enum ScriptFlowEvent {
     None,
     /// (VM name, event name, parameters)
     Call(String, String, Vec<PrefabValue>),
-    InProgress(GUID),
+    InProgress(Guid),
     Done(Vec<PrefabValue>),
 }
 

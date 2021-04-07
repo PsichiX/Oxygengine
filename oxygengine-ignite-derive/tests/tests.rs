@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use oxygengine_ignite_derive::Ignite;
 
 #[derive(Ignite)]

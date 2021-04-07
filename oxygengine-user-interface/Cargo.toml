@@ -1,0 +1,33 @@
+[package]
+name = "oxygengine-user-interface"
+version = "0.15.0"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+edition = "2018"
+description = "User Interface module for Oxygen Engine"
+license-file = "../LICENSE"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine-user-interface"
+readme = "../README.md"
+
+[features]
+web = [
+  "oxygengine-core/web",
+  "oxygengine-input/web",
+]
+parallel = [
+  "oxygengine-core/parallel",
+  "oxygengine-input/parallel",
+]
+scalar64 = [
+  "raui-core/scalar64",
+  "oxygengine-core/scalar64",
+  "oxygengine-input/scalar64",
+]
+
+[dependencies]
+oxygengine-core = { version = "0.15", path = "../oxygengine-core" }
+oxygengine-input = { version = "0.15", path = "../oxygengine-input" }
+raui-core = "0.28"
+raui-material = "0.28"
+serde = { version = "1", features = ["derive"] }

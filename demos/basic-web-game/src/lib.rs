@@ -2,20 +2,17 @@
 extern crate oxygengine;
 
 mod components;
-mod resource;
 mod states;
 mod systems;
+mod ui;
 
 use crate::{
     components::{speed::Speed, KeyboardMovementTag},
-    resource::text_inputs::TextInputs,
     states::loading::LoadingState,
-    systems::{
-        keyboard_movement::KeyboardMovementSystem,
-        text_input::{TextInputRendererSystem, TextInputWriterSystem},
-    },
+    systems::keyboard_movement::KeyboardMovementSystem,
 };
 use oxygengine::prelude::*;
+use std::marker::PhantomData;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]
@@ -47,6 +44,10 @@ pub fn main_js() -> Result<(), JsValue> {
         .with_bundle(oxygengine::core::prefab::bundle_installer, |prefabs| {
             // install composite renderer prefabs.
             oxygengine::composite_renderer::prefabs_installer(prefabs);
+            // install UI prefabs.
+            oxygengine::user_interface::prefabs_installer(prefabs);
+            // install prefabs for integration between UI and composite rendering.
+            oxygengine::integration_user_interface_composite_renderer::prefabs_installer(prefabs);
             // install audio prefabs.
             oxygengine::audio::prefabs_installer(prefabs);
             // install 2d physics prefabs.
@@ -63,21 +64,35 @@ pub fn main_js() -> Result<(), JsValue> {
             input.register(WebKeyboardInputDevice::new(get_event_target_document()));
             input.register(WebMouseInputDevice::new(get_event_target_by_id("screen")));
             // map input axes and triggers to devices.
+            input.map_axis("pointer-x", "mouse", "x");
+            input.map_axis("pointer-y", "mouse", "y");
+            input.map_trigger("pointer-action", "mouse", "left");
+            input.map_trigger("pointer-context", "mouse", "right");
             input.map_axis("move-up", "keyboard", "KeyW");
             input.map_axis("move-down", "keyboard", "KeyS");
             input.map_axis("move-left", "keyboard", "KeyA");
             input.map_axis("move-right", "keyboard", "KeyD");
-            input.map_axis("mouse-x", "mouse", "x");
-            input.map_axis("mouse-y", "mouse", "y");
-            input.map_trigger("mouse-left", "mouse", "left");
         })
         // install composite renderer.
         .with_bundle(
             oxygengine::composite_renderer::bundle_installer,
             WebCompositeRenderer::with_state(
                 get_canvas_by_id("screen"), // canvas target.
-                RenderState::new(Some(Color::black())),
+                RenderState::new(Some(Color::rgba(128, 128, 128, 255)))
+                    .image_source_inner_margin(0.01),
             ),
+        )
+        // install UI support.
+        .with_bundle(
+            oxygengine::user_interface::bundle_installer,
+            UserInterfaceRes::new(ui::setup)
+                .with_pointer_axis("pointer-x", "pointer-y")
+                .with_pointer_trigger("pointer-action", "pointer-context"),
+        )
+        // install integration between UI and composite rendering.
+        .with_bundle(
+            oxygengine::integration_user_interface_composite_renderer::bundle_installer,
+            PhantomData::<WebCompositeRenderer>::default(),
         )
         // install audio support.
         .with_bundle(oxygengine::audio::bundle_installer, WebAudio::default())
@@ -96,14 +111,7 @@ pub fn main_js() -> Result<(), JsValue> {
         )
         // install web storage engine resource.
         .with_resource(WebStorageEngine)
-        .with_resource(TextInputs::default())
         .with_system(KeyboardMovementSystem, "keyboard_movement", &[])
-        .with_system(TextInputWriterSystem, "text_input_writer", &[])
-        .with_system(
-            TextInputRendererSystem::default(),
-            "text_input_renderer",
-            &[],
-        )
         .build(LoadingState::default(), WebAppTimer::default());
 
     // Application run phase - spawn runner that ticks our app.

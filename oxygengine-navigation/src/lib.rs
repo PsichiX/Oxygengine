@@ -17,7 +17,7 @@ use crate::{
 use core::{app::AppBuilder, ignite_proxy, prefab::PrefabManager};
 
 ignite_proxy! {
-    struct NavAgentID {}
+    struct NavAgentId {}
 }
 
 ignite_proxy! {
@@ -36,7 +36,7 @@ ignite_proxy! {
     }
 }
 
-pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>) {
+pub fn bundle_installer(builder: &mut AppBuilder) {
     builder.install_resource(NavMeshesRes::default());
     builder.install_system(NavAgentMaintainSystem::default(), "nav-agent-maintain", &[]);
     builder.install_system(

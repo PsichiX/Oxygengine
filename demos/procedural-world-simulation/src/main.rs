@@ -36,33 +36,37 @@ enum VisualisationMode {
 fn build_world(altitude_seed: u32) -> World2d {
     println!("BUILD WORLD");
     let simulation = {
-        let mut config = World2dClimateSimulationConfig::default();
-        config.full_year_steps = 364 * 5;
-        config.water_capacity = WATER_LIMIT;
-        config.altitude_range = 0.0..ALTITUDE_LIMIT;
-        config.temperature_range = 0.0..TEMPERATURE_LIMIT;
-        config.world_axis_angle = 0.0 * PI as Scalar / 180.0;
-        config.mass_diffuse_factor = 0.00001;
-        // config.mass_diffuse_factor = 1.0;
-        // config.viscosity_factor = 0.00001;
-        config.viscosity_factor = 1.0;
-        config.viscosity_iterations = 10;
-        // config.mass_diffuse_iterations = 10;
-        config.poisson_pressure_iterations = 10;
-        config.world_core_heating = 0.0;
-        config.sun_heating = 0.0;
-        config.thermal_radiation = 0.1;
-        config.sun_heating_adaptive_correction_factor = 1.0;
+        let config = World2dClimateSimulationConfig {
+            full_year_steps: 364 * 5,
+            water_capacity: WATER_LIMIT,
+            altitude_range: 0.0..ALTITUDE_LIMIT,
+            temperature_range: 0.0..TEMPERATURE_LIMIT,
+            world_axis_angle: 0.0 * PI as Scalar / 180.0,
+            mass_diffuse_factor: 0.00001,
+            // mass_diffuse_factor: 1.0,
+            // viscosity_factor: 0.00001,
+            viscosity_factor: 1.0,
+            viscosity_iterations: 10,
+            //mass_diffuse_iterations: 10,
+            poisson_pressure_iterations: 10,
+            world_core_heating: 0.0,
+            sun_heating: 0.0,
+            thermal_radiation: 0.1,
+            sun_heating_adaptive_correction_factor: 1.0,
+            ..Default::default()
+        };
         World2dClimateSimulation::new(config)
     };
-    let mut config = World2dConfig::default();
-    config.size = SIZE;
-    config.zoom = 10.0;
-    config.altitude_range = 0.0..(ALTITUDE_LIMIT * 0.5);
-    config.temperature_range = 0.0..TEMPERATURE_LIMIT;
-    config.altitude_seed = altitude_seed;
-    config.temperature_seed = rand::random();
-    config.humidity_seed = rand::random();
+    let config = World2dConfig {
+        size: SIZE,
+        zoom: 10.0,
+        altitude_range: 0.0..(ALTITUDE_LIMIT * 0.5),
+        temperature_range: 0.0..TEMPERATURE_LIMIT,
+        altitude_seed,
+        temperature_seed: rand::random(),
+        humidity_seed: rand::random(),
+        ..Default::default()
+    };
     World2d::new(&config, Box::new(simulation))
 
     // World2d::generate(
@@ -108,9 +112,11 @@ fn main() {
 
     println!("SEED: {}", altitude_seed);
     println!("CREATE WINDOW");
-    let mut options = WindowOptions::default();
-    options.scale = Scale::X8;
-    options.resize = false;
+    let options = WindowOptions {
+        scale: Scale::X8,
+        resize: false,
+        ..Default::default()
+    };
     let mut window = Window::new(
         &format!("Procedural World Simulation - {:?}", mode),
         SIZE,

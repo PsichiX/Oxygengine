@@ -17,7 +17,7 @@ use crate::{
 };
 use core::app::AppBuilder;
 
-pub fn bundle_installer<'a, 'b, C, S>(builder: &mut AppBuilder<'a, 'b>, _: ())
+pub fn bundle_installer<C, S>(builder: &mut AppBuilder, _: ())
 where
     C: Client + 'static,
     S: Server + 'static,

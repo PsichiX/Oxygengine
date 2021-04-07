@@ -1,6 +1,6 @@
 use crate::utils::DoOnDrop;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use network::client::{Client, ClientID, ClientState, MessageID};
+use network::client::{Client, ClientId, ClientState, MessageId};
 use std::{
     collections::VecDeque,
     io::{Cursor, ErrorKind, Read, Write},
@@ -18,10 +18,10 @@ use std::{
 
 const STREAM_SLEEP_MS: u64 = 10;
 
-type MsgData = (MessageID, Vec<u8>);
+type MsgData = (MessageId, Vec<u8>);
 
 pub struct NativeClient {
-    id: ClientID,
+    id: ClientId,
     history_size: Arc<AtomicUsize>,
     state: Arc<Mutex<ClientState>>,
     messages: Arc<Mutex<VecDeque<MsgData>>>,
@@ -54,18 +54,18 @@ impl NativeClient {
         }
     }
 
-    fn read_message(buffer: &[u8]) -> (MessageID, usize) {
+    fn read_message(buffer: &[u8]) -> (MessageId, usize) {
         let mut stream = Cursor::new(buffer);
         let id = stream.read_u32::<BigEndian>().unwrap();
         let version = stream.read_u32::<BigEndian>().unwrap();
         let size = stream.read_u32::<BigEndian>().unwrap();
-        (MessageID::new(id, version), size as usize)
+        (MessageId::new(id, version), size as usize)
     }
 }
 
 impl From<TcpStream> for NativeClient {
     fn from(mut stream: TcpStream) -> Self {
-        let id = ClientID::default();
+        let id = ClientId::default();
         let url = stream.peer_addr().unwrap().to_string();
         let state = Arc::new(Mutex::new(ClientState::Connecting));
         let state2 = state.clone();
@@ -93,7 +93,7 @@ impl From<TcpStream> for NativeClient {
                         *state2.lock().unwrap() = ClientState::Open;
                     }
                     let mut header = vec![0; 12];
-                    let mut left_to_read: Option<(MessageID, usize, Vec<u8>)> = None;
+                    let mut left_to_read: Option<(MessageId, usize, Vec<u8>)> = None;
                     'main: loop {
                         if *state2.lock().unwrap() == ClientState::Closed {
                             break;
@@ -185,7 +185,7 @@ impl From<TcpStream> for NativeClient {
 
 impl Client for NativeClient {
     fn open(url: &str) -> Option<Self> {
-        let id = ClientID::default();
+        let id = ClientId::default();
         let url = url.to_owned();
         let state = Arc::new(Mutex::new(ClientState::Connecting));
         let state2 = state.clone();
@@ -215,7 +215,7 @@ impl Client for NativeClient {
                         *state2.lock().unwrap() = ClientState::Open;
                     }
                     let mut header = vec![0; 12];
-                    let mut left_to_read: Option<(MessageID, usize, Vec<u8>)> = None;
+                    let mut left_to_read: Option<(MessageId, usize, Vec<u8>)> = None;
                     'main: loop {
                         if *state2.lock().unwrap() == ClientState::Closed {
                             break;
@@ -310,7 +310,7 @@ impl Client for NativeClient {
         self
     }
 
-    fn id(&self) -> ClientID {
+    fn id(&self) -> ClientId {
         self.id
     }
 
@@ -318,7 +318,7 @@ impl Client for NativeClient {
         *self.state.lock().unwrap()
     }
 
-    fn send(&mut self, id: MessageID, data: &[u8]) -> Option<Range<usize>> {
+    fn send(&mut self, id: MessageId, data: &[u8]) -> Option<Range<usize>> {
         if self.state() == ClientState::Open {
             let size = data.len();
             let mut stream = Cursor::new(Vec::<u8>::with_capacity(size + 12));

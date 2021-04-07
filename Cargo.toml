@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine"
-version = "0.14.2"
+version = "0.15.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Oxygen Engine"
@@ -29,11 +29,13 @@ web = [
   "oxygengine-input/web",
   "oxygengine-integration-p2d-cr/web",
   "oxygengine-integration-vn-cr/web",
+  "oxygengine-integration-ui-cr/web",
   "oxygengine-navigation/web",
   "oxygengine-network/web",
   "oxygengine-physics-2d/web",
   "oxygengine-script-flow/web",
   "oxygengine-visual-novel/web",
+  "oxygengine-user-interface/web",
   "oxygengine-editor-tools/web",
 ]
 parallel = [
@@ -44,6 +46,7 @@ parallel = [
   "oxygengine-input/parallel",
   "oxygengine-integration-p2d-cr/parallel",
   "oxygengine-integration-vn-cr/parallel",
+  "oxygengine-integration-ui-cr/parallel",
   "oxygengine-navigation/parallel",
   "oxygengine-network/parallel",
   "oxygengine-network-backend-desktop/parallel",
@@ -53,6 +56,7 @@ parallel = [
   "oxygengine-script-flow/parallel",
   "oxygengine-utils/parallel",
   "oxygengine-visual-novel/parallel",
+  "oxygengine-user-interface/parallel",
   "oxygengine-editor-tools/parallel",
 ]
 scalar64 = [
@@ -67,6 +71,7 @@ scalar64 = [
   "oxygengine-input-device-web/scalar64",
   "oxygengine-integration-p2d-cr/scalar64",
   "oxygengine-integration-vn-cr/scalar64",
+  "oxygengine-integration-ui-cr/scalar64",
   "oxygengine-navigation/scalar64",
   "oxygengine-network/scalar64",
   "oxygengine-network-backend-desktop/scalar64",
@@ -77,6 +82,7 @@ scalar64 = [
   "oxygengine-script-flow/scalar64",
   "oxygengine-utils/scalar64",
   "oxygengine-visual-novel/scalar64",
+  "oxygengine-user-interface/scalar64",
   "oxygengine-editor-tools/scalar64",
 ]
 ipc = ["oxygengine-backend-web/ipc"]
@@ -95,7 +101,9 @@ physics-2d = ["oxygengine-physics-2d"]
 script-flow = ["oxygengine-script-flow", "oxygengine-visual-novel/script-flow"]
 integration-physics-2d-composite-renderer = ["oxygengine-integration-p2d-cr"]
 integration-visual-novel-composite-renderer = ["oxygengine-integration-vn-cr"]
+integration-user-interface-composite-renderer = ["oxygengine-integration-ui-cr"]
 visual-novel = ["oxygengine-visual-novel"]
+user-interface = ["oxygengine-user-interface"]
 web-composite-game = [
   "web",
   "composite-renderer",
@@ -105,7 +113,9 @@ web-composite-game = [
   "navigation",
   "audio",
   "physics-2d",
+  "user-interface",
   "integration-physics-2d-composite-renderer",
+  "integration-user-interface-composite-renderer",
   "oxygengine-composite-renderer-backend-web",
   "oxygengine-input-device-web",
   "oxygengine-network-backend-web",
@@ -117,8 +127,10 @@ web-composite-visual-novel-game = [
   "animation",
   "input",
   "audio",
+  "user-interface",
   "visual-novel",
   "integration-visual-novel-composite-renderer",
+  "integration-user-interface-composite-renderer",
   "oxygengine-composite-renderer-backend-web",
   "oxygengine-input-device-web",
   "oxygengine-audio-backend-web",
@@ -138,106 +150,116 @@ desktop-native-headless-game = [
 editor-tools = ["oxygengine-editor-tools"]
 
 [dependencies]
-oxygengine-core = { version = "0.14", path = "./oxygengine-core" }
-oxygengine-utils = { version = "0.14", path = "./oxygengine-utils" }
+oxygengine-core = { version = "0.15", path = "./oxygengine-core" }
+oxygengine-utils = { version = "0.15", path = "./oxygengine-utils" }
 
 [dependencies.oxygengine-backend-web]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-backend-web"
 optional = true
 
 [dependencies.oxygengine-input]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-input"
 optional = true
 
 [dependencies.oxygengine-input-device-web]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-input-device-web"
 optional = true
 
 [dependencies.oxygengine-composite-renderer]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-composite-renderer"
 optional = true
 
 [dependencies.oxygengine-composite-renderer-backend-web]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-composite-renderer-backend-web"
 optional = true
 
 [dependencies.oxygengine-network]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-network"
 optional = true
 
 [dependencies.oxygengine-network-backend-web]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-network-backend-web"
 optional = true
 
 [dependencies.oxygengine-network-backend-desktop]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-network-backend-desktop"
 optional = true
 
 [dependencies.oxygengine-network-backend-native]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-network-backend-native"
 optional = true
 
 [dependencies.oxygengine-procedural]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-procedural"
 optional = true
 
 [dependencies.oxygengine-navigation]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-navigation"
 optional = true
 
 [dependencies.oxygengine-audio]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-audio"
 optional = true
 
 [dependencies.oxygengine-audio-backend-web]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-audio-backend-web"
 optional = true
 
 [dependencies.oxygengine-physics-2d]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-physics-2d"
 optional = true
 
 [dependencies.oxygengine-integration-p2d-cr]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-integration-p2d-cr"
 optional = true
 
 [dependencies.oxygengine-integration-vn-cr]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-integration-vn-cr"
 optional = true
 
+[dependencies.oxygengine-integration-ui-cr]
+version = "0.15"
+path = "./oxygengine-integration-ui-cr"
+optional = true
+
 [dependencies.oxygengine-script-flow]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-script-flow"
 optional = true
 
 [dependencies.oxygengine-visual-novel]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-visual-novel"
 optional = true
 
 [dependencies.oxygengine-animation]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-animation"
 optional = true
 
+[dependencies.oxygengine-user-interface]
+version = "0.15"
+path = "./oxygengine-user-interface"
+optional = true
+
 [dependencies.oxygengine-editor-tools]
-version = "0.14"
+version = "0.15"
 path = "./oxygengine-editor-tools"
 optional = true
 
@@ -264,9 +286,11 @@ members = [
   "oxygengine-physics-2d",
   "oxygengine-integration-p2d-cr",
   "oxygengine-integration-vn-cr",
+  "oxygengine-integration-ui-cr",
   "oxygengine-script-flow",
   "oxygengine-visual-novel",
   "oxygengine-animation",
+  "oxygengine-user-interface",
   "oxygengine-build-tools",
   "oxygengine-editor-tools",
   "demos/procedural-world-simulation",

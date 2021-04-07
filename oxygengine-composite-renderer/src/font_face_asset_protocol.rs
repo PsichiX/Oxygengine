@@ -1,6 +1,6 @@
 use core::{
     assets::{
-        asset::{Asset, AssetID},
+        asset::{Asset, AssetId},
         protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
     },
     Ignite, Scalar,
@@ -33,7 +33,7 @@ impl FontFace {
 
 pub struct FontFaceAsset {
     face: FontFace,
-    font_asset: AssetID,
+    font_asset: AssetId,
 }
 
 impl FontFaceAsset {
@@ -41,7 +41,7 @@ impl FontFaceAsset {
         &self.face
     }
 
-    pub fn font_asset(&self) -> AssetID {
+    pub fn font_asset(&self) -> AssetId {
         self.font_asset
     }
 }

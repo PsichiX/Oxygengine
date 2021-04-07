@@ -220,15 +220,15 @@ where
         Some(self.sample(factor))
     }
 
-    pub fn calculate_samples<'a>(&'a self, count: usize) -> impl Iterator<Item = T> + 'a {
+    pub fn calculate_samples(&self, count: usize) -> impl Iterator<Item = T> + '_ {
         (0..=count).map(move |i| self.sample(i as Scalar / count as Scalar))
     }
 
-    pub fn calculate_samples_along_axis<'a>(
-        &'a self,
+    pub fn calculate_samples_along_axis(
+        &self,
         count: usize,
         axis_index: usize,
-    ) -> Option<impl Iterator<Item = T> + 'a> {
+    ) -> Option<impl Iterator<Item = T> + '_> {
         let from = self.points.first()?.point.get_axis(axis_index)?;
         let diff = self.points.last()?.point.get_axis(axis_index)? - from;
         Some((0..=count).filter_map(move |i| {
@@ -371,11 +371,11 @@ where
     }
 }
 
-impl<T> Into<SplineDef<T>> for Spline<T>
+impl<T> From<Spline<T>> for SplineDef<T>
 where
     T: Default + Clone + Curved + CurvedDistance + CurvedOffset + CurvedTangent,
 {
-    fn into(self) -> SplineDef<T> {
-        self.points
+    fn from(v: Spline<T>) -> Self {
+        v.points
     }
 }

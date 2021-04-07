@@ -17,19 +17,11 @@ impl Default for GamePhase {
 
 impl GamePhase {
     pub fn is_game(self) -> bool {
-        if let Self::Game = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Self::Game)
     }
 
     pub fn is_restart(self) -> bool {
-        if let Self::Restart = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Self::Restart)
     }
 }
 

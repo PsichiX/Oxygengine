@@ -91,6 +91,10 @@ impl InputDevice for WebKeyboardInputDevice {
         Some(self.keys.borrow().contains(name))
     }
 
+    fn query_text(&self) -> Option<String> {
+        Some(self.last_sequence.iter().map(|(c, _)| c).collect())
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }

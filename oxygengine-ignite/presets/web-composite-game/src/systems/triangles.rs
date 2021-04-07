@@ -27,12 +27,12 @@ impl<'s> System<'s> for TrianglesSystem {
                 (hex_point_position(radius, 5), hex_point_tex_coord(1.5, 5)),
             ];
             let faces = vec![
-                TriangleFace::new_alpha(0, 1, 2, hex_face_alpha(0, self.phase)),
-                TriangleFace::new_alpha(0, 2, 3, hex_face_alpha(1, self.phase)),
-                TriangleFace::new_alpha(0, 3, 4, hex_face_alpha(2, self.phase)),
-                TriangleFace::new_alpha(0, 4, 5, hex_face_alpha(3, self.phase)),
-                TriangleFace::new_alpha(0, 5, 6, hex_face_alpha(4, self.phase)),
-                TriangleFace::new_alpha(0, 6, 1, hex_face_alpha(5, self.phase)),
+                TriangleFace::new(0, 1, 2),
+                TriangleFace::new(0, 2, 3),
+                TriangleFace::new(0, 3, 4),
+                TriangleFace::new(0, 4, 5),
+                TriangleFace::new(0, 5, 6),
+                TriangleFace::new(0, 6, 1),
             ];
             renderable.0 = oxygengine::prelude::Triangles {
                 image: triangle.image.clone().into(),
@@ -52,8 +52,4 @@ fn hex_point_position(radius: Scalar, corner: usize) -> Vec2 {
 
 fn hex_point_tex_coord(scale: Scalar, corner: usize) -> Vec2 {
     hex_point_position(scale * 0.5, corner) + Vec2::new(0.5, 0.5)
-}
-
-fn hex_face_alpha(corner: usize, phase: Scalar) -> Scalar {
-    ((corner as Scalar / 5.0 + phase).fract() - 0.5).abs() * 2.0
 }

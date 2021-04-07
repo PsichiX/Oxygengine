@@ -1,7 +1,7 @@
 use crate::{client::NativeClient, utils::DoOnDrop};
 use network::{
-    client::{Client, ClientID, ClientState, MessageID},
-    server::{Server, ServerID, ServerState},
+    client::{Client, ClientId, ClientState, MessageId},
+    server::{Server, ServerId, ServerState},
 };
 use std::{
     collections::{HashMap, VecDeque},
@@ -16,13 +16,13 @@ use std::{
 
 const LISTENER_SLEEP_MS: u64 = 10;
 
-type MsgData = (ClientID, MessageID, Vec<u8>);
+type MsgData = (ClientId, MessageId, Vec<u8>);
 
 pub struct NativeServer {
-    id: ServerID,
+    id: ServerId,
     state: Arc<Mutex<ServerState>>,
-    clients: Arc<Mutex<HashMap<ClientID, NativeClient>>>,
-    clients_ids_cached: Vec<ClientID>,
+    clients: Arc<Mutex<HashMap<ClientId, NativeClient>>>,
+    clients_ids_cached: Vec<ClientId>,
     messages: VecDeque<MsgData>,
     thread: Option<JoinHandle<()>>,
 }
@@ -47,7 +47,7 @@ impl NativeServer {
 
 impl Server for NativeServer {
     fn open(url: &str) -> Option<Self> {
-        let sid = ServerID::default();
+        let sid = ServerId::default();
         let url = url.to_owned();
         let state = Arc::new(Mutex::new(ServerState::Starting));
         let state2 = state.clone();
@@ -113,7 +113,7 @@ impl Server for NativeServer {
         self
     }
 
-    fn id(&self) -> ServerID {
+    fn id(&self) -> ServerId {
         self.id
     }
 
@@ -121,11 +121,11 @@ impl Server for NativeServer {
         *self.state.lock().unwrap()
     }
 
-    fn clients(&self) -> &[ClientID] {
+    fn clients(&self) -> &[ClientId] {
         &self.clients_ids_cached
     }
 
-    fn disconnect(&mut self, id: ClientID) {
+    fn disconnect(&mut self, id: ClientId) {
         let mut clients = self.clients.lock().unwrap();
         if let Some(client) = clients.remove(&id) {
             client.close();
@@ -139,7 +139,7 @@ impl Server for NativeServer {
         }
     }
 
-    fn send(&mut self, id: ClientID, msg_id: MessageID, data: &[u8]) -> Option<Range<usize>> {
+    fn send(&mut self, id: ClientId, msg_id: MessageId, data: &[u8]) -> Option<Range<usize>> {
         if self.state() != ServerState::Open {
             return None;
         }
@@ -152,7 +152,7 @@ impl Server for NativeServer {
         None
     }
 
-    fn send_all(&mut self, id: MessageID, data: &[u8]) {
+    fn send_all(&mut self, id: MessageId, data: &[u8]) {
         if self.state() != ServerState::Open {
             return;
         }
@@ -162,7 +162,7 @@ impl Server for NativeServer {
         }
     }
 
-    fn read(&mut self) -> Option<(ClientID, MessageID, Vec<u8>)> {
+    fn read(&mut self) -> Option<(ClientId, MessageId, Vec<u8>)> {
         self.messages.pop_front()
     }
 

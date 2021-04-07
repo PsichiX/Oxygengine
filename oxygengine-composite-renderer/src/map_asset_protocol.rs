@@ -4,7 +4,7 @@ use crate::{
 };
 use core::{
     assets::{
-        asset::{Asset, AssetID},
+        asset::{Asset, AssetId},
         database::AssetsDatabase,
         protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
     },
@@ -112,7 +112,7 @@ impl Map {
             commands.push(Command::Store);
             let width = self.tile_width as Scalar;
             let height = self.tile_height as Scalar;
-            let chunk_size = chunk_size.unwrap_or_else(|| (self.cols, self.rows));
+            let chunk_size = chunk_size.unwrap_or((self.cols, self.rows));
             let cols_start = chunk_offset.0.min(self.cols);
             let cols_end = (chunk_offset.0 + chunk_size.0).min(self.cols);
             let rows_start = chunk_offset.1.min(self.rows);
@@ -120,7 +120,7 @@ impl Map {
             for col in cols_start..cols_end {
                 for row in rows_start..rows_end {
                     let i = self.cols * row + col;
-                    let id = data.get(i).unwrap_or_else(|| &0);
+                    let id = data.get(i).unwrap_or(&0);
                     if let Some((sprite_sheet, name)) = &self.tiles_mapping.get(id) {
                         let info = atlases.get(sprite_sheet)?;
                         let x = width * col as Scalar;
@@ -145,7 +145,7 @@ impl Map {
 
 pub struct MapAsset {
     map: Map,
-    sprite_sheet_assets: Vec<AssetID>,
+    sprite_sheet_assets: Vec<AssetId>,
 }
 
 impl MapAsset {
@@ -153,7 +153,7 @@ impl MapAsset {
         &self.map
     }
 
-    pub fn sprite_sheet_assets(&self) -> &[AssetID] {
+    pub fn sprite_sheet_assets(&self) -> &[AssetId] {
         &self.sprite_sheet_assets
     }
 }

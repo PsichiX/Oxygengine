@@ -10,6 +10,8 @@
             "Copy": {
               "from": [
                 "prefabs/",
+                "fonts/",
+                "ui/",
                 "assets.txt"
               ]
             }

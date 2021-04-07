@@ -851,6 +851,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "longrun")]
     fn test_general() {
         let view = parse_view(include_str!("../resources/view.txt"));
         let values = {
@@ -882,7 +883,7 @@ mod tests {
         let mut rng = thread_rng();
         let mut max_changes = 0;
         let result = solver.collapse_inspect(
-            move |f, t| rng.gen_range(f, t),
+            move |f, t| rng.gen_range(f..t),
             |p, m, s| {
                 max_changes = max_changes.max(s.lately_updated().len());
                 if timer2.elapsed().as_millis() >= 400 {

@@ -37,11 +37,11 @@ impl From<u8> for AudioSourceDirtyMode {
     }
 }
 
-impl Into<u8> for AudioSourceDirtyMode {
-    fn into(self) -> u8 {
-        match self {
-            Self::Param => 1,
-            Self::All => 2,
+impl From<AudioSourceDirtyMode> for u8 {
+    fn from(v: AudioSourceDirtyMode) -> Self {
+        match v {
+            AudioSourceDirtyMode::Param => 1,
+            AudioSourceDirtyMode::All => 2,
             _ => 0,
         }
     }

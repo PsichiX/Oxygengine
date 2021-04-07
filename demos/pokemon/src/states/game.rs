@@ -1,9 +1,13 @@
-use oxygengine::prelude::*;
+use crate::ui::screens::{menu::hook::*, notifications::*};
+use oxygengine::{prelude::*, user_interface::raui::core::widget::WidgetId};
 
 #[derive(Debug, Default)]
 pub struct GameState {
     camera: Option<Entity>,
     player: Option<Entity>,
+    menu: Option<WidgetId>,
+    notifications: Option<WidgetId>,
+    change: Scalar,
 }
 
 impl State for GameState {
@@ -39,6 +43,69 @@ impl State for GameState {
                 let player_position = player_transform.get_translation();
                 if let Some(camera_transform) = transforms.get_mut(camera) {
                     camera_transform.set_translation(player_position);
+                }
+            }
+        }
+
+        let mut ui = world.write_resource::<UserInterfaceRes>();
+        if let Some(app) = ui.application_mut("") {
+            for (caller, msg) in app.consume_signals() {
+                if let Some(msg) = msg.as_any().downcast_ref::<NotificationSignal>() {
+                    match msg {
+                        NotificationSignal::Register => self.notifications = Some(caller),
+                        NotificationSignal::Unregister => {
+                            if let Some(id) = &self.notifications {
+                                if &caller == id {
+                                    self.notifications = None;
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                } else if let Some(msg) = msg.as_any().downcast_ref::<MenuSignal>() {
+                    match msg {
+                        MenuSignal::Register => self.menu = Some(caller),
+                        MenuSignal::Unregister => {
+                            if let Some(id) = &self.menu {
+                                if &caller == id {
+                                    self.menu = None;
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
+            let input = world.read_resource::<InputController>();
+            if input.trigger_or_default("escape") == TriggerState::Pressed {
+                if let Some(id) = &self.menu {
+                    app.send_message(id, MenuSignal::Show);
+                }
+            }
+
+            self.change -= world.read_resource::<AppLifeCycle>().delta_time_seconds();
+            if self.change <= 0.0 {
+                self.change = 2.0 + rand::random::<Scalar>() * 10.0;
+                if let Some(id) = &self.notifications {
+                    if rand::random() {
+                        app.send_message(
+                            id,
+                            NotificationSignal::Show(NotificationShow {
+                                text: "There is a fog somewhere in Wild Area".to_owned(),
+                                ..Default::default()
+                            }),
+                        );
+                    } else {
+                        app.send_message(
+                            id,
+                            NotificationSignal::Show(NotificationShow {
+                                text: "Thanks for using RAUI".to_owned(),
+                                side: true,
+                                ..Default::default()
+                            }),
+                        );
+                    }
                 }
             }
         }

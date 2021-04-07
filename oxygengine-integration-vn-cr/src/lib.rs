@@ -11,7 +11,7 @@ use oxygengine_composite_renderer::{
 use oxygengine_core::{
     app::AppBuilder,
     assets::{
-        asset::AssetID,
+        asset::AssetId,
         database::AssetsDatabase,
         protocol::{AssetLoadResult, AssetProtocol},
     },
@@ -38,7 +38,7 @@ pub mod prelude {
     pub use crate::*;
 }
 
-pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>, _: ()) {
+pub fn bundle_installer(builder: &mut AppBuilder, _: ()) {
     builder.install_resource(VnRenderingManager::default());
     builder.install_system(
         ApplyVisualNovelToCompositeRenderer::default(),
@@ -199,6 +199,7 @@ impl VnRenderingConfig {
         1002
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     fn default_ui_dialogue_default_theme() -> Option<String> {
         Some("default".to_owned())
     }
@@ -369,7 +370,7 @@ impl Prefab for PositionCameraAlignmentPrefabProxy {}
 
 #[derive(Debug, Default)]
 pub struct ApplyVisualNovelToCompositeRenderer {
-    config_table: HashMap<AssetID, String>,
+    config_table: HashMap<AssetId, String>,
     dialogue_options_focus_phases: Vec<Scalar>,
 }
 

@@ -13,6 +13,7 @@ impl<'s> System<'s> for KeyboardMovementSystem {
     type SystemData = (
         Read<'s, InputController>,
         ReadExpect<'s, AppLifeCycle>,
+        Read<'s, UserInterfaceRes>,
         ReadStorage<'s, Speed>,
         WriteStorage<'s, KeyboardMovement>,
         WriteStorage<'s, CompositeTransform>,
@@ -21,22 +22,34 @@ impl<'s> System<'s> for KeyboardMovementSystem {
 
     fn run(
         &mut self,
-        (input, lifecycle, speed, mut keyboard_movement, mut transform, mut animation): Self::SystemData,
+        (
+            input,
+            lifecycle,
+            user_interface,
+            speed,
+            mut keyboard_movement,
+            mut transform,
+            mut animation,
+        ): Self::SystemData,
     ) {
+        if user_interface.last_frame_captured() {
+            return;
+        }
+
         let dt = lifecycle.delta_time_seconds();
         let hor = -input.axis_or_default("move-left") + input.axis_or_default("move-right");
         let ver = -input.axis_or_default("move-up") + input.axis_or_default("move-down");
         let diff = Vec2::new(hor, ver) * dt;
         let is_moving = hor.abs() + ver.abs() > 0.01;
 
-        for (keyboard_movement, speed, transform, animation) in (
+        let iter = (
             &mut keyboard_movement,
             &speed,
             &mut transform,
             &mut animation,
         )
-            .join()
-        {
+            .join();
+        for (keyboard_movement, speed, transform, animation) in iter {
             transform.set_translation(transform.get_translation() + diff * speed.0);
 
             let direction = if !is_moving {

@@ -989,20 +989,17 @@ where
     }
 }
 
-impl<T> Into<Vec<T>> for Grid2d<T>
-where
-    T: Clone + Send + Sync,
-{
-    fn into(self) -> Vec<T> {
-        self.cells
+impl<T> From<Grid2d<T>> for Vec<T> {
+    fn from(v: Grid2d<T>) -> Self {
+        v.cells
     }
 }
 
-impl<T> Into<(usize, usize, Vec<T>)> for Grid2d<T>
+impl<T> From<Grid2d<T>> for (usize, usize, Vec<T>)
 where
     T: Clone + Send + Sync,
 {
-    fn into(self) -> (usize, usize, Vec<T>) {
-        self.into_inner()
+    fn from(v: Grid2d<T>) -> Self {
+        v.into_inner()
     }
 }

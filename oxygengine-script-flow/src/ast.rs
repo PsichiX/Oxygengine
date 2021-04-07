@@ -1,4 +1,4 @@
-use crate::GUID;
+use crate::Guid;
 use core::{
     prefab::{Prefab, PrefabValue},
     Scalar,
@@ -10,7 +10,7 @@ use std::collections::HashMap;
 pub enum Reference {
     None,
     Named(String),
-    Guid(GUID),
+    Guid(Guid),
 }
 
 impl Default for Reference {
@@ -231,11 +231,7 @@ pub enum NodeType {
 
 impl NodeType {
     pub fn is_entry(&self) -> bool {
-        if let Self::Entry = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Self::Entry)
     }
 
     pub fn is_input_output_flow_in_out(&self) -> (bool, bool, bool, bool) {

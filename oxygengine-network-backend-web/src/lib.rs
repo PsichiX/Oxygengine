@@ -4,7 +4,7 @@ extern crate oxygengine_network as network;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use js_sys::*;
-use network::client::{Client, ClientID, ClientState, MessageID};
+use network::client::{Client, ClientId, ClientState, MessageId};
 use std::{
     cell::{Cell, RefCell},
     collections::VecDeque,
@@ -19,12 +19,12 @@ pub mod prelude {
     pub use crate::*;
 }
 
-type MsgData = (MessageID, Vec<u8>);
+type MsgData = (MessageId, Vec<u8>);
 
 #[derive(Clone)]
 pub struct WebClient {
     socket: WebSocket,
-    id: ClientID,
+    id: ClientId,
     history_size: Rc<Cell<usize>>,
     state: Rc<Cell<ClientState>>,
     #[allow(clippy::type_complexity)]
@@ -79,7 +79,7 @@ impl Client for WebClient {
                         let mut stream = Cursor::new(body);
                         if let Ok(id) = stream.read_u32::<BigEndian>() {
                             if let Ok(version) = stream.read_u32::<BigEndian>() {
-                                let id = MessageID::new(id, version);
+                                let id = MessageId::new(id, version);
                                 let data = stream.into_inner()[8..].to_vec();
                                 let messages: &mut VecDeque<_> = &mut messages2.borrow_mut();
                                 messages.push_back((id, data));
@@ -117,7 +117,7 @@ impl Client for WebClient {
         self
     }
 
-    fn id(&self) -> ClientID {
+    fn id(&self) -> ClientId {
         self.id
     }
 
@@ -125,7 +125,7 @@ impl Client for WebClient {
         self.state.get()
     }
 
-    fn send(&mut self, id: MessageID, data: &[u8]) -> Option<Range<usize>> {
+    fn send(&mut self, id: MessageId, data: &[u8]) -> Option<Range<usize>> {
         if self.state.get() == ClientState::Open {
             let size = data.len();
             let mut stream = Cursor::new(Vec::<u8>::with_capacity(size + 8));

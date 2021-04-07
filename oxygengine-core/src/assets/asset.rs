@@ -1,10 +1,10 @@
 use crate::id::ID;
 use std::{any::Any, mem::replace};
 
-pub type AssetID = ID<()>;
+pub type AssetId = ID<()>;
 
 pub struct Asset {
-    id: AssetID,
+    id: AssetId,
     protocol: String,
     path: String,
     data: Box<dyn Any + Send + Sync>,
@@ -13,14 +13,14 @@ pub struct Asset {
 impl Asset {
     pub fn new(protocol: &str, path: &str, data: Box<dyn Any + Send + Sync>) -> Self {
         Self {
-            id: AssetID::new(),
+            id: AssetId::new(),
             protocol: protocol.to_owned(),
             path: path.to_owned(),
             data,
         }
     }
 
-    pub fn id(&self) -> AssetID {
+    pub fn id(&self) -> AssetId {
         self.id
     }
 

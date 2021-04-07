@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-fn pathbuf_is_empty(buf: &PathBuf) -> bool {
+fn pathbuf_is_empty(buf: &Path) -> bool {
     buf.components().count() == 0
 }
 

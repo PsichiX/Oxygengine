@@ -2,14 +2,14 @@
 
 use super::prelude::*;
 use crate::network::{
-    client::{Client, ClientState, MessageID},
+    client::{Client, ClientState, MessageId},
     server::{Server, ServerState},
 };
 use std::{thread::sleep, time::Duration};
 
 #[test]
 fn test_general() {
-    let msg = MessageID::new(42, 1);
+    let msg = MessageId::new(42, 1);
 
     println!("Create server");
     let mut server = NativeServer::open("127.0.0.1:12345").unwrap();

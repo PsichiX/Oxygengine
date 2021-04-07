@@ -1,7 +1,7 @@
 use crate::math::Rect;
 use core::{
     assets::{
-        asset::{Asset, AssetID},
+        asset::{Asset, AssetId},
         protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
     },
     Ignite, Scalar,
@@ -67,7 +67,7 @@ impl TilesetInfo {
 
 pub struct TilesetAsset {
     info: TilesetInfo,
-    image_asset: AssetID,
+    image_asset: AssetId,
 }
 
 impl TilesetAsset {
@@ -75,7 +75,7 @@ impl TilesetAsset {
         &self.info
     }
 
-    pub fn image_asset(&self) -> AssetID {
+    pub fn image_asset(&self) -> AssetId {
         self.image_asset
     }
 }

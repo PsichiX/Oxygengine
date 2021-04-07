@@ -17,9 +17,9 @@ default = ["console_error_panic_hook"]
 wasm-bindgen = "0.2"
 console_error_panic_hook = { version = "0.1", optional = true }
 serde = { version = "1", features = ["derive"] }
-rand = "0.7"
+rand = "0.8"
 
 [dependencies.oxygengine]
-version = "0.14"
+version = "0.15"
 features = ["web-composite-game"]
 path = "../../"

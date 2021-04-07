@@ -1,7 +1,7 @@
 use oxygengine_composite_renderer::{component::CompositeTransform, math::Vec2};
 use oxygengine_core::{
     app::AppBuilder,
-    ecs::{Component, Join, ReadStorage, System, VecStorage, Write, WriteStorage},
+    ecs::{Component, Join, NullStorage, ReadStorage, System, Write, WriteStorage},
     hierarchy::Parent,
     prefab::{Prefab, PrefabComponent, PrefabManager},
     Ignite,
@@ -13,7 +13,7 @@ pub mod prelude {
     pub use crate::*;
 }
 
-pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>, _: ()) {
+pub fn bundle_installer(builder: &mut AppBuilder, _: ()) {
     builder.install_system(
         ApplyPhysics2dToCompositeTransformSystem,
         "apply-physics-2d-to-composite-transform-renderer",
@@ -25,7 +25,7 @@ pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>, _: ()) {
 pub struct Physics2dSyncCompositeTransform;
 
 impl Component for Physics2dSyncCompositeTransform {
-    type Storage = VecStorage<Self>;
+    type Storage = NullStorage<Self>;
 }
 
 impl Prefab for Physics2dSyncCompositeTransform {}

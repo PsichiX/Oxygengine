@@ -76,9 +76,9 @@ impl From<(Scalar, Scalar)> for World2dClimateSimulationVector {
     }
 }
 
-impl Into<(Scalar, Scalar)> for World2dClimateSimulationVector {
-    fn into(self) -> (Scalar, Scalar) {
-        (self.0, self.1)
+impl From<World2dClimateSimulationVector> for (Scalar, Scalar) {
+    fn from(v: World2dClimateSimulationVector) -> Self {
+        (v.0, v.1)
     }
 }
 

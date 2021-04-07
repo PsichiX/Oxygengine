@@ -5,14 +5,15 @@ extern crate oxygengine_composite_renderer as renderer;
 extern crate oxygengine_core as core;
 
 use core::{
-    assets::{asset::AssetID, database::AssetsDatabase},
+    assets::{asset::AssetId, database::AssetsDatabase},
     error::*,
     Scalar,
 };
 use js_sys::{Array, Uint8Array};
 use renderer::{
     composite_renderer::*, font_asset_protocol::FontAsset, font_face_asset_protocol::FontFaceAsset,
-    math::*, png_image_asset_protocol::PngImageAsset,
+    jpg_image_asset_protocol::JpgImageAsset, math::*, png_image_asset_protocol::PngImageAsset,
+    svg_image_asset_protocol::SvgImageAsset,
 };
 use std::collections::HashMap;
 use wasm_bindgen::{prelude::*, JsCast};
@@ -43,9 +44,9 @@ pub struct WebCompositeRenderer {
     canvas: HtmlCanvasElement,
     context: CanvasRenderingContext2d,
     images_cache: HashMap<String, HtmlImageElement>,
-    images_table: HashMap<AssetID, String>,
+    images_table: HashMap<AssetId, String>,
     fontfaces_cache: HashMap<String, FontFace>,
-    fontfaces_table: HashMap<AssetID, String>,
+    fontfaces_table: HashMap<AssetId, String>,
     cached_image_smoothing: Option<bool>,
     surfaces_cache: HashMap<String, (HtmlCanvasElement, CanvasRenderingContext2d)>,
 }
@@ -316,6 +317,14 @@ impl WebCompositeRenderer {
                             src.y += self.state.image_source_inner_margin;
                             src.w -= self.state.image_source_inner_margin * 2.0;
                             src.h -= self.state.image_source_inner_margin * 2.0;
+                            if src.x < 0.0 {
+                                src.w += src.x;
+                                src.x = 0.0;
+                            }
+                            if src.y < 0.0 {
+                                src.h += src.y;
+                                src.y = 0.0;
+                            }
                             let dst = if let Some(dst) = image.destination {
                                 dst
                             } else {
@@ -356,6 +365,14 @@ impl WebCompositeRenderer {
                             src.y += self.state.image_source_inner_margin;
                             src.w -= self.state.image_source_inner_margin * 2.0;
                             src.h -= self.state.image_source_inner_margin * 2.0;
+                            if src.x < 0.0 {
+                                src.w += src.x;
+                                src.x = 0.0;
+                            }
+                            if src.y < 0.0 {
+                                src.h += src.y;
+                                src.y = 0.0;
+                            }
                             let dst = if let Some(dst) = image.destination {
                                 dst
                             } else {
@@ -807,13 +824,74 @@ impl CompositeRenderer for WebCompositeRenderer {
             let buffer_val: &JsValue = buffer.as_ref();
             let parts = Array::new_with_length(1);
             parts.set(0, buffer_val.clone());
-            let blob = Blob::new_with_u8_array_sequence(parts.as_ref()).unwrap();
+            let mut options = BlobPropertyBag::new();
+            options.type_("image/png");
+            let blob =
+                Blob::new_with_u8_array_sequence_and_options(parts.as_ref(), &options).unwrap();
             let elm = HtmlImageElement::new_with_width_and_height(width, height).unwrap();
             elm.set_src(&Url::create_object_url_with_blob(&blob).unwrap());
             self.images_cache.insert(path.clone(), elm);
             self.images_table.insert(id, path);
         }
         for id in assets.lately_unloaded_protocol("png") {
+            if let Some(path) = self.images_table.remove(id) {
+                self.images_cache.remove(&path);
+            }
+        }
+        for id in assets.lately_loaded_protocol("jpg") {
+            let id = *id;
+            let asset = assets
+                .asset_by_id(id)
+                .expect("trying to use not loaded jpg asset");
+            let path = asset.path().to_owned();
+            let asset = asset
+                .get::<JpgImageAsset>()
+                .expect("trying to use non-jpg asset");
+            let width = asset.width() as u32;
+            let height = asset.height() as u32;
+            let buffer = Uint8Array::from(asset.bytes());
+            let buffer_val: &JsValue = buffer.as_ref();
+            let parts = Array::new_with_length(1);
+            parts.set(0, buffer_val.clone());
+            let mut options = BlobPropertyBag::new();
+            options.type_("image/jpeg");
+            let blob =
+                Blob::new_with_u8_array_sequence_and_options(parts.as_ref(), &options).unwrap();
+            let elm = HtmlImageElement::new_with_width_and_height(width, height).unwrap();
+            elm.set_src(&Url::create_object_url_with_blob(&blob).unwrap());
+            self.images_cache.insert(path.clone(), elm);
+            self.images_table.insert(id, path);
+        }
+        for id in assets.lately_unloaded_protocol("jpg") {
+            if let Some(path) = self.images_table.remove(id) {
+                self.images_cache.remove(&path);
+            }
+        }
+        for id in assets.lately_loaded_protocol("svg") {
+            let id = *id;
+            let asset = assets
+                .asset_by_id(id)
+                .expect("trying to use not loaded svg asset");
+            let path = asset.path().to_owned();
+            let asset = asset
+                .get::<SvgImageAsset>()
+                .expect("trying to use non-svg asset");
+            let width = asset.width() as u32;
+            let height = asset.height() as u32;
+            let buffer = Uint8Array::from(asset.bytes());
+            let buffer_val: &JsValue = buffer.as_ref();
+            let parts = Array::new_with_length(1);
+            parts.set(0, buffer_val.clone());
+            let mut options = BlobPropertyBag::new();
+            options.type_("image/svg+xml;charset=utf-8");
+            let blob =
+                Blob::new_with_u8_array_sequence_and_options(parts.as_ref(), &options).unwrap();
+            let elm = HtmlImageElement::new_with_width_and_height(width, height).unwrap();
+            elm.set_src(&Url::create_object_url_with_blob(&blob).unwrap());
+            self.images_cache.insert(path.clone(), elm);
+            self.images_table.insert(id, path);
+        }
+        for id in assets.lately_unloaded_protocol("svg") {
             if let Some(path) = self.images_table.remove(id) {
                 self.images_cache.remove(&path);
             }
@@ -924,14 +1002,14 @@ impl CompositeRenderer for WebCompositeRenderer {
 }
 
 impl CompositeRendererResources<HtmlImageElement> for WebCompositeRenderer {
-    fn add_resource(&mut self, id: String, resource: HtmlImageElement) -> Result<AssetID> {
-        let asset_id = AssetID::new();
+    fn add_resource(&mut self, id: String, resource: HtmlImageElement) -> Result<AssetId> {
+        let asset_id = AssetId::new();
         self.images_cache.insert(id.clone(), resource);
         self.images_table.insert(asset_id, id);
         Ok(asset_id)
     }
 
-    fn remove_resource(&mut self, id: AssetID) -> Result<HtmlImageElement> {
+    fn remove_resource(&mut self, id: AssetId) -> Result<HtmlImageElement> {
         if let Some(id) = self.images_table.remove(&id) {
             if let Some(resource) = self.images_cache.remove(&id) {
                 Ok(resource)
@@ -951,14 +1029,14 @@ impl CompositeRendererResources<HtmlImageElement> for WebCompositeRenderer {
 }
 
 impl CompositeRendererResources<FontFace> for WebCompositeRenderer {
-    fn add_resource(&mut self, id: String, resource: FontFace) -> Result<AssetID> {
-        let asset_id = AssetID::new();
+    fn add_resource(&mut self, id: String, resource: FontFace) -> Result<AssetId> {
+        let asset_id = AssetId::new();
         self.fontfaces_cache.insert(id.clone(), resource);
         self.fontfaces_table.insert(asset_id, id);
         Ok(asset_id)
     }
 
-    fn remove_resource(&mut self, id: AssetID) -> Result<FontFace> {
+    fn remove_resource(&mut self, id: AssetId) -> Result<FontFace> {
         if let Some(id) = self.fontfaces_table.remove(&id) {
             if let Some(resource) = self.fontfaces_cache.remove(&id) {
                 Ok(resource)

@@ -12,18 +12,14 @@ entities:
             x: 144
             y: 144
         NonPersistent: ~
-  # - Data:
-  #     components:
-  #       Name: camera_ui
-  #       CompositeCamera:
-  #         scaling: Aspect
-  #         tags:
-  #           - ui
-  #       CompositeTransform:
-  #         scale:
-  #           x: 400
-  #           y: 400
-  #       NonPersistent: ~
+  - Data:
+      components:
+        Name: camera_ui
+        CompositeCamera:
+          tags:
+            - ui
+        CompositeTransform: {}
+        NonPersistent: ~
   - Data:
       components:
         Tag: world
@@ -32,4 +28,22 @@ entities:
         CompositeMapChunk:
           map_name: map.map
           layer_name: world
+        NonPersistent: ~
+  - Data:
+      components:
+        Tag: ui
+        CompositeRenderable: None
+        CompositeTransform: {}
+        UserInterfaceView:
+          root:
+            Component:
+              type_name: gui
+              key: gui
+        UserInterfaceViewSyncCompositeRenderable:
+          camera_name: camera_ui
+          mapping_scaling:
+            FitMaximum:
+              - 512
+              - 512
+          approx_rect_values: Round
         NonPersistent: ~

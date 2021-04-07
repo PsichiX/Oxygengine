@@ -1,4 +1,4 @@
-use crate::{ast, ast::*, GUID};
+use crate::{ast, ast::*, Guid};
 use core::prefab::{PrefabNumber, PrefabValue};
 use petgraph::{
     algo::{has_path_connecting, toposort},
@@ -115,20 +115,20 @@ impl From<PrefabValue> for Value {
     }
 }
 
-impl Into<PrefabValue> for Value {
-    fn into(self) -> PrefabValue {
-        match self {
-            Value::None => PrefabValue::Null,
-            Value::Bool(v) => PrefabValue::Bool(v),
-            Value::Number(v) => PrefabValue::Number(v),
-            Value::String(v) => PrefabValue::String(v),
+impl From<Value> for PrefabValue {
+    fn from(v: Value) -> Self {
+        match v {
+            Value::None => Self::Null,
+            Value::Bool(v) => Self::Bool(v),
+            Value::Number(v) => Self::Number(v),
+            Value::String(v) => Self::String(v),
             Value::List(v) => {
-                PrefabValue::Sequence(v.into_iter().map(|v| v.read().clone().into()).collect())
+                Self::Sequence(v.into_iter().map(|v| v.read().clone().into()).collect())
             }
-            Value::Object(v) => PrefabValue::Mapping(
+            Value::Object(v) => Self::Mapping(
                 v.into_iter()
                     .map(|(k, v)| {
-                        let k = PrefabValue::String(k);
+                        let k = Self::String(k);
                         let v = v.read().clone().into();
                         (k, v)
                     })
@@ -138,9 +138,9 @@ impl Into<PrefabValue> for Value {
     }
 }
 
-impl Into<Reference> for Value {
-    fn into(self) -> Reference {
-        Reference::value(self)
+impl From<Value> for Reference {
+    fn from(v: Value) -> Self {
+        Self::value(v)
     }
 }
 
@@ -212,8 +212,8 @@ pub struct Vm {
     ast: Program,
     operations: HashMap<String, Box<dyn VmOperation>>,
     variables: HashMap<String, Reference>,
-    running_events: HashMap<GUID, VmEvent>,
-    completed_events: HashMap<GUID, Vec<Reference>>,
+    running_events: HashMap<Guid, VmEvent>,
+    completed_events: HashMap<Guid, Vec<Reference>>,
     /// {event name: [nodes reference]}
     event_execution_order: HashMap<String, Vec<ast::Reference>>,
     /// {(type name, method name): [node reference]}
@@ -644,7 +644,7 @@ impl Vm {
         }
     }
 
-    pub fn run_event(&mut self, name: &str, inputs: Vec<Reference>) -> Result<GUID, VmError> {
+    pub fn run_event(&mut self, name: &str, inputs: Vec<Reference>) -> Result<Guid, VmError> {
         if let Some(e) = self.ast.events.iter().find(|e| e.name == name) {
             if e.input_constrains.len() != inputs.len() {
                 return Err(VmError::WrongNumberOfInputs(
@@ -652,7 +652,7 @@ impl Vm {
                     inputs.len(),
                 ));
             }
-            let guid = GUID::default();
+            let guid = Guid::default();
             if let Some((_, execution)) = self
                 .event_execution_order
                 .iter()
@@ -682,7 +682,7 @@ impl Vm {
         }
     }
 
-    pub fn destroy_event(&mut self, guid: GUID) -> Result<(), VmError> {
+    pub fn destroy_event(&mut self, guid: Guid) -> Result<(), VmError> {
         if self.running_events.remove(&guid).is_some() {
             self.completed_events.insert(guid, vec![]);
             Ok(())
@@ -691,14 +691,12 @@ impl Vm {
         }
     }
 
-    pub fn get_completed_event(&mut self, guid: GUID) -> Option<Vec<Reference>> {
+    pub fn get_completed_event(&mut self, guid: Guid) -> Option<Vec<Reference>> {
         self.completed_events.remove(&guid)
     }
 
-    pub fn get_completed_events(&mut self) -> impl Iterator<Item = (GUID, Vec<Reference>)> {
-        std::mem::take(&mut self.completed_events)
-            .into_iter()
-            .map(|item| item)
+    pub fn get_completed_events(&mut self) -> impl Iterator<Item = (Guid, Vec<Reference>)> {
+        std::mem::take(&mut self.completed_events).into_iter()
     }
 
     pub fn process_events(&mut self) -> Result<(), VmError> {
@@ -728,7 +726,7 @@ impl Vm {
         }
     }
 
-    pub fn single_step_event(&mut self, guid: GUID) -> Result<(), VmError> {
+    pub fn single_step_event(&mut self, guid: Guid) -> Result<(), VmError> {
         if let Some(mut event) = self.running_events.remove(&guid) {
             self.step_event(&mut event)?;
             self.running_events.insert(guid, event);

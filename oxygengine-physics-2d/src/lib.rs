@@ -24,8 +24,8 @@ use crate::{
 use core::{app::AppBuilder, prefab::PrefabManager, Scalar};
 use nphysics2d::math::Vector;
 
-pub fn bundle_installer<'a, 'b>(
-    builder: &mut AppBuilder<'a, 'b>,
+pub fn bundle_installer(
+    builder: &mut AppBuilder,
     (gravity, simulation_mode): (Vector<Scalar>, Physics2dWorldSimulationMode),
 ) {
     builder.install_resource(Physics2dWorld::new(gravity, simulation_mode));

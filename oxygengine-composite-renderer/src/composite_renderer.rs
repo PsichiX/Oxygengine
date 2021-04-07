@@ -1,11 +1,24 @@
 use crate::math::{Color, Rect, Vec2};
 use core::{
-    assets::{asset::AssetID, database::AssetsDatabase},
+    assets::{asset::AssetId, database::AssetsDatabase},
     error::*,
     Ignite, Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, ops::Range};
+
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+pub struct Rectangle {
+    pub color: Color,
+    pub rect: Rect,
+}
+
+impl Rectangle {
+    pub fn align(mut self, factor: Vec2) -> Self {
+        self.rect = self.rect.align(factor);
+        self
+    }
+}
 
 #[derive(Ignite, Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum TextAlign {
@@ -32,19 +45,6 @@ pub enum TextBaseLine {
 impl Default for TextBaseLine {
     fn default() -> Self {
         TextBaseLine::Top
-    }
-}
-
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
-pub struct Rectangle {
-    pub color: Color,
-    pub rect: Rect,
-}
-
-impl Rectangle {
-    pub fn align(mut self, factor: Vec2) -> Self {
-        self.rect = self.rect.align(factor);
-        self
     }
 }
 
@@ -245,11 +245,7 @@ pub enum Renderable<'a> {
 
 impl<'a> Renderable<'a> {
     pub fn is_none(&self) -> bool {
-        if let Self::None = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Self::None)
     }
 }
 
@@ -495,7 +491,7 @@ pub trait CompositeRenderer: Send + Sync {
 }
 
 pub trait CompositeRendererResources<T> {
-    fn add_resource(&mut self, id: String, resource: T) -> Result<AssetID>;
+    fn add_resource(&mut self, id: String, resource: T) -> Result<AssetId>;
 
-    fn remove_resource(&mut self, id: AssetID) -> Result<T>;
+    fn remove_resource(&mut self, id: AssetId) -> Result<T>;
 }

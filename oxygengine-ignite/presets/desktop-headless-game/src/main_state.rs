@@ -5,7 +5,7 @@ const HOST_URL: &str = "127.0.0.1:9009";
 // Typical basic game host server that will listen for clients and reply any message it gets.
 #[derive(Default)]
 pub struct MainState {
-    server: Option<ServerID>,
+    server: Option<ServerId>,
 }
 
 impl State for MainState {

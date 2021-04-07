@@ -10,7 +10,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-pub type FetchProcessID = ID<FetchProcess>;
+pub type FetchProcessId = ID<FetchProcess>;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum FetchCancelReason {
@@ -42,7 +42,7 @@ impl Clone for Box<dyn FetchProcessReader> {
 
 #[derive(Clone)]
 pub struct FetchProcess {
-    id: FetchProcessID,
+    id: FetchProcessId,
     inner: Arc<Mutex<(FetchStatus, Option<Vec<u8>>)>>,
 }
 
@@ -56,7 +56,7 @@ impl FetchProcess {
     #[inline]
     pub fn new() -> Self {
         Self {
-            id: FetchProcessID::new(),
+            id: FetchProcessId::new(),
             inner: Arc::new(Mutex::new((FetchStatus::Empty, None))),
         }
     }
@@ -64,7 +64,7 @@ impl FetchProcess {
     #[inline]
     pub fn new_start() -> Self {
         Self {
-            id: FetchProcessID::new(),
+            id: FetchProcessId::new(),
             inner: Arc::new(Mutex::new((FetchStatus::InProgress(0.0), None))),
         }
     }
@@ -72,7 +72,7 @@ impl FetchProcess {
     #[inline]
     pub fn new_done(data: Vec<u8>) -> Self {
         Self {
-            id: FetchProcessID::new(),
+            id: FetchProcessId::new(),
             inner: Arc::new(Mutex::new((FetchStatus::Done, Some(data)))),
         }
     }
@@ -80,13 +80,13 @@ impl FetchProcess {
     #[inline]
     pub fn new_cancel(reason: FetchCancelReason) -> Self {
         Self {
-            id: FetchProcessID::new(),
+            id: FetchProcessId::new(),
             inner: Arc::new(Mutex::new((FetchStatus::Canceled(reason), None))),
         }
     }
 
     #[inline]
-    pub fn id(&self) -> FetchProcessID {
+    pub fn id(&self) -> FetchProcessId {
         self.id
     }
 
@@ -170,6 +170,7 @@ pub trait FetchEngine: Send + Sync {
 
 #[cfg(test)]
 mod tests {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]

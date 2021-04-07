@@ -15,8 +15,8 @@ pub mod prelude {
 use crate::system::FlowSystem;
 use core::prelude::*;
 
-pub type GUID = ID<()>;
+pub type Guid = ID<()>;
 
-pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>, _: ()) {
+pub fn bundle_installer(builder: &mut AppBuilder, _: ()) {
     builder.install_system(FlowSystem, "flow", &[]);
 }

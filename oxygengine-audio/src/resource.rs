@@ -1,7 +1,7 @@
 #![allow(clippy::too_many_arguments)]
 
 use core::{
-    assets::{asset::AssetID, database::AssetsDatabase},
+    assets::{asset::AssetId, database::AssetsDatabase},
     ecs::Entity,
     Scalar,
 };
@@ -35,6 +35,6 @@ pub trait Audio: Send + Sync {
         play: Option<bool>,
     );
     fn get_source_state(&self, entity: Entity) -> Option<AudioState>;
-    fn get_asset_id(&self, path: &str) -> Option<AssetID>;
+    fn get_asset_id(&self, path: &str) -> Option<AssetId>;
     fn update_cache(&mut self, _assets: &AssetsDatabase) {}
 }

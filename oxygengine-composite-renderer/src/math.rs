@@ -31,6 +31,13 @@ impl Mat2d {
         Self(cells)
     }
 
+    pub fn new_complex(translation: Vec2, rotation: Scalar, scale: Vec2) -> Self {
+        let t = Self::translation(translation);
+        let r = Self::rotation(rotation);
+        let s = Self::scale(scale);
+        t * r * s
+    }
+
     pub fn translation(value: Vec2) -> Self {
         Self([1.0, 0.0, 0.0, 1.0, value.x, value.y])
     }
@@ -42,6 +49,10 @@ impl Mat2d {
 
     pub fn scale(value: Vec2) -> Self {
         Self([value.x, 0.0, 0.0, value.y, 0.0, 0.0])
+    }
+
+    pub fn skew(value: Vec2) -> Self {
+        Self([1.0, value.y.tan(), value.x.tan(), 1.0, 0.0, 0.0])
     }
 
     pub fn inverse(self) -> Option<Self> {
@@ -93,29 +104,26 @@ impl Not for Mat2d {
 }
 
 impl From<[Scalar; 6]> for Mat2d {
-    fn from(value: [Scalar; 6]) -> Self {
-        Self(value)
+    fn from(v: [Scalar; 6]) -> Self {
+        Self(v)
+    }
+}
+
+impl From<Mat2d> for [Scalar; 6] {
+    fn from(v: Mat2d) -> Self {
+        v.0
     }
 }
 
 impl From<(Scalar, Scalar, Scalar, Scalar, Scalar, Scalar)> for Mat2d {
-    #[allow(clippy::many_single_char_names)]
-    fn from((a, b, c, d, e, f): (Scalar, Scalar, Scalar, Scalar, Scalar, Scalar)) -> Self {
-        Self([a, b, c, d, e, f])
+    fn from(v: (Scalar, Scalar, Scalar, Scalar, Scalar, Scalar)) -> Self {
+        Self([v.0, v.1, v.2, v.3, v.4, v.5])
     }
 }
 
-impl Into<[Scalar; 6]> for Mat2d {
-    fn into(self) -> [Scalar; 6] {
-        self.0
-    }
-}
-
-impl Into<(Scalar, Scalar, Scalar, Scalar, Scalar, Scalar)> for Mat2d {
-    fn into(self) -> (Scalar, Scalar, Scalar, Scalar, Scalar, Scalar) {
-        (
-            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5],
-        )
+impl From<Mat2d> for (Scalar, Scalar, Scalar, Scalar, Scalar, Scalar) {
+    fn from(v: Mat2d) -> Self {
+        (v.0[0], v.0[1], v.0[2], v.0[3], v.0[4], v.0[5])
     }
 }
 
@@ -499,6 +507,10 @@ pub struct Rect {
 }
 
 impl Rect {
+    pub fn raw(x: Scalar, y: Scalar, w: Scalar, h: Scalar) -> Self {
+        Self { x, y, w, h }
+    }
+
     pub fn new(position: Vec2, size: Vec2) -> Self {
         Self {
             x: position.x,
@@ -579,6 +591,10 @@ impl Rect {
 
     pub fn center(&self) -> Vec2 {
         Vec2::new(self.x + self.w * 0.5, self.y + self.h * 0.5)
+    }
+
+    pub fn size(&self) -> Vec2 {
+        Vec2::new(self.w, self.h)
     }
 
     pub fn contains_point(&self, point: Vec2) -> bool {

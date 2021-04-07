@@ -25,7 +25,7 @@ use crate::{
 };
 use core::{
     app::AppLifeCycle,
-    assets::{asset::AssetID, database::AssetsDatabase},
+    assets::{asset::AssetId, database::AssetsDatabase},
     ecs::{
         storage::ComponentEvent, Entities, Entity, Join, Read, ReadExpect, ReadStorage, ReaderId,
         System, World, Write, WriteStorage,
@@ -211,11 +211,13 @@ where
             let r = renderer.view_size();
             (r.x, r.y)
         };
-        let mut stats = Stats::default();
-        stats.view_size = renderer.view_size();
-        stats.images_count = renderer.images_count();
-        stats.fontfaces_count = renderer.fontfaces_count();
-        stats.surfaces_count = renderer.surfaces_count();
+        let mut stats = Stats {
+            view_size: renderer.view_size(),
+            images_count: renderer.images_count(),
+            fontfaces_count: renderer.fontfaces_count(),
+            surfaces_count: renderer.surfaces_count(),
+            ..Default::default()
+        };
 
         if let Some(color) = renderer.state().clear_color {
             let result =
@@ -374,7 +376,7 @@ where
 #[derive(Debug, Default)]
 pub struct CompositeSpriteSheetSystem {
     images_cache: HashMap<String, String>,
-    atlas_table: HashMap<AssetID, String>,
+    atlas_table: HashMap<AssetId, String>,
     frames_cache: HashMap<String, HashMap<String, Rect>>,
 }
 
@@ -461,7 +463,7 @@ impl CompositeSpriteSheetSystem {
 #[derive(Debug, Default)]
 pub struct CompositeTilemapSystem {
     images_cache: HashMap<String, String>,
-    atlas_table: HashMap<AssetID, String>,
+    atlas_table: HashMap<AssetId, String>,
     infos_cache: HashMap<String, TilesetInfo>,
 }
 
@@ -776,7 +778,7 @@ where
 #[derive(Default)]
 pub struct CompositeMapSystem {
     maps_cache: HashMap<String, Map>,
-    maps_table: HashMap<AssetID, String>,
+    maps_table: HashMap<AssetId, String>,
 }
 
 impl<'s> System<'s> for CompositeMapSystem {
@@ -859,7 +861,7 @@ impl CompositeMapSystem {
 #[derive(Default)]
 pub struct CompositeMeshSystem {
     meshes_cache: HashMap<String, Mesh>,
-    meshes_table: HashMap<AssetID, String>,
+    meshes_table: HashMap<AssetId, String>,
 }
 
 impl<'s> System<'s> for CompositeMeshSystem {
@@ -1021,7 +1023,7 @@ impl CompositeMeshSystem {
 #[derive(Default)]
 pub struct CompositeMeshAnimationSystem {
     animations_cache: HashMap<String, MeshAnimation>,
-    animations_table: HashMap<AssetID, String>,
+    animations_table: HashMap<AssetId, String>,
 }
 
 impl<'s> System<'s> for CompositeMeshAnimationSystem {
@@ -1097,7 +1099,7 @@ where
 
 impl<'s, CR> System<'s> for CompositeUiSystem<CR>
 where
-    CR: CompositeRenderer + 'static,
+    CR: CompositeRenderer + Send + Sync + 'static,
 {
     #[allow(clippy::type_complexity)]
     type SystemData = (

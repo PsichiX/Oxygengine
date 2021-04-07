@@ -18,11 +18,7 @@ impl Default for Timer {
 
 impl Timer {
     pub fn is_playing(self) -> bool {
-        if let Self::Playing(_) = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Self::Playing(_))
     }
 }
 

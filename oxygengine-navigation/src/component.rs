@@ -8,7 +8,7 @@ use core::{
 use serde::{Deserialize, Serialize};
 
 /// Nav agent identifier.
-pub type NavAgentID = ID<NavAgent>;
+pub type NavAgentId = ID<NavAgent>;
 
 /// Simple nav driver component tag to mark entity to use simple movement on nav mesh.
 #[derive(Ignite, Debug, Default, Copy, Clone, Serialize, Deserialize)]
@@ -32,17 +32,11 @@ pub enum NavAgentTarget {
 
 impl NavAgentTarget {
     pub fn is_point(&self) -> bool {
-        match self {
-            NavAgentTarget::Point(_) => true,
-            _ => false,
-        }
+        matches!(self, NavAgentTarget::Point(_))
     }
 
     pub fn is_entity(&self) -> bool {
-        match self {
-            NavAgentTarget::Entity(_) => true,
-            _ => false,
-        }
+        matches!(self, NavAgentTarget::Entity(_))
     }
 }
 
@@ -62,7 +56,7 @@ pub struct NavAgentDestination {
 /// Nav agent component.
 #[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub struct NavAgent {
-    id: NavAgentID,
+    id: NavAgentId,
     /// Current agent position in world space.
     pub position: NavVec3,
     /// Current agent normalized direction.
@@ -114,7 +108,7 @@ impl NavAgent {
         }
     }
 
-    pub fn id(&self) -> NavAgentID {
+    pub fn id(&self) -> NavAgentId {
         self.id
     }
 

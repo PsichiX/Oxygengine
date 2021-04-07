@@ -12,8 +12,8 @@ mod tests;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use network::{
-    client::{ClientID, ClientState, MessageID},
-    server::{Server, ServerID, ServerState},
+    client::{ClientId, ClientState, MessageId},
+    server::{Server, ServerId, ServerState},
 };
 use std::{
     collections::{HashMap, VecDeque},
@@ -25,11 +25,11 @@ use std::{
 };
 use ws::{CloseCode, Handler, Handshake, Message, Result, Sender as WsSender, WebSocket};
 
-type MsgData = (ClientID, MessageID, Vec<u8>);
+type MsgData = (ClientId, MessageId, Vec<u8>);
 
 #[derive(Clone)]
 struct Client {
-    id: ClientID,
+    id: ClientId,
     ws: WsSender,
     state: ClientState,
     messages: VecDeque<MsgData>,
@@ -58,7 +58,7 @@ impl Handler for ClientHandler {
                 let client_id = client.id;
                 client
                     .messages
-                    .push_back((client_id, MessageID::new(id, version), data));
+                    .push_back((client_id, MessageId::new(id, version), data));
             }
         }
         Ok(())
@@ -71,10 +71,10 @@ impl Handler for ClientHandler {
 }
 
 pub struct DesktopServer {
-    id: ServerID,
+    id: ServerId,
     state: Arc<Mutex<ServerState>>,
-    clients: Arc<Mutex<HashMap<ClientID, Arc<Mutex<Client>>>>>,
-    clients_ids_cached: Vec<ClientID>,
+    clients: Arc<Mutex<HashMap<ClientId, Arc<Mutex<Client>>>>>,
+    clients_ids_cached: Vec<ClientId>,
     messages: VecDeque<MsgData>,
     ws: Arc<Mutex<Option<WsSender>>>,
     thread: Option<JoinHandle<()>>,
@@ -113,7 +113,7 @@ impl Server for DesktopServer {
         let sender2 = sender.clone();
         let thread = Some(spawn(move || {
             let ws = WebSocket::new(|ws| {
-                let id = ClientID::default();
+                let id = ClientId::default();
                 let client = Arc::new(Mutex::new(Client {
                     id,
                     ws,
@@ -150,7 +150,7 @@ impl Server for DesktopServer {
         self
     }
 
-    fn id(&self) -> ServerID {
+    fn id(&self) -> ServerId {
         self.id
     }
 
@@ -158,11 +158,11 @@ impl Server for DesktopServer {
         *self.state.lock().unwrap()
     }
 
-    fn clients(&self) -> &[ClientID] {
+    fn clients(&self) -> &[ClientId] {
         &self.clients_ids_cached
     }
 
-    fn disconnect(&mut self, id: ClientID) {
+    fn disconnect(&mut self, id: ClientId) {
         let mut clients = self.clients.lock().unwrap();
         if let Some(client) = clients.get_mut(&id) {
             let client = client.lock().unwrap();
@@ -182,7 +182,7 @@ impl Server for DesktopServer {
         clients.clear();
     }
 
-    fn send(&mut self, id: ClientID, msg_id: MessageID, data: &[u8]) -> Option<Range<usize>> {
+    fn send(&mut self, id: ClientId, msg_id: MessageId, data: &[u8]) -> Option<Range<usize>> {
         if self.state() != ServerState::Open {
             return None;
         }
@@ -202,7 +202,7 @@ impl Server for DesktopServer {
         None
     }
 
-    fn send_all(&mut self, id: MessageID, data: &[u8]) {
+    fn send_all(&mut self, id: MessageId, data: &[u8]) {
         if self.state() != ServerState::Open {
             return;
         }

@@ -98,6 +98,10 @@ impl InputDevice for WebMouseInputDevice {
         }
     }
 
+    fn query_text(&self) -> Option<String> {
+        None
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }

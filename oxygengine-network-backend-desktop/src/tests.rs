@@ -11,7 +11,7 @@ use ws::connect;
 
 #[test]
 fn test_general() {
-    let msg = MessageID::new(42, 1);
+    let msg = MessageId::new(42, 1);
 
     println!("Create server");
     let mut server = DesktopServer::open("127.0.0.1:12345").unwrap();

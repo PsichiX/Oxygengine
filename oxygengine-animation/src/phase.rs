@@ -73,7 +73,7 @@ impl Phase {
         self.spline.sample_along_axis(time, 0).unwrap().1
     }
 
-    pub fn calculate_samples<'a>(&'a self, count: usize) -> impl Iterator<Item = Scalar> + 'a {
+    pub fn calculate_samples(&self, count: usize) -> impl Iterator<Item = Scalar> + '_ {
         (0..=count).map(move |i| self.sample(self.duration * i as Scalar / count as Scalar))
     }
 }
@@ -86,8 +86,8 @@ impl TryFrom<PhaseDef> for Phase {
     }
 }
 
-impl Into<PhaseDef> for Phase {
-    fn into(self) -> PhaseDef {
-        self.spline.into()
+impl From<Phase> for PhaseDef {
+    fn from(v: Phase) -> Self {
+        v.spline.into()
     }
 }

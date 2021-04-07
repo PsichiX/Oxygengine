@@ -6,6 +6,7 @@ pub mod component;
 pub mod composite_renderer;
 pub mod font_asset_protocol;
 pub mod font_face_asset_protocol;
+pub mod jpg_image_asset_protocol;
 pub mod map_asset_protocol;
 pub mod math;
 pub mod mesh_animation_asset_protocol;
@@ -13,6 +14,7 @@ pub mod mesh_asset_protocol;
 pub mod png_image_asset_protocol;
 pub mod resource;
 pub mod sprite_sheet_asset_protocol;
+pub mod svg_image_asset_protocol;
 pub mod system;
 pub mod tileset_asset_protocol;
 pub mod ui_theme_asset_protocol;
@@ -20,8 +22,9 @@ pub mod ui_theme_asset_protocol;
 pub mod prelude {
     pub use crate::{
         component::*, composite_renderer::*, font_asset_protocol::*, font_face_asset_protocol::*,
-        map_asset_protocol::*, math::*, mesh_animation_asset_protocol::*, mesh_asset_protocol::*,
-        png_image_asset_protocol::*, resource::*, sprite_sheet_asset_protocol::*, system::*,
+        jpg_image_asset_protocol::*, map_asset_protocol::*, math::*,
+        mesh_animation_asset_protocol::*, mesh_asset_protocol::*, png_image_asset_protocol::*,
+        resource::*, sprite_sheet_asset_protocol::*, svg_image_asset_protocol::*, system::*,
         tileset_asset_protocol::*, ui_theme_asset_protocol::*,
     };
 }
@@ -44,7 +47,7 @@ ignite_proxy! {
     struct Grid2d<T> {}
 }
 
-pub fn bundle_installer<'a, 'b, CR>(builder: &mut AppBuilder<'a, 'b>, data: CR)
+pub fn bundle_installer<CR>(builder: &mut AppBuilder, data: CR)
 where
     CR: CompositeRenderer + 'static,
 {
@@ -77,6 +80,8 @@ where
 
 pub fn protocols_installer(database: &mut AssetsDatabase) {
     database.register(png_image_asset_protocol::PngImageAssetProtocol);
+    database.register(jpg_image_asset_protocol::JpgImageAssetProtocol);
+    database.register(svg_image_asset_protocol::SvgImageAssetProtocol);
     database.register(sprite_sheet_asset_protocol::SpriteSheetAssetProtocol);
     database.register(tileset_asset_protocol::TilesetAssetProtocol);
     database.register(map_asset_protocol::MapAssetProtocol);

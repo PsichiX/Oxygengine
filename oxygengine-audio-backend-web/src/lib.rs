@@ -3,7 +3,7 @@ extern crate oxygengine_core as core;
 
 use audio::resource::*;
 use core::{
-    assets::{asset::AssetID, database::AssetsDatabase},
+    assets::{asset::AssetId, database::AssetsDatabase},
     ecs::Entity,
     Scalar,
 };
@@ -32,8 +32,8 @@ enum AudioCache {
 
 pub struct WebAudio {
     context: AudioContext,
-    table_forward: HashMap<String, AssetID>,
-    table_backward: HashMap<AssetID, String>,
+    table_forward: HashMap<String, AssetId>,
+    table_backward: HashMap<AssetId, String>,
     sources_cache: HashMap<Entity, AudioCache>,
 }
 
@@ -195,7 +195,7 @@ impl Audio for WebAudio {
         }
     }
 
-    fn get_asset_id(&self, path: &str) -> Option<AssetID> {
+    fn get_asset_id(&self, path: &str) -> Option<AssetId> {
         self.table_forward.get(path).copied()
     }
 

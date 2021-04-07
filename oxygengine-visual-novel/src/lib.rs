@@ -198,7 +198,7 @@ impl From<[Scalar; 3]> for Color {
     }
 }
 
-pub fn bundle_installer<'a, 'b>(builder: &mut AppBuilder<'a, 'b>, _: ()) {
+pub fn bundle_installer(builder: &mut AppBuilder, _: ()) {
     builder.install_system(VnStorySystem::default(), "vn-story", &[]);
 }
 

@@ -1,7 +1,7 @@
 use crate::math::Rect;
 use core::{
     assets::{
-        asset::{Asset, AssetID},
+        asset::{Asset, AssetId},
         protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
     },
     Ignite, Scalar,
@@ -62,7 +62,7 @@ pub struct SpriteSheetInfoFrame {
 
 pub struct SpriteSheetAsset {
     info: SpriteSheetInfo,
-    image_asset: AssetID,
+    image_asset: AssetId,
 }
 
 impl SpriteSheetAsset {
@@ -70,7 +70,7 @@ impl SpriteSheetAsset {
         &self.info
     }
 
-    pub fn image_asset(&self) -> AssetID {
+    pub fn image_asset(&self) -> AssetId {
         self.image_asset
     }
 }

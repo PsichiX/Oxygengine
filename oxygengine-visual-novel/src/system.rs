@@ -3,7 +3,7 @@ use crate::story::ScriptFlowEvent;
 use crate::{resource::VnStoryManager, vn_story_asset_protocol::VnStoryAsset};
 use core::{
     app::AppLifeCycle,
-    assets::{asset::AssetID, database::AssetsDatabase},
+    assets::{asset::AssetId, database::AssetsDatabase},
     ecs::{ReadExpect, System, Write},
     Scalar,
 };
@@ -13,7 +13,7 @@ use std::collections::HashMap;
 
 #[derive(Default)]
 pub struct VnStorySystem {
-    story_table: HashMap<AssetID, String>,
+    story_table: HashMap<AssetId, String>,
 }
 
 impl<'s> System<'s> for VnStorySystem {

@@ -11,10 +11,8 @@ pub mod prelude {
 use crate::{resource::InputController, system::InputSystem};
 use core::app::AppBuilder;
 
-pub fn bundle_installer<'a, 'b, ICS>(
-    builder: &mut AppBuilder<'a, 'b>,
-    mut input_controller_setup: ICS,
-) where
+pub fn bundle_installer<ICS>(builder: &mut AppBuilder, mut input_controller_setup: ICS)
+where
     ICS: FnMut(&mut InputController),
 {
     let mut input = InputController::default();
