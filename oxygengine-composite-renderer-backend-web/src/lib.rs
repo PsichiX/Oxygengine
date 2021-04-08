@@ -43,10 +43,11 @@ pub struct WebCompositeRenderer {
     view_size: Vec2,
     canvas: HtmlCanvasElement,
     context: CanvasRenderingContext2d,
-    images_cache: HashMap<String, HtmlImageElement>,
+    images_cache: HashMap<String, HtmlCanvasElement>,
     images_table: HashMap<AssetId, String>,
     fontfaces_cache: HashMap<String, FontFace>,
     fontfaces_table: HashMap<AssetId, String>,
+    font_family_map: HashMap<String, String>,
     cached_image_smoothing: Option<bool>,
     surfaces_cache: HashMap<String, (HtmlCanvasElement, CanvasRenderingContext2d)>,
 }
@@ -71,6 +72,7 @@ impl WebCompositeRenderer {
             images_table: Default::default(),
             fontfaces_cache: Default::default(),
             fontfaces_table: Default::default(),
+            font_family_map: Default::default(),
             cached_image_smoothing: None,
             surfaces_cache: Default::default(),
         }
@@ -124,8 +126,14 @@ impl WebCompositeRenderer {
                         renderables += 1;
                     }
                     Renderable::Text(text) => {
+                        let name = if let Some(name) = self.font_family_map.get(text.font.as_ref())
+                        {
+                            &name
+                        } else {
+                            text.font.as_ref()
+                        };
                         context.set_fill_style(&text.color.to_string().into());
-                        context.set_font(&format!("{}px \"{}\"", text.size, &text.font));
+                        context.set_font(&format!("{}px \"{}\"", text.size, name));
                         context.set_text_align(match text.align {
                             TextAlign::Left => "left",
                             TextAlign::Center => "center",
@@ -301,7 +309,7 @@ impl WebCompositeRenderer {
                         render_ops += 3 + ops;
                     }
                     Renderable::Image(image) => {
-                        let path: &str = &image.image;
+                        let path = image.image.as_ref();
                         if let Some(elm) = self.images_cache.get(path) {
                             let mut src = if let Some(src) = image.source {
                                 src
@@ -313,6 +321,17 @@ impl WebCompositeRenderer {
                                     h: elm.height() as Scalar,
                                 }
                             };
+                            let dst = if let Some(dst) = image.destination {
+                                dst
+                            } else {
+                                Rect {
+                                    x: 0.0,
+                                    y: 0.0,
+                                    w: src.w,
+                                    h: src.h,
+                                }
+                            }
+                            .align(image.alignment);
                             src.x += self.state.image_source_inner_margin;
                             src.y += self.state.image_source_inner_margin;
                             src.w -= self.state.image_source_inner_margin * 2.0;
@@ -325,19 +344,10 @@ impl WebCompositeRenderer {
                                 src.h += src.y;
                                 src.y = 0.0;
                             }
-                            let dst = if let Some(dst) = image.destination {
-                                dst
-                            } else {
-                                Rect {
-                                    x: 0.0,
-                                    y: 0.0,
-                                    w: src.w,
-                                    h: src.h,
-                                }
-                            }
-                            .align(image.alignment);
+                            src.w = src.w.max(1.0);
+                            src.h = src.h.max(1.0);
                             drop(context
-                                .draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                                .draw_image_with_html_canvas_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
                                     elm,
                                     src.x.into(),
                                     src.y.into(),
@@ -361,6 +371,17 @@ impl WebCompositeRenderer {
                                     h: elm.height() as Scalar,
                                 }
                             };
+                            let dst = if let Some(dst) = image.destination {
+                                dst
+                            } else {
+                                Rect {
+                                    x: 0.0,
+                                    y: 0.0,
+                                    w: src.w,
+                                    h: src.h,
+                                }
+                            }
+                            .align(image.alignment);
                             src.x += self.state.image_source_inner_margin;
                             src.y += self.state.image_source_inner_margin;
                             src.w -= self.state.image_source_inner_margin * 2.0;
@@ -373,17 +394,8 @@ impl WebCompositeRenderer {
                                 src.h += src.y;
                                 src.y = 0.0;
                             }
-                            let dst = if let Some(dst) = image.destination {
-                                dst
-                            } else {
-                                Rect {
-                                    x: 0.0,
-                                    y: 0.0,
-                                    w: src.w,
-                                    h: src.h,
-                                }
-                            }
-                            .align(image.alignment);
+                            src.w = src.w.max(1.0);
+                            src.h = src.h.max(1.0);
                             drop(context
                                 .draw_image_with_html_canvas_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
                                     elm,
@@ -465,7 +477,9 @@ impl WebCompositeRenderer {
                                         dx.into(),
                                         dy.into(),
                                     ));
-                                    drop(context.draw_image_with_html_image_element(elm, 0.0, 0.0));
+                                    drop(
+                                        context.draw_image_with_html_canvas_element(elm, 0.0, 0.0),
+                                    );
                                     render_ops += 2;
                                     renderables += 1;
                                 }
@@ -830,7 +844,27 @@ impl CompositeRenderer for WebCompositeRenderer {
                 Blob::new_with_u8_array_sequence_and_options(parts.as_ref(), &options).unwrap();
             let elm = HtmlImageElement::new_with_width_and_height(width, height).unwrap();
             elm.set_src(&Url::create_object_url_with_blob(&blob).unwrap());
-            self.images_cache.insert(path.clone(), elm);
+            let document = window().document().expect("Could not get window document");
+            let canvas = document
+                .create_element("canvas")
+                .expect("Could not create canvas element")
+                .dyn_into::<HtmlCanvasElement>()
+                .unwrap();
+            canvas.set_width(width);
+            canvas.set_height(height);
+            let context = canvas
+                .get_context("2d")
+                .unwrap()
+                .unwrap()
+                .dyn_into::<CanvasRenderingContext2d>()
+                .unwrap();
+            let elm2 = elm.clone();
+            let closure = Closure::wrap(Box::new(move |_: web_sys::Event| {
+                drop(context.draw_image_with_html_image_element(&elm2, 0.0, 0.0));
+            }) as Box<dyn FnMut(_)>);
+            elm.set_onload(Some(closure.as_ref().unchecked_ref()));
+            closure.forget();
+            self.images_cache.insert(path.clone(), canvas);
             self.images_table.insert(id, path);
         }
         for id in assets.lately_unloaded_protocol("png") {
@@ -859,7 +893,27 @@ impl CompositeRenderer for WebCompositeRenderer {
                 Blob::new_with_u8_array_sequence_and_options(parts.as_ref(), &options).unwrap();
             let elm = HtmlImageElement::new_with_width_and_height(width, height).unwrap();
             elm.set_src(&Url::create_object_url_with_blob(&blob).unwrap());
-            self.images_cache.insert(path.clone(), elm);
+            let document = window().document().expect("Could not get window document");
+            let canvas = document
+                .create_element("canvas")
+                .expect("Could not create canvas element")
+                .dyn_into::<HtmlCanvasElement>()
+                .unwrap();
+            canvas.set_width(width);
+            canvas.set_height(height);
+            let context = canvas
+                .get_context("2d")
+                .unwrap()
+                .unwrap()
+                .dyn_into::<CanvasRenderingContext2d>()
+                .unwrap();
+            let elm2 = elm.clone();
+            let closure = Closure::wrap(Box::new(move |_: web_sys::Event| {
+                drop(context.draw_image_with_html_image_element(&elm2, 0.0, 0.0));
+            }) as Box<dyn FnMut(_)>);
+            elm.set_onload(Some(closure.as_ref().unchecked_ref()));
+            closure.forget();
+            self.images_cache.insert(path.clone(), canvas);
             self.images_table.insert(id, path);
         }
         for id in assets.lately_unloaded_protocol("jpg") {
@@ -888,7 +942,27 @@ impl CompositeRenderer for WebCompositeRenderer {
                 Blob::new_with_u8_array_sequence_and_options(parts.as_ref(), &options).unwrap();
             let elm = HtmlImageElement::new_with_width_and_height(width, height).unwrap();
             elm.set_src(&Url::create_object_url_with_blob(&blob).unwrap());
-            self.images_cache.insert(path.clone(), elm);
+            let document = window().document().expect("Could not get window document");
+            let canvas = document
+                .create_element("canvas")
+                .expect("Could not create canvas element")
+                .dyn_into::<HtmlCanvasElement>()
+                .unwrap();
+            canvas.set_width(width);
+            canvas.set_height(height);
+            let context = canvas
+                .get_context("2d")
+                .unwrap()
+                .unwrap()
+                .dyn_into::<CanvasRenderingContext2d>()
+                .unwrap();
+            let elm2 = elm.clone();
+            let closure = Closure::wrap(Box::new(move |_: web_sys::Event| {
+                drop(context.draw_image_with_html_image_element(&elm2, 0.0, 0.0));
+            }) as Box<dyn FnMut(_)>);
+            elm.set_onload(Some(closure.as_ref().unchecked_ref()));
+            closure.forget();
+            self.images_cache.insert(path.clone(), canvas);
             self.images_table.insert(id, path);
         }
         for id in assets.lately_unloaded_protocol("svg") {
@@ -920,8 +994,9 @@ impl CompositeRenderer for WebCompositeRenderer {
             if let Some(variant) = &asset.face().variant {
                 descriptors.variant(variant);
             }
+            let name = path.replace(|c: char| !c.is_alphanumeric(), "-");
             let elm = FontFace::new_with_u8_array_and_descriptors(
-                &path,
+                &name,
                 #[allow(mutable_transmutes, clippy::transmute_ptr_to_ptr)]
                 unsafe {
                     std::mem::transmute(font_asset.bytes())
@@ -940,11 +1015,13 @@ impl CompositeRenderer for WebCompositeRenderer {
                 .add(&elm)
                 .unwrap_or_else(|_| panic!("Could not add font: {}", path));
             self.fontfaces_cache.insert(path.clone(), elm);
-            self.fontfaces_table.insert(id, path);
+            self.fontfaces_table.insert(id, path.clone());
+            self.font_family_map.insert(path, name);
         }
         for id in assets.lately_unloaded_protocol("fontface") {
             if let Some(path) = self.fontfaces_table.remove(id) {
                 self.fontfaces_cache.remove(&path);
+                self.font_family_map.remove(&path);
             }
         }
     }
@@ -954,7 +1031,7 @@ impl CompositeRenderer for WebCompositeRenderer {
         let canvas = document
             .create_element("canvas")
             .expect("Could not create canvas element")
-            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .dyn_into::<HtmlCanvasElement>()
             .unwrap();
         canvas.set_width(width as u32);
         canvas.set_height(height as u32);
@@ -1001,15 +1078,15 @@ impl CompositeRenderer for WebCompositeRenderer {
     }
 }
 
-impl CompositeRendererResources<HtmlImageElement> for WebCompositeRenderer {
-    fn add_resource(&mut self, id: String, resource: HtmlImageElement) -> Result<AssetId> {
+impl CompositeRendererResources<HtmlCanvasElement> for WebCompositeRenderer {
+    fn add_resource(&mut self, id: String, resource: HtmlCanvasElement) -> Result<AssetId> {
         let asset_id = AssetId::new();
         self.images_cache.insert(id.clone(), resource);
         self.images_table.insert(asset_id, id);
         Ok(asset_id)
     }
 
-    fn remove_resource(&mut self, id: AssetId) -> Result<HtmlImageElement> {
+    fn remove_resource(&mut self, id: AssetId) -> Result<HtmlCanvasElement> {
         if let Some(id) = self.images_table.remove(&id) {
             if let Some(resource) = self.images_cache.remove(&id) {
                 Ok(resource)
