@@ -15,14 +15,14 @@ pub fn new_theme() -> ThemeProps {
             id: "ui/ui.svg".to_owned(),
             scaling: ImageBoxImageScaling::Frame(ImageBoxFrame {
                 source: Rect {
-                    left: 16.0,
-                    right: 16.0,
+                    left: 64.0,
+                    right: 64.0,
                     top: 0.0,
                     bottom: 0.0,
                 },
                 destination: Rect {
-                    left: 16.0,
-                    right: 16.0,
+                    left: 64.0,
+                    right: 64.0,
                     top: 0.0,
                     bottom: 0.0,
                 },

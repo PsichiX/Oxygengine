@@ -82,6 +82,9 @@ impl Audio for WebAudio {
             audio.set_playback_rate(playback_rate as f64);
             audio.set_volume(volume as f64);
             if play {
+                if self.context.state() != AudioContextState::Running {
+                    drop(self.context.resume());
+                }
                 audio.set_current_time(0.0);
                 drop(audio.play().expect("Could not start audio source"));
             }
@@ -95,6 +98,7 @@ impl Audio for WebAudio {
             let gain2 = gain.clone();
             let promise = self.context.decode_audio_data(&buffer.buffer()).unwrap();
             let destination = self.context.destination();
+            let context = self.context.clone();
             let future = JsFuture::from(promise).and_then(move |buff| {
                 assert!(buff.is_instance_of::<AudioBuffer>());
                 let buff: AudioBuffer = buff.dyn_into().unwrap();
@@ -108,6 +112,9 @@ impl Audio for WebAudio {
                 audio.playback_rate().set_value(playback_rate as f32);
                 gain.gain().set_value(volume as f32);
                 if play {
+                    if context.state() != AudioContextState::Running {
+                        drop(context.resume());
+                    }
                     audio.start().expect("Could not start audio source");
                 }
                 notify_ready.store(true, Ordering::Relaxed);
@@ -171,6 +178,9 @@ impl Audio for WebAudio {
                     audio.set_volume(volume as f64);
                     if let Some(play) = play {
                         if play {
+                            if self.context.state() != AudioContextState::Running {
+                                drop(self.context.resume());
+                            }
                             audio.set_current_time(0.0);
                             drop(audio.play().expect("Could not start audio source"));
                         } else {

@@ -116,11 +116,16 @@ entities:
         Tag: world
         Name: player
         CompositeRenderable:
-          Image:
-            image: images/logo.svg
-            alignment:
-              x: 0.5
-              y: 0.5
+          Commands:
+            - Store
+            - Filter: blur(4px)
+            - Draw:
+                Image:
+                  image: images/logo.svg
+                  alignment:
+                    x: 0.5
+                    y: 0.5
+            - Restore
         CompositeTransform:
           scale:
             x: 0.25

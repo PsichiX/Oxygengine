@@ -372,6 +372,7 @@ pub enum Command<'a> {
     Transform(Scalar, Scalar, Scalar, Scalar, Scalar, Scalar),
     Effect(Effect),
     Alpha(Scalar),
+    Filter(Cow<'a, str>),
     Store,
     Restore,
 }

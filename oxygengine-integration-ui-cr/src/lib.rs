@@ -23,10 +23,14 @@ use oxygengine_core::{
 use oxygengine_user_interface::{
     component::UserInterfaceView,
     raui::core::{
+        implement_props_data,
         layout::{CoordsMapping, CoordsMappingScaling, Layout},
         renderer::Renderer,
         widget::{
+            context::WidgetContext,
+            node::WidgetNode,
             unit::{
+                area::{AreaBoxNode, AreaBoxRendererEffect},
                 image::{ImageBoxFrame, ImageBoxImageScaling, ImageBoxMaterial},
                 text::{TextBoxAlignment, TextBoxFont},
                 WidgetUnit,
@@ -310,6 +314,7 @@ where
                     &self.frames_cache,
                     &self.images_sizes_cache,
                     sync.approx_rect_values,
+                    32,
                 );
                 if let Ok(commands) = data
                     .application
@@ -516,11 +521,19 @@ impl ImageFrame {
     }
 }
 
+enum Filter {
+    None,
+    Reset,
+    Replace([Scalar; 8]),
+    Combine([Scalar; 8]),
+}
+
 struct RauiRenderer<'a> {
     images: &'a HashMap<String, String>,
     frames: &'a HashMap<String, HashMap<String, Rect>>,
     images_sizes: &'a HashMap<String, Vec2>,
     approx_rect_values: UserInterfaceApproxRectValues,
+    filter_stack: Vec<[Scalar; 8]>,
 }
 
 impl<'a> RauiRenderer<'a> {
@@ -529,12 +542,16 @@ impl<'a> RauiRenderer<'a> {
         frames: &'a HashMap<String, HashMap<String, Rect>>,
         images_sizes: &'a HashMap<String, Vec2>,
         approx_rect_values: UserInterfaceApproxRectValues,
+        filter_stack_capacity: usize,
     ) -> Self {
+        let mut filter_stack = Vec::with_capacity(filter_stack_capacity);
+        filter_stack.push([0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0]);
         Self {
             images,
             frames,
             images_sizes,
             approx_rect_values,
+            filter_stack,
         }
     }
 
@@ -569,6 +586,19 @@ impl<'a> RauiRenderer<'a> {
         let offset = Mat2d::translation(offset);
         let [a, b, c, d, e, f] = offset.0;
         Command::Transform(a, b, c, d, e, f)
+    }
+
+    fn make_area_effect(effect: &Option<AreaBoxRendererEffect>) -> Filter {
+        if let Some(effect) = effect {
+            match effect.id.as_str() {
+                "filter-reset" => Filter::Reset,
+                "filter-replace" => Filter::Replace(effect.params),
+                "filter-combine" => Filter::Combine(effect.params),
+                _ => Filter::None,
+            }
+        } else {
+            Filter::None
+        }
     }
 
     fn make_rect_renderable(
@@ -686,7 +716,7 @@ impl<'a> RauiRenderer<'a> {
 
     // TODO: refactor this shit!
     fn render_node(
-        &self,
+        &mut self,
         unit: &WidgetUnit,
         mapping: &CoordsMapping,
         layout: &Layout,
@@ -696,9 +726,42 @@ impl<'a> RauiRenderer<'a> {
                 if let Some(item) = layout.items.get(&unit.id) {
                     let local_space = mapping.virtual_to_real_rect(item.local_space);
                     let transform = Self::make_simple_transform_command(local_space);
+                    let area_effect = match Self::make_area_effect(&unit.renderer_effect) {
+                        Filter::None => self.filter_stack.last().copied().unwrap(),
+                        Filter::Reset => [0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                        Filter::Replace(data) => data,
+                        Filter::Combine(data) => {
+                            let old = self.filter_stack.last().copied().unwrap();
+                            [
+                                old[0] + data[0],
+                                old[1] + data[1],
+                                old[2] + data[2],
+                                old[3] + data[3],
+                                old[4] + data[4],
+                                old[5] + data[5],
+                                old[6] + data[6],
+                                old[7] + data[7],
+                            ]
+                        }
+                    };
+                    self.filter_stack.push(area_effect);
+                    let area_effect = format!(
+                        "blur({}px) brightness({}%) contrast({}%) grayscale({}%) invert({}%) saturate({}%) sepia({}%) hue-rotate({}deg)",
+                        area_effect[0],
+                        area_effect[1] * 100.0,
+                        area_effect[2] * 100.0,
+                        area_effect[3] * 100.0,
+                        area_effect[4] * 100.0,
+                        area_effect[5] * 100.0,
+                        area_effect[6] * 100.0,
+                        area_effect[7],
+                    );
+                    let children = self.render_node(&unit.slot, mapping, layout);
+                    self.filter_stack.pop();
                     std::iter::once(Command::Store)
                         .chain(std::iter::once(transform))
-                        .chain(self.render_node(&unit.slot, mapping, layout))
+                        .chain(std::iter::once(Command::Filter(area_effect.into())))
+                        .chain(children)
                         .chain(std::iter::once(Command::Restore))
                         .collect::<Vec<_>>()
                 } else {
@@ -1117,4 +1180,89 @@ impl<'a> Renderer<Vec<Command<'static>>, ()> for RauiRenderer<'a> {
     ) -> Result<Vec<Command<'static>>, ()> {
         Ok(self.render_node(tree, mapping, layout))
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum FilterBoxProps {
+    None,
+    Reset,
+    Replace(FilterBoxValues),
+    Combine(FilterBoxValues),
+}
+implement_props_data!(FilterBoxProps);
+
+impl Default for FilterBoxProps {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl FilterBoxProps {
+    pub fn effect(&self) -> Option<AreaBoxRendererEffect> {
+        match self {
+            Self::None => None,
+            Self::Reset => Some(AreaBoxRendererEffect {
+                id: "filter-reset".to_owned(),
+                ..Default::default()
+            }),
+            Self::Replace(values) => Some(AreaBoxRendererEffect {
+                id: "filter-replace".to_owned(),
+                params: values.params(),
+            }),
+            Self::Combine(values) => Some(AreaBoxRendererEffect {
+                id: "filter-combine".to_owned(),
+                params: values.params(),
+            }),
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct FilterBoxValues {
+    #[serde(default)]
+    pub blur: Scalar,
+    #[serde(default)]
+    pub brightness: Scalar,
+    #[serde(default)]
+    pub contrast: Scalar,
+    #[serde(default)]
+    pub grayscale: Scalar,
+    #[serde(default)]
+    pub invert: Scalar,
+    #[serde(default)]
+    pub saturate: Scalar,
+    #[serde(default)]
+    pub sepia: Scalar,
+    #[serde(default)]
+    pub hue_rotate: Scalar,
+}
+
+impl FilterBoxValues {
+    pub fn params(&self) -> [Scalar; 8] {
+        [
+            self.blur,
+            self.brightness,
+            self.contrast,
+            self.grayscale,
+            self.invert,
+            self.saturate,
+            self.sepia,
+            self.hue_rotate,
+        ]
+    }
+}
+
+pub fn filter_box(mut context: WidgetContext) -> WidgetNode {
+    let slot = context.named_slots.remove("content").unwrap();
+    let renderer_effect = context
+        .props
+        .read_cloned_or_default::<FilterBoxProps>()
+        .effect();
+
+    AreaBoxNode {
+        id: context.id.to_owned(),
+        slot: Box::new(slot),
+        renderer_effect,
+    }
+    .into()
 }

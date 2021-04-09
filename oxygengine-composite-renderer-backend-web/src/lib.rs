@@ -753,6 +753,10 @@ impl WebCompositeRenderer {
                     context.set_global_alpha(current_alpha.max(0.0).min(1.0).into());
                     render_ops += 1;
                 }
+                Command::Filter(data) => {
+                    context.set_filter(data.as_ref());
+                    render_ops += 1;
+                }
                 Command::Store => {
                     alpha_stack.push(current_alpha);
                     context.save();
@@ -763,7 +767,7 @@ impl WebCompositeRenderer {
                     context.restore();
                     render_ops += 1;
                 }
-                _ => {}
+                Command::None => {}
             }
         }
         Ok((render_ops, renderables))
