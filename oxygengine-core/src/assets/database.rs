@@ -3,15 +3,16 @@ use crate::{
         asset::{Asset, AssetId},
         protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
     },
-    fetch::{FetchEngine, FetchProcessReader, FetchStatus},
+    fetch::{FetchEngine, FetchProcess, FetchStatus},
 };
-use std::{any::TypeId, borrow::BorrowMut, collections::HashMap};
+use std::{any::TypeId, collections::HashMap};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LoadStatus {
     InvalidPath(String),
     UnknownProtocol(String),
     FetchError(FetchStatus),
+    NoFetchEngine,
 }
 
 pub trait AssetsDatabaseErrorReporter: Send + Sync {
@@ -36,7 +37,7 @@ pub struct AssetsDatabase {
     protocols: HashMap<String, Box<dyn AssetProtocol>>,
     assets: HashMap<AssetId, (String, Asset)>,
     table: HashMap<String, AssetId>,
-    loading: HashMap<String, (String, Box<dyn FetchProcessReader>)>,
+    loading: HashMap<String, (String, Box<FetchProcess>)>,
     #[allow(clippy::type_complexity)]
     yielded: HashMap<String, (String, Meta, Vec<(String, String)>)>,
     lately_loaded: Vec<(String, AssetId)>,
@@ -184,9 +185,20 @@ impl AssetsDatabase {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        !iter
-            .into_iter()
-            .any(|path| !self.table.contains_key(path.as_ref()))
+        iter.into_iter().all(|path| {
+            let path = Self::clean_path(path.as_ref());
+            self.table.contains_key(path)
+                && !self.loading.contains_key(path)
+                && !self.yielded.contains_key(path)
+        })
+    }
+
+    pub fn has_fetch_engine(&self) -> bool {
+        !self.fetch_engines.is_empty()
+    }
+
+    pub fn fetch_engines_stack_size(&self) -> usize {
+        self.fetch_engines.len()
     }
 
     pub fn push_fetch_engine(&mut self, fetch_engine: Box<dyn FetchEngine>) {
@@ -194,29 +206,28 @@ impl AssetsDatabase {
     }
 
     pub fn pop_fetch_engine(&mut self) -> Option<Box<dyn FetchEngine>> {
-        if !self.fetch_engines.is_empty() {
-            self.fetch_engines.pop()
-        } else {
-            None
+        self.fetch_engines.pop()
+    }
+
+    pub fn fetch_engine(&self) -> Option<&dyn FetchEngine> {
+        match self.fetch_engines.last() {
+            Some(engine) => Some(engine.as_ref()),
+            _ => None,
         }
     }
 
-    #[allow(clippy::borrowed_box)]
-    pub fn fetch_engine(&self) -> &Box<dyn FetchEngine> {
-        self.fetch_engines.last().unwrap()
+    pub fn fetch_engine_mut(&mut self) -> Option<&mut dyn FetchEngine> {
+        match self.fetch_engines.last_mut() {
+            Some(engine) => Some(engine.as_mut()),
+            _ => None,
+        }
     }
 
-    #[allow(clippy::borrowed_box)]
-    pub fn fetch_engine_mut(&mut self) -> &mut Box<dyn FetchEngine> {
-        self.fetch_engines.last_mut().unwrap()
-    }
-
-    pub fn with_fetch_engine<F, R>(&mut self, mut action: F) -> R
+    pub fn with_fetch_engine<F, R>(&mut self, mut action: F) -> Option<R>
     where
         F: FnMut(&mut dyn FetchEngine) -> R,
     {
-        let fetch_engine: &mut dyn FetchEngine = self.fetch_engine_mut().borrow_mut();
-        action(fetch_engine)
+        Some(action(self.fetch_engine_mut()?))
     }
 
     pub fn register<FE>(&mut self, mut protocol: FE)
@@ -241,19 +252,24 @@ impl AssetsDatabase {
         if self.table.contains_key(path) {
             return Ok(());
         }
+        let path = Self::clean_path(path);
         let parts = path.split("://").take(2).collect::<Vec<_>>();
         if parts.len() == 2 {
             let prot = parts[0];
             let subpath = parts[1];
             if self.protocols.contains_key(prot) {
-                let reader = self.fetch_engine_mut().fetch(subpath);
-                match reader {
-                    Ok(reader) => {
-                        self.loading
-                            .insert(subpath.to_owned(), (prot.to_owned(), reader));
-                        Ok(())
+                if let Some(engine) = self.fetch_engine_mut() {
+                    let reader = engine.fetch(subpath);
+                    match reader {
+                        Ok(reader) => {
+                            self.loading
+                                .insert(subpath.to_owned(), (prot.to_owned(), reader));
+                            Ok(())
+                        }
+                        Err(status) => Err(LoadStatus::FetchError(status)),
                     }
-                    Err(status) => Err(LoadStatus::FetchError(status)),
+                } else {
+                    Err(LoadStatus::NoFetchEngine)
                 }
             } else {
                 Err(LoadStatus::UnknownProtocol(prot.to_owned()))
@@ -264,6 +280,7 @@ impl AssetsDatabase {
     }
 
     pub fn insert(&mut self, path: &str, asset: Asset) -> AssetId {
+        let path = Self::clean_path(path);
         let id = asset.id();
         self.lately_loaded.push((asset.protocol().to_owned(), id));
         self.assets.insert(id, (path.to_owned(), asset));
@@ -287,6 +304,7 @@ impl AssetsDatabase {
     }
 
     pub fn remove_by_path(&mut self, path: &str) -> Option<Asset> {
+        let path = Self::clean_path(path);
         if let Some(id) = self.table.remove(path) {
             if let Some((_, asset)) = self.assets.remove(&id) {
                 self.lately_unloaded.push((asset.protocol().to_owned(), id));
@@ -311,6 +329,7 @@ impl AssetsDatabase {
     }
 
     pub fn id_by_path(&self, path: &str) -> Option<AssetId> {
+        let path = Self::clean_path(path);
         self.table.get(path).cloned()
     }
 
@@ -323,6 +342,7 @@ impl AssetsDatabase {
     }
 
     pub fn asset_by_path(&self, path: &str) -> Option<&Asset> {
+        let path = Self::clean_path(path);
         if let Some(id) = self.table.get(path) {
             if let Some((_, asset)) = self.assets.get(id) {
                 return Some(asset);
@@ -413,6 +433,10 @@ impl AssetsDatabase {
                 self.yielded.insert(path, (prot, meta, list));
             }
         }
+    }
+
+    fn clean_path(path: &str) -> &str {
+        path.strip_prefix('*').unwrap_or(path)
     }
 }
 

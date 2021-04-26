@@ -4,14 +4,12 @@ use crate::ui::{
 };
 use oxygengine::user_interface::raui::core::prelude::*;
 
-widget_component! {
-    pub gui(key, named_slots) {
-        widget! {
-            (#{key} content_box | {new_theme()} [
-                (#{"hud"} hud)
-                (#{"menu"} menu)
-                (#{"notifications"} notifications)
-            ])
-        }
+pub fn gui(context: WidgetContext) -> WidgetNode {
+    widget! {
+        (#{context.key} content_box | {new_theme()} [
+            (#{"hud"} hud)
+            (#{"menu"} menu)
+            (#{"notifications"} notifications)
+        ])
     }
 }

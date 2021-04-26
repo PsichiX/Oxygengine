@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate oxygengine;
-
 use crate::{
     components::{keyboard_movement::KeyboardMovement, speed::Speed},
     states::loading::LoadingState,

@@ -1,0 +1,26 @@
+template_name: menu-scene
+entities:
+  - Data:
+      components:
+        Name: camera_ui
+        CompositeCamera: {}
+        CompositeTransform: {}
+        NonPersistent: ~
+  - Data:
+      components:
+        CompositeRenderable: None
+        CompositeTransform: {}
+        UserInterfaceView:
+          app_id: menu
+          root:
+            Component:
+              type_name: menu
+              key: menu
+        UserInterfaceViewSyncCompositeRenderable:
+          camera_name: camera_ui
+          mapping_scaling:
+            FitMaximum:
+              - 1024
+              - 1024
+          approx_rect_values: Round
+        NonPersistent: ~

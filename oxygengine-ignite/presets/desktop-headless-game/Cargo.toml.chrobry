@@ -9,6 +9,6 @@ publish = false
 [dependencies]
 
 [dependencies.oxygengine]
-version = "0.17"
+version = "0.19"
 features = ["desktop-headless-game"]
 ```

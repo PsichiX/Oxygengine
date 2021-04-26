@@ -1,8 +1,8 @@
 // reexport core macros.
-pub use oxygengine_core::{debug, error, info, log, warn};
+pub use oxygengine_core::{debug, error, info, log, profile_scope, warn};
 #[cfg(feature = "user-interface")]
 pub use oxygengine_user_interface::{
-    destruct, unpack_named_slots, widget, widget_component, widget_hook, widget_wrap,
+    destruct, post_hooks, pre_hooks, unpack_named_slots, widget, widget_wrap,
 };
 
 pub mod core {

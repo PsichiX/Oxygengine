@@ -19,8 +19,8 @@ use std::{
     collections::{HashMap, VecDeque},
     io::{Cursor, Read, Write},
     mem::replace,
-    ops::{DerefMut, Range},
-    sync::{Arc, Mutex},
+    ops::Range,
+    sync::{Arc, RwLock},
     thread::{spawn, JoinHandle},
 };
 use ws::{CloseCode, Handler, Handshake, Message, Result, Sender as WsSender, WebSocket};
@@ -36,12 +36,14 @@ struct Client {
 }
 
 struct ClientHandler {
-    client: Arc<Mutex<Client>>,
+    client: Arc<RwLock<Client>>,
 }
 
 impl Handler for ClientHandler {
     fn on_open(&mut self, _: Handshake) -> Result<()> {
-        self.client.lock().unwrap().state = ClientState::Open;
+        if let Ok(mut client) = self.client.write() {
+            client.state = ClientState::Open;
+        }
         Ok(())
     }
 
@@ -54,29 +56,31 @@ impl Handler for ClientHandler {
                 let version = stream.read_u32::<BigEndian>().unwrap();
                 let mut data = Vec::with_capacity(size - 8);
                 stream.read_to_end(&mut data).unwrap();
-                let mut client = self.client.lock().unwrap();
-                let client_id = client.id;
-                client
-                    .messages
-                    .push_back((client_id, MessageId::new(id, version), data));
+                if let Ok(mut client) = self.client.write() {
+                    let client_id = client.id;
+                    client
+                        .messages
+                        .push_back((client_id, MessageId::new(id, version), data));
+                }
             }
         }
         Ok(())
     }
 
     fn on_close(&mut self, _: CloseCode, _: &str) {
-        let mut client = self.client.lock().unwrap();
-        client.state = ClientState::Closed;
+        if let Ok(mut client) = self.client.write() {
+            client.state = ClientState::Closed;
+        }
     }
 }
 
 pub struct DesktopServer {
     id: ServerId,
-    state: Arc<Mutex<ServerState>>,
-    clients: Arc<Mutex<HashMap<ClientId, Arc<Mutex<Client>>>>>,
+    state: Arc<RwLock<ServerState>>,
+    clients: Arc<RwLock<HashMap<ClientId, Arc<RwLock<Client>>>>>,
     clients_ids_cached: Vec<ClientId>,
     messages: VecDeque<MsgData>,
-    ws: Arc<Mutex<Option<WsSender>>>,
+    ws: Arc<RwLock<Option<WsSender>>>,
     thread: Option<JoinHandle<()>>,
 }
 
@@ -89,11 +93,15 @@ impl Drop for DesktopServer {
 impl DesktopServer {
     fn cleanup(&mut self) {
         {
-            *self.state.lock().unwrap() = ServerState::Closed;
-            if let Some(ws) = self.ws.lock().unwrap().deref_mut() {
-                ws.shutdown().unwrap();
+            if let Ok(mut state) = self.state.write() {
+                *state = ServerState::Closed;
             }
-            *self.ws.lock().unwrap() = None;
+            if let Ok(mut ws) = self.ws.write() {
+                if let Some(ws) = ws.as_ref() {
+                    ws.shutdown().unwrap();
+                }
+                *ws = None;
+            }
         }
         let thread = replace(&mut self.thread, None);
         if let Some(thread) = thread {
@@ -105,33 +113,39 @@ impl DesktopServer {
 impl Server for DesktopServer {
     fn open(url: &str) -> Option<Self> {
         let url = url.to_owned();
-        let state = Arc::new(Mutex::new(ServerState::Starting));
+        let state = Arc::new(RwLock::new(ServerState::Starting));
         let state2 = state.clone();
-        let clients = Arc::new(Mutex::new(HashMap::default()));
+        let clients = Arc::new(RwLock::new(HashMap::default()));
         let clients2 = clients.clone();
-        let sender = Arc::new(Mutex::new(None));
+        let sender = Arc::new(RwLock::new(None));
         let sender2 = sender.clone();
         let thread = Some(spawn(move || {
             let ws = WebSocket::new(|ws| {
                 let id = ClientId::default();
-                let client = Arc::new(Mutex::new(Client {
+                let client = Arc::new(RwLock::new(Client {
                     id,
                     ws,
                     state: ClientState::Connecting,
                     messages: VecDeque::new(),
                 }));
-                clients2.lock().unwrap().insert(id, client.clone());
+                if let Ok(mut clients) = clients2.write() {
+                    clients.insert(id, client.clone());
+                }
                 ClientHandler { client }
             })
             .unwrap();
-            {
-                *sender2.lock().unwrap() = Some(ws.broadcaster());
-                *state2.lock().unwrap() = ServerState::Open;
+            if let Ok(mut sender) = sender2.write() {
+                *sender = Some(ws.broadcaster());
+            }
+            if let Ok(mut state) = state2.write() {
+                *state = ServerState::Open;
             }
             ws.listen(&url).unwrap();
-            {
-                *sender2.lock().unwrap() = None;
-                *state2.lock().unwrap() = ServerState::Closed;
+            if let Ok(mut sender) = sender2.write() {
+                *sender = None;
+            }
+            if let Ok(mut state) = state2.write() {
+                *state = ServerState::Closed;
             }
         }));
         Some(Self {
@@ -155,7 +169,11 @@ impl Server for DesktopServer {
     }
 
     fn state(&self) -> ServerState {
-        *self.state.lock().unwrap()
+        if let Ok(state) = self.state.read() {
+            *state
+        } else {
+            ServerState::default()
+        }
     }
 
     fn clients(&self) -> &[ClientId] {
@@ -163,40 +181,49 @@ impl Server for DesktopServer {
     }
 
     fn disconnect(&mut self, id: ClientId) {
-        let mut clients = self.clients.lock().unwrap();
-        if let Some(client) = clients.get_mut(&id) {
-            let client = client.lock().unwrap();
-            client.ws.close(CloseCode::Normal).unwrap();
-            client.ws.shutdown().unwrap();
+        if let Ok(mut clients) = self.clients.write() {
+            if let Some(client) = clients.get_mut(&id) {
+                if let Ok(client) = client.read() {
+                    drop(client.ws.close(CloseCode::Normal));
+                    drop(client.ws.shutdown());
+                }
+            }
+            clients.remove(&id);
         }
-        clients.remove(&id);
     }
 
     fn disconnect_all(&mut self) {
-        let mut clients = self.clients.lock().unwrap();
-        for client in clients.values() {
-            let client = client.lock().unwrap();
-            client.ws.close(CloseCode::Normal).unwrap();
-            client.ws.shutdown().unwrap();
+        if let Ok(mut clients) = self.clients.write() {
+            for client in clients.values() {
+                if let Ok(client) = client.read() {
+                    drop(client.ws.close(CloseCode::Normal));
+                    drop(client.ws.shutdown());
+                }
+            }
+            clients.clear();
         }
-        clients.clear();
     }
 
     fn send(&mut self, id: ClientId, msg_id: MessageId, data: &[u8]) -> Option<Range<usize>> {
         if self.state() != ServerState::Open {
             return None;
         }
-        let mut clients = self.clients.lock().unwrap();
-        if let Some(client) = clients.get_mut(&id) {
-            let size = data.len();
-            let mut stream = Cursor::new(Vec::<u8>::with_capacity(size + 8));
-            drop(stream.write_u32::<BigEndian>(msg_id.id()));
-            drop(stream.write_u32::<BigEndian>(msg_id.version()));
-            drop(stream.write(data));
-            let data = stream.into_inner();
-            let client = client.lock().unwrap();
-            if client.state == ClientState::Open && client.ws.send(Message::Binary(data)).is_ok() {
-                return Some(0..size);
+
+        if let Ok(mut clients) = self.clients.write() {
+            if let Some(client) = clients.get_mut(&id) {
+                let size = data.len();
+                let mut stream = Cursor::new(Vec::<u8>::with_capacity(size + 8));
+                drop(stream.write_u32::<BigEndian>(msg_id.id()));
+                drop(stream.write_u32::<BigEndian>(msg_id.version()));
+                drop(stream.write(data));
+                let data = stream.into_inner();
+                if let Ok(client) = client.read() {
+                    if client.state == ClientState::Open
+                        && client.ws.send(Message::Binary(data)).is_ok()
+                    {
+                        return Some(0..size);
+                    }
+                }
             }
         }
         None
@@ -212,8 +239,10 @@ impl Server for DesktopServer {
         drop(stream.write_u32::<BigEndian>(id.version()));
         drop(stream.write(data));
         let data = stream.into_inner();
-        if let Some(ws) = self.ws.lock().unwrap().deref_mut() {
-            ws.send(Message::Binary(data)).unwrap();
+        if let Ok(ws) = self.ws.read() {
+            if let Some(ws) = ws.as_ref() {
+                ws.send(Message::Binary(data)).unwrap();
+            }
         }
     }
 
@@ -228,14 +257,23 @@ impl Server for DesktopServer {
     }
 
     fn process(&mut self) {
-        let mut clients = self.clients.lock().unwrap();
-        for client in clients.values() {
-            self.messages.append(&mut client.lock().unwrap().messages);
-        }
-        clients.retain(|_, client| client.lock().unwrap().state != ClientState::Closed);
-        self.clients_ids_cached.clear();
-        for id in clients.keys() {
-            self.clients_ids_cached.push(*id);
+        if let Ok(mut clients) = self.clients.write() {
+            for client in clients.values() {
+                if let Ok(mut client) = client.write() {
+                    self.messages.append(&mut client.messages);
+                }
+            }
+            clients.retain(|_, client| {
+                if let Ok(client) = client.read() {
+                    client.state != ClientState::Closed
+                } else {
+                    true
+                }
+            });
+            self.clients_ids_cached.clear();
+            for id in clients.keys() {
+                self.clients_ids_cached.push(*id);
+            }
         }
     }
 }

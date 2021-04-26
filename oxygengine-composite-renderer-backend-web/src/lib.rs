@@ -757,6 +757,10 @@ impl WebCompositeRenderer {
                     context.set_filter(data.as_ref());
                     render_ops += 1;
                 }
+                Command::Smoothing(value) => {
+                    context.set_image_smoothing_enabled(value);
+                    render_ops += 1;
+                }
                 Command::Store => {
                     alpha_stack.push(current_alpha);
                     context.save();

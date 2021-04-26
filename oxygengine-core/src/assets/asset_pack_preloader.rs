@@ -25,7 +25,7 @@ impl AssetPackPreloader {
         } else {
             let paths = std::iter::once(path)
                 .chain(assets_from_pack.into_iter().map(|p| p.to_owned()))
-                .collect::<Vec<String>>();
+                .collect::<Vec<_>>();
             Ok(Self {
                 paths,
                 ready_pack: false,
@@ -68,6 +68,9 @@ impl AssetPackPreloader {
             if !self.ready_pack {
                 return Ok(false);
             }
+        }
+        if !assets.is_ready() {
+            return Ok(false);
         }
         if !self.ready_from_pack {
             if assets.are_ready(self.paths.iter().skip(1)) {

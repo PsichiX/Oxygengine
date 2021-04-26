@@ -7,7 +7,7 @@ pub mod prelude {
 use crate::{id::ID, Scalar};
 use std::{
     mem::replace,
-    sync::{Arc, Mutex},
+    sync::{Arc, RwLock},
 };
 
 pub type FetchProcessId = ID<FetchProcess>;
@@ -27,23 +27,16 @@ pub enum FetchStatus {
     Read,
 }
 
-pub trait FetchProcessReader: Send + Sync {
-    fn status(&self) -> FetchStatus;
-    fn read(&self) -> Option<Vec<u8>>;
-    fn byte_size(&self) -> Option<usize>;
-    fn box_clone(&self) -> Box<dyn FetchProcessReader>;
-}
-
-impl Clone for Box<dyn FetchProcessReader> {
-    fn clone(&self) -> Self {
-        self.box_clone()
+impl Default for FetchStatus {
+    fn default() -> Self {
+        Self::Empty
     }
 }
 
 #[derive(Clone)]
 pub struct FetchProcess {
     id: FetchProcessId,
-    inner: Arc<Mutex<(FetchStatus, Option<Vec<u8>>)>>,
+    inner: Arc<RwLock<(FetchStatus, Option<Vec<u8>>)>>,
 }
 
 impl Default for FetchProcess {
@@ -57,7 +50,7 @@ impl FetchProcess {
     pub fn new() -> Self {
         Self {
             id: FetchProcessId::new(),
-            inner: Arc::new(Mutex::new((FetchStatus::Empty, None))),
+            inner: Arc::new(RwLock::new((FetchStatus::Empty, None))),
         }
     }
 
@@ -65,7 +58,7 @@ impl FetchProcess {
     pub fn new_start() -> Self {
         Self {
             id: FetchProcessId::new(),
-            inner: Arc::new(Mutex::new((FetchStatus::InProgress(0.0), None))),
+            inner: Arc::new(RwLock::new((FetchStatus::InProgress(0.0), None))),
         }
     }
 
@@ -73,7 +66,7 @@ impl FetchProcess {
     pub fn new_done(data: Vec<u8>) -> Self {
         Self {
             id: FetchProcessId::new(),
-            inner: Arc::new(Mutex::new((FetchStatus::Done, Some(data)))),
+            inner: Arc::new(RwLock::new((FetchStatus::Done, Some(data)))),
         }
     }
 
@@ -81,7 +74,7 @@ impl FetchProcess {
     pub fn new_cancel(reason: FetchCancelReason) -> Self {
         Self {
             id: FetchProcessId::new(),
-            inner: Arc::new(Mutex::new((FetchStatus::Canceled(reason), None))),
+            inner: Arc::new(RwLock::new((FetchStatus::Canceled(reason), None))),
         }
     }
 
@@ -90,26 +83,30 @@ impl FetchProcess {
         self.id
     }
 
+    pub fn status(&self) -> FetchStatus {
+        self.inner.read().map(|meta| meta.0).unwrap_or_default()
+    }
+
     pub fn start(&mut self) {
-        if let Ok(mut meta) = self.inner.lock() {
+        if let Ok(mut meta) = self.inner.write() {
             *meta = (FetchStatus::InProgress(0.0), None);
         }
     }
 
     pub fn progress(&mut self, value: Scalar) {
-        if let Ok(mut meta) = self.inner.lock() {
+        if let Ok(mut meta) = self.inner.write() {
             *meta = (FetchStatus::InProgress(value), None);
         }
     }
 
     pub fn done(&mut self, data: Vec<u8>) {
-        if let Ok(mut meta) = self.inner.lock() {
+        if let Ok(mut meta) = self.inner.write() {
             *meta = (FetchStatus::Done, Some(data));
         }
     }
 
     pub fn cancel(&mut self, reason: FetchCancelReason) {
-        if let Ok(mut meta) = self.inner.lock() {
+        if let Ok(mut meta) = self.inner.write() {
             *meta = (FetchStatus::Canceled(reason), None);
         }
     }
@@ -117,19 +114,9 @@ impl FetchProcess {
     pub fn readers_count(&self) -> usize {
         Arc::strong_count(&self.inner) + Arc::weak_count(&self.inner) - 1
     }
-}
 
-impl FetchProcessReader for FetchProcess {
-    fn status(&self) -> FetchStatus {
-        if let Ok(meta) = self.inner.lock() {
-            meta.0
-        } else {
-            FetchStatus::Empty
-        }
-    }
-
-    fn read(&self) -> Option<Vec<u8>> {
-        if let Ok(mut meta) = self.inner.lock() {
+    pub fn read(&self) -> Option<Vec<u8>> {
+        if let Ok(mut meta) = self.inner.write() {
             if meta.0 == FetchStatus::Done {
                 let old: (FetchStatus, Option<Vec<u8>>) =
                     replace(&mut meta, (FetchStatus::Read, None));
@@ -139,32 +126,23 @@ impl FetchProcessReader for FetchProcess {
         None
     }
 
-    fn byte_size(&self) -> Option<usize> {
-        if let Ok(meta) = self.inner.lock() {
+    pub fn byte_size(&self) -> Option<usize> {
+        if let Ok(meta) = self.inner.read() {
             if meta.0 == FetchStatus::Done {
-                if let Some(bytes) = &meta.1 {
+                if let Some(bytes) = meta.1.as_ref() {
                     return Some(bytes.len());
                 }
             }
         }
         None
     }
-
-    fn box_clone(&self) -> Box<dyn FetchProcessReader> {
-        Box::new((*self).clone())
-    }
 }
 
 pub trait FetchEngine: Send + Sync {
-    fn fetch(&mut self, path: &str) -> Result<Box<dyn FetchProcessReader>, FetchStatus>;
+    fn fetch(&mut self, path: &str) -> Result<Box<FetchProcess>, FetchStatus>;
 
-    fn cancel(&mut self, reader: Box<dyn FetchProcessReader>) {
-        #[allow(clippy::cast_ptr_alignment)]
-        let ptr = Box::into_raw(reader) as *mut FetchProcess;
-        unsafe {
-            (*ptr).cancel(FetchCancelReason::User);
-            Box::from_raw(ptr);
-        }
+    fn cancel(&mut self, mut reader: FetchProcess) {
+        reader.cancel(FetchCancelReason::User)
     }
 }
 

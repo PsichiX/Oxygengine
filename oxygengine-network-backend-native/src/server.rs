@@ -9,7 +9,7 @@ use std::{
     mem::replace,
     net::TcpListener,
     ops::Range,
-    sync::{Arc, Mutex},
+    sync::{Arc, RwLock},
     thread::{sleep, Builder as ThreadBuilder, JoinHandle},
     time::Duration,
 };
@@ -20,8 +20,8 @@ type MsgData = (ClientId, MessageId, Vec<u8>);
 
 pub struct NativeServer {
     id: ServerId,
-    state: Arc<Mutex<ServerState>>,
-    clients: Arc<Mutex<HashMap<ClientId, NativeClient>>>,
+    state: Arc<RwLock<ServerState>>,
+    clients: Arc<RwLock<HashMap<ClientId, NativeClient>>>,
     clients_ids_cached: Vec<ClientId>,
     messages: VecDeque<MsgData>,
     thread: Option<JoinHandle<()>>,
@@ -35,8 +35,8 @@ impl Drop for NativeServer {
 
 impl NativeServer {
     fn cleanup(&mut self) {
-        {
-            *self.state.lock().unwrap() = ServerState::Closed;
+        if let Ok(mut state) = self.state.write() {
+            *state = ServerState::Closed;
         }
         let thread = replace(&mut self.thread, None);
         if let Some(thread) = thread {
@@ -49,16 +49,20 @@ impl Server for NativeServer {
     fn open(url: &str) -> Option<Self> {
         let sid = ServerId::default();
         let url = url.to_owned();
-        let state = Arc::new(Mutex::new(ServerState::Starting));
+        let state = Arc::new(RwLock::new(ServerState::Starting));
         let state2 = state.clone();
-        let clients = Arc::new(Mutex::new(HashMap::default()));
+        let clients = Arc::new(RwLock::new(HashMap::default()));
         let clients2 = clients.clone();
         let thread = Some(
             ThreadBuilder::new()
                 .name(format!("Server: {:?}", sid))
                 .spawn(move || {
                     let state3 = state2.clone();
-                    let _ = DoOnDrop::new(move || *state3.lock().unwrap() = ServerState::Closed);
+                    let _ = DoOnDrop::new(move || {
+                        if let Ok(mut state) = state3.write() {
+                            *state = ServerState::Closed;
+                        }
+                    });
                     let listener = TcpListener::bind(&url).unwrap();
                     listener.set_nonblocking(true).unwrap_or_else(|_| {
                         panic!(
@@ -66,12 +70,12 @@ impl Server for NativeServer {
                             sid, &url
                         )
                     });
-                    {
-                        *state2.lock().unwrap() = ServerState::Open;
+                    if let Ok(mut state) = state2.write() {
+                        *state = ServerState::Open;
                     }
                     for stream in listener.incoming() {
-                        {
-                            if *state2.lock().unwrap() == ServerState::Closed {
+                        if let Ok(state) = state2.read() {
+                            if *state == ServerState::Closed {
                                 break;
                             }
                         }
@@ -79,7 +83,9 @@ impl Server for NativeServer {
                             Ok(stream) => {
                                 let client = NativeClient::from(stream);
                                 let id = client.id();
-                                clients2.lock().unwrap().insert(id, client);
+                                if let Ok(mut clients) = clients2.write() {
+                                    clients.insert(id, client);
+                                }
                             }
                             Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
                                 sleep(Duration::from_millis(LISTENER_SLEEP_MS));
@@ -92,8 +98,8 @@ impl Server for NativeServer {
                             }
                         }
                     }
-                    {
-                        *state2.lock().unwrap() = ServerState::Closed;
+                    if let Ok(mut state) = state2.write() {
+                        *state = ServerState::Closed;
                     }
                 })
                 .unwrap(),
@@ -118,7 +124,11 @@ impl Server for NativeServer {
     }
 
     fn state(&self) -> ServerState {
-        *self.state.lock().unwrap()
+        if let Ok(state) = self.state.read() {
+            *state
+        } else {
+            ServerState::default()
+        }
     }
 
     fn clients(&self) -> &[ClientId] {
@@ -126,16 +136,18 @@ impl Server for NativeServer {
     }
 
     fn disconnect(&mut self, id: ClientId) {
-        let mut clients = self.clients.lock().unwrap();
-        if let Some(client) = clients.remove(&id) {
-            client.close();
+        if let Ok(mut clients) = self.clients.write() {
+            if let Some(client) = clients.remove(&id) {
+                client.close();
+            }
         }
     }
 
     fn disconnect_all(&mut self) {
-        let mut clients = self.clients.lock().unwrap();
-        for (_, client) in clients.drain() {
-            client.close();
+        if let Ok(mut clients) = self.clients.write() {
+            for (_, client) in clients.drain() {
+                client.close();
+            }
         }
     }
 
@@ -143,10 +155,11 @@ impl Server for NativeServer {
         if self.state() != ServerState::Open {
             return None;
         }
-        let mut clients = self.clients.lock().unwrap();
-        if let Some(client) = clients.get_mut(&id) {
-            if let Some(size) = client.send(msg_id, data) {
-                return Some(size);
+        if let Ok(mut clients) = self.clients.write() {
+            if let Some(client) = clients.get_mut(&id) {
+                if let Some(size) = client.send(msg_id, data) {
+                    return Some(size);
+                }
             }
         }
         None
@@ -156,9 +169,10 @@ impl Server for NativeServer {
         if self.state() != ServerState::Open {
             return;
         }
-        let mut clients = self.clients.lock().unwrap();
-        for client in clients.values_mut() {
-            drop(client.send(id, data));
+        if let Ok(mut clients) = self.clients.write() {
+            for client in clients.values_mut() {
+                drop(client.send(id, data));
+            }
         }
     }
 
@@ -171,19 +185,20 @@ impl Server for NativeServer {
     }
 
     fn process(&mut self) {
-        let mut clients = self.clients.lock().unwrap();
-        for (id, client) in clients.iter_mut() {
-            self.messages.extend(
-                client
-                    .read_all()
-                    .into_iter()
-                    .map(|(mid, data)| (*id, mid, data)),
-            );
-        }
-        clients.retain(|_, client| client.state() != ClientState::Closed);
-        self.clients_ids_cached.clear();
-        for id in clients.keys() {
-            self.clients_ids_cached.push(*id);
+        if let Ok(mut clients) = self.clients.write() {
+            for (id, client) in clients.iter_mut() {
+                self.messages.extend(
+                    client
+                        .read_all()
+                        .into_iter()
+                        .map(|(mid, data)| (*id, mid, data)),
+                );
+            }
+            clients.retain(|_, client| client.state() != ClientState::Closed);
+            self.clients_ids_cached.clear();
+            for id in clients.keys() {
+                self.clients_ids_cached.push(*id);
+            }
         }
     }
 }

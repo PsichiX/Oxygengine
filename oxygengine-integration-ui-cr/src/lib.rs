@@ -114,7 +114,7 @@ impl UserInterfaceApproxRectValues {
     }
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub struct UserInterfaceViewSyncCompositeRenderable {
     #[serde(default)]
     pub camera_name: String,
@@ -124,6 +124,26 @@ pub struct UserInterfaceViewSyncCompositeRenderable {
     pub mapping_scaling: CoordsMappingScaling,
     #[serde(default)]
     pub approx_rect_values: UserInterfaceApproxRectValues,
+    #[serde(default = "UserInterfaceViewSyncCompositeRenderable::default_image_smoothing")]
+    pub image_smoothing: bool,
+}
+
+impl Default for UserInterfaceViewSyncCompositeRenderable {
+    fn default() -> Self {
+        Self {
+            camera_name: Default::default(),
+            viewport: Default::default(),
+            mapping_scaling: Default::default(),
+            approx_rect_values: Default::default(),
+            image_smoothing: Self::default_image_smoothing(),
+        }
+    }
+}
+
+impl UserInterfaceViewSyncCompositeRenderable {
+    fn default_image_smoothing() -> bool {
+        true
+    }
 }
 
 impl Component for UserInterfaceViewSyncCompositeRenderable {
@@ -314,6 +334,7 @@ where
                     &self.frames_cache,
                     &self.images_sizes_cache,
                     sync.approx_rect_values,
+                    sync.image_smoothing,
                     32,
                 );
                 if let Ok(commands) = data
@@ -533,6 +554,7 @@ struct RauiRenderer<'a> {
     frames: &'a HashMap<String, HashMap<String, Rect>>,
     images_sizes: &'a HashMap<String, Vec2>,
     approx_rect_values: UserInterfaceApproxRectValues,
+    image_smoothing: bool,
     filter_stack: Vec<[Scalar; 8]>,
 }
 
@@ -542,6 +564,7 @@ impl<'a> RauiRenderer<'a> {
         frames: &'a HashMap<String, HashMap<String, Rect>>,
         images_sizes: &'a HashMap<String, Vec2>,
         approx_rect_values: UserInterfaceApproxRectValues,
+        image_smoothing: bool,
         filter_stack_capacity: usize,
     ) -> Self {
         let mut filter_stack = Vec::with_capacity(filter_stack_capacity);
@@ -551,6 +574,7 @@ impl<'a> RauiRenderer<'a> {
             frames,
             images_sizes,
             approx_rect_values,
+            image_smoothing,
             filter_stack,
         }
     }
@@ -722,6 +746,7 @@ impl<'a> RauiRenderer<'a> {
         layout: &Layout,
     ) -> Vec<Command<'static>> {
         match unit {
+            WidgetUnit::None | WidgetUnit::PortalBox(_) => vec![],
             WidgetUnit::AreaBox(unit) => {
                 if let Some(item) = layout.items.get(&unit.id) {
                     let local_space = mapping.virtual_to_real_rect(item.local_space);
@@ -870,6 +895,7 @@ impl<'a> RauiRenderer<'a> {
                                 );
                                 vec![
                                     Command::Store,
+                                    Command::Smoothing(self.image_smoothing),
                                     transform,
                                     Command::Draw(Renderable::Rectangle(renderable)),
                                     Command::Restore,
@@ -927,6 +953,7 @@ impl<'a> RauiRenderer<'a> {
                                 if frame.frame_only {
                                     vec![
                                         Command::Store,
+                                        Command::Smoothing(self.image_smoothing),
                                         transform,
                                         Command::Draw(Renderable::Rectangle(renderable_top_left)),
                                         Command::Draw(Renderable::Rectangle(renderable_top_center)),
@@ -957,6 +984,7 @@ impl<'a> RauiRenderer<'a> {
                                     );
                                     vec![
                                         Command::Store,
+                                        Command::Smoothing(self.image_smoothing),
                                         transform,
                                         Command::Draw(Renderable::Rectangle(renderable_top_left)),
                                         Command::Draw(Renderable::Rectangle(renderable_top_center)),
@@ -1032,6 +1060,7 @@ impl<'a> RauiRenderer<'a> {
                                 );
                                 vec![
                                     Command::Store,
+                                    Command::Smoothing(self.image_smoothing),
                                     transform,
                                     alpha,
                                     Command::Draw(Renderable::Image(renderable)),
@@ -1098,6 +1127,7 @@ impl<'a> RauiRenderer<'a> {
                                 if frame.frame_only {
                                     vec![
                                         Command::Store,
+                                        Command::Smoothing(self.image_smoothing),
                                         transform,
                                         alpha,
                                         Command::Draw(Renderable::Image(renderable_top_left)),
@@ -1120,6 +1150,7 @@ impl<'a> RauiRenderer<'a> {
                                     );
                                     vec![
                                         Command::Store,
+                                        Command::Smoothing(self.image_smoothing),
                                         transform,
                                         alpha,
                                         Command::Draw(Renderable::Image(renderable_top_left)),
@@ -1166,7 +1197,6 @@ impl<'a> RauiRenderer<'a> {
                     vec![]
                 }
             }
-            WidgetUnit::None => vec![],
         }
     }
 }

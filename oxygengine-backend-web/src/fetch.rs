@@ -1,4 +1,4 @@
-use core::fetch::{FetchEngine, FetchProcess, FetchProcessReader, FetchStatus};
+use core::fetch::{FetchEngine, FetchProcess, FetchStatus};
 use futures::{future, TryFutureExt};
 use js_sys::*;
 use wasm_bindgen::{prelude::*, JsCast};
@@ -12,27 +12,39 @@ fn window() -> web_sys::Window {
 #[derive(Default, Clone)]
 pub struct WebFetchEngine {
     root_path: String,
+    cors: bool,
 }
 
 impl WebFetchEngine {
     pub fn new(root_path: &str) -> Self {
         Self {
             root_path: root_path.to_owned(),
+            cors: true,
         }
+    }
+
+    pub fn cors(mut self, value: bool) -> Self {
+        self.cors = value;
+        self
     }
 }
 
 impl FetchEngine for WebFetchEngine {
-    fn fetch(&mut self, path: &str) -> Result<Box<dyn FetchProcessReader>, FetchStatus> {
+    fn fetch(&mut self, path: &str) -> Result<Box<FetchProcess>, FetchStatus> {
         let mut opts = RequestInit::new();
         opts.method("GET");
-        opts.mode(RequestMode::Cors);
+        opts.mode(if self.cors {
+            RequestMode::Cors
+        } else {
+            RequestMode::NoCors
+        });
 
         let full_path = format!("{}/{}", self.root_path, path);
         let request = Request::new_with_str_and_init(&full_path, &opts).unwrap();
         let request_promise = window().fetch_with_request(&request);
         let process = FetchProcess::new_start();
         let mut process2 = process.clone();
+        // TODO: when web-sys will support ReadableStream we will be able to track progress.
         let future = JsFuture::from(request_promise)
             .and_then(|resp| {
                 assert!(resp.is_instance_of::<Response>());

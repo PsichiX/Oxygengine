@@ -86,163 +86,182 @@ fn make_animation(duration: Scalar) -> Animation {
     ])
 }
 
-widget_hook! {
-    use_notifications(life_cycle) {
-        life_cycle.mount(|context| {
-            drop(context.state.write(NotificationsState::default()));
-            context.signals.write(NotificationSignal::Register);
-        });
+fn use_notifications(context: &mut WidgetContext) {
+    context.life_cycle.mount(|context| {
+        drop(context.state.write(NotificationsState::default()));
+        context.signals.write(NotificationSignal::Register);
+    });
 
-        life_cycle.unmount(|context| {
-            context.signals.write(NotificationSignal::Unregister);
-        });
+    context.life_cycle.unmount(|context| {
+        context.signals.write(NotificationSignal::Unregister);
+    });
 
-        life_cycle.change(|context| {
-            for msg in context.messenger.messages {
-                if let Some(NotificationSignal::Show(data)) = msg.as_any().downcast_ref() {
-                    let mut state = context
-                        .state
-                        .read_cloned_or_default::<NotificationsState>();
-                    state.0.push_back(data.clone());
-                    if !context.animator.has("") {
-                        let duration = state.0.front().unwrap().duration.unwrap_or(DEFAULT_DURATION);
+    context.life_cycle.change(|context| {
+        for msg in context.messenger.messages {
+            if let Some(NotificationSignal::Show(data)) = msg.as_any().downcast_ref() {
+                let mut state = context.state.read_cloned_or_default::<NotificationsState>();
+                state.0.push_back(data.clone());
+                if !context.animator.has("") {
+                    let duration = state
+                        .0
+                        .front()
+                        .unwrap()
+                        .duration
+                        .unwrap_or(DEFAULT_DURATION);
+                    drop(context.animator.change("", Some(make_animation(duration))));
+                }
+                drop(context.state.write(state));
+            } else if let Some(AnimationMessage(msg)) = msg.as_any().downcast_ref() {
+                if msg == "next" {
+                    let mut state = context.state.read_cloned_or_default::<NotificationsState>();
+                    state.0.pop_front();
+                    if !state.0.is_empty() {
+                        let duration = state
+                            .0
+                            .front()
+                            .unwrap()
+                            .duration
+                            .unwrap_or(DEFAULT_DURATION);
                         drop(context.animator.change("", Some(make_animation(duration))));
                     }
                     drop(context.state.write(state));
-                } else if let Some(AnimationMessage(msg)) = msg.as_any().downcast_ref() {
-                    if msg == "next" {
-                        let mut state = context
-                            .state
-                            .read_cloned_or_default::<NotificationsState>();
-                        state.0.pop_front();
-                        if !state.0.is_empty() {
-                            let duration = state.0.front().unwrap().duration.unwrap_or(DEFAULT_DURATION);
-                            drop(context.animator.change("", Some(make_animation(duration))));
-                        }
-                        drop(context.state.write(state));
-                    }
                 }
             }
-        });
-    }
+        }
+    });
 }
 
-widget_component! {
-    pub notifications(key, props, state, animator) [use_notifications] {
-        let NotificationsProps {
-            side_margin,
-            side_external_margin,
-            side_internal_margin,
-            side_default_height,
-            external_margin,
-            internal_margin,
-            default_height,
-        } = props.read_cloned_or_default();
+#[pre_hooks(use_notifications)]
+pub fn notifications(mut context: WidgetContext) -> WidgetNode {
+    let WidgetContext {
+        key,
+        props,
+        state,
+        animator,
+        ..
+    } = context;
 
-        let phase = {
-            let a = animator.value_progress_or_zero("", "fade-in");
-            let b = animator.value_progress_or_zero("", "fade-out");
-            a - b
-        };
+    let NotificationsProps {
+        side_margin,
+        side_external_margin,
+        side_internal_margin,
+        side_default_height,
+        external_margin,
+        internal_margin,
+        default_height,
+    } = props.read_cloned_or_default();
 
-        let item = if let Ok(state) = state.read::<NotificationsState>() {
-            if let Some(state) = state.0.front() {
-                let height = state.height.unwrap_or_else(|| if state.side {
+    let phase = {
+        let a = animator.value_progress_or_zero("", "fade-in");
+        let b = animator.value_progress_or_zero("", "fade-out");
+        a - b
+    };
+
+    let item = if let Ok(state) = state.read::<NotificationsState>() {
+        if let Some(state) = state.0.front() {
+            let height = state.height.unwrap_or_else(|| {
+                if state.side {
                     side_default_height
                 } else {
                     default_height
-                });
-                let mut props = Props::new(ContainerProps {
-                    variant: "dark".to_owned(),
-                    canvas_color: None,
-                    internal_margin: if state.side {
-                        (0.0, 40.0).into()
-                    } else {
-                        0.0.into()
-                    },
-                    ..Default::default()
-                });
-                if state.side {
-                    props.write(ContentBoxItemLayout {
-                        anchors: Rect {
-                            left: lerp(1.0, 0.0, phase),
-                            right: 1.0,
-                            top: 0.0,
-                            bottom: 0.0,
-                        },
-                        offset: Vec2 { x: 0.0, y: side_external_margin},
-                        align: Vec2 { x: 1.0, y: 0.0},
-                        margin: Rect {
-                            left: side_margin,
-                            right: 0.0,
-                            top: 0.0,
-                            bottom: -height,
-                        },
-                        ..Default::default()
-                    });
+                }
+            });
+            let mut props = Props::new(ContainerProps {
+                variant: "dark".to_owned(),
+                canvas_color: None,
+                internal_margin: if state.side {
+                    (0.0, 40.0).into()
                 } else {
-                    props.write(ContentBoxItemLayout {
-                        anchors: Rect {
-                            left: 0.0,
-                            right: 1.0,
-                            top: 1.0,
-                            bottom: 1.0,
-                        },
-                        offset: Vec2 { x: 0.0, y: -external_margin * phase},
-                        align: Vec2 { x: 0.5, y: 1.0},
-                        margin: Rect {
-                            left: external_margin,
-                            right: external_margin,
-                            top: -height,
-                            ..Default::default()
-                        },
-                        ..Default::default()
-                    });
-                }
-                let size_props = SizeBoxProps {
-                    width: SizeBoxSizeValue::Fill,
-                    height: SizeBoxSizeValue::Fill,
-                    margin: if state.side {
-                        Rect {
-                            left: side_internal_margin,
-                            right: side_internal_margin,
-                            top: side_internal_margin,
-                            bottom: side_internal_margin,
-                        }
-                    } else {
-                        Rect {
-                            left: internal_margin,
-                            right: internal_margin,
-                            top: internal_margin,
-                            bottom: internal_margin,
-                        }
+                    0.0.into()
+                },
+                ..Default::default()
+            });
+            if state.side {
+                props.write(ContentBoxItemLayout {
+                    anchors: Rect {
+                        left: lerp(1.0, 0.0, phase),
+                        right: 1.0,
+                        top: 0.0,
+                        bottom: 0.0,
+                    },
+                    offset: Vec2 {
+                        x: 0.0,
+                        y: side_external_margin,
+                    },
+                    align: Vec2 { x: 1.0, y: 0.0 },
+                    margin: Rect {
+                        left: side_margin,
+                        right: 0.0,
+                        top: 0.0,
+                        bottom: -height,
                     },
                     ..Default::default()
-                };
-                let text_props = TextPaperProps {
-                    text: state.text.to_owned(),
-                    variant: "3".to_owned(),
-                    use_main_color: true,
+                });
+            } else {
+                props.write(ContentBoxItemLayout {
+                    anchors: Rect {
+                        left: 0.0,
+                        right: 1.0,
+                        top: 1.0,
+                        bottom: 1.0,
+                    },
+                    offset: Vec2 {
+                        x: 0.0,
+                        y: -external_margin * phase,
+                    },
+                    align: Vec2 { x: 0.5, y: 1.0 },
+                    margin: Rect {
+                        left: external_margin,
+                        right: external_margin,
+                        top: -height,
+                        ..Default::default()
+                    },
                     ..Default::default()
-                };
-                widget! {
-                    (#{"item"} container: {props} | {WidgetAlpha(phase)} [
-                        (#{"wrapper"} size_box: {size_props} {
-                            content = (#{"text"} text_paper: {text_props})
-                        })
-                    ])
-                }
-            } else{
-                widget!{()}
+                });
             }
-        } else{
-            widget!{()}
-        };
-
-        widget! {
-            (#{key} content_box: {props.clone()} [
-                {item}
-            ])
+            let size_props = SizeBoxProps {
+                width: SizeBoxSizeValue::Fill,
+                height: SizeBoxSizeValue::Fill,
+                margin: if state.side {
+                    Rect {
+                        left: side_internal_margin,
+                        right: side_internal_margin,
+                        top: side_internal_margin,
+                        bottom: side_internal_margin,
+                    }
+                } else {
+                    Rect {
+                        left: internal_margin,
+                        right: internal_margin,
+                        top: internal_margin,
+                        bottom: internal_margin,
+                    }
+                },
+                ..Default::default()
+            };
+            let text_props = TextPaperProps {
+                text: state.text.to_owned(),
+                variant: "3".to_owned(),
+                use_main_color: true,
+                ..Default::default()
+            };
+            widget! {
+                (#{"item"} container: {props} | {WidgetAlpha(phase)} [
+                    (#{"wrapper"} size_box: {size_props} {
+                        content = (#{"text"} text_paper: {text_props})
+                    })
+                ])
+            }
+        } else {
+            widget! {()}
         }
+    } else {
+        widget! {()}
+    };
+
+    widget! {
+        (#{key} content_box: {props.clone()} [
+            {item}
+        ])
     }
 }

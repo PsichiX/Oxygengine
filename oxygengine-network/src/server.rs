@@ -11,6 +11,12 @@ pub enum ServerState {
     Closed,
 }
 
+impl Default for ServerState {
+    fn default() -> Self {
+        Self::Closed
+    }
+}
+
 pub trait Server: Send + Sync + Sized {
     fn open(url: &str) -> Option<Self>;
 

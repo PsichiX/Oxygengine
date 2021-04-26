@@ -1,7 +1,7 @@
-use std::sync::Mutex;
+use std::sync::RwLock;
 
 lazy_static! {
-    static ref LOGGER: Mutex<Option<Box<dyn Logger>>> = Mutex::new(None);
+    static ref LOGGER: RwLock<Option<Box<dyn Logger>>> = RwLock::new(None);
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -10,6 +10,10 @@ pub enum Log {
     Warning,
     Error,
     Debug,
+    #[cfg(feature = "profiler")]
+    ProfileStart,
+    #[cfg(feature = "profiler")]
+    ProfileEnd,
 }
 
 pub trait Logger: Send + Sync {
@@ -25,6 +29,10 @@ impl Logger for DefaultLogger {
             Log::Warning => eprintln!("[WARNING] {}", message),
             Log::Error => eprintln!("[ERROR] {}", message),
             Log::Debug => eprintln!("[DEBUG] {}", message),
+            #[cfg(feature = "profiler")]
+            Log::ProfileStart => {}
+            #[cfg(feature = "profiler")]
+            Log::ProfileEnd => {}
         }
     }
 }
@@ -33,13 +41,13 @@ pub fn logger_setup<L>(instance: L)
 where
     L: Logger + 'static,
 {
-    if let Ok(mut logger) = LOGGER.lock() {
+    if let Ok(mut logger) = LOGGER.write() {
         *logger = Some(Box::new(instance));
     }
 }
 
 pub fn logger_log(mode: Log, message: String) {
-    if let Ok(mut logger) = LOGGER.lock() {
+    if let Ok(mut logger) = LOGGER.write() {
         if let Some(ref mut logger) = *logger {
             logger.log(mode, message);
         }
@@ -55,7 +63,7 @@ macro_rules! log {
             line!(),
             module_path!(),
             format_args!($($arg)*)
-        ))
+        ));
     })
 }
 
@@ -68,7 +76,7 @@ macro_rules! info {
             line!(),
             module_path!(),
             format_args!($($arg)*)
-        ))
+        ));
     })
 }
 
@@ -81,7 +89,7 @@ macro_rules! warn {
             line!(),
             module_path!(),
             format_args!($($arg)*)
-        ))
+        ));
     })
 }
 
@@ -94,7 +102,7 @@ macro_rules! error {
             line!(),
             module_path!(),
             format_args!($($arg)*)
-        ))
+        ));
     })
 }
 
@@ -107,6 +115,25 @@ macro_rules! debug {
             line!(),
             module_path!(),
             format_args!($($arg)*)
-        ))
+        ));
     })
+}
+
+#[cfg(feature = "profiler")]
+#[macro_export]
+macro_rules! profile_scope {
+    ($id:literal, $code:block) => {{
+        $crate::log::logger_log($crate::log::Log::ProfileStart, $id.to_string());
+        let result = { $code };
+        $crate::log::logger_log($crate::log::Log::ProfileEnd, $id.to_string());
+        result
+    }};
+}
+
+#[cfg(not(feature = "profiler"))]
+#[macro_export]
+macro_rules! profile_scope {
+    ($id:literal, $code:block) => {{
+        $code
+    }};
 }

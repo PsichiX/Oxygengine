@@ -1,6 +1,6 @@
 #![cfg(not(feature = "web"))]
 
-use crate::fetch::{FetchCancelReason, FetchEngine, FetchProcess, FetchProcessReader, FetchStatus};
+use crate::fetch::{FetchCancelReason, FetchEngine, FetchProcess, FetchStatus};
 use std::path::{Path, PathBuf};
 
 #[derive(Default, Clone)]
@@ -17,7 +17,7 @@ impl FsFetchEngine {
 }
 
 impl FetchEngine for FsFetchEngine {
-    fn fetch(&mut self, path: &str) -> Result<Box<dyn FetchProcessReader>, FetchStatus> {
+    fn fetch(&mut self, path: &str) -> Result<Box<FetchProcess>, FetchStatus> {
         #[cfg(feature = "parallel")]
         {
             let path = self.root_path.join(path);

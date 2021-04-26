@@ -1,0 +1,8 @@
+cols: 5
+rows: 5
+cells:
+  $g.g.g.p*g
+  .g.l.g.p.p
+  .g.l.g.l.l
+  .g.l.g.p.p
+  @g.l.g.p*g

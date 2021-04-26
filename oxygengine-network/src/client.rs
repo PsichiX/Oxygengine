@@ -39,6 +39,12 @@ pub enum ClientState {
     Closed,
 }
 
+impl Default for ClientState {
+    fn default() -> Self {
+        Self::Closed
+    }
+}
+
 pub trait Client: Send + Sync + Sized {
     fn open(url: &str) -> Option<Self>;
 

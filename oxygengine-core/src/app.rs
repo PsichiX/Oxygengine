@@ -5,12 +5,13 @@ use crate::{
 };
 use specs::{
     world::{EntitiesRes, WorldExt},
-    Component, Dispatcher, DispatcherBuilder, Entity, Join, RunNow, System, World,
+    Component, Dispatcher, DispatcherBuilder, Join, RunNow, System, World,
 };
 use specs_hierarchy::HierarchySystem;
 use std::{
     cell::RefCell,
     collections::HashSet,
+    mem::take,
     rc::Rc,
     time::{Duration, Instant},
 };
@@ -219,7 +220,7 @@ impl<'a, 'b> App<'a, 'b> {
         }
         self.world.maintain();
         {
-            let mut changes = self.world.write_resource::<HierarchyChangeRes>();
+            let mut changes = take(&mut *self.world.write_resource::<HierarchyChangeRes>());
             changes.added.clear();
             changes.removed.clear();
             let entities = self
@@ -227,19 +228,14 @@ impl<'a, 'b> App<'a, 'b> {
                 .read_resource::<EntitiesRes>()
                 .join()
                 .collect::<HashSet<_>>();
-            let ptr = &mut changes.removed as *mut Vec<Entity>;
             for entity in changes.entities.difference(&entities) {
-                unsafe {
-                    (&mut *ptr).push(*entity);
-                }
+                changes.removed.push(*entity);
             }
-            let ptr = &mut changes.added as *mut Vec<Entity>;
             for entity in entities.difference(&changes.entities) {
-                unsafe {
-                    (&mut *ptr).push(*entity);
-                }
+                changes.added.push(*entity);
             }
             changes.entities = entities;
+            *self.world.write_resource::<HierarchyChangeRes>() = changes;
         }
         match change {
             StateChange::Push(mut state) => {

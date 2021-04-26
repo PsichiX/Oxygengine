@@ -10,7 +10,7 @@ use std::{
     sync::{
         atomic::{AtomicUsize, Ordering},
         mpsc::{channel, Sender},
-        Arc, Mutex,
+        Arc, Mutex, RwLock,
     },
     thread::{sleep, Builder as ThreadBuilder, JoinHandle},
     time::Duration,
@@ -23,8 +23,8 @@ type MsgData = (MessageId, Vec<u8>);
 pub struct NativeClient {
     id: ClientId,
     history_size: Arc<AtomicUsize>,
-    state: Arc<Mutex<ClientState>>,
-    messages: Arc<Mutex<VecDeque<MsgData>>>,
+    state: Arc<RwLock<ClientState>>,
+    messages: Arc<RwLock<VecDeque<MsgData>>>,
     thread: Option<JoinHandle<()>>,
     sender: Arc<Mutex<Sender<Vec<u8>>>>,
 }
@@ -45,8 +45,8 @@ impl NativeClient {
     }
 
     fn cleanup(&mut self) {
-        {
-            *self.state.lock().unwrap() = ClientState::Closed;
+        if let Ok(mut state) = self.state.write() {
+            *state = ClientState::Closed;
         }
         let thread = replace(&mut self.thread, None);
         if let Some(thread) = thread {
@@ -67,11 +67,11 @@ impl From<TcpStream> for NativeClient {
     fn from(mut stream: TcpStream) -> Self {
         let id = ClientId::default();
         let url = stream.peer_addr().unwrap().to_string();
-        let state = Arc::new(Mutex::new(ClientState::Connecting));
+        let state = Arc::new(RwLock::new(ClientState::Connecting));
         let state2 = state.clone();
         let history_size = Arc::new(AtomicUsize::new(0));
         let history_size2 = history_size.clone();
-        let messages = Arc::new(Mutex::new(VecDeque::<MsgData>::default()));
+        let messages = Arc::new(RwLock::new(VecDeque::<MsgData>::default()));
         let messages2 = messages.clone();
         let (sender, receiver) = channel::<Vec<u8>>();
         let thread = Some(
@@ -79,7 +79,11 @@ impl From<TcpStream> for NativeClient {
                 .name(format!("Client: {:?}", id))
                 .spawn(move || {
                     let state3 = state2.clone();
-                    let _ = DoOnDrop::new(move || *state3.lock().unwrap() = ClientState::Closed);
+                    let _ = DoOnDrop::new(move || {
+                        if let Ok(mut state) = state3.write() {
+                            *state = ClientState::Closed;
+                        }
+                    });
                     stream.set_nonblocking(true).unwrap_or_else(|_| {
                         panic!(
                             "Client {:?} cannot set non-blocking streaming on: {}",
@@ -89,65 +93,68 @@ impl From<TcpStream> for NativeClient {
                     stream.set_nodelay(true).unwrap_or_else(|_| {
                         panic!("Client {:?} cannot set no-delay streaming on: {}", id, &url,)
                     });
-                    {
-                        *state2.lock().unwrap() = ClientState::Open;
+                    if let Ok(mut state) = state2.write() {
+                        *state = ClientState::Open;
                     }
                     let mut header = vec![0; 12];
                     let mut left_to_read: Option<(MessageId, usize, Vec<u8>)> = None;
                     'main: loop {
-                        if *state2.lock().unwrap() == ClientState::Closed {
-                            break;
+                        if let Ok(state) = state2.read() {
+                            if *state == ClientState::Closed {
+                                break;
+                            }
                         }
                         loop {
-                            let reset =
-                                if let Some((lfr_msg, lfr_size, lfr_buff)) = &mut left_to_read {
-                                    let mut buffer = vec![0; *lfr_size];
-                                    match stream.read(&mut buffer) {
-                                        Ok(size) => {
-                                            lfr_buff.extend_from_slice(&buffer[0..size]);
-                                            if size >= *lfr_size {
-                                                let mut messages = messages2.lock().unwrap();
+                            let reset = if let Some((lfr_msg, lfr_size, lfr_buff)) =
+                                &mut left_to_read
+                            {
+                                let mut buffer = vec![0; *lfr_size];
+                                match stream.read(&mut buffer) {
+                                    Ok(size) => {
+                                        lfr_buff.extend_from_slice(&buffer[0..size]);
+                                        if size >= *lfr_size {
+                                            if let Ok(mut messages) = messages2.write() {
                                                 messages.push_back((*lfr_msg, lfr_buff.clone()));
-                                                true
-                                            } else {
-                                                false
                                             }
+                                            true
+                                        } else {
+                                            false
                                         }
-                                        Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
-                                            break;
-                                        }
-                                        Err(ref e) if e.kind() == ErrorKind::UnexpectedEof => {
-                                            break 'main;
-                                        }
-                                        Err(e) => panic!(
-                                            "Client {:?} reading body {} got IO error: {}",
-                                            id, &url, e
-                                        ),
                                     }
-                                } else {
-                                    match stream.read_exact(&mut header) {
-                                        Ok(()) => {
-                                            let (msg, size) = Self::read_message(&header);
-                                            if size > 0 {
-                                                left_to_read = Some((msg, size, vec![]));
-                                            } else {
-                                                let mut messages = messages2.lock().unwrap();
-                                                messages.push_back((msg, vec![]));
-                                            }
-                                        }
-                                        Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
-                                            break;
-                                        }
-                                        Err(ref e) if e.kind() == ErrorKind::UnexpectedEof => {
-                                            break 'main;
-                                        }
-                                        Err(e) => panic!(
-                                            "Client {:?} reading header {} got IO error: {}",
-                                            id, &url, e
-                                        ),
+                                    Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
+                                        break;
                                     }
-                                    false
-                                };
+                                    Err(ref e) if e.kind() == ErrorKind::UnexpectedEof => {
+                                        break 'main;
+                                    }
+                                    Err(e) => panic!(
+                                        "Client {:?} reading body {} got IO error: {}",
+                                        id, &url, e
+                                    ),
+                                }
+                            } else {
+                                match stream.read_exact(&mut header) {
+                                    Ok(()) => {
+                                        let (msg, size) = Self::read_message(&header);
+                                        if size > 0 {
+                                            left_to_read = Some((msg, size, vec![]));
+                                        } else if let Ok(mut messages) = messages2.write() {
+                                            messages.push_back((msg, vec![]));
+                                        }
+                                    }
+                                    Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
+                                        break;
+                                    }
+                                    Err(ref e) if e.kind() == ErrorKind::UnexpectedEof => {
+                                        break 'main;
+                                    }
+                                    Err(e) => panic!(
+                                        "Client {:?} reading header {} got IO error: {}",
+                                        id, &url, e
+                                    ),
+                                }
+                                false
+                            };
                             if reset {
                                 left_to_read = None;
                             }
@@ -155,9 +162,10 @@ impl From<TcpStream> for NativeClient {
                         {
                             let history_size = history_size2.load(Ordering::Relaxed);
                             if history_size > 0 {
-                                let mut messages = messages2.lock().unwrap();
-                                while messages.len() > history_size {
-                                    messages.pop_front();
+                                if let Ok(mut messages) = messages2.write() {
+                                    while messages.len() > history_size {
+                                        messages.pop_front();
+                                    }
                                 }
                             }
                         }
@@ -166,8 +174,8 @@ impl From<TcpStream> for NativeClient {
                         }
                         sleep(Duration::from_millis(STREAM_SLEEP_MS));
                     }
-                    {
-                        *state2.lock().unwrap() = ClientState::Closed;
+                    if let Ok(mut state) = state2.write() {
+                        *state = ClientState::Closed;
                     }
                 })
                 .unwrap(),
@@ -187,11 +195,11 @@ impl Client for NativeClient {
     fn open(url: &str) -> Option<Self> {
         let id = ClientId::default();
         let url = url.to_owned();
-        let state = Arc::new(Mutex::new(ClientState::Connecting));
+        let state = Arc::new(RwLock::new(ClientState::Connecting));
         let state2 = state.clone();
         let history_size = Arc::new(AtomicUsize::new(0));
         let history_size2 = history_size.clone();
-        let messages = Arc::new(Mutex::new(VecDeque::<MsgData>::default()));
+        let messages = Arc::new(RwLock::new(VecDeque::<MsgData>::default()));
         let messages2 = messages.clone();
         let (sender, receiver) = channel::<Vec<u8>>();
         let thread = Some(
@@ -199,7 +207,11 @@ impl Client for NativeClient {
                 .name(format!("Client: {:?}", id))
                 .spawn(move || {
                     let state3 = state2.clone();
-                    let _ = DoOnDrop::new(move || *state3.lock().unwrap() = ClientState::Closed);
+                    let _ = DoOnDrop::new(move || {
+                        if let Ok(mut state) = state3.write() {
+                            *state = ClientState::Closed;
+                        }
+                    });
                     let mut stream = TcpStream::connect(&url)
                         .unwrap_or_else(|_| panic!("Client {:?} cannot connect to: {}", id, &url));
                     stream.set_nonblocking(true).unwrap_or_else(|_| {
@@ -211,65 +223,68 @@ impl Client for NativeClient {
                     stream.set_nodelay(true).unwrap_or_else(|_| {
                         panic!("Client {:?} cannot set no-delay streaming on: {}", id, &url,)
                     });
-                    {
-                        *state2.lock().unwrap() = ClientState::Open;
+                    if let Ok(mut state) = state2.write() {
+                        *state = ClientState::Open;
                     }
                     let mut header = vec![0; 12];
                     let mut left_to_read: Option<(MessageId, usize, Vec<u8>)> = None;
                     'main: loop {
-                        if *state2.lock().unwrap() == ClientState::Closed {
-                            break;
+                        if let Ok(state) = state2.read() {
+                            if *state == ClientState::Closed {
+                                break;
+                            }
                         }
                         loop {
-                            let reset =
-                                if let Some((lfr_msg, lfr_size, lfr_buff)) = &mut left_to_read {
-                                    let mut buffer = vec![0; *lfr_size];
-                                    match stream.read(&mut buffer) {
-                                        Ok(size) => {
-                                            lfr_buff.extend_from_slice(&buffer[0..size]);
-                                            if size >= *lfr_size {
-                                                let mut messages = messages2.lock().unwrap();
+                            let reset = if let Some((lfr_msg, lfr_size, lfr_buff)) =
+                                &mut left_to_read
+                            {
+                                let mut buffer = vec![0; *lfr_size];
+                                match stream.read(&mut buffer) {
+                                    Ok(size) => {
+                                        lfr_buff.extend_from_slice(&buffer[0..size]);
+                                        if size >= *lfr_size {
+                                            if let Ok(mut messages) = messages2.write() {
                                                 messages.push_back((*lfr_msg, lfr_buff.clone()));
-                                                true
-                                            } else {
-                                                false
                                             }
+                                            true
+                                        } else {
+                                            false
                                         }
-                                        Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
-                                            break;
-                                        }
-                                        Err(ref e) if e.kind() == ErrorKind::UnexpectedEof => {
-                                            break 'main;
-                                        }
-                                        Err(e) => panic!(
-                                            "Client {:?} reading body {} got IO error: {}",
-                                            id, &url, e
-                                        ),
                                     }
-                                } else {
-                                    match stream.read_exact(&mut header) {
-                                        Ok(()) => {
-                                            let (msg, size) = Self::read_message(&header);
-                                            if size > 0 {
-                                                left_to_read = Some((msg, size, vec![]));
-                                            } else {
-                                                let mut messages = messages2.lock().unwrap();
-                                                messages.push_back((msg, vec![]));
-                                            }
-                                        }
-                                        Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
-                                            break;
-                                        }
-                                        Err(ref e) if e.kind() == ErrorKind::UnexpectedEof => {
-                                            break 'main;
-                                        }
-                                        Err(e) => panic!(
-                                            "Client {:?} reading header {} got IO error: {}",
-                                            id, &url, e
-                                        ),
+                                    Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
+                                        break;
                                     }
-                                    false
-                                };
+                                    Err(ref e) if e.kind() == ErrorKind::UnexpectedEof => {
+                                        break 'main;
+                                    }
+                                    Err(e) => panic!(
+                                        "Client {:?} reading body {} got IO error: {}",
+                                        id, &url, e
+                                    ),
+                                }
+                            } else {
+                                match stream.read_exact(&mut header) {
+                                    Ok(()) => {
+                                        let (msg, size) = Self::read_message(&header);
+                                        if size > 0 {
+                                            left_to_read = Some((msg, size, vec![]));
+                                        } else if let Ok(mut messages) = messages2.write() {
+                                            messages.push_back((msg, vec![]));
+                                        }
+                                    }
+                                    Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
+                                        break;
+                                    }
+                                    Err(ref e) if e.kind() == ErrorKind::UnexpectedEof => {
+                                        break 'main;
+                                    }
+                                    Err(e) => panic!(
+                                        "Client {:?} reading header {} got IO error: {}",
+                                        id, &url, e
+                                    ),
+                                }
+                                false
+                            };
                             if reset {
                                 left_to_read = None;
                             }
@@ -277,9 +292,10 @@ impl Client for NativeClient {
                         {
                             let history_size = history_size2.load(Ordering::Relaxed);
                             if history_size > 0 {
-                                let mut messages = messages2.lock().unwrap();
-                                while messages.len() > history_size {
-                                    messages.pop_front();
+                                if let Ok(mut messages) = messages2.write() {
+                                    while messages.len() > history_size {
+                                        messages.pop_front();
+                                    }
                                 }
                             }
                         }
@@ -289,8 +305,8 @@ impl Client for NativeClient {
                         sleep(Duration::from_millis(STREAM_SLEEP_MS));
                     }
                     stream.shutdown(Shutdown::Both).unwrap();
-                    {
-                        *state2.lock().unwrap() = ClientState::Closed;
+                    if let Ok(mut state) = state2.write() {
+                        *state = ClientState::Closed;
                     }
                 })
                 .unwrap(),
@@ -315,7 +331,11 @@ impl Client for NativeClient {
     }
 
     fn state(&self) -> ClientState {
-        *self.state.lock().unwrap()
+        if let Ok(state) = self.state.read() {
+            *state
+        } else {
+            ClientState::default()
+        }
     }
 
     fn send(&mut self, id: MessageId, data: &[u8]) -> Option<Range<usize>> {
@@ -335,10 +355,18 @@ impl Client for NativeClient {
     }
 
     fn read(&mut self) -> Option<MsgData> {
-        self.messages.lock().unwrap().pop_front()
+        if let Ok(mut messages) = self.messages.write() {
+            messages.pop_front()
+        } else {
+            None
+        }
     }
 
     fn read_all(&mut self) -> Vec<MsgData> {
-        self.messages.lock().unwrap().drain(..).collect()
+        if let Ok(mut messages) = self.messages.write() {
+            messages.drain(..).collect()
+        } else {
+            vec![]
+        }
     }
 }

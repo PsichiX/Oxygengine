@@ -25,6 +25,18 @@ extern "C" {
     pub fn console_debug(s: &str);
 }
 
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console, js_name = profile)]
+    pub fn console_profile(s: &str);
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console, js_name = profileEnd)]
+    pub fn console_profile_end(s: &str);
+}
+
 pub struct WebLogger;
 
 impl Logger for WebLogger {
@@ -34,6 +46,10 @@ impl Logger for WebLogger {
             Log::Warning => console_warn(&format!("[{}] {}", "WARNING", message)),
             Log::Error => console_error(&format!("[{}] {}", "ERROR", message)),
             Log::Debug => console_debug(&format!("[{}] {}", "DEBUG", message)),
+            #[cfg(feature = "profiler")]
+            Log::ProfileStart => console_profile(&message),
+            #[cfg(feature = "profiler")]
+            Log::ProfileEnd => console_profile_end(&message),
         }
     }
 }

@@ -11,7 +11,7 @@ use specs::{
 };
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::{Arc, RwLock},
 };
 
 pub use serde_yaml::{Number as PrefabNumber, Value as PrefabValue};
@@ -23,7 +23,8 @@ type ComponentFactory = Box<
             &HashMap<String, Entity>,
             StateToken,
         ) -> Result<LazyBuilder<'a>, PrefabError>
-        + Send,
+        + Send
+        + Sync,
 >;
 
 #[derive(Debug)]
@@ -136,7 +137,7 @@ impl Prefab for PrefabSceneEntityData {}
 
 #[derive(Default)]
 pub struct PrefabManager {
-    component_factory: Arc<Mutex<HashMap<String, ComponentFactory>>>,
+    component_factory: Arc<RwLock<HashMap<String, ComponentFactory>>>,
     templates: HashMap<String, PrefabScene>,
 }
 
@@ -145,7 +146,7 @@ impl PrefabManager {
     where
         T: PrefabComponent,
     {
-        if let Ok(mut component_factory) = self.component_factory.lock() {
+        if let Ok(mut component_factory) = self.component_factory.write() {
             component_factory.insert(
                 name.to_owned(),
                 Box::new(move |builder, prefab, named_entities, state_token| {
@@ -161,7 +162,7 @@ impl PrefabManager {
         P: Prefab,
         T: PrefabProxy<P> + Component + Send + Sync,
     {
-        if let Ok(mut component_factory) = self.component_factory.lock() {
+        if let Ok(mut component_factory) = self.component_factory.write() {
             component_factory.insert(
                 name.to_owned(),
                 Box::new(move |builder, prefab, named_entities, state_token| {
@@ -174,7 +175,7 @@ impl PrefabManager {
     }
 
     pub fn unregister_component_factory(&mut self, name: &str) {
-        if let Ok(mut component_factory) = self.component_factory.lock() {
+        if let Ok(mut component_factory) = self.component_factory.write() {
             component_factory.remove(name);
         }
     }
@@ -356,7 +357,7 @@ impl PrefabManager {
         state_token: StateToken,
         named_entities: &HashMap<String, Entity>,
     ) -> Result<Entity, PrefabError> {
-        if let Ok(mut component_factory) = self.component_factory.lock() {
+        if let Ok(mut component_factory) = self.component_factory.write() {
             let mut entity_builder = lazy_update.create_entity(entities);
             for (key, component_meta) in components {
                 if let Some(factory) = component_factory.get_mut(key) {

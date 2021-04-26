@@ -1,4 +1,4 @@
-use crate::fetch::{FetchCancelReason, FetchEngine, FetchProcess, FetchProcessReader, FetchStatus};
+use crate::fetch::{FetchCancelReason, FetchEngine, FetchProcess, FetchStatus};
 use std::collections::HashMap;
 
 #[derive(Default, Clone)]
@@ -13,7 +13,7 @@ impl MapFetchEngine {
 }
 
 impl FetchEngine for MapFetchEngine {
-    fn fetch(&mut self, path: &str) -> Result<Box<dyn FetchProcessReader>, FetchStatus> {
+    fn fetch(&mut self, path: &str) -> Result<Box<FetchProcess>, FetchStatus> {
         if let Some(bytes) = self.map.get(path) {
             Ok(Box::new(FetchProcess::new_done(bytes.to_vec())))
         } else {

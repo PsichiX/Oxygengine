@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate oxygengine;
-
 mod components;
 mod states;
 mod systems;

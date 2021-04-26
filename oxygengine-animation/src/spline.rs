@@ -323,23 +323,19 @@ where
         &self.cached
     }
 
-    pub fn find_time_for_axis(&self, axis_value: Scalar, axis_index: usize) -> Option<Scalar> {
-        if (self.points.last().unwrap().point.get_axis(axis_index)?
-            - self.points.first().unwrap().point.get_axis(axis_index)?)
-        .abs()
-            < 1.0e-4
-        {
+    pub fn find_time_for_axis(&self, mut axis_value: Scalar, axis_index: usize) -> Option<Scalar> {
+        let min = self.points.first().unwrap().point.get_axis(axis_index)?;
+        let max = self.points.last().unwrap().point.get_axis(axis_index)?;
+        let dist = max - min;
+        if dist.abs() < 1.0e-6 {
             return Some(1.0);
         }
-        let mut guess = if self.length > 0.0 {
-            axis_value / self.length
-        } else {
-            1.0
-        };
+        axis_value = axis_value.max(min).min(max);
+        let mut guess = axis_value / dist;
         let mut last_tangent = None;
         for _ in 0..5 {
             let dv = self.sample(guess).get_axis(axis_index)? - axis_value;
-            if dv.abs() < 1.0e-4 {
+            if dv.abs() < 1.0e-6 {
                 return Some(guess);
             }
             let dv = if self.length > 0.0 {

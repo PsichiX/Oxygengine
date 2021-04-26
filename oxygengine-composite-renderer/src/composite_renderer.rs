@@ -373,6 +373,7 @@ pub enum Command<'a> {
     Effect(Effect),
     Alpha(Scalar),
     Filter(Cow<'a, str>),
+    Smoothing(bool),
     Store,
     Restore,
 }
