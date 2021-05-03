@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-user-interface"
-version = "0.19.0"
+version = "0.19.1"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "User Interface module for Oxygen Engine"
@@ -28,6 +28,6 @@ scalar64 = [
 [dependencies]
 oxygengine-core = { version = "0.19", path = "../oxygengine-core" }
 oxygengine-input = { version = "0.19", path = "../oxygengine-input" }
-raui-core = "0.33"
-raui-material = "0.33"
+raui-core = "0.34"
+raui-material = "0.34"
 serde = { version = "1", features = ["derive"] }
