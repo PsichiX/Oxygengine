@@ -210,17 +210,11 @@ impl AssetsDatabase {
     }
 
     pub fn fetch_engine(&self) -> Option<&dyn FetchEngine> {
-        match self.fetch_engines.last() {
-            Some(engine) => Some(engine.as_ref()),
-            _ => None,
-        }
+        self.fetch_engines.last().map(|engine| engine.as_ref())
     }
 
-    pub fn fetch_engine_mut(&mut self) -> Option<&mut dyn FetchEngine> {
-        match self.fetch_engines.last_mut() {
-            Some(engine) => Some(engine.as_mut()),
-            _ => None,
-        }
+    pub fn fetch_engine_mut(&mut self) -> Option<&mut (dyn FetchEngine + 'static)> {
+        self.fetch_engines.last_mut().map(|engine| engine.as_mut())
     }
 
     pub fn with_fetch_engine<F, R>(&mut self, mut action: F) -> Option<R>

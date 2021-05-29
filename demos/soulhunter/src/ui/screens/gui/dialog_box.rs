@@ -1,13 +1,12 @@
 use crate::{ui::screens::gui::side_panel::*, utils::rgba_to_raui_color};
-use oxygengine::user_interface::raui::core::{implement_props_data, prelude::*};
+use oxygengine::user_interface::raui::core::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(PropsData, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct DialogBoxProps {
     pub name: Option<String>,
     pub text: String,
 }
-implement_props_data!(DialogBoxProps);
 
 pub fn dialog_box(context: WidgetContext) -> WidgetNode {
     let WidgetContext { key, props, .. } = context;

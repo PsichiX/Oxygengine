@@ -5,7 +5,7 @@ use oxygengine::{
         spline::{SplinePoint, SplinePointDirection},
     },
     prelude::{filter_box, FilterBoxProps, FilterBoxValues},
-    user_interface::raui::core::{implement_props_data, prelude::*},
+    user_interface::raui::core::prelude::*,
 };
 use serde::{Deserialize, Serialize};
 
@@ -59,14 +59,13 @@ fn make_image_props(id: &str, scale: Scalar) -> Props {
     .into()
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PropsData, Debug, Clone, Serialize, Deserialize)]
 struct IntroState {
     #[serde(default = "IntroState::default_alpha_phase")]
     pub alpha_phase: Phase,
     #[serde(default = "IntroState::default_scale_phase")]
     pub scale_phase: Phase,
 }
-implement_props_data!(IntroState);
 
 impl Default for IntroState {
     fn default() -> Self {
@@ -130,13 +129,13 @@ pub fn intro(mut context: WidgetContext) -> WidgetNode {
         scale_phase,
     } = state.read_cloned_or_default();
     let (oxygen_scale, oxygen_alpha) = {
-        let value = animator.value_progress_or_zero("", "oxygen-logo");
+        let value = animator.value_progress_factor_or_zero("", "oxygen-logo");
         let scale = scale_phase.sample(value);
         let alpha = alpha_phase.sample(value);
         (scale, alpha)
     };
     let (game_scale, game_alpha) = {
-        let value = animator.value_progress_or_zero("", "game-logo");
+        let value = animator.value_progress_factor_or_zero("", "game-logo");
         let scale = scale_phase.sample(value);
         let alpha = alpha_phase.sample(value);
         (scale, alpha)

@@ -102,10 +102,8 @@ impl AssetProtocol for SpriteSheetAssetProtocol {
     }
 
     fn on_unload(&mut self, asset: &Asset) -> Option<Vec<AssetVariant>> {
-        if let Some(asset) = asset.get::<SpriteSheetAsset>() {
-            Some(vec![AssetVariant::Id(asset.image_asset)])
-        } else {
-            None
-        }
+        asset
+            .get::<SpriteSheetAsset>()
+            .map(|asset| vec![AssetVariant::Id(asset.image_asset)])
     }
 }

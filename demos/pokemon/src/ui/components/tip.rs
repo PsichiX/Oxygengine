@@ -1,17 +1,13 @@
-use oxygengine::user_interface::raui::{
-    core::{implement_props_data, prelude::*},
-    material::prelude::*,
-};
+use oxygengine::user_interface::raui::{core::prelude::*, material::prelude::*};
 use serde::{Deserialize, Serialize};
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(PropsData, Default, Debug, Clone, Serialize, Deserialize)]
 pub struct TipProps {
     #[serde(default)]
     pub action: String,
     #[serde(default)]
     pub label: String,
 }
-implement_props_data!(TipProps);
 
 pub fn tip(context: WidgetContext) -> WidgetNode {
     let WidgetContext { key, props, .. } = context;
@@ -22,7 +18,7 @@ pub fn tip(context: WidgetContext) -> WidgetNode {
         text: tip_props.action,
         variant: "roboto5".to_owned(),
         use_main_color: true,
-        alignment_override: Some(TextBoxAlignment::Right),
+        horizontal_align_override: Some(TextBoxHorizontalAlign::Right),
         ..Default::default()
     };
 
@@ -30,7 +26,7 @@ pub fn tip(context: WidgetContext) -> WidgetNode {
         text: tip_props.label,
         variant: "5".to_owned(),
         use_main_color: true,
-        alignment_override: Some(TextBoxAlignment::Left),
+        horizontal_align_override: Some(TextBoxHorizontalAlign::Left),
         ..Default::default()
     };
 

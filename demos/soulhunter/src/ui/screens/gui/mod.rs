@@ -4,16 +4,15 @@ pub mod side_panel;
 
 use self::{collectible::*, dialog_box::*, side_panel::*};
 use crate::utils::rgba_to_raui_color;
-use oxygengine::user_interface::raui::core::{implement_props_data, prelude::*};
+use oxygengine::user_interface::raui::core::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+#[derive(PropsData, Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct GuiProps {
     pub steps: usize,
     pub collected_stars: usize,
     pub collected_shields: usize,
 }
-implement_props_data!(GuiProps);
 
 pub type GuiRemoteProps = DataBinding<GuiProps>;
 
@@ -60,7 +59,7 @@ pub fn gui(mut context: WidgetContext) -> WidgetNode {
     let steps_value_props = TextBoxProps {
         text: gui_props.steps.to_string(),
         height: TextBoxSizeValue::Exact(48.0),
-        alignment: TextBoxAlignment::Right,
+        horizontal_align: TextBoxHorizontalAlign::Right,
         font: TextBoxFont {
             name: "fonts/aquatico.json".to_owned(),
             size: 48.0,

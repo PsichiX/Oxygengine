@@ -116,7 +116,7 @@ impl<'s> System<'s> for UserInterfaceSystem {
             text.push(NavTextChange::DeleteRight);
         }
         for data in ui.data.values_mut() {
-            let pointer_pos = data.coords_mapping.real_to_virtual_vec2(pointer_pos);
+            let pointer_pos = data.coords_mapping.real_to_virtual_vec2(pointer_pos, false);
             if pointer_moved {
                 data.interactions
                     .interact(Interaction::PointerMove(pointer_pos));

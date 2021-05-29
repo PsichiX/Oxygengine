@@ -1,8 +1,5 @@
 use crate::ui::components::container::*;
-use oxygengine::user_interface::raui::{
-    core::{implement_message_data, implement_props_data, prelude::*},
-    material::prelude::*,
-};
+use oxygengine::user_interface::raui::{core::prelude::*, material::prelude::*};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
@@ -16,14 +13,13 @@ pub struct NotificationShow {
     pub duration: Option<Scalar>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(MessageData, Debug, Clone)]
 pub enum NotificationSignal {
     None,
     Register,
     Unregister,
     Show(NotificationShow),
 }
-implement_message_data!(NotificationSignal);
 
 impl Default for NotificationSignal {
     fn default() -> Self {
@@ -31,11 +27,10 @@ impl Default for NotificationSignal {
     }
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(PropsData, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct NotificationsState(pub VecDeque<NotificationShow>);
-implement_props_data!(NotificationsState);
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PropsData, Debug, Clone, Serialize, Deserialize)]
 pub struct NotificationsProps {
     #[serde(default)]
     pub side_margin: Scalar,
@@ -52,7 +47,6 @@ pub struct NotificationsProps {
     #[serde(default)]
     pub default_height: Scalar,
 }
-implement_props_data!(NotificationsProps);
 
 impl Default for NotificationsProps {
     fn default() -> Self {
@@ -152,8 +146,8 @@ pub fn notifications(mut context: WidgetContext) -> WidgetNode {
     } = props.read_cloned_or_default();
 
     let phase = {
-        let a = animator.value_progress_or_zero("", "fade-in");
-        let b = animator.value_progress_or_zero("", "fade-out");
+        let a = animator.value_progress_factor_or_zero("", "fade-in");
+        let b = animator.value_progress_factor_or_zero("", "fade-out");
         a - b
     };
 

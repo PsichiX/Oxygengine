@@ -53,10 +53,8 @@ impl AssetProtocol for SetAssetProtocol {
     }
 
     fn on_unload(&mut self, asset: &Asset) -> Option<Vec<AssetVariant>> {
-        if let Some(asset) = asset.get::<SetAsset>() {
-            Some(asset.ids().iter().map(|id| AssetVariant::Id(*id)).collect())
-        } else {
-            None
-        }
+        asset
+            .get::<SetAsset>()
+            .map(|asset| asset.ids().iter().map(|id| AssetVariant::Id(*id)).collect())
     }
 }

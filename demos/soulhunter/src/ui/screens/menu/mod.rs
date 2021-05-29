@@ -41,7 +41,7 @@ pub fn menu(mut context: WidgetContext) -> WidgetNode {
     let text_props = TextBoxProps {
         text: "Select your starting soul:".to_owned(),
         height: TextBoxSizeValue::Exact(20.0),
-        alignment: TextBoxAlignment::Center,
+        horizontal_align: TextBoxHorizontalAlign::Center,
         font: TextBoxFont {
             name: "fonts/aquatico.json".to_owned(),
             size: 40.0,

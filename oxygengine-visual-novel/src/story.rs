@@ -399,11 +399,11 @@ impl Story {
         StoryDebugState {
             current_chapter: if let Some((name, index)) = &self.current_chapter {
                 if let Some(chapter) = self.chapters.get(name) {
-                    if let Some(action) = chapter.actions.get(*index).cloned() {
-                        Some((name.to_owned(), action))
-                    } else {
-                        None
-                    }
+                    chapter
+                        .actions
+                        .get(*index)
+                        .cloned()
+                        .map(|action| (name.to_owned(), action))
                 } else {
                     None
                 }

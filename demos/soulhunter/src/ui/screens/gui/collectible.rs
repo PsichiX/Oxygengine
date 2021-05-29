@@ -1,13 +1,12 @@
 use crate::utils::rgba_to_raui_color;
-use oxygengine::user_interface::raui::core::{implement_props_data, prelude::*};
+use oxygengine::user_interface::raui::core::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(PropsData, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CollectibleProps {
     pub image: String,
     pub value: usize,
 }
-implement_props_data!(CollectibleProps);
 
 pub fn collectible(context: WidgetContext) -> WidgetNode {
     let WidgetContext { key, props, .. } = context;
@@ -32,7 +31,7 @@ pub fn collectible(context: WidgetContext) -> WidgetNode {
 
     let value_props = TextBoxProps {
         text: value.to_string(),
-        alignment: TextBoxAlignment::Right,
+        horizontal_align: TextBoxHorizontalAlign::Right,
         font: TextBoxFont {
             name: "fonts/aquatico.json".to_owned(),
             size: 48.0,

@@ -73,10 +73,8 @@ impl AssetProtocol for FontFaceAssetProtocol {
     }
 
     fn on_unload(&mut self, asset: &Asset) -> Option<Vec<AssetVariant>> {
-        if let Some(asset) = asset.get::<FontFaceAsset>() {
-            Some(vec![AssetVariant::Id(asset.font_asset)])
-        } else {
-            None
-        }
+        asset
+            .get::<FontFaceAsset>()
+            .map(|asset| vec![AssetVariant::Id(asset.font_asset)])
     }
 }

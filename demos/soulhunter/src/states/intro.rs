@@ -1,10 +1,9 @@
 use crate::states::{loading::LoadingState, menu::MenuState};
-use oxygengine::{prelude::*, user_interface::raui::core::implement_message_data};
+use oxygengine::{prelude::*, user_interface::MessageData};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+#[derive(MessageData, Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct IntroStopSignal;
-implement_message_data!(IntroStopSignal);
 
 #[derive(Debug, Default)]
 pub struct IntroState;

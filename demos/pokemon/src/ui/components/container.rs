@@ -1,4 +1,4 @@
-use oxygengine::user_interface::raui::core::{implement_props_data, prelude::*};
+use oxygengine::user_interface::raui::core::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -16,7 +16,7 @@ impl From<(Scalar, Scalar)> for InternalMargin {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PropsData, Debug, Clone, Serialize, Deserialize)]
 pub struct ContainerProps {
     #[serde(default = "ContainerProps::default_variant")]
     pub variant: String,
@@ -29,7 +29,6 @@ pub struct ContainerProps {
     #[serde(default)]
     pub fixed_right: bool,
 }
-implement_props_data!(ContainerProps);
 
 impl ContainerProps {
     fn default_variant() -> String {

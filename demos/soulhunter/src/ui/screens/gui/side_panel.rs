@@ -1,5 +1,5 @@
 use crate::utils::rgba_to_raui_color;
-use oxygengine::user_interface::raui::core::{implement_props_data, prelude::*};
+use oxygengine::user_interface::raui::core::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
@@ -14,13 +14,12 @@ impl Default for Side {
     }
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(PropsData, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SidePanelProps {
     pub label: String,
     pub label_height: Scalar,
     pub side: Side,
 }
-implement_props_data!(SidePanelProps);
 
 pub fn side_panel(context: WidgetContext) -> WidgetNode {
     let WidgetContext {
@@ -80,9 +79,9 @@ pub fn side_panel(context: WidgetContext) -> WidgetNode {
 
     let label_props = TextBoxProps {
         text: label,
-        alignment: match side {
-            Side::Left => TextBoxAlignment::Right,
-            Side::Right => TextBoxAlignment::Left,
+        horizontal_align: match side {
+            Side::Left => TextBoxHorizontalAlign::Right,
+            Side::Right => TextBoxHorizontalAlign::Left,
         },
         font: TextBoxFont {
             name: "fonts/aquatico.json".to_owned(),

@@ -575,17 +575,15 @@ impl From<&World2dClimateSimulationData> for World2dClimateSimulation {
             config: data.config.clone(),
             steps: data.steps,
             years: data.years,
-            velocity: if let Some(ref velocity) = data.velocity {
-                Some(Switch::new(2, velocity.clone()))
-            } else {
-                None
-            },
+            velocity: data
+                .velocity
+                .as_ref()
+                .map(|velocity| Switch::new(2, velocity.clone())),
             divergence: data.divergence.clone(),
-            pressure: if let Some(ref pressure) = data.pressure {
-                Some(Switch::new(2, pressure.clone()))
-            } else {
-                None
-            },
+            pressure: data
+                .pressure
+                .as_ref()
+                .map(|pressure| Switch::new(2, pressure.clone())),
             slopeness: data.slopeness.clone(),
         }
     }
@@ -975,17 +973,15 @@ impl From<&World2dClimateSimulation> for World2dClimateSimulationData {
             config: sim.config.clone(),
             steps: sim.steps,
             years: sim.years,
-            velocity: if let Some(ref velocity) = sim.velocity {
-                Some(velocity.get().unwrap().clone())
-            } else {
-                None
-            },
+            velocity: sim
+                .velocity
+                .as_ref()
+                .map(|velocity| velocity.get().unwrap().clone()),
             divergence: sim.divergence.clone(),
-            pressure: if let Some(ref pressure) = sim.pressure {
-                Some(pressure.get().unwrap().clone())
-            } else {
-                None
-            },
+            pressure: sim
+                .pressure
+                .as_ref()
+                .map(|pressure| pressure.get().unwrap().clone()),
             slopeness: sim.slopeness.clone(),
         }
     }

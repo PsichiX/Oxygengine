@@ -17,13 +17,9 @@ fn use_loading(context: &mut WidgetContext) {
 
 #[pre_hooks(use_loading)]
 pub fn loading(mut context: WidgetContext) -> WidgetNode {
-    let WidgetContext {
-        key,
-        animator,
-        ..
-    } = context;
+    let WidgetContext { key, animator, .. } = context;
 
-    let value = animator.value_progress_or_zero("", "phase");
+    let value = animator.value_progress_factor_or_zero("", "phase");
     let phase = (value * std::f32::consts::PI * 2.0).sin();
     let alpha = 1.0 + 0.2 * phase;
     let index = ((value * 4.0) as usize + 3) % 4;
@@ -45,7 +41,7 @@ pub fn loading(mut context: WidgetContext) -> WidgetNode {
     })
     .with(TextBoxProps {
         text: TEXTS[index].to_owned(),
-        alignment: TextBoxAlignment::Center,
+        horizontal_align: TextBoxHorizontalAlign::Center,
         font: TextBoxFont {
             name: "fonts/aquatico.json".to_owned(),
             size: 60.0,

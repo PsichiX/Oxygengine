@@ -120,13 +120,7 @@ where
         let f = |w: Grid2d<&Option<T>>| {
             let items = w
                 .iter()
-                .filter_map(|c| {
-                    if let Some(c) = c {
-                        Some(c.clone())
-                    } else {
-                        None
-                    }
-                })
+                .filter_map(|c| c.as_ref().cloned())
                 .collect::<Vec<_>>();
             if items.len() == w.len() {
                 Some((Grid2d::with_cells(w.cols(), items), 1))

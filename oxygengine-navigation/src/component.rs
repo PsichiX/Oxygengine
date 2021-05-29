@@ -113,19 +113,13 @@ impl NavAgent {
     }
 
     pub fn target(&self) -> Option<NavAgentTarget> {
-        if let Some(destination) = &self.destination {
-            Some(destination.target)
-        } else {
-            None
-        }
+        self.destination
+            .as_ref()
+            .map(|destination| destination.target)
     }
 
     pub fn destination(&self) -> Option<&NavAgentDestination> {
-        if let Some(destination) = &self.destination {
-            Some(destination)
-        } else {
-            None
-        }
+        self.destination.as_ref()
     }
 
     /// Sets destination to go to.

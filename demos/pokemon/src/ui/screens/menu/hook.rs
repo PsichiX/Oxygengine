@@ -1,14 +1,13 @@
 use crate::ui::screens::menu::state::*;
-use oxygengine::user_interface::raui::core::{implement_message_data, prelude::*};
+use oxygengine::user_interface::raui::core::prelude::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(MessageData, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MenuSignal {
     None,
     Register,
     Unregister,
     Show,
 }
-implement_message_data!(MenuSignal);
 
 impl Default for MenuSignal {
     fn default() -> Self {

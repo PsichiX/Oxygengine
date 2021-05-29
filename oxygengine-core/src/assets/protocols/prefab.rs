@@ -51,17 +51,13 @@ impl AssetProtocol for PrefabAssetProtocol {
     }
 
     fn on_unload(&mut self, asset: &Asset) -> Option<Vec<AssetVariant>> {
-        if let Some(asset) = asset.get::<PrefabAsset>() {
-            Some(
-                asset
-                    .get()
-                    .dependencies
-                    .iter()
-                    .map(|path| AssetVariant::Path(path.to_owned()))
-                    .collect(),
-            )
-        } else {
-            None
-        }
+        asset.get::<PrefabAsset>().map(|asset| {
+            asset
+                .get()
+                .dependencies
+                .iter()
+                .map(|path| AssetVariant::Path(path.to_owned()))
+                .collect()
+        })
     }
 }

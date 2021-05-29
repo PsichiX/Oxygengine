@@ -1,16 +1,15 @@
-use oxygengine::user_interface::raui::core::{implement_props_data, prelude::*};
+use oxygengine::user_interface::raui::core::prelude::*;
 use serde::{Deserialize, Serialize};
 
 const SIZE: Scalar = 128.0;
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(PropsData, Default, Debug, Clone, Serialize, Deserialize)]
 pub struct MainMenuButtonProps {
     #[serde(default)]
     pub id: String,
     #[serde(default)]
     pub label: String,
 }
-implement_props_data!(MainMenuButtonProps);
 
 #[pre_hooks(use_button_notified_state)]
 pub fn main_menu_button(mut context: WidgetContext) -> WidgetNode {
@@ -72,7 +71,7 @@ pub fn main_menu_button(mut context: WidgetContext) -> WidgetNode {
     let text_props = Props::new(TextBoxProps {
         text: main_menu_button_props.label,
         height: TextBoxSizeValue::Exact(16.0),
-        alignment: TextBoxAlignment::Center,
+        horizontal_align: TextBoxHorizontalAlign::Center,
         font: TextBoxFont {
             name: "fonts/thraex.json".to_owned(),
             size: 16.0,

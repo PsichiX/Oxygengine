@@ -34,7 +34,7 @@ pub fn new_theme() -> ThemeProps {
                 name: "fonts/thraex.json".to_owned(),
                 size: 16.0,
             },
-            alignment: TextBoxAlignment::Center,
+            horizontal_align: TextBoxHorizontalAlign::Center,
             ..Default::default()
         },
         &mut theme.text_variants,
@@ -46,7 +46,7 @@ pub fn new_theme() -> ThemeProps {
                 name: "fonts/roboto.json".to_owned(),
                 size: 16.0,
             },
-            alignment: TextBoxAlignment::Center,
+            horizontal_align: TextBoxHorizontalAlign::Center,
             ..Default::default()
         },
         &mut theme.text_variants,

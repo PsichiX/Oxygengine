@@ -23,7 +23,6 @@ use oxygengine_core::{
 use oxygengine_user_interface::{
     component::UserInterfaceView,
     raui::core::{
-        implement_props_data,
         layout::{CoordsMapping, CoordsMappingScaling, Layout},
         renderer::Renderer,
         widget::{
@@ -32,13 +31,14 @@ use oxygengine_user_interface::{
             unit::{
                 area::{AreaBoxNode, AreaBoxRendererEffect},
                 image::{ImageBoxFrame, ImageBoxImageScaling, ImageBoxMaterial},
-                text::{TextBoxAlignment, TextBoxFont},
+                text::{TextBoxFont, TextBoxHorizontalAlign},
                 WidgetUnit,
             },
             utils::{lerp, Color as RauiColor, Rect as RauiRect, Transform, Vec2 as RauiVec2},
         },
     },
     resource::UserInterfaceRes,
+    PropsData,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, marker::PhantomData};
@@ -698,16 +698,16 @@ impl<'a> RauiRenderer<'a> {
         text: &str,
         font: &TextBoxFont,
         rect: RauiRect,
-        alignment: TextBoxAlignment,
+        horizontal_align: TextBoxHorizontalAlign,
         color: RauiColor,
     ) -> Command<'static> {
-        let (align, position) = match alignment {
-            TextBoxAlignment::Left => (TextAlign::Left, Vec2::new(rect.left, rect.top)),
-            TextBoxAlignment::Center => (
+        let (align, position) = match horizontal_align {
+            TextBoxHorizontalAlign::Left => (TextAlign::Left, Vec2::new(rect.left, rect.top)),
+            TextBoxHorizontalAlign::Center => (
                 TextAlign::Center,
                 Vec2::new(rect.left + rect.width() * 0.5, rect.top),
             ),
-            TextBoxAlignment::Right => (TextAlign::Right, Vec2::new(rect.right, rect.top)),
+            TextBoxHorizontalAlign::Right => (TextAlign::Right, Vec2::new(rect.right, rect.top)),
         };
         Command::Draw(Renderable::Text(Text {
             color: raui_to_color(color),
@@ -744,12 +744,13 @@ impl<'a> RauiRenderer<'a> {
         unit: &WidgetUnit,
         mapping: &CoordsMapping,
         layout: &Layout,
+        local: bool,
     ) -> Vec<Command<'static>> {
         match unit {
             WidgetUnit::None | WidgetUnit::PortalBox(_) => vec![],
             WidgetUnit::AreaBox(unit) => {
                 if let Some(item) = layout.items.get(&unit.id) {
-                    let local_space = mapping.virtual_to_real_rect(item.local_space);
+                    let local_space = mapping.virtual_to_real_rect(item.local_space, local);
                     let transform = Self::make_simple_transform_command(local_space);
                     let area_effect = match Self::make_area_effect(&unit.renderer_effect) {
                         Filter::None => self.filter_stack.last().copied().unwrap(),
@@ -781,7 +782,7 @@ impl<'a> RauiRenderer<'a> {
                         area_effect[6] * 100.0,
                         area_effect[7],
                     );
-                    let children = self.render_node(&unit.slot, mapping, layout);
+                    let children = self.render_node(&unit.slot, mapping, layout, true);
                     self.filter_stack.pop();
                     std::iter::once(Command::Store)
                         .chain(std::iter::once(transform))
@@ -801,7 +802,7 @@ impl<'a> RauiRenderer<'a> {
                         .map(|item| (item.layout.depth, item))
                         .collect::<Vec<_>>();
                     items.sort_by(|(a, _), (b, _)| a.partial_cmp(&b).unwrap());
-                    let local_space = mapping.virtual_to_real_rect(item.local_space);
+                    let local_space = mapping.virtual_to_real_rect(item.local_space, local);
                     let transform = Self::make_transform_command(&unit.transform, local_space);
                     let mask = if unit.clipping {
                         Command::Draw(Renderable::Mask(Mask {
@@ -816,11 +817,9 @@ impl<'a> RauiRenderer<'a> {
                     std::iter::once(Command::Store)
                         .chain(std::iter::once(transform))
                         .chain(std::iter::once(mask))
-                        .chain(
-                            items.into_iter().flat_map(|(_, item)| {
-                                self.render_node(&item.slot, mapping, layout)
-                            }),
-                        )
+                        .chain(items.into_iter().flat_map(|(_, item)| {
+                            self.render_node(&item.slot, mapping, layout, true)
+                        }))
                         .chain(std::iter::once(Command::Restore))
                         .collect::<Vec<_>>()
                 } else {
@@ -829,14 +828,14 @@ impl<'a> RauiRenderer<'a> {
             }
             WidgetUnit::FlexBox(unit) => {
                 if let Some(item) = layout.items.get(&unit.id) {
-                    let local_space = mapping.virtual_to_real_rect(item.local_space);
+                    let local_space = mapping.virtual_to_real_rect(item.local_space, local);
                     let transform = Self::make_transform_command(&unit.transform, local_space);
                     std::iter::once(Command::Store)
                         .chain(std::iter::once(transform))
                         .chain(
-                            unit.items
-                                .iter()
-                                .flat_map(|item| self.render_node(&item.slot, mapping, layout)),
+                            unit.items.iter().flat_map(|item| {
+                                self.render_node(&item.slot, mapping, layout, true)
+                            }),
                         )
                         .chain(std::iter::once(Command::Restore))
                         .collect::<Vec<_>>()
@@ -846,14 +845,14 @@ impl<'a> RauiRenderer<'a> {
             }
             WidgetUnit::GridBox(unit) => {
                 if let Some(item) = layout.items.get(&unit.id) {
-                    let local_space = mapping.virtual_to_real_rect(item.local_space);
+                    let local_space = mapping.virtual_to_real_rect(item.local_space, local);
                     let transform = Self::make_transform_command(&unit.transform, local_space);
                     std::iter::once(Command::Store)
                         .chain(std::iter::once(transform))
                         .chain(
-                            unit.items
-                                .iter()
-                                .flat_map(|item| self.render_node(&item.slot, mapping, layout)),
+                            unit.items.iter().flat_map(|item| {
+                                self.render_node(&item.slot, mapping, layout, true)
+                            }),
                         )
                         .chain(std::iter::once(Command::Restore))
                         .collect::<Vec<_>>()
@@ -863,11 +862,11 @@ impl<'a> RauiRenderer<'a> {
             }
             WidgetUnit::SizeBox(unit) => {
                 if let Some(item) = layout.items.get(&unit.id) {
-                    let local_space = mapping.virtual_to_real_rect(item.local_space);
+                    let local_space = mapping.virtual_to_real_rect(item.local_space, local);
                     let transform = Self::make_transform_command(&unit.transform, local_space);
                     std::iter::once(Command::Store)
                         .chain(std::iter::once(transform))
-                        .chain(self.render_node(&unit.slot, mapping, layout))
+                        .chain(self.render_node(&unit.slot, mapping, layout, true))
                         .chain(std::iter::once(Command::Restore))
                         .collect::<Vec<_>>()
                 } else {
@@ -877,7 +876,7 @@ impl<'a> RauiRenderer<'a> {
             WidgetUnit::ImageBox(unit) => match &unit.material {
                 ImageBoxMaterial::Color(image) => {
                     if let Some(item) = layout.items.get(&unit.id) {
-                        let local_space = mapping.virtual_to_real_rect(item.local_space);
+                        let local_space = mapping.virtual_to_real_rect(item.local_space, local);
                         let transform = Self::make_transform_command(&unit.transform, local_space);
                         let rect = RauiRect {
                             left: 0.0,
@@ -1018,7 +1017,7 @@ impl<'a> RauiRenderer<'a> {
                 }
                 ImageBoxMaterial::Image(image) => {
                     if let Some(item) = layout.items.get(&unit.id) {
-                        let local_space = mapping.virtual_to_real_rect(item.local_space);
+                        let local_space = mapping.virtual_to_real_rect(item.local_space, local);
                         let transform = Self::make_transform_command(&unit.transform, local_space);
                         let rect = RauiRect {
                             left: 0.0,
@@ -1175,7 +1174,7 @@ impl<'a> RauiRenderer<'a> {
             },
             WidgetUnit::TextBox(unit) => {
                 if let Some(item) = layout.items.get(&unit.id) {
-                    let local_space = mapping.virtual_to_real_rect(item.local_space);
+                    let local_space = mapping.virtual_to_real_rect(item.local_space, local);
                     let transform = Self::make_transform_command(&unit.transform, local_space);
                     let rect = RauiRect {
                         left: 0.0,
@@ -1184,12 +1183,12 @@ impl<'a> RauiRenderer<'a> {
                         bottom: local_space.height(),
                     };
                     let mut font = unit.font.clone();
-                    font.size *= mapping.scale();
+                    font.size *= mapping.scale().x.max(mapping.scale().y);
                     let renderable = Self::make_text_renderable(
                         &unit.text,
                         &font,
                         rect,
-                        unit.alignment,
+                        unit.horizontal_align,
                         unit.color,
                     );
                     vec![Command::Store, transform, renderable, Command::Restore]
@@ -1208,18 +1207,17 @@ impl<'a> Renderer<Vec<Command<'static>>, ()> for RauiRenderer<'a> {
         mapping: &CoordsMapping,
         layout: &Layout,
     ) -> Result<Vec<Command<'static>>, ()> {
-        Ok(self.render_node(tree, mapping, layout))
+        Ok(self.render_node(tree, mapping, layout, false))
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PropsData, Debug, Clone, Serialize, Deserialize)]
 pub enum FilterBoxProps {
     None,
     Reset,
     Replace(FilterBoxValues),
     Combine(FilterBoxValues),
 }
-implement_props_data!(FilterBoxProps);
 
 impl Default for FilterBoxProps {
     fn default() -> Self {

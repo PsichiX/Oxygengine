@@ -187,16 +187,12 @@ impl AssetProtocol for MapAssetProtocol {
     }
 
     fn on_unload(&mut self, asset: &Asset) -> Option<Vec<AssetVariant>> {
-        if let Some(asset) = asset.get::<MapAsset>() {
-            Some(
-                asset
-                    .sprite_sheet_assets
-                    .iter()
-                    .map(|a| AssetVariant::Id(*a))
-                    .collect::<Vec<_>>(),
-            )
-        } else {
-            None
-        }
+        asset.get::<MapAsset>().map(|asset| {
+            asset
+                .sprite_sheet_assets
+                .iter()
+                .map(|a| AssetVariant::Id(*a))
+                .collect::<Vec<_>>()
+        })
     }
 }

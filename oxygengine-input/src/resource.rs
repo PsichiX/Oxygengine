@@ -1,7 +1,7 @@
 use crate::device::InputDevice;
 use core::Scalar;
 use serde::{Deserialize, Serialize};
-use std::{borrow::Borrow, collections::HashMap};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TriggerState {
@@ -79,11 +79,7 @@ impl InputController {
     }
 
     pub fn device(&self, id: &str) -> Option<&dyn InputDevice> {
-        if let Some(device) = self.devices.get(id) {
-            Some(device.borrow())
-        } else {
-            None
-        }
+        self.devices.get(id).map(|device| device.as_ref())
     }
 
     pub fn as_device<T>(&self, id: &str) -> Option<&T>

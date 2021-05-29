@@ -1,12 +1,9 @@
 use crate::components::animal_kind::AnimalKind;
-use oxygengine::user_interface::raui::core::{
-    implement_message_data, implement_props_data, prelude::*,
-};
+use oxygengine::user_interface::raui::core::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(MessageData, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NewGameSignal(pub AnimalKind);
-implement_message_data!(NewGameSignal);
 
 fn make_animation() -> Animation {
     Animation::Looped(Box::new(Animation::Value(AnimatedValue {
@@ -15,9 +12,8 @@ fn make_animation() -> Animation {
     })))
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PropsData, Debug, Clone, Serialize, Deserialize)]
 pub struct NewGameButtonProps(pub AnimalKind);
-implement_props_data!(NewGameButtonProps);
 
 fn use_new_game_button(context: &mut WidgetContext) {
     context.life_cycle.change(|context| {
@@ -51,7 +47,7 @@ pub fn new_game_button(mut context: WidgetContext) -> WidgetNode {
 
     match props.read::<NewGameButtonProps>() {
         Ok(animal) => {
-            let value = animator.value_progress_or_zero("", "phase");
+            let value = animator.value_progress_factor_or_zero("", "phase");
             let phase = (value * std::f32::consts::PI * 2.0).sin();
             let scale = 1.0 + 0.1 * phase;
             let image = animal.0.image();

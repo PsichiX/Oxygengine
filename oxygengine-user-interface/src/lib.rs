@@ -6,7 +6,11 @@ pub mod resource;
 pub mod system;
 
 // reexport macros.
-pub use raui_core::{destruct, post_hooks, pre_hooks, unpack_named_slots, widget, widget_wrap};
+pub use raui_core::{
+    post_hooks, pre_hooks,
+    prelude::{MessageData, Prefab, PropsData},
+    unpack_named_slots, widget,
+};
 
 pub mod prelude {
     pub use crate::{component::*, resource::*, system::*};

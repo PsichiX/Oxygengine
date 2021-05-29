@@ -22,7 +22,7 @@ pub fn menu(mut context: WidgetContext) -> WidgetNode {
     }
 
     let d = if state.opened { 1.0 } else { 0.0 };
-    let phase = animator.value_progress_or("", "phase", d);
+    let phase = animator.value_progress_factor_or("", "phase", d);
     let phase = if state.opened { phase } else { 1.0 - phase };
 
     let background_props = ImageBoxProps {

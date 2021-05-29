@@ -107,10 +107,8 @@ impl AssetProtocol for TilesetAssetProtocol {
     }
 
     fn on_unload(&mut self, asset: &Asset) -> Option<Vec<AssetVariant>> {
-        if let Some(asset) = asset.get::<TilesetAsset>() {
-            Some(vec![AssetVariant::Id(asset.image_asset)])
-        } else {
-            None
-        }
+        asset
+            .get::<TilesetAsset>()
+            .map(|asset| vec![AssetVariant::Id(asset.image_asset)])
     }
 }
