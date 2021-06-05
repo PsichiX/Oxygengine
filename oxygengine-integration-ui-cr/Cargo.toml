@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-integration-ui-cr"
-version = "0.19.1"
+version = "0.19.2"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Integration module of user interface and composite rendering for Oxygen Engine"
