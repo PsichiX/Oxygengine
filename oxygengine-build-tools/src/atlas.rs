@@ -88,6 +88,7 @@ pub fn pack_sprites_and_write_to_files<P: AsRef<Path>>(
         texture_padding: padding as u32,
         trim: false,
         texture_outlines: false,
+        ..Default::default()
     };
     let mut packer = MultiTexturePacker::new_skyline(config);
     for (path, bytes) in files {

@@ -4,10 +4,10 @@ use oxygengine::prelude::*;
 pub struct GameState;
 
 impl State for GameState {
-    fn on_enter(&mut self, world: &mut World) {
-        world
-            .write_resource::<PrefabManager>()
-            .instantiate_world("scene", world)
+    fn on_enter(&mut self, universe: &mut Universe) {
+        universe
+            .expect_resource_mut::<PrefabManager>()
+            .instantiate("scene", universe)
             .unwrap();
     }
 }

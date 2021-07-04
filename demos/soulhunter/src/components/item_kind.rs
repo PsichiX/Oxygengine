@@ -7,10 +7,6 @@ pub enum ItemKind {
     Shield,
 }
 
-impl Component for ItemKind {
-    type Storage = VecStorage<Self>;
-}
-
 impl Prefab for ItemKind {}
 impl PrefabComponent for ItemKind {}
 

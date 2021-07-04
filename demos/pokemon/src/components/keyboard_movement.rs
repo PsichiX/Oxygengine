@@ -22,9 +22,5 @@ pub struct KeyboardMovement {
     pub is_moving: bool,
 }
 
-impl Component for KeyboardMovement {
-    type Storage = VecStorage<Self>;
-}
-
 impl Prefab for KeyboardMovement {}
 impl PrefabComponent for KeyboardMovement {}

@@ -1,14 +1,9 @@
-use crate::assets::database::AssetsDatabase;
-use specs::{System, Write};
+use crate::{assets::database::AssetsDatabase, ecs::Universe};
 
-pub struct AssetsSystem;
+pub type AssetsSystemResources<'a> = &'a mut AssetsDatabase;
 
-impl<'s> System<'s> for AssetsSystem {
-    type SystemData = Option<Write<'s, AssetsDatabase>>;
-
-    fn run(&mut self, data: Self::SystemData) {
-        if let Some(mut data) = data {
-            data.process();
-        }
+pub fn assets_system(universe: &mut Universe) {
+    if let Some(mut database) = universe.resource_mut::<AssetsDatabase>() {
+        database.process();
     }
 }

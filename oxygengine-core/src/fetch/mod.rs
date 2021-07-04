@@ -1,9 +1,5 @@
 pub mod engines;
 
-pub mod prelude {
-    pub use super::{engines::prelude::*, engines::*};
-}
-
 use crate::{id::ID, Scalar};
 use std::{
     mem::replace,
@@ -153,7 +149,7 @@ mod tests {
 
     #[test]
     #[cfg(not(feature = "web"))]
-    fn test_general() {
+    fn test_fetch() {
         let mut engine = engines::fs::FsFetchEngine::new(&".");
         let reader = engine.fetch("Cargo.toml").unwrap();
         let reader2 = reader.clone();
@@ -173,7 +169,5 @@ mod tests {
         assert!(!reader.read().unwrap().is_empty());
         assert_eq!(reader.status(), FetchStatus::Read);
         assert_eq!(reader2.status(), FetchStatus::Read);
-        drop(reader);
-        drop(reader2);
     }
 }

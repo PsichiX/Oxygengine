@@ -1,13 +1,10 @@
-use crate::resource::FlowManager;
-use core::ecs::{System, Write};
+use crate::resource::FlowScriptManager;
+use core::ecs::Universe;
 
-#[derive(Default)]
-pub struct FlowSystem;
+pub type FlowScriptSystemResources<'a> = &'a mut FlowScriptManager;
 
-impl<'s> System<'s> for FlowSystem {
-    type SystemData = Write<'s, FlowManager>;
-
-    fn run(&mut self, mut manager: Self::SystemData) {
-        drop(manager.process_events());
-    }
+pub fn flow_script_system(universe: &mut Universe) {
+    let _ = universe
+        .query_resources::<FlowScriptSystemResources>()
+        .process_events();
 }

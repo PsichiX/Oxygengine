@@ -6,7 +6,5 @@ pub mod mouse;
 pub mod utils;
 
 pub mod prelude {
-    pub use crate::keyboard::*;
-    pub use crate::mouse::*;
-    pub use crate::utils::*;
+    pub use crate::{keyboard::*, mouse::*, utils::*};
 }

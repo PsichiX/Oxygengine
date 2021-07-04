@@ -1,7 +1,7 @@
 use crate::id::ID;
 use std::{any::Any, mem::replace};
 
-pub type AssetId = ID<()>;
+pub type AssetId = ID<Asset>;
 
 pub struct Asset {
     id: AssetId,

@@ -9,29 +9,25 @@ pub struct IntroStopSignal;
 pub struct IntroState;
 
 impl State for IntroState {
-    fn on_enter(&mut self, world: &mut World) {
-        world
-            .write_resource::<PrefabManager>()
-            .instantiate_world("intro-scene", world)
+    fn on_enter(&mut self, universe: &mut Universe) {
+        universe
+            .expect_resource_mut::<PrefabManager>()
+            .instantiate("intro-scene", universe)
             .unwrap();
     }
 
-    fn on_process(&mut self, world: &mut World) -> StateChange {
+    fn on_process(&mut self, universe: &mut Universe) -> StateChange {
         let mut go_to_next_scene = false;
 
-        if let Some(ui) = world
-            .write_resource::<UserInterfaceRes>()
-            .application_mut("intro")
-        {
-            for (_, msg) in ui.consume_signals() {
-                if let Some(IntroStopSignal) = msg.as_any().downcast_ref() {
-                    go_to_next_scene = true;
-                    break;
-                }
+        let ui = universe.expect_resource::<UserInterface>();
+        for (_, (_, msg)) in ui.all_signals_received() {
+            if let Some(IntroStopSignal) = msg.as_any().downcast_ref() {
+                go_to_next_scene = true;
+                break;
             }
         }
 
-        let input = world.read_resource::<InputController>();
+        let input = universe.expect_resource::<InputController>();
         if input.trigger_or_default("accept").is_pressed()
             || input.trigger_or_default("cancel").is_pressed()
             || input.trigger_or_default("pointer-action").is_pressed()

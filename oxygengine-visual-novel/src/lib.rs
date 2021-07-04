@@ -1,7 +1,5 @@
 extern crate oxygengine_animation as anim;
 extern crate oxygengine_core as core;
-#[cfg(feature = "script-flow")]
-extern crate oxygengine_script_flow as flow;
 
 pub mod background;
 pub mod character;
@@ -28,9 +26,17 @@ pub mod prelude {
     pub use crate::vn_story_asset_protocol::*;
 }
 
-use crate::system::VnStorySystem;
+use crate::{
+    resource::VnStoryManager,
+    system::{vn_story_system, VnStorySystemCache, VnStorySystemResources},
+};
 use anim::curve::{Curved, CurvedDistance, CurvedOffset};
-use core::{app::AppBuilder, assets::database::AssetsDatabase, Ignite, Scalar};
+use core::{
+    app::AppBuilder,
+    assets::database::AssetsDatabase,
+    ecs::pipeline::{PipelineBuilder, PipelineBuilderError},
+    Ignite, Scalar,
+};
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Mul, Sub};
 
@@ -198,8 +204,14 @@ impl From<[Scalar; 3]> for Color {
     }
 }
 
-pub fn bundle_installer(builder: &mut AppBuilder, _: ()) {
-    builder.install_system(VnStorySystem::default(), "vn-story", &[]);
+pub fn bundle_installer<PB>(builder: &mut AppBuilder<PB>, _: ()) -> Result<(), PipelineBuilderError>
+where
+    PB: PipelineBuilder,
+{
+    builder.install_resource(VnStoryManager::default());
+    builder.install_resource(VnStorySystemCache::default());
+    builder.install_system::<VnStorySystemResources>("vn-story", vn_story_system, &[])?;
+    Ok(())
 }
 
 pub fn protocols_installer(database: &mut AssetsDatabase) {

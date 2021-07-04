@@ -12,12 +12,13 @@ fn main() -> Result<(), ()> {
     logger_setup(DefaultLogger);
 
     // Application build phase - install all systems and resources and setup them.
-    let app = App::build()
+    let app = App::build::<LinearPipelineBuilder>()
         .with_bundle(
-            oxygengine::network::bundle_installer::<(), DesktopServer>,
+            oxygengine::network::bundle_installer::<_, (), DesktopServer>,
             (),
         )
-        .build(MainState::default(), StandardAppTimer::default());
+        .unwrap()
+        .build::<SequencePipelineEngine, _, _>(MainState::default(), StandardAppTimer::default());
 
     AppRunner::new(app).run(SyncAppRunner::new())
 }

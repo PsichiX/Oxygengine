@@ -3,63 +3,26 @@ use crate::{
     resource::{Network, NetworkHost},
     server::Server,
 };
-use core::ecs::{System, WriteExpect};
-use std::marker::PhantomData;
+use core::ecs::Universe;
 
-pub struct NetworkSystem<C>
+pub type NetworkSystemResources<'a, C> = &'a mut Network<C>;
+
+pub fn network_system<C>(universe: &mut Universe)
 where
     C: Client + 'static,
 {
-    _phantom: PhantomData<C>,
+    universe
+        .query_resources::<NetworkSystemResources<C>>()
+        .process();
 }
 
-impl<C> Default for NetworkSystem<C>
-where
-    C: Client + 'static,
-{
-    fn default() -> Self {
-        Self {
-            _phantom: Default::default(),
-        }
-    }
-}
+pub type NetworkHostSystemResources<'a, S> = &'a mut NetworkHost<S>;
 
-impl<'s, C> System<'s> for NetworkSystem<C>
-where
-    C: Client + 'static,
-{
-    type SystemData = WriteExpect<'s, Network<C>>;
-
-    fn run(&mut self, mut network: Self::SystemData) {
-        network.process();
-    }
-}
-
-pub struct NetworkHostSystem<S>
+pub fn network_host_system<S>(universe: &mut Universe)
 where
     S: Server + 'static,
 {
-    _phantom: PhantomData<S>,
-}
-
-impl<S> Default for NetworkHostSystem<S>
-where
-    S: Server + 'static,
-{
-    fn default() -> Self {
-        Self {
-            _phantom: Default::default(),
-        }
-    }
-}
-
-impl<'s, S> System<'s> for NetworkHostSystem<S>
-where
-    S: Server + 'static,
-{
-    type SystemData = WriteExpect<'s, NetworkHost<S>>;
-
-    fn run(&mut self, mut network: Self::SystemData) {
-        network.process();
-    }
+    universe
+        .query_resources::<NetworkHostSystemResources<S>>()
+        .process();
 }

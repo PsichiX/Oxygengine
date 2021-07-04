@@ -11,51 +11,62 @@ pub struct GameState {
 }
 
 impl State for GameState {
-    fn on_enter(&mut self, world: &mut World) {
+    fn on_enter(&mut self, universe: &mut Universe) {
         // instantiate world objects from scene prefab.
-        let camera = world
-            .write_resource::<PrefabManager>()
-            .instantiate_world("new-bark-town", world)
+        let camera = universe
+            .expect_resource_mut::<PrefabManager>()
+            .instantiate("new-bark-town", universe)
             .unwrap()[0];
         self.camera = Some(camera);
 
         // instantiate player from prefab.
-        let player = world
-            .write_resource::<PrefabManager>()
-            .instantiate_world("player", world)
+        let player = universe
+            .expect_resource_mut::<PrefabManager>()
+            .instantiate("player", universe)
             .unwrap()[0];
         self.player = Some(player);
 
         // setup created player instance.
-        world.read_resource::<LazyUpdate>().exec(move |world| {
-            let mut transform = <CompositeTransform>::fetch(world, player);
-            let pos = Vec2::new(16.0 * 12.0, 16.0 * 11.0);
-            transform.set_translation(pos);
-        });
+        if let Ok(mut transform) = universe
+            .world()
+            .query_one::<&mut CompositeTransform>(player)
+        {
+            if let Some(transform) = transform.get() {
+                transform.set_translation(Vec2::new(16.0 * 12.0, 16.0 * 11.0));
+            }
+        }
     }
 
-    fn on_process(&mut self, world: &mut World) -> StateChange {
+    fn on_process(&mut self, universe: &mut Universe) -> StateChange {
         if let (Some(player), Some(camera)) = (self.player, self.camera) {
-            let mut transforms = world.write_storage::<CompositeTransform>();
-            // NOTE: REMEMBER THAT PREFABS ARE INSTANTIATED IN NEXT FRAME, SO THEY MIGHT NOT EXIST
-            // AT FIRST SO HANDLE THAT.
-            if let Some(player_transform) = transforms.get(player) {
-                let player_position = player_transform.get_translation();
-                if let Some(camera_transform) = transforms.get_mut(camera) {
-                    camera_transform.set_translation(player_position);
+            let player_position = match universe.world().query_one::<&CompositeTransform>(player) {
+                Ok(mut transform) => match transform.get() {
+                    Some(transform) => transform.get_translation(),
+                    _ => Default::default(),
+                },
+                _ => Default::default(),
+            };
+            if let Ok(mut transform) = universe
+                .world()
+                .query_one::<&mut CompositeTransform>(camera)
+            {
+                if let Some(transform) = transform.get() {
+                    transform.set_translation(player_position);
                 }
             }
         }
 
-        let mut ui = world.write_resource::<UserInterfaceRes>();
-        if let Some(app) = ui.application_mut("") {
-            for (caller, msg) in app.consume_signals() {
+        let mut ui = universe.expect_resource_mut::<UserInterface>();
+        if let Some(data) = ui.get_mut("") {
+            for (caller, msg) in data.signals_received() {
                 if let Some(msg) = msg.as_any().downcast_ref::<NotificationSignal>() {
                     match msg {
-                        NotificationSignal::Register => self.notifications = Some(caller),
+                        NotificationSignal::Register => {
+                            self.notifications = Some(caller.to_owned())
+                        }
                         NotificationSignal::Unregister => {
                             if let Some(id) = &self.notifications {
-                                if &caller == id {
+                                if caller == id {
                                     self.notifications = None;
                                 }
                             }
@@ -64,10 +75,10 @@ impl State for GameState {
                     }
                 } else if let Some(msg) = msg.as_any().downcast_ref::<MenuSignal>() {
                     match msg {
-                        MenuSignal::Register => self.menu = Some(caller),
+                        MenuSignal::Register => self.menu = Some(caller.to_owned()),
                         MenuSignal::Unregister => {
                             if let Some(id) = &self.menu {
-                                if &caller == id {
+                                if caller == id {
                                     self.menu = None;
                                 }
                             }
@@ -77,19 +88,21 @@ impl State for GameState {
                 }
             }
 
-            let input = world.read_resource::<InputController>();
+            let input = universe.expect_resource::<InputController>();
             if input.trigger_or_default("escape") == TriggerState::Pressed {
                 if let Some(id) = &self.menu {
-                    app.send_message(id, MenuSignal::Show);
+                    data.application.send_message(id, MenuSignal::Show);
                 }
             }
 
-            self.change -= world.read_resource::<AppLifeCycle>().delta_time_seconds();
+            self.change -= universe
+                .expect_resource::<AppLifeCycle>()
+                .delta_time_seconds();
             if self.change <= 0.0 {
                 self.change = 2.0 + rand::random::<Scalar>() * 10.0;
                 if let Some(id) = &self.notifications {
                     if rand::random() {
-                        app.send_message(
+                        data.application.send_message(
                             id,
                             NotificationSignal::Show(NotificationShow {
                                 text: "There is a fog somewhere in Wild Area".to_owned(),
@@ -97,7 +110,7 @@ impl State for GameState {
                             }),
                         );
                     } else {
-                        app.send_message(
+                        data.application.send_message(
                             id,
                             NotificationSignal::Show(NotificationShow {
                                 text: "Thanks for using RAUI".to_owned(),

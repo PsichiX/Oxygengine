@@ -7,10 +7,5 @@ pub mod speed;
 #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct KeyboardMovementTag;
 
-impl Component for KeyboardMovementTag {
-    // tag components are empty so they use `NullStorage`.
-    type Storage = NullStorage<Self>;
-}
-
 impl Prefab for KeyboardMovementTag {}
 impl PrefabComponent for KeyboardMovementTag {}

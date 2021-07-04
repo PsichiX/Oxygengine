@@ -1,6 +1,6 @@
 use crate::resource::{NavMeshID, NavPathMode, NavQuery, NavVec3};
 use core::{
-    ecs::{Component, Entity, NullStorage, VecStorage},
+    ecs::Entity,
     id::ID,
     prefab::{Prefab, PrefabComponent},
     Ignite, Scalar,
@@ -13,10 +13,6 @@ pub type NavAgentId = ID<NavAgent>;
 /// Simple nav driver component tag to mark entity to use simple movement on nav mesh.
 #[derive(Ignite, Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct SimpleNavDriverTag;
-
-impl Component for SimpleNavDriverTag {
-    type Storage = NullStorage<Self>;
-}
 
 impl Prefab for SimpleNavDriverTag {}
 impl PrefabComponent for SimpleNavDriverTag {}
@@ -77,10 +73,6 @@ pub struct NavAgent {
     #[serde(skip)]
     #[ignite(ignore)]
     pub(crate) dirty_path: bool,
-}
-
-impl Component for NavAgent {
-    type Storage = VecStorage<Self>;
 }
 
 impl Default for NavAgent {

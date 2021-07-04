@@ -1,5 +1,4 @@
 use core::{
-    ecs::{Component, FlaggedStorage, VecStorage},
     prefab::{Prefab, PrefabComponent},
     Ignite,
 };
@@ -12,6 +11,8 @@ pub struct UserInterfaceView {
     app_id: String,
     #[serde(default)]
     root: PrefabValue,
+    #[serde(default)]
+    theme: Option<String>,
     #[serde(default)]
     pub input_order: usize,
     #[serde(default)]
@@ -39,6 +40,7 @@ impl UserInterfaceView {
         Self {
             app_id,
             root: Default::default(),
+            theme: None,
             input_order: 0,
             capture_input: false,
             deselect_when_no_button_found: false,
@@ -58,10 +60,15 @@ impl UserInterfaceView {
         self.root = root;
         self.dirty = true;
     }
-}
 
-impl Component for UserInterfaceView {
-    type Storage = FlaggedStorage<Self, VecStorage<Self>>;
+    pub fn theme(&self) -> Option<&str> {
+        self.theme.as_deref()
+    }
+
+    pub fn set_theme(&mut self, theme: Option<String>) {
+        self.theme = theme;
+        self.dirty = true;
+    }
 }
 
 impl Prefab for UserInterfaceView {}

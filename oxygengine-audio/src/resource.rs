@@ -1,5 +1,3 @@
-#![allow(clippy::too_many_arguments)]
-
 use core::{
     assets::{asset::AssetId, database::AssetsDatabase},
     ecs::Entity,
@@ -13,6 +11,7 @@ pub struct AudioState {
 }
 
 pub trait Audio: Send + Sync {
+    #[allow(clippy::too_many_arguments)]
     fn create_source(
         &mut self,
         entity: Entity,

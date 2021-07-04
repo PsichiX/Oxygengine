@@ -769,8 +769,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::{thread_rng, Rng};
-    use std::time::Instant;
 
     #[allow(dead_code)]
     fn parse_view(data: &str) -> Grid2d<Option<char>> {
@@ -847,6 +845,9 @@ mod tests {
     #[test]
     #[cfg(feature = "longrun")]
     fn test_general() {
+        use rand::{thread_rng, Rng};
+        use std::time::Instant;
+
         let view = parse_view(include_str!("../resources/view.txt"));
         let values = {
             let mut values = view.iter().filter_map(|c| c.clone()).collect::<Vec<_>>();

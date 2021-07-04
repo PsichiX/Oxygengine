@@ -5,10 +5,5 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct Speed(pub Scalar);
 
-impl Component for Speed {
-    // not all entities has speed so we use `VecStorage`.
-    type Storage = VecStorage<Self>;
-}
-
 impl Prefab for Speed {}
 impl PrefabComponent for Speed {}

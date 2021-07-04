@@ -12,11 +12,19 @@ pub mod prelude {
     pub use crate::{ast::*, resource::*, system::*, vm::*};
 }
 
-use crate::system::FlowSystem;
-use core::prelude::*;
+use crate::system::{flow_script_system, FlowScriptSystemResources};
+use core::{
+    app::AppBuilder,
+    ecs::pipeline::{PipelineBuilder, PipelineBuilderError},
+    id::ID,
+};
 
 pub type Guid = ID<()>;
 
-pub fn bundle_installer(builder: &mut AppBuilder, _: ()) {
-    builder.install_system(FlowSystem, "flow", &[]);
+pub fn bundle_installer<PB>(builder: &mut AppBuilder<PB>, _: ()) -> Result<(), PipelineBuilderError>
+where
+    PB: PipelineBuilder,
+{
+    builder.install_system::<FlowScriptSystemResources>("flow", flow_script_system, &[])?;
+    Ok(())
 }

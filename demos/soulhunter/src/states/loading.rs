@@ -19,19 +19,19 @@ impl LoadingState {
 }
 
 impl State for LoadingState {
-    fn on_enter(&mut self, world: &mut World) {
+    fn on_enter(&mut self, universe: &mut Universe) {
         if self.show_progress {
-            world
-                .write_resource::<PrefabManager>()
-                .instantiate_world("loading-scene", world)
+            universe
+                .expect_resource_mut::<PrefabManager>()
+                .instantiate("loading-scene", universe)
                 .unwrap();
         }
     }
 
-    fn on_process(&mut self, world: &mut World) -> StateChange {
-        let assets = &mut world.write_resource::<AssetsDatabase>();
+    fn on_process(&mut self, universe: &mut Universe) -> StateChange {
+        let mut assets = universe.expect_resource_mut::<AssetsDatabase>();
         if let Some(preloader) = &mut self.preloader {
-            if preloader.process(assets).unwrap() {
+            if preloader.process(&mut assets).unwrap() {
                 if let Some(state) = std::mem::take(&mut self.state_to_swap) {
                     return StateChange::Swap(state);
                 }
@@ -41,7 +41,7 @@ impl State for LoadingState {
                 assets.pop_fetch_engine();
             }
             self.preloader = Some(
-                AssetPackPreloader::new(&self.pack_path, assets, vec!["*set://assets.txt"])
+                AssetPackPreloader::new(&self.pack_path, &mut assets, vec!["*set://assets.txt"])
                     .expect("could not create asset pack preloader"),
             );
         }

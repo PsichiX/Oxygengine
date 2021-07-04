@@ -1,132 +1,68 @@
 #![cfg(test)]
 
-use super::{
-    app::{App, AppLifeCycle, AppRunner, StandardAppTimer, SyncAppRunner},
+use crate::{
+    app::{App, AppRunner, StandardAppTimer, SyncAppRunner},
     assets::{database::AssetsDatabase, protocols::prefab::PrefabAsset},
+    ecs::{
+        components::Name,
+        hierarchy::{Hierarchy, Parent},
+        life_cycle::EntityChanges,
+        pipeline::{engines::sequence::SequencePipelineEngine, LinearPipelineBuilder},
+        Bundle, Entity, Universe,
+    },
     fetch::engines::map::MapFetchEngine,
-    hierarchy::{hierarchy_find_world, HierarchyChangeRes, Name, Parent},
     localization::Localization,
     log::{logger_setup, DefaultLogger},
-    prefab::*,
+    prefab::{
+        Prefab, PrefabManager, PrefabScene, PrefabSceneEntity, PrefabSceneEntityData, PrefabValue,
+    },
     state::{State, StateChange},
 };
-use specs::prelude::*;
-use std::collections::HashMap;
-
-struct Counter {
-    pub times: isize,
-}
-
-impl Component for Counter {
-    type Storage = VecStorage<Self>;
-}
-
-struct CounterSystem;
-
-impl<'s> System<'s> for CounterSystem {
-    type SystemData = (WriteExpect<'s, AppLifeCycle>, WriteStorage<'s, Counter>);
-
-    fn run(&mut self, (mut lifecycle, mut counters): Self::SystemData) {
-        for counter in (&mut counters).join() {
-            counter.times -= 1;
-            println!("counter: {:?}", counter.times);
-            if counter.times <= 0 {
-                lifecycle.running = false;
-            }
-        }
-    }
-}
-
-struct PrintableSystem;
-
-impl<'s> System<'s> for PrintableSystem {
-    type SystemData = ReadStorage<'s, Name>;
-
-    fn run(&mut self, names: Self::SystemData) {
-        for name in (&names).join() {
-            println!("name: {:?}", name.0);
-        }
-    }
-}
+use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
-struct Example {
-    root: Option<Entity>,
-}
-
-impl State for Example {
-    fn on_enter(&mut self, world: &mut World) {
-        world.create_entity().with(Counter { times: 10 }).build();
-
-        let root = world.create_entity().with(Name("root".into())).build();
-
-        world
-            .create_entity()
-            .with(Parent(root))
-            .with(Name("child".into()))
-            .build();
-
-        self.root = Some(root);
-    }
-
-    fn on_process(&mut self, world: &mut World) -> StateChange {
-        if let Some(root) = self.root {
-            world.delete_entity(root).unwrap();
-            self.root = None;
-        }
-        StateChange::None
-    }
-}
-
-#[test]
-fn test_general() {
-    let app = App::build()
-        .with_system(CounterSystem, "counter", &[])
-        .with_system(PrintableSystem, "names", &[])
-        .build(Example::default(), StandardAppTimer::default());
-
-    let mut runner = AppRunner::new(app);
-    drop(runner.run(SyncAppRunner::default()));
-}
-
-#[derive(Default)]
-struct ExamplePrefab {
-    phase: usize,
-}
+struct ExamplePrefab(bool);
 
 impl State for ExamplePrefab {
-    fn on_enter(&mut self, world: &mut World) {
-        world
-            .write_resource::<AssetsDatabase>()
+    fn on_enter(&mut self, universe: &mut Universe) {
+        universe
+            .resource_mut::<AssetsDatabase>()
+            .unwrap()
             .load("prefab://scene.yaml")
             .unwrap();
     }
 
-    fn on_process(&mut self, world: &mut World) -> StateChange {
-        match self.phase {
-            0 => {
-                if let Some(asset) = world
-                    .read_resource::<AssetsDatabase>()
-                    .asset_by_path("prefab://scene.yaml")
-                {
-                    let prefab = asset
-                        .get::<PrefabAsset>()
-                        .expect("scene.ron is not a prefab asset")
-                        .get();
-                    let entities = world
-                        .write_resource::<PrefabManager>()
-                        .load_scene_from_prefab_world(prefab, world)
-                        .unwrap();
-                    self.phase = 1;
-                    println!("scene.yaml asset finally loaded: {:?}", entities);
-                } else {
-                    println!("scene.yaml asset not loaded yet");
-                }
-                StateChange::None
+    fn on_process(&mut self, universe: &mut Universe) -> StateChange {
+        if self.0 {
+            StateChange::Pop
+        } else {
+            let (assets, mut prefabs) =
+                universe.query_resources::<(&AssetsDatabase, &mut PrefabManager)>();
+            if let Some(asset) = assets.asset_by_path("prefab://scene.yaml") {
+                self.0 = true;
+                let prefab = asset
+                    .get::<PrefabAsset>()
+                    .expect("scene.ron is not a prefab asset")
+                    .get();
+                let entities = prefabs.load_scene_from_prefab(prefab, universe).unwrap();
+                println!("scene.yaml asset finally loaded: {:?}", entities);
+            } else {
+                println!("scene.yaml asset not loaded yet");
             }
-            _ => StateChange::Pop,
+            StateChange::None
         }
     }
+}
+
+#[derive(Bundle)]
+struct Root {
+    pub name: Name,
+}
+
+#[derive(Bundle)]
+struct Child {
+    pub name: Name,
+    pub parent: Parent,
 }
 
 #[test]
@@ -137,7 +73,7 @@ fn test_prefabs() {
         dependencies: vec![],
         entities: vec![
             PrefabSceneEntity::Data(PrefabSceneEntityData {
-                uid: Some("uidname".to_owned()),
+                uid: None,
                 components: {
                     let mut map = HashMap::new();
                     map.insert(
@@ -165,134 +101,171 @@ fn test_prefabs() {
         "#
         .to_vec(),
     );
-    let app = App::build()
+    let app = App::build::<LinearPipelineBuilder>()
         .with_bundle(
             crate::assets::bundle_installer,
             (MapFetchEngine::new(files), |_| {}),
         )
+        .unwrap()
         .with_bundle(crate::prefab::bundle_installer, |_| {})
-        .build(ExamplePrefab::default(), StandardAppTimer::default());
+        .unwrap()
+        .build::<SequencePipelineEngine, _, _>(
+            ExamplePrefab::default(),
+            StandardAppTimer::default(),
+        );
 
-    let mut runner = AppRunner::new(app);
-    drop(runner.run(SyncAppRunner::default()));
+    let _ = AppRunner::new(app).run(SyncAppRunner::default());
 }
 
 #[test]
 fn test_hierarchy_find() {
-    let mut app = App::build().build_empty(StandardAppTimer::default());
-    let root = app
-        .world_mut()
-        .create_entity()
-        .with(Name("root".into()))
-        .build();
-    let child_a = app
-        .world_mut()
-        .create_entity()
-        .with(Name("a".into()))
-        .with(Parent(root))
-        .build();
-    let child_b = app
-        .world_mut()
-        .create_entity()
-        .with(Name("b".into()))
-        .with(Parent(child_a))
-        .build();
-    let child_c = app
-        .world_mut()
-        .create_entity()
-        .with(Name("c".into()))
-        .with(Parent(root))
-        .build();
+    let mut app = App::build::<LinearPipelineBuilder>()
+        .build_empty::<SequencePipelineEngine, _>(StandardAppTimer::default());
+    let (root, child_a, child_b, child_c) = {
+        let mut world = app.multiverse.default_universe_mut().unwrap().world_mut();
+        let root = world.spawn(Root {
+            name: Name("root".into()),
+        });
+        let child_a = world.spawn(Child {
+            name: Name("a".into()),
+            parent: Parent(root),
+        });
+        let child_b = world.spawn(Child {
+            name: Name("b".into()),
+            parent: Parent(child_a),
+        });
+        let child_c = world.spawn(Child {
+            name: Name("c".into()),
+            parent: Parent(root),
+        });
+        (root, child_a, child_b, child_c)
+    };
     app.process();
-    assert_eq!(hierarchy_find_world(root, "", app.world()), Some(root));
-    assert_eq!(hierarchy_find_world(root, ".", app.world()), Some(root));
-    assert_eq!(hierarchy_find_world(root, "..", app.world()), None);
-    assert_eq!(hierarchy_find_world(root, "a", app.world()), Some(child_a));
-    assert_eq!(hierarchy_find_world(root, "a/", app.world()), Some(child_a));
-    assert_eq!(
-        hierarchy_find_world(root, "a/.", app.world()),
-        Some(child_a)
-    );
-    assert_eq!(hierarchy_find_world(root, "a/..", app.world()), Some(root));
-    assert_eq!(hierarchy_find_world(root, "a/../..", app.world()), None);
-    assert_eq!(hierarchy_find_world(root, "b", app.world()), None);
-    assert_eq!(hierarchy_find_world(root, "c", app.world()), Some(child_c));
-    assert_eq!(hierarchy_find_world(root, "c/", app.world()), Some(child_c));
-    assert_eq!(
-        hierarchy_find_world(root, "c/.", app.world()),
-        Some(child_c)
-    );
-    assert_eq!(hierarchy_find_world(root, "c/..", app.world()), Some(root));
-    assert_eq!(hierarchy_find_world(root, "c/../..", app.world()), None);
-    assert_eq!(
-        hierarchy_find_world(root, "a/b", app.world()),
-        Some(child_b)
-    );
-    assert_eq!(
-        hierarchy_find_world(root, "a/b/", app.world()),
-        Some(child_b)
-    );
-    assert_eq!(
-        hierarchy_find_world(root, "a/b/", app.world()),
-        Some(child_b)
-    );
-    assert_eq!(
-        hierarchy_find_world(root, "a/b/..", app.world()),
-        Some(child_a)
-    );
-    assert_eq!(
-        hierarchy_find_world(root, "a/b/../..", app.world()),
-        Some(root)
-    );
-    assert_eq!(
-        hierarchy_find_world(root, "a/b/../../..", app.world()),
-        None
-    );
-    assert_eq!(
-        hierarchy_find_world(root, "a/b/../../..", app.world()),
-        None
-    );
+    let hierarchy = app
+        .multiverse
+        .default_universe()
+        .unwrap()
+        .expect_resource::<Hierarchy>();
+    assert_eq!(hierarchy.find(None, "root"), Some(root));
+    assert_eq!(hierarchy.find(Some(root), ""), Some(root));
+    assert_eq!(hierarchy.find(Some(root), "."), Some(root));
+    assert_eq!(hierarchy.find(Some(root), ".."), None);
+    assert_eq!(hierarchy.find(Some(root), "a"), Some(child_a));
+    assert_eq!(hierarchy.find(Some(root), "a/"), Some(child_a));
+    assert_eq!(hierarchy.find(Some(root), "a/."), Some(child_a));
+    assert_eq!(hierarchy.find(Some(root), "a/.."), Some(root));
+    assert_eq!(hierarchy.find(Some(root), "a/../.."), None);
+    assert_eq!(hierarchy.find(None, "b"), Some(child_b));
+    assert_eq!(hierarchy.find(None, "b/.."), Some(child_a));
+    assert_eq!(hierarchy.find(None, "b/../.."), Some(root));
+    assert_eq!(hierarchy.find(None, "c"), Some(child_c));
+    assert_eq!(hierarchy.find(None, "c/"), Some(child_c));
+    assert_eq!(hierarchy.find(None, "c/."), Some(child_c));
+    assert_eq!(hierarchy.find(None, "c/.."), Some(root));
+    assert_eq!(hierarchy.find(None, "c/../.."), None);
+    assert_eq!(hierarchy.find(None, "a/b"), Some(child_b));
+    assert_eq!(hierarchy.find(None, "a/b/"), Some(child_b));
+    assert_eq!(hierarchy.find(None, "a/b/.."), Some(child_a));
+    assert_eq!(hierarchy.find(None, "a/b/../.."), Some(root));
+    assert_eq!(hierarchy.find(None, "a/b/../../.."), None);
+    assert_eq!(hierarchy.find(None, "a/b/../../c"), Some(child_c));
 }
 
 #[test]
-fn test_hierarchy_add_remove() {
-    fn sorted(container: &[Entity]) -> Vec<Entity> {
-        let mut result = container.to_vec();
-        result.sort();
-        result
+fn test_entity_life_cycle() {
+    fn set(container: &[Entity]) -> HashSet<Entity> {
+        container.iter().copied().collect()
     }
 
-    let mut app = App::build().build_empty(StandardAppTimer::default());
+    let mut app = App::build::<LinearPipelineBuilder>()
+        .build_empty::<SequencePipelineEngine, _>(StandardAppTimer::default());
     {
-        let changes = app.world().read_resource::<HierarchyChangeRes>();
-        assert_eq!(changes.added(), &[]);
-        assert_eq!(changes.removed(), &[]);
+        let changes = app
+            .multiverse
+            .default_universe()
+            .unwrap()
+            .expect_resource::<EntityChanges>();
+        assert_eq!(&changes.spawned().collect::<Vec<_>>(), &[]);
+        assert_eq!(&changes.despawned().collect::<Vec<_>>(), &[]);
     }
-    let root = app
-        .world_mut()
-        .create_entity()
-        .with(Name("root".into()))
-        .build();
-    let e1 = app.world_mut().create_entity().with(Parent(root)).build();
+    let (root, e1) = {
+        let mut world = app.multiverse.default_universe_mut().unwrap().world_mut();
+        let root = world.spawn(Root {
+            name: Name("root".into()),
+        });
+        let e1 = world.spawn(Child {
+            name: Name("a".into()),
+            parent: Parent(root),
+        });
+        (root, e1)
+    };
     app.process();
     {
-        let changes = app.world().read_resource::<HierarchyChangeRes>();
-        assert_eq!(sorted(changes.added()), sorted(&[root, e1]));
-        assert_eq!(changes.removed(), &[]);
+        let changes = app
+            .multiverse
+            .default_universe()
+            .unwrap()
+            .expect_resource::<EntityChanges>();
+        assert_eq!(changes.spawned().collect::<HashSet<_>>(), set(&[root, e1]));
+        assert_eq!(changes.despawned().collect::<HashSet<_>>(), set(&[]));
+        let world = app.multiverse.default_universe_mut().unwrap().world_mut();
+        assert_eq!(
+            world.iter().map(|(id, _)| id).collect::<HashSet<_>>(),
+            set(&[root, e1])
+        );
     }
     app.process();
     {
-        let changes = app.world().read_resource::<HierarchyChangeRes>();
-        assert_eq!(changes.added(), &[]);
-        assert_eq!(changes.removed(), &[]);
+        let changes = app
+            .multiverse
+            .default_universe()
+            .unwrap()
+            .expect_resource::<EntityChanges>();
+        assert_eq!(&changes.spawned().collect::<Vec<_>>(), &[]);
+        assert_eq!(&changes.despawned().collect::<Vec<_>>(), &[]);
+        let world = app.multiverse.default_universe_mut().unwrap().world_mut();
+        assert_eq!(
+            world.iter().map(|(id, _)| id).collect::<HashSet<_>>(),
+            set(&[root, e1])
+        );
     }
-    app.world_mut().delete_entity(root).unwrap();
-    app.world_mut().delete_entity(e1).unwrap();
+    {
+        let mut world = app.multiverse.default_universe_mut().unwrap().world_mut();
+        let _ = world.despawn(root);
+        assert_eq!(
+            world.iter().map(|(id, _)| id).collect::<HashSet<_>>(),
+            set(&[e1])
+        );
+    }
     app.process();
     {
-        let changes = app.world().read_resource::<HierarchyChangeRes>();
-        assert_eq!(changes.added(), &[]);
-        assert_eq!(sorted(changes.removed()), sorted(&[root, e1]));
+        let changes = app
+            .multiverse
+            .default_universe()
+            .unwrap()
+            .expect_resource::<EntityChanges>();
+        assert_eq!(changes.spawned().collect::<HashSet<_>>(), set(&[]));
+        assert_eq!(changes.despawned().collect::<HashSet<_>>(), set(&[root]));
+        let world = app.multiverse.default_universe_mut().unwrap().world_mut();
+        assert_eq!(
+            world.iter().map(|(id, _)| id).collect::<HashSet<_>>(),
+            set(&[])
+        );
+    }
+    app.process();
+    {
+        let changes = app
+            .multiverse
+            .default_universe()
+            .unwrap()
+            .expect_resource::<EntityChanges>();
+        assert_eq!(changes.spawned().collect::<HashSet<_>>(), set(&[]));
+        assert_eq!(changes.despawned().collect::<HashSet<_>>(), set(&[e1]));
+        let world = app.multiverse.default_universe_mut().unwrap().world_mut();
+        assert_eq!(
+            world.iter().map(|(id, _)| id).collect::<HashSet<_>>(),
+            set(&[])
+        );
     }
 }
 
@@ -313,7 +286,6 @@ fn test_localization() {
         "Hello |@name|, you've got |@score| points! \\| |@bye",
     );
     loc.set_current_language(Some("lang".to_owned()));
-    // let text = loc.format_text("hello", &[("name", "Person"), ("score", &42.to_string())]).unwrap();
-    let text = localization_format_text!(loc, "hello", "name" => "Person", "score" => 42).unwrap();
+    let text = localization_format_text!(loc, "hello", name => "Person", score => 42).unwrap();
     assert_eq!(text, "Hello Person, you've got 42 points! | {@bye}");
 }

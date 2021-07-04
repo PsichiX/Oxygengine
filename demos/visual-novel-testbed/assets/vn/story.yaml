@@ -1,11 +1,11 @@
 active_scene:
   phase:
     - point: [0, 0]
-    - point: [1, 1]
+    - point: [0.5, 1]
 active_dialogue:
   phase:
     - point: [0, 0]
-    - point: [0.35, 1]
+    - point: [0.5, 1]
 characters:
   Miki:
     name: Miki
@@ -23,9 +23,9 @@ characters:
     name_color:
       to: [1, 1, 0]
     position:
-      to: [0.15, 0.5]
+      to: [0.15, 0.0]
     scale:
-      to: [0.65, 0.65]
+      to: [0.95, 0.95]
     alignment:
       to: [0.5, 1]
 backgrounds:
@@ -58,7 +58,7 @@ chapters:
                 value: false
                 phase:
                   - point: [0, 0]
-                  - point: [0.25, 1]
+                  - point: [0.1, 1]
             - text: Who are you?
               action:
                 JumpToLabel: Who
@@ -66,7 +66,7 @@ chapters:
                 value: false
                 phase:
                   - point: [0, 0]
-                  - point: [0.25, 1]
+                  - point: [0.1, 1]
       - Label: Beautiful
       - ChangeCharacterStyle: [Miki, Smile]
       - ShowDialogue:
@@ -80,7 +80,7 @@ chapters:
                 value: false
                 phase:
                   - point: [0, 0]
-                  - point: [0.25, 1]
+                  - point: [0.1, 1]
       - Label: Who
       - ChangeCharacterStyle: [Miki, Frown]
       - ShowDialogue:
@@ -94,7 +94,9 @@ chapters:
                 value: false
                 phase:
                   - point: [0, 0]
-                  - point: [0.25, 1]
+                  - point: [0.1, 1]
       - Label: End
-      - HideDialogue
+      - Parallel:
+        - HideDialogue
+        - HideAllCharacters
       - EndScene

@@ -1,0 +1,107 @@
+Flat:
+  default:
+    r: 1
+    g: 1
+    b: 0.5
+    a: 1
+  primary:
+    r: 1
+    g: 0.5
+    b: 0.25
+    a: 1
+  secondary:
+    r: 1
+    g: 1
+    b: 0
+    a: 1
+  background:
+    r: 0
+    g: 0
+    b: 0
+    a: 1
+  extras:
+    content_backgrounds:
+      "dialogue-message":
+        Image:
+          id: ui/ui-rose-message.png
+          scaling:
+            Frame:
+              source:
+                left: 200
+                right: 200
+                top: 200
+                bottom: 200
+              destination:
+                left: 92
+                right: 92
+                top: 92
+                bottom: 92
+      "dialogue-character":
+        Image:
+          id: ui/ui-rose-button.png
+          scaling:
+            Frame:
+              source:
+                left: 64
+                right: 64
+                top: 64
+                bottom: 64
+              destination:
+                left: 32
+                right: 32
+                top: 32
+                bottom: 32
+    button_backgrounds:
+      "dialogue-option":
+        default:
+          Image:
+            id: ui/ui-rose-button.png
+            scaling:
+              Frame:
+                source:
+                  left: 64
+                  right: 64
+                  top: 64
+                  bottom: 64
+                destination:
+                  left: 24
+                  right: 24
+                  top: 24
+                  bottom: 24
+        selected:
+          Image:
+            id: ui/ui-rose-button-focused.png
+            scaling:
+              Frame:
+                source:
+                  left: 64
+                  right: 64
+                  top: 64
+                  bottom: 64
+                destination:
+                  left: 24
+                  right: 24
+                  top: 24
+                  bottom: 24
+    text_variants:
+      "":
+        font:
+          name: "fonts/roboto.json"
+          size: 24
+      "dialogue-message":
+        font:
+          name: "fonts/roboto.json"
+          size: 32
+      "dialogue-character":
+        font:
+          name: "fonts/roboto.json"
+          size: 24
+      "dialogue-option":
+        font:
+          name: "fonts/roboto.json"
+          size: 28
+      "dialogue-option-focused":
+        font:
+          name: "fonts/roboto.json"
+          size: 28
+        horizontal_align: Right

@@ -9,20 +9,20 @@ pub struct MainState {
 }
 
 impl State for MainState {
-    fn on_enter(&mut self, _: &mut World) {
+    fn on_enter(&mut self, _: &mut Universe) {
         info!("* SERVER START: {}", HOST_URL);
     }
 
-    fn on_exit(&mut self, world: &mut World) {
+    fn on_exit(&mut self, universe: &mut Universe) {
         info!("* SERVER STOP");
-        let network = &mut world.write_resource::<NetworkHost<DesktopServer>>();
+        let mut network = universe.expect_resource_mut::<NetworkHost<DesktopServer>>();
         if let Some(server) = &self.server {
             network.close_server(*server);
         }
     }
 
-    fn on_process(&mut self, world: &mut World) -> StateChange {
-        let network = &mut world.write_resource::<NetworkHost<DesktopServer>>();
+    fn on_process(&mut self, universe: &mut Universe) -> StateChange {
+        let mut network = universe.expect_resource_mut::<NetworkHost<DesktopServer>>();
         if self.server.is_none() {
             self.server = network.open_server(HOST_URL);
         }

@@ -6,10 +6,9 @@ mod ui;
 use crate::{
     components::{speed::Speed, KeyboardMovementTag},
     states::loading::LoadingState,
-    systems::keyboard_movement::KeyboardMovementSystem,
+    systems::keyboard_movement::{keyboard_movement_system, KeyboardMovementSystemResources},
 };
 use oxygengine::prelude::*;
-use std::marker::PhantomData;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]
@@ -23,7 +22,7 @@ pub fn main_js() -> Result<(), JsValue> {
     logger_setup(WebLogger);
 
     // Application build phase - install all systems and resources and setup them.
-    let app = App::build()
+    let app = App::build::<LinearPipelineBuilder>()
         // install core module assets managment.
         .with_bundle(
             oxygengine::core::assets::bundle_installer,
@@ -37,6 +36,7 @@ pub fn main_js() -> Result<(), JsValue> {
                 oxygengine::audio::protocols_installer(assets);
             }),
         )
+        .unwrap()
         // install core module prefabs management.
         .with_bundle(oxygengine::core::prefab::bundle_installer, |prefabs| {
             // install composite renderer prefabs.
@@ -55,6 +55,7 @@ pub fn main_js() -> Result<(), JsValue> {
             prefabs.register_component_factory::<Speed>("Speed");
             prefabs.register_component_factory::<KeyboardMovementTag>("KeyboardMovementTag");
         })
+        .unwrap()
         // install input managment.
         .with_bundle(oxygengine::input::bundle_installer, |input| {
             // register input devices.
@@ -70,6 +71,7 @@ pub fn main_js() -> Result<(), JsValue> {
             input.map_axis("move-left", "keyboard", "KeyA");
             input.map_axis("move-right", "keyboard", "KeyD");
         })
+        .unwrap()
         // install composite renderer.
         .with_bundle(
             oxygengine::composite_renderer::bundle_installer,
@@ -79,20 +81,29 @@ pub fn main_js() -> Result<(), JsValue> {
                     .image_source_inner_margin(0.01),
             ),
         )
+        .unwrap()
         // install UI support.
         .with_bundle(
             oxygengine::user_interface::bundle_installer,
-            UserInterfaceRes::new(ui::setup)
-                .with_pointer_axis("pointer-x", "pointer-y")
-                .with_pointer_trigger("pointer-action", "pointer-context"),
+            UserInterfaceBundleSetup::default().user_interface(
+                UserInterface::new(ui::setup)
+                    .with_pointer_axis("pointer-x", "pointer-y")
+                    .with_pointer_trigger("pointer-action", "pointer-context"),
+            ),
         )
+        .unwrap()
         // install integration between UI and composite rendering.
         .with_bundle(
-            oxygengine::integration_user_interface_composite_renderer::bundle_installer,
-            PhantomData::<WebCompositeRenderer>::default(),
+            oxygengine::integration_user_interface_composite_renderer::bundle_installer::<
+                WebCompositeRenderer,
+                _,
+            >,
+            (),
         )
+        .unwrap()
         // install audio support.
         .with_bundle(oxygengine::audio::bundle_installer, WebAudio::default())
+        .unwrap()
         // install 2D physics with default gravity force vector.
         .with_bundle(
             oxygengine::physics_2d::bundle_installer,
@@ -101,15 +112,22 @@ pub fn main_js() -> Result<(), JsValue> {
                 Physics2dWorldSimulationMode::FixedTimestepMaxIterations(3),
             ),
         )
+        .unwrap()
         // install integration between 2D physics and composite rendering.
         .with_bundle(
             oxygengine::integration_physics_2d_composite_renderer::bundle_installer,
             (),
         )
+        .unwrap()
         // install web storage engine resource.
         .with_resource(WebStorageEngine)
-        .with_system(KeyboardMovementSystem, "keyboard_movement", &[])
-        .build(LoadingState::default(), WebAppTimer::default());
+        .with_system::<KeyboardMovementSystemResources>(
+            "keyboard-movement",
+            keyboard_movement_system,
+            &[],
+        )
+        .unwrap()
+        .build::<SequencePipelineEngine, _, _>(LoadingState::default(), WebAppTimer::default());
 
     // Application run phase - spawn runner that ticks our app.
     AppRunner::new(app).run(WebAppRunner)?;

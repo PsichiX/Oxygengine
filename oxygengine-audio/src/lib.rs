@@ -12,16 +12,26 @@ pub mod prelude {
 use crate::{
     component::{AudioSource, AudioSourcePrefabProxy},
     resource::Audio,
-    system::AudioSystem,
+    system::{audio_system, AudioSystemResources},
 };
-use core::{app::AppBuilder, assets::database::AssetsDatabase, prefab::PrefabManager};
+use core::{
+    app::AppBuilder,
+    assets::database::AssetsDatabase,
+    ecs::pipeline::{PipelineBuilder, PipelineBuilderError},
+    prefab::PrefabManager,
+};
 
-pub fn bundle_installer<A>(builder: &mut AppBuilder, data: A)
+pub fn bundle_installer<PB, A>(
+    builder: &mut AppBuilder<PB>,
+    data: A,
+) -> Result<(), PipelineBuilderError>
 where
+    PB: PipelineBuilder,
     A: Audio + 'static,
 {
     builder.install_resource(data);
-    builder.install_system(AudioSystem::<A>::default(), "audio", &[]);
+    builder.install_system::<AudioSystemResources<A>>("audio", audio_system::<A>, &[])?;
+    Ok(())
 }
 
 pub fn protocols_installer(database: &mut AssetsDatabase) {

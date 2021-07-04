@@ -5,12 +5,12 @@ use crate::{
 use std::collections::HashMap;
 
 #[derive(Default)]
-pub struct FlowManager {
+pub struct FlowScriptManager {
     /// {name: (vm, paused)}
     vms: HashMap<String, (Vm, bool)>,
 }
 
-impl FlowManager {
+impl FlowScriptManager {
     pub fn create_vm(&mut self, name: &str, ast: Program) -> Result<(), VmError> {
         let vm = Vm::new(ast)?;
         self.vms.insert(name.to_owned(), (vm, false));

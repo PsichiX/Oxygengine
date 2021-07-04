@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-ignite"
-version = "0.19.2"
+version = "0.20.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "CLI app used to setup and develop Oxygen Engine projects"
@@ -12,19 +12,19 @@ readme = "../README.md"
 
 [dependencies]
 clap = "2.33"
-cargo_metadata = "0.11"
+cargo_metadata = "0.13"
 toml = "0.5"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 bincode = "1"
 serde_yaml = "0.8"
 ron = "0.6"
-oxygengine-build-tools = { version = "0.19", path = "../oxygengine-build-tools" }
-oxygengine-ignite-types = { version = "0.19", path = "../oxygengine-ignite-types" }
+oxygengine-build-tools = { version = "0.20", path = "../oxygengine-build-tools" }
+oxygengine-ignite-types = { version = "0.20", path = "../oxygengine-ignite-types" }
 dirs = "3.0"
-reqwest = { version = "0.10", features = ["blocking"] }
+reqwest = { version = "0.11", features = ["blocking"] }
 chrobry-core = "1"
-warp = "0.2"
-tokio = { version = "0.2", features = ["macros"] }
+warp = "0.3"
+tokio = { version = "1.8", features = ["macros"] }
 hotwatch = "0.4"
 open = "1.4"

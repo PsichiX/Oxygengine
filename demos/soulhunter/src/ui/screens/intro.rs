@@ -44,6 +44,7 @@ fn make_image_props(id: &str, scale: Scalar) -> Props {
         content_keep_aspect_ratio: Some(ImageBoxAspectRatio {
             horizontal_alignment: 0.5,
             vertical_alignment: 0.5,
+            outside: false,
         }),
         material: ImageBoxMaterial::Image(ImageBoxImage {
             id: id.to_owned(),

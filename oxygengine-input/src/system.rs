@@ -1,12 +1,8 @@
 use crate::resource::InputController;
-use core::ecs::{System, Write};
+use core::ecs::Universe;
 
-pub struct InputSystem;
+pub type InputSystemResources<'a> = &'a mut InputController;
 
-impl<'s> System<'s> for InputSystem {
-    type SystemData = Write<'s, InputController>;
-
-    fn run(&mut self, mut input: Self::SystemData) {
-        (&mut input).process();
-    }
+pub fn input_system(universe: &mut Universe) {
+    universe.query_resources::<&mut InputController>().process();
 }

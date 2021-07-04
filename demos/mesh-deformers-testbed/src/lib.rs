@@ -2,9 +2,7 @@ use crate::states::loading::LoadingState;
 use oxygengine::prelude::*;
 use wasm_bindgen::prelude::*;
 
-mod components;
 mod states;
-mod systems;
 
 #[wasm_bindgen(start)]
 pub fn main_js() -> Result<(), JsValue> {
@@ -15,7 +13,7 @@ pub fn main_js() -> Result<(), JsValue> {
     #[cfg(debug_assertions)]
     logger_setup(WebLogger);
 
-    let app = App::build()
+    let app = App::build::<LinearPipelineBuilder>()
         .with_bundle(
             oxygengine::core::assets::bundle_installer,
             (WebFetchEngine::default(), |assets| {
@@ -24,9 +22,11 @@ pub fn main_js() -> Result<(), JsValue> {
                 oxygengine::composite_renderer::protocols_installer(assets);
             }),
         )
+        .unwrap()
         .with_bundle(oxygengine::core::prefab::bundle_installer, |prefabs| {
             oxygengine::composite_renderer::prefabs_installer(prefabs);
         })
+        .unwrap()
         .with_bundle(oxygengine::input::bundle_installer, |input| {
             input.register(WebKeyboardInputDevice::new(get_event_target_document()));
             input.register(WebMouseInputDevice::new(get_event_target_by_id("screen")));
@@ -38,6 +38,7 @@ pub fn main_js() -> Result<(), JsValue> {
             input.map_axis("mouse-y", "mouse", "y");
             input.map_trigger("mouse-left", "mouse", "left");
         })
+        .unwrap()
         .with_bundle(
             oxygengine::composite_renderer::bundle_installer,
             WebCompositeRenderer::with_state(
@@ -45,7 +46,8 @@ pub fn main_js() -> Result<(), JsValue> {
                 RenderState::new(Some(Color::black())).triangles_outer_margin(1.0),
             ),
         )
-        .build(LoadingState::default(), WebAppTimer::default());
+        .unwrap()
+        .build::<SequencePipelineEngine, _, _>(LoadingState::default(), WebAppTimer::default());
 
     AppRunner::new(app).run(WebAppRunner)?;
 

@@ -67,17 +67,17 @@ pub mod physics_2d {
 pub mod integration_physics_2d_composite_renderer {
     pub use oxygengine_integration_p2d_cr::*;
 }
-#[cfg(feature = "visual-novel")]
-#[cfg(feature = "composite-renderer")]
-#[cfg(feature = "integration-visual-novel-composite-renderer")]
-pub mod integration_visual_novel_composite_renderer {
-    pub use oxygengine_integration_vn_cr::*;
-}
 #[cfg(feature = "user-interface")]
 #[cfg(feature = "composite-renderer")]
 #[cfg(feature = "integration-user-interface-composite-renderer")]
 pub mod integration_user_interface_composite_renderer {
     pub use oxygengine_integration_ui_cr::*;
+}
+#[cfg(feature = "visual-novel")]
+#[cfg(feature = "user-interface")]
+#[cfg(feature = "integration-visual-novel-user-interface")]
+pub mod integration_visual_novel_user_interface {
+    pub use oxygengine_integration_vn_ui::*;
 }
 pub mod script {
     #[cfg(feature = "script-flow")]
@@ -133,9 +133,9 @@ pub mod prelude {
     #[cfg(feature = "integration-user-interface-composite-renderer")]
     pub use oxygengine_integration_ui_cr::prelude::*;
     #[cfg(feature = "visual-novel")]
-    #[cfg(feature = "composite-renderer")]
-    #[cfg(feature = "integration-visual-novel-composite-renderer")]
-    pub use oxygengine_integration_vn_cr::prelude::*;
+    #[cfg(feature = "user-interface")]
+    #[cfg(feature = "integration-visual-novel-user-interface")]
+    pub use oxygengine_integration_vn_ui::prelude::*;
     #[cfg(feature = "navigation")]
     pub use oxygengine_navigation::prelude::*;
     #[cfg(feature = "network")]

@@ -1,4 +1,4 @@
-use crate::{composite_renderer::TriangleFace, math::Vec2, CompositeTransform};
+use crate::{component::CompositeTransform, composite_renderer::TriangleFace, math::Vec2};
 use core::{
     assets::protocol::{AssetLoadResult, AssetProtocol},
     Ignite, Scalar,

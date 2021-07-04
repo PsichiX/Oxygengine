@@ -1,5 +1,3 @@
-#![allow(clippy::many_single_char_names)]
-
 extern crate oxygengine_composite_renderer as renderer;
 #[macro_use]
 extern crate oxygengine_core as core;
@@ -84,6 +82,7 @@ impl WebCompositeRenderer {
         result
     }
 
+    #[allow(clippy::many_single_char_names)]
     fn execute_with<'a, I>(
         &self,
         context: &CanvasRenderingContext2d,
@@ -597,9 +596,15 @@ impl WebCompositeRenderer {
                         renderables += 1;
                     }
                     Renderable::Text(text) => {
+                        let name = if let Some(name) = self.font_family_map.get(text.font.as_ref())
+                        {
+                            &name
+                        } else {
+                            text.font.as_ref()
+                        };
                         context.set_stroke_style(&text.color.to_string().into());
                         context.set_line_width(line_width.into());
-                        context.set_font(&format!("{}px \"{}\"", text.size, &text.font));
+                        context.set_font(&format!("{}px \"{}\"", text.size, name));
                         context.set_text_align(match text.align {
                             TextAlign::Left => "left",
                             TextAlign::Center => "center",

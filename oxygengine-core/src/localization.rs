@@ -1,20 +1,27 @@
-#![allow(clippy::upper_case_acronyms)]
-use crate::assets::{
-    asset::AssetId, database::AssetsDatabase, protocols::localization::LocalizationAsset,
+use crate::{
+    app::AppBuilder,
+    assets::{
+        asset::AssetId, database::AssetsDatabase, protocols::localization::LocalizationAsset,
+    },
+    ecs::{
+        pipeline::{PipelineBuilder, PipelineBuilderError},
+        Universe,
+    },
 };
 use pest::{iterators::Pair, Parser};
-use specs::{ReadExpect, System, Write};
 use std::collections::HashMap;
 
-#[derive(Parser)]
-#[grammar = "localization.pest"]
-struct SentenceParser;
+#[allow(clippy::upper_case_acronyms)]
+mod parser {
+    #[derive(Parser)]
+    #[grammar = "localization.pest"]
+    pub(crate) struct SentenceParser;
+}
 
 #[derive(Default)]
 pub struct Localization {
     default_language: Option<String>,
     current_language: Option<String>,
-    // TODO: swap text id with language.
     /// { text id: { language: text format } }
     map: HashMap<String, HashMap<String, String>>,
 }
@@ -91,11 +98,11 @@ impl Localization {
 
     pub fn format_text(&self, id: &str, params: &[(&str, &str)]) -> Result<String, String> {
         if let Some(text_format) = self.find_text_format(id) {
-            match SentenceParser::parse(Rule::sentence, &text_format) {
+            match parser::SentenceParser::parse(parser::Rule::sentence, &text_format) {
                 Ok(mut ast) => {
                     let pair = ast.next().unwrap();
                     match pair.as_rule() {
-                        Rule::sentence => Ok(Self::parse_sentence_inner(pair, params)),
+                        parser::Rule::sentence => Ok(Self::parse_sentence_inner(pair, params)),
                         _ => unreachable!(),
                     }
                 }
@@ -106,12 +113,12 @@ impl Localization {
         }
     }
 
-    fn parse_sentence_inner(pair: Pair<Rule>, params: &[(&str, &str)]) -> String {
+    fn parse_sentence_inner(pair: Pair<parser::Rule>, params: &[(&str, &str)]) -> String {
         let mut result = String::new();
         for p in pair.into_inner() {
             match p.as_rule() {
-                Rule::text => result.push_str(&p.as_str().replace("\\|", "|")),
-                Rule::identifier => {
+                parser::Rule::text => result.push_str(&p.as_str().replace("\\|", "|")),
+                parser::Rule::identifier => {
                     let ident = p.as_str();
                     if let Some((_, v)) = params.iter().find(|(id, _)| id == &ident) {
                         result.push_str(v);
@@ -128,37 +135,63 @@ impl Localization {
 
 #[macro_export]
 macro_rules! localization_format_text {
-    ($res:expr, $text:expr, $( $id:expr => $value:expr ),*) => {
-        $crate::localization::Localization::format_text(&$res, $text, &[ $( ($id, &$value.to_string()) ),* ])
+    ($res:expr, $text:expr, $( $id:ident => $value:expr ),*) => {
+        $crate::localization::Localization::format_text(
+            &$res,
+            $text,
+            &[ $( (stringify!($id), &$value.to_string()) ),* ]
+        )
     }
 }
 
 #[derive(Default)]
-pub struct LocalizationSystem {
+pub struct LocalizationSystemCache {
     language_table: HashMap<AssetId, String>,
 }
 
-impl<'s> System<'s> for LocalizationSystem {
-    type SystemData = (ReadExpect<'s, AssetsDatabase>, Write<'s, Localization>);
+pub type LocalizationSystemResources<'a> = (
+    &'a AssetsDatabase,
+    &'a mut Localization,
+    &'a mut LocalizationSystemCache,
+);
 
-    fn run(&mut self, (assets, mut localization): Self::SystemData) {
-        for id in assets.lately_loaded_protocol("locals") {
-            let id = *id;
-            let asset = assets
-                .asset_by_id(id)
-                .expect("trying to use not loaded localization asset");
-            let asset = asset
-                .get::<LocalizationAsset>()
-                .expect("trying to use non-localization asset");
-            for (k, v) in &asset.dictionary {
-                localization.add_text(k, &asset.language, v);
-            }
-            self.language_table.insert(id, asset.language.clone());
+pub fn localization_system(universe: &mut Universe) {
+    let (assets, mut localization, mut cache) =
+        universe.query_resources::<LocalizationSystemResources>();
+
+    for id in assets.lately_loaded_protocol("locals") {
+        let id = *id;
+        let asset = assets
+            .asset_by_id(id)
+            .expect("trying to use not loaded localization asset");
+        let asset = asset
+            .get::<LocalizationAsset>()
+            .expect("trying to use non-localization asset");
+        for (k, v) in &asset.dictionary {
+            localization.add_text(k, &asset.language, v);
         }
-        for id in assets.lately_unloaded_protocol("locals") {
-            if let Some(name) = self.language_table.remove(id) {
-                localization.remove_language(&name);
-            }
+        cache.language_table.insert(id, asset.language.clone());
+    }
+    for id in assets.lately_unloaded_protocol("locals") {
+        if let Some(name) = cache.language_table.remove(id) {
+            localization.remove_language(&name);
         }
     }
+}
+
+pub fn bundle_installer<PB, PMS>(
+    builder: &mut AppBuilder<PB>,
+    _: (),
+) -> Result<(), PipelineBuilderError>
+where
+    PB: PipelineBuilder,
+{
+    builder.install_resource(Localization::default());
+    builder.install_resource(LocalizationSystemCache::default());
+    builder.install_system::<LocalizationSystemResources>(
+        "localization",
+        localization_system,
+        &[],
+    )?;
+    Ok(())
 }

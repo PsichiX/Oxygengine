@@ -127,7 +127,7 @@ async fn main() -> Result<()> {
                         } else {
                             ProjectMeta::default()
                         };
-                        Some((root_path, project_meta))
+                        Some((root_path.into(), project_meta))
                     } else {
                         None
                     }

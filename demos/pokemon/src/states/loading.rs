@@ -7,19 +7,15 @@ pub struct LoadingState {
 }
 
 impl State for LoadingState {
-    fn on_process(&mut self, world: &mut World) -> StateChange {
-        let assets = &mut world.write_resource::<AssetsDatabase>();
+    fn on_process(&mut self, universe: &mut Universe) -> StateChange {
+        let mut assets = universe.expect_resource_mut::<AssetsDatabase>();
         if let Some(preloader) = &mut self.preloader {
-            if preloader.process(assets).unwrap() {
-                // let input = &world.read_resource::<InputController>();
-                // NOTE: web browsers require user input to be triggered before playing any audio.
-                // if input.trigger_or_default("mouse-left") == TriggerState::Pressed {
+            if preloader.process(&mut assets).unwrap() {
                 return StateChange::Swap(Box::new(GameState::default()));
-                // }
             }
         } else {
             self.preloader = Some(
-                AssetPackPreloader::new("assets.pack", assets, vec!["set://assets.txt"])
+                AssetPackPreloader::new("assets.pack", &mut assets, vec!["set://assets.txt"])
                     .expect("could not create asset pack preloader"),
             );
         }

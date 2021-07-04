@@ -1,121 +1,40 @@
-use crate::{
-    component::{UiImagePath, UiMargin},
-    math::{Mat2d, Rect, Vec2},
-};
-use core::{
-    ecs::{storage::UnprotectedStorage, world::Index, BitSet, DenseVecStorage, Entity, Join},
-    Ignite, Scalar,
-};
-use serde::{Deserialize, Serialize};
-use std::{borrow::Cow, collections::HashMap};
+use crate::math::{Mat2d, Rect, Vec2};
+use core::ecs::Entity;
+use std::collections::HashMap;
 
-#[derive(Default)]
-pub struct CompositeTransformRes {
-    mask: BitSet,
-    inner: DenseVecStorage<Mat2d>,
-    inner_inverse: DenseVecStorage<Mat2d>,
+#[derive(Debug, Default)]
+pub struct CompositeTransformCache {
+    matrix: HashMap<Entity, Mat2d>,
+    matrix_inverse: HashMap<Entity, Mat2d>,
 }
 
-impl CompositeTransformRes {
-    pub fn new() -> Self {
-        Self::default()
+impl CompositeTransformCache {
+    pub fn matrix(&self, entity: Entity) -> Option<Mat2d> {
+        self.matrix.get(&entity).copied()
     }
 
-    pub fn read(&self) -> CompositeTransformJoinable {
-        CompositeTransformJoinable {
-            mask: &self.mask,
-            storage: &self.inner,
-        }
+    pub fn inverse_matrix(&self, entity: Entity) -> Option<Mat2d> {
+        self.matrix_inverse.get(&entity).copied()
     }
 
-    pub fn write(&mut self) -> CompositeTransformJoinableMut {
-        CompositeTransformJoinableMut {
-            mask: &self.mask,
-            storage: &mut self.inner,
-        }
+    pub fn insert(&mut self, entity: Entity, matrix: Mat2d) {
+        self.matrix.insert(entity, matrix);
+        self.matrix_inverse
+            .insert(entity, (!matrix).unwrap_or_default());
     }
 
-    pub fn read_inverse(&self) -> CompositeTransformJoinable {
-        CompositeTransformJoinable {
-            mask: &self.mask,
-            storage: &self.inner_inverse,
-        }
+    pub fn remove(&mut self, entity: Entity) {
+        self.matrix.remove(&entity);
+        self.matrix_inverse.remove(&entity);
     }
 
-    pub fn write_inverse(&mut self) -> CompositeTransformJoinableMut {
-        CompositeTransformJoinableMut {
-            mask: &self.mask,
-            storage: &mut self.inner_inverse,
-        }
-    }
-
-    pub(crate) fn add(&mut self, entity: Entity, matrix: Mat2d) {
-        let id = entity.id();
-        if self.mask.contains(id) {
-            unsafe {
-                *self.inner.get_mut(id) = matrix;
-                *self.inner_inverse.get_mut(id) = (!matrix).unwrap_or_default();
-            }
-        } else {
-            unsafe {
-                self.inner.insert(id, matrix);
-                self.inner_inverse.insert(id, (!matrix).unwrap_or_default());
-            }
-            self.mask.add(entity.id());
-        }
-    }
-
-    pub(crate) fn clear(&mut self) {
-        for id in &self.mask {
-            unsafe {
-                self.inner.remove(id);
-                self.inner_inverse.remove(id);
-            }
-        }
-        self.mask.clear();
+    pub fn clear(&mut self) {
+        self.matrix.clear();
+        self.matrix_inverse.clear();
     }
 }
 
-pub struct CompositeTransformJoinableMut<'a> {
-    mask: &'a BitSet,
-    storage: &'a mut DenseVecStorage<Mat2d>,
-}
-
-impl<'a> Join for CompositeTransformJoinableMut<'a> {
-    type Mask = &'a BitSet;
-    type Type = &'a mut Mat2d;
-    type Value = &'a mut DenseVecStorage<Mat2d>;
-
-    unsafe fn open(self) -> (Self::Mask, Self::Value) {
-        (self.mask, self.storage)
-    }
-
-    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
-        let value: *mut Self::Value = value as *mut Self::Value;
-        (*value).get_mut(id)
-    }
-}
-
-pub struct CompositeTransformJoinable<'a> {
-    mask: &'a BitSet,
-    storage: &'a DenseVecStorage<Mat2d>,
-}
-
-impl<'a> Join for CompositeTransformJoinable<'a> {
-    type Mask = &'a BitSet;
-    type Type = &'a Mat2d;
-    type Value = &'a DenseVecStorage<Mat2d>;
-
-    unsafe fn open(self) -> (Self::Mask, Self::Value) {
-        (self.mask, self.storage)
-    }
-
-    unsafe fn get(value: &mut Self::Value, id: Index) -> Self::Type {
-        value.get(id)
-    }
-}
-
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct CompositeCameraCache {
     pub(crate) last_view_size: Vec2,
     pub(crate) world_transforms: HashMap<Entity, Mat2d>,
@@ -170,142 +89,4 @@ impl CompositeCameraCache {
         let p3 = *m * Vec2::new(0.0, self.last_view_size.y);
         Some(Vec2::new((p2 - p1).magnitude(), (p3 - p1).magnitude()))
     }
-}
-
-#[derive(Debug, Default)]
-pub struct CompositeUiInteractibles {
-    /// {name: screen rect}
-    pub(crate) bounding_boxes: HashMap<Cow<'static, str>, Rect>,
-}
-
-impl CompositeUiInteractibles {
-    pub fn names(&self) -> impl Iterator<Item = &str> {
-        self.bounding_boxes.keys().map(|key| key.as_ref())
-    }
-
-    pub fn find_rect(&self, name: &str) -> Option<Rect> {
-        self.bounding_boxes.get(name).copied()
-    }
-
-    pub fn does_rect_contains_point(&self, name: &str, point: Vec2) -> bool {
-        if let Some(rect) = self.bounding_boxes.get(name) {
-            rect.contains_point(point)
-        } else {
-            false
-        }
-    }
-}
-
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
-pub enum UiValue {
-    Value(Scalar),
-    State(Cow<'static, str>),
-    // (state name, source lower, source upper, target lower, target upper)
-    MapState(Cow<'static, str>, Scalar, Scalar, Scalar, Scalar),
-}
-
-impl Default for UiValue {
-    fn default() -> Self {
-        Self::Value(0.0)
-    }
-}
-
-impl From<Scalar> for UiValue {
-    fn from(value: Scalar) -> Self {
-        Self::Value(value)
-    }
-}
-
-impl From<&str> for UiValue {
-    fn from(value: &str) -> Self {
-        Self::State(value.to_owned().into())
-    }
-}
-
-impl From<(&str, Scalar, Scalar)> for UiValue {
-    fn from(value: (&str, Scalar, Scalar)) -> Self {
-        Self::MapState(value.0.to_owned().into(), 0.0, 1.0, value.1, value.2)
-    }
-}
-
-impl From<(&str, Scalar, Scalar, Scalar, Scalar)> for UiValue {
-    fn from(value: (&str, Scalar, Scalar, Scalar, Scalar)) -> Self {
-        Self::MapState(
-            value.0.to_owned().into(),
-            value.1,
-            value.2,
-            value.3,
-            value.4,
-        )
-    }
-}
-
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
-pub struct UiValueVec2 {
-    pub x: UiValue,
-    pub y: UiValue,
-}
-
-impl UiValueVec2 {
-    pub fn new(x: UiValue, y: UiValue) -> Self {
-        Self { x, y }
-    }
-}
-
-impl Default for UiValueVec2 {
-    fn default() -> Self {
-        Self::new(0.0.into(), 0.0.into())
-    }
-}
-
-impl From<(UiValue, UiValue)> for UiValueVec2 {
-    fn from((x, y): (UiValue, UiValue)) -> Self {
-        Self::new(x, y)
-    }
-}
-
-impl From<[UiValue; 2]> for UiValueVec2 {
-    fn from([x, y]: [UiValue; 2]) -> Self {
-        Self::new(x, y)
-    }
-}
-
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
-pub enum UiThemed {
-    None,
-    Image {
-        #[serde(default)]
-        source_rect: Rect,
-        #[serde(default)]
-        image_margin: UiMargin,
-        #[serde(default)]
-        image_path: UiImagePath,
-        #[serde(default = "UiThemed::default_alpha")]
-        alpha: UiValue,
-    },
-    Text {
-        #[serde(default)]
-        font_name: Cow<'static, str>,
-        #[serde(default)]
-        font_size: UiValue,
-        #[serde(default = "UiThemed::default_alpha")]
-        alpha: UiValue,
-    },
-}
-
-impl Default for UiThemed {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
-impl UiThemed {
-    fn default_alpha() -> UiValue {
-        UiValue::Value(1.0)
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct CompositeUiThemes {
-    pub themes: HashMap<Cow<'static, str>, UiThemed>,
 }

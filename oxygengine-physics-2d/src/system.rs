@@ -1,122 +1,74 @@
-#![allow(clippy::type_complexity)]
-
 use crate::{
     component::{Collider2d, Collider2dBody, Collider2dInner, RigidBody2d, RigidBody2dInner},
     resource::Physics2dWorld,
 };
 use core::{
     app::AppLifeCycle,
-    ecs::{
-        storage::ComponentEvent, Entities, Entity, Join, ReadExpect, ReadStorage, ReaderId, System,
-        World, Write, WriteStorage,
-    },
+    ecs::{life_cycle::EntityChanges, Comp, Entity, Universe, WorldRef},
 };
 use nphysics2d::object::{BodyPartHandle, DefaultBodyHandle, DefaultColliderHandle};
 use std::collections::HashMap;
 
 #[derive(Debug, Default)]
-pub struct Physics2dSystem {
+pub struct Physics2dSystemCache {
     cached_bodies: HashMap<Entity, DefaultBodyHandle>,
     cached_colliders: HashMap<Entity, DefaultColliderHandle>,
-    bodies_reader_id: Option<ReaderId<ComponentEvent>>,
-    colliders_reader_id: Option<ReaderId<ComponentEvent>>,
 }
 
-impl<'s> System<'s> for Physics2dSystem {
-    type SystemData = (
-        Entities<'s>,
-        ReadExpect<'s, AppLifeCycle>,
-        Option<Write<'s, Physics2dWorld>>,
-        WriteStorage<'s, RigidBody2d>,
-        WriteStorage<'s, Collider2d>,
-        ReadStorage<'s, Collider2dBody>,
-    );
+pub type Physics2dSystemResources<'a> = (
+    WorldRef,
+    &'a EntityChanges,
+    &'a AppLifeCycle,
+    &'a mut Physics2dWorld,
+    &'a mut Physics2dSystemCache,
+    Comp<&'a mut RigidBody2d>,
+    Comp<&'a mut Collider2d>,
+    Comp<&'a Collider2dBody>,
+);
 
-    fn setup(&mut self, world: &mut World) {
-        use core::ecs::SystemData;
-        Self::SystemData::setup(world);
-        self.bodies_reader_id = Some(WriteStorage::<RigidBody2d>::fetch(&world).register_reader());
-        self.colliders_reader_id =
-            Some(WriteStorage::<Collider2d>::fetch(&world).register_reader());
+pub fn physics_2d_system(universe: &mut Universe) {
+    let (world, changes, lifecycle, mut physics, mut cache, ..) =
+        universe.query_resources::<Physics2dSystemResources>();
+
+    for entity in changes.despawned() {
+        if let Some(handle) = cache.cached_bodies.remove(&entity) {
+            physics.destroy_body(handle);
+        }
+        if let Some(handle) = cache.cached_colliders.remove(&entity) {
+            physics.destroy_collider(handle);
+        }
     }
 
-    fn run(
-        &mut self,
-        (entities, lifecycle, world, mut bodies, mut colliders, colliders_body): Self::SystemData,
-    ) {
-        if world.is_none() {
-            return;
+    for (entity, body) in world.query::<&mut RigidBody2d>().iter() {
+        if !body.is_created() {
+            let b = body.take_description().unwrap().build();
+            let h = physics.insert_body(b);
+            body.0 = RigidBody2dInner::Handle(h);
+            cache.cached_bodies.insert(entity, h);
         }
-
-        let world: &mut Physics2dWorld = &mut world.unwrap();
-
-        let events = bodies
-            .channel()
-            .read(self.bodies_reader_id.as_mut().unwrap());
-        for event in events {
-            if let ComponentEvent::Removed(index) = event {
-                let found = self.cached_bodies.iter().find_map(|(entity, handle)| {
-                    if entity.id() == *index {
-                        Some((*entity, *handle))
-                    } else {
-                        None
-                    }
-                });
-                if let Some((entity, handle)) = found {
-                    self.cached_bodies.remove(&entity);
-                    world.destroy_body(handle);
-                }
-            }
-        }
-
-        let events = colliders
-            .channel()
-            .read(self.colliders_reader_id.as_mut().unwrap());
-        for event in events {
-            if let ComponentEvent::Removed(index) = event {
-                let found = self.cached_colliders.iter().find_map(|(entity, handle)| {
-                    if entity.id() == *index {
-                        Some((*entity, *handle))
-                    } else {
-                        None
-                    }
-                });
-                if let Some((entity, handle)) = found {
-                    self.cached_colliders.remove(&entity);
-                    world.destroy_collider(handle);
-                }
-            }
-        }
-
-        for (entity, body) in (&entities, &mut bodies).join() {
-            if !body.is_created() {
-                let b = body.take_description().unwrap().build();
-                let h = world.insert_body(b);
-                body.0 = RigidBody2dInner::Handle(h);
-                self.cached_bodies.insert(entity, h);
-            }
-        }
-        for (entity, collider, collider_body) in (&entities, &mut colliders, &colliders_body).join()
-        {
-            if !collider.is_created() {
-                let e = match collider_body {
-                    Collider2dBody::Me => entity,
-                    Collider2dBody::Entity(e) => *e,
-                };
-                if let Some(body) = bodies.get(e) {
-                    if let Some(h) = body.handle() {
-                        let c = collider
-                            .take_description()
-                            .unwrap()
-                            .build(BodyPartHandle(h, 0));
-                        let h = world.insert_collider(c, entity);
-                        collider.0 = Collider2dInner::Handle(h);
-                        self.cached_colliders.insert(entity, h);
-                    }
-                }
-            }
-        }
-
-        world.process(lifecycle.delta_time_seconds());
     }
+
+    for (entity, (collider, collider_body)) in
+        world.query::<(&mut Collider2d, &Collider2dBody)>().iter()
+    {
+        if !collider.is_created() {
+            let other = match collider_body {
+                Collider2dBody::Me => entity,
+                Collider2dBody::Entity(other) => *other,
+            };
+            if let Ok(body) = unsafe { world.get_unchecked::<RigidBody2d>(other) } {
+                if let Some(h) = body.handle() {
+                    let c = collider
+                        .take_description()
+                        .unwrap()
+                        .build(BodyPartHandle(h, 0));
+                    let h = physics.insert_collider(c, entity);
+                    collider.0 = Collider2dInner::Handle(h);
+                    cache.cached_colliders.insert(entity, h);
+                }
+            }
+        }
+    }
+
+    physics.process(lifecycle.delta_time_seconds());
 }

@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-backend-web"
-version = "0.19.2"
+version = "0.20.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Web backend module for Oxygen Engine"
@@ -15,7 +15,6 @@ default = ["web"]
 web = ["oxygengine-core/web"]
 parallel = ["oxygengine-core/parallel"]
 scalar64 = ["oxygengine-core/scalar64"]
-ipc = ["web"]
 profiler = ["oxygengine-core/web"]
 
 [dependencies]
@@ -23,7 +22,7 @@ wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
 futures = "0.3"
-oxygengine-core = { version = "0.19", path = "../oxygengine-core" }
+oxygengine-core = { version = "0.20", path = "../oxygengine-core" }
 
 [dependencies.web-sys]
 version = "0.3"

@@ -1,6 +1,6 @@
 use raui_core::{
     application::Application, interactive::default_interactions_engine::DefaultInteractionsEngine,
-    layout::CoordsMapping,
+    layout::CoordsMapping, signals::Signal,
 };
 use std::collections::HashMap;
 
@@ -9,10 +9,17 @@ pub struct ApplicationData {
     pub application: Application,
     pub interactions: DefaultInteractionsEngine,
     pub coords_mapping: CoordsMapping,
+    pub(crate) signals_received: Vec<Signal>,
+}
+
+impl ApplicationData {
+    pub fn signals_received(&self) -> &[Signal] {
+        &self.signals_received
+    }
 }
 
 #[derive(Default)]
-pub struct UserInterfaceRes {
+pub struct UserInterface {
     pub(crate) data: HashMap<String, ApplicationData>,
     pub(crate) setup: Option<fn(&mut Application)>,
     pub(crate) last_frame_captured: bool,
@@ -36,7 +43,7 @@ pub struct UserInterfaceRes {
     pub text_delete_right: String,
 }
 
-impl UserInterfaceRes {
+impl UserInterface {
     pub fn new(f: fn(&mut Application)) -> Self {
         Self {
             data: Default::default(),
@@ -165,6 +172,20 @@ impl UserInterfaceRes {
         self.data
             .get_mut(app_id)
             .map(|item| &mut item.coords_mapping)
+    }
+
+    #[inline]
+    pub fn signals_received(&self, app_id: &str) -> Option<&[Signal]> {
+        self.data.get(app_id).map(|item| item.signals_received())
+    }
+
+    #[inline]
+    pub fn all_signals_received(&self) -> impl Iterator<Item = (&str, &Signal)> {
+        self.data.iter().flat_map(|(id, item)| {
+            item.signals_received()
+                .iter()
+                .map(move |signal| (id.as_str(), signal))
+        })
     }
 
     pub fn has_layout_widget(&self, app_id: &str, id: &str) -> bool {

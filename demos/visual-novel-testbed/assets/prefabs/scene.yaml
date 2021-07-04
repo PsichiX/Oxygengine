@@ -1,0 +1,66 @@
+template_name: scene
+entities:
+  - Data:
+      components:
+        Name: camera_ui
+        CompositeCamera:
+          tags:
+            - ui
+        CompositeTransform: {}
+        NonPersistent: ~
+  - Data:
+      components:
+        Tag: ui
+        CompositeRenderable: None
+        CompositeTransform: {}
+        UserInterfaceView:
+          root:
+            Component:
+              type_name: visual_novel_gui
+              key: gui
+              shared_props:
+                data:
+                  VisualNovelStoryUsed: vn/story.yaml
+                  VisualNovelDialogueCharacterLayout:
+                    anchors:
+                      left: 0
+                      right: 0
+                      top: 0
+                      bottom: 0
+                    margin:
+                      left: 125
+                      right: -300
+                      top: 62
+                      bottom: -118
+                  VisualNovelDialogueOptionsList:
+                    separation: 12
+                  VisualNovelDialogueOptionsLayout:
+                    anchors:
+                      left: 0.2
+                      right: 0.8
+                      top: 0
+                      bottom: 0.7
+                    align:
+                      x: 0
+                      y: 1
+                  VisualNovelDialogueMessageThemed:
+                    use_main_color: true
+                    margin:
+                      left: 100
+                      right: 100
+                      top: 80
+                      bottom: 80
+                  VisualNovelDialogueCharacterThemed:
+                    use_main_color: true
+                  VisualNovelDialogueOptionThemed:
+                    use_main_color: true
+          theme: ui/theme.yaml
+          capture_input: true
+          deselect_when_no_button_found: true
+        UserInterfaceViewSyncCompositeRenderable:
+          camera_name: camera_ui
+          mapping_scaling:
+            FitVertical: 1024
+          approx_rect_values: Round
+        VisualNovelSyncUserInterface: vn/story.yaml
+        NonPersistent: ~

@@ -10,11 +10,19 @@ pub mod prelude {
 }
 
 use crate::{
-    component::NavAgent,
-    resource::NavMeshesRes,
-    system::{NavAgentMaintainSystem, SimpleNavDriverSystem},
+    component::{NavAgent, SimpleNavDriverTag},
+    resource::NavMeshes,
+    system::{
+        nav_agent_maintain_system, simple_nav_driver_system, NavAgentMaintainSystemResources,
+        SimpleNavDriverSystemResources,
+    },
 };
-use core::{app::AppBuilder, ignite_proxy, prefab::PrefabManager};
+use core::{
+    app::AppBuilder,
+    ecs::pipeline::{PipelineBuilder, PipelineBuilderError},
+    ignite_proxy,
+    prefab::PrefabManager,
+};
 
 ignite_proxy! {
     struct NavAgentId {}
@@ -36,16 +44,25 @@ ignite_proxy! {
     }
 }
 
-pub fn bundle_installer(builder: &mut AppBuilder) {
-    builder.install_resource(NavMeshesRes::default());
-    builder.install_system(NavAgentMaintainSystem::default(), "nav-agent-maintain", &[]);
-    builder.install_system(
-        SimpleNavDriverSystem,
+pub fn bundle_installer<PB>(builder: &mut AppBuilder<PB>, _: ()) -> Result<(), PipelineBuilderError>
+where
+    PB: PipelineBuilder,
+{
+    builder.install_resource(NavMeshes::default());
+    builder.install_system::<NavAgentMaintainSystemResources>(
+        "nav-agent-maintain",
+        nav_agent_maintain_system,
+        &[],
+    )?;
+    builder.install_system::<SimpleNavDriverSystemResources>(
         "simple-nav-driver",
+        simple_nav_driver_system,
         &["nav-agent-maintain"],
-    );
+    )?;
+    Ok(())
 }
 
 pub fn prefabs_installer(prefabs: &mut PrefabManager) {
+    prefabs.register_component_factory::<SimpleNavDriverTag>("NavAgent");
     prefabs.register_component_factory::<NavAgent>("NavAgent");
 }

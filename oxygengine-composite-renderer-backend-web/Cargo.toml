@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-composite-renderer-backend-web"
-version = "0.19.2"
+version = "0.20.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Composite renderer Web backend module for Oxygen Engine"
@@ -18,8 +18,8 @@ scalar64 = ["oxygengine-core/scalar64", "oxygengine-composite-renderer/scalar64"
 [dependencies]
 wasm-bindgen = "0.2"
 js-sys = "0.3"
-oxygengine-core = { version = "0.19", path = "../oxygengine-core" }
-oxygengine-composite-renderer = { version = "0.19", path = "../oxygengine-composite-renderer" }
+oxygengine-core = { version = "0.20", path = "../oxygengine-core" }
+oxygengine-composite-renderer = { version = "0.20", path = "../oxygengine-composite-renderer" }
 
 [dependencies.web-sys]
 version = "0.3"
@@ -36,4 +36,5 @@ features = [
   'FontFace',
   'FontFaceDescriptors',
   'FontFaceSet',
+  'Event',
 ]

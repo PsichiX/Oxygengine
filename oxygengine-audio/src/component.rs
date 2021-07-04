@@ -1,5 +1,5 @@
 use core::{
-    ecs::{Component, Entity, FlaggedStorage, VecStorage},
+    ecs::Entity,
     prefab::{Prefab, PrefabError, PrefabProxy},
     state::StateToken,
     Ignite, Scalar,
@@ -293,10 +293,6 @@ impl AudioSource {
     pub fn is_ready(&self) -> bool {
         self.ready.load(Ordering::Relaxed)
     }
-}
-
-impl Component for AudioSource {
-    type Storage = FlaggedStorage<Self, VecStorage<Self>>;
 }
 
 pub type AudioSourcePrefabProxy = AudioSourceConfig;

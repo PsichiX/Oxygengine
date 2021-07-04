@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-user-interface"
-version = "0.19.2"
+version = "0.20.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "User Interface module for Oxygen Engine"
@@ -21,13 +21,14 @@ parallel = [
 ]
 scalar64 = [
   "raui-core/scalar64",
+  "raui-material/scalar64",
   "oxygengine-core/scalar64",
   "oxygengine-input/scalar64",
 ]
 
 [dependencies]
-oxygengine-core = { version = "0.19", path = "../oxygengine-core" }
-oxygengine-input = { version = "0.19", path = "../oxygengine-input" }
-raui-core = "0.37"
-raui-material = "0.37"
+oxygengine-core = { version = "0.20", path = "../oxygengine-core" }
+oxygengine-input = { version = "0.20", path = "../oxygengine-input" }
+raui-core = "0.38"
+raui-material = "0.38"
 serde = { version = "1", features = ["derive"] }

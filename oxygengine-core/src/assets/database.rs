@@ -437,11 +437,14 @@ impl AssetsDatabase {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::assets::protocols::prelude::*;
+    use crate::assets::protocols::{
+        set::{SetAsset, SetAssetProtocol},
+        text::{TextAsset, TextAssetProtocol},
+    };
     use crate::fetch::*;
 
     #[test]
-    fn test_general() {
+    fn test_database() {
         let mut fetch_engine = engines::map::MapFetchEngine::default();
         fetch_engine.map.insert(
             "assets.txt".to_owned(),

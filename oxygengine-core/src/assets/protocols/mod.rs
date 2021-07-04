@@ -5,7 +5,3 @@ pub mod prefab;
 pub mod set;
 pub mod text;
 pub mod yaml;
-
-pub mod prelude {
-    pub use super::{binary::*, localization::*, pack::*, prefab::*, set::*, text::*, yaml::*};
-}

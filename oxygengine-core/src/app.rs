@@ -1,23 +1,24 @@
 use crate::{
-    hierarchy::{HierarchyChangeRes, Name, NonPersistent, Parent, Tag},
-    state::{State, StateChange, StateToken},
+    ecs::{
+        hierarchy::{hierarchy_system, Hierarchy, HierarchySystemResources},
+        life_cycle::{entity_life_cycle_system, EntityChanges, EntityLifeCycleSystemResources},
+        pipeline::{PipelineBuilder, PipelineBuilderError, PipelineEngine, PipelineLayer},
+        AccessType, Multiverse, System,
+    },
+    state::{State, StateToken},
     Scalar,
 };
-use specs::{
-    world::{EntitiesRes, WorldExt},
-    Component, Dispatcher, DispatcherBuilder, Join, RunNow, System, World,
-};
-use specs_hierarchy::HierarchySystem;
 use std::{
+    any::{Any, TypeId},
     cell::RefCell,
-    collections::HashSet,
-    mem::take,
+    collections::HashMap,
     rc::Rc,
     time::{Duration, Instant},
 };
 
 pub trait AppTimer: Send + Sync {
     fn tick(&mut self);
+    fn now_since_start(&self) -> Duration;
     fn delta_time(&self) -> Duration;
     fn delta_time_seconds(&self) -> Scalar;
 }
@@ -41,13 +42,16 @@ impl Default for StandardAppTimer {
 impl AppTimer for StandardAppTimer {
     fn tick(&mut self) {
         let d = self.timer.elapsed();
-        self.timer = Instant::now();
         self.delta_time = d;
         #[cfg(feature = "scalar64")]
         let secs = d.as_secs_f64();
         #[cfg(not(feature = "scalar64"))]
         let secs = d.as_secs_f32();
         self.delta_time_seconds = secs + d.subsec_nanos() as Scalar * 1e-9;
+    }
+
+    fn now_since_start(&self) -> Duration {
+        self.timer.elapsed()
     }
 
     fn delta_time(&self) -> Duration {
@@ -74,6 +78,10 @@ impl AppLifeCycle {
         }
     }
 
+    pub fn now_since_start(&self) -> Duration {
+        self.timer.now_since_start()
+    }
+
     pub fn delta_time(&self) -> Duration {
         self.timer.delta_time()
     }
@@ -91,12 +99,12 @@ impl AppLifeCycle {
     }
 }
 
-pub struct AppRunner<'a, 'b> {
-    pub app: Rc<RefCell<App<'a, 'b>>>,
+pub struct AppRunner {
+    pub app: Rc<RefCell<App>>,
 }
 
-impl<'a, 'b> AppRunner<'a, 'b> {
-    pub fn new(app: App<'a, 'b>) -> Self {
+impl AppRunner {
+    pub fn new(app: App) -> Self {
         Self {
             app: Rc::new(RefCell::new(app)),
         }
@@ -104,14 +112,14 @@ impl<'a, 'b> AppRunner<'a, 'b> {
 
     pub fn run<BAR, E>(&mut self, mut backend_app_runner: BAR) -> Result<(), E>
     where
-        BAR: BackendAppRunner<'a, 'b, E>,
+        BAR: BackendAppRunner<E>,
     {
         backend_app_runner.run(self.app.clone())
     }
 }
 
-pub trait BackendAppRunner<'a, 'b, E> {
-    fn run(&mut self, app: Rc<RefCell<App<'a, 'b>>>) -> Result<(), E>;
+pub trait BackendAppRunner<E> {
+    fn run(&mut self, app: Rc<RefCell<App>>) -> Result<(), E>;
 }
 
 #[derive(Default)]
@@ -131,9 +139,9 @@ impl SyncAppRunner {
     }
 }
 
-impl<'a, 'b> BackendAppRunner<'a, 'b, ()> for SyncAppRunner {
-    fn run(&mut self, app: Rc<RefCell<App<'a, 'b>>>) -> Result<(), ()> {
-        while app.borrow().world().read_resource::<AppLifeCycle>().running {
+impl BackendAppRunner<()> for SyncAppRunner {
+    fn run(&mut self, app: Rc<RefCell<App>>) -> Result<(), ()> {
+        while app.borrow().multiverse.is_running() {
             app.borrow_mut().process();
             if let Some(sleep_time) = self.sleep_time {
                 std::thread::sleep(sleep_time);
@@ -143,300 +151,269 @@ impl<'a, 'b> BackendAppRunner<'a, 'b, ()> for SyncAppRunner {
     }
 }
 
-pub struct App<'a, 'b> {
-    world: World,
-    states: Vec<Box<dyn State>>,
-    dispatcher: Dispatcher<'a, 'b>,
-    setup: bool,
+pub struct App {
+    pub multiverse: Multiverse,
 }
 
-impl<'a, 'b> App<'a, 'b> {
+impl App {
     #[inline]
-    pub fn build() -> AppBuilder<'a, 'b> {
-        AppBuilder::default()
-    }
-
-    #[inline]
-    pub fn world(&self) -> &World {
-        &self.world
-    }
-
-    #[inline]
-    pub fn world_mut(&mut self) -> &mut World {
-        &mut self.world
+    pub fn build<PB>() -> AppBuilder<PB>
+    where
+        PB: PipelineBuilder + Default,
+    {
+        AppBuilder::<PB>::default()
     }
 
     #[inline]
     pub fn process(&mut self) {
-        if self.states.is_empty() {
-            self.world.write_resource::<AppLifeCycle>().running = false;
-            return;
-        }
-        if self.setup {
-            self.states.last_mut().unwrap().on_enter(&mut self.world);
-            self.setup = false;
-        }
-        let count = self.states.len() - 1;
-        for state in self.states.iter_mut().take(count) {
-            state.on_process_background(&mut self.world);
-        }
-        let change = self.states.last_mut().unwrap().on_process(&mut self.world);
-        self.dispatcher.dispatch(&self.world);
-        match &change {
-            StateChange::Pop | StateChange::Swap(_) => {
-                let token = {
-                    self.world
-                        .read_resource::<AppLifeCycle>()
-                        .current_state_token()
-                };
-                let to_delete = {
-                    let entities = self.world.read_resource::<EntitiesRes>();
-                    let non_persistents = self.world.read_storage::<NonPersistent>();
-                    (&entities, &non_persistents)
-                        .join()
-                        .filter_map(
-                            |(entity, pers)| if pers.0 == token { Some(entity) } else { None },
-                        )
-                        .collect::<Vec<_>>()
-                };
-                for entity in to_delete {
-                    drop(self.world.delete_entity(entity));
-                }
-            }
-            StateChange::Quit => {
-                let to_delete = {
-                    let entities = self.world.read_resource::<EntitiesRes>();
-                    let non_persistents = self.world.read_storage::<NonPersistent>();
-                    (&entities, &non_persistents)
-                        .join()
-                        .map(|(entity, _)| entity)
-                        .collect::<Vec<_>>()
-                };
-                for entity in to_delete {
-                    drop(self.world.delete_entity(entity));
-                }
-            }
-            _ => {}
-        }
-        self.world.maintain();
-        {
-            let mut changes = take(&mut *self.world.write_resource::<HierarchyChangeRes>());
-            changes.added.clear();
-            changes.removed.clear();
-            let entities = self
-                .world
-                .read_resource::<EntitiesRes>()
-                .join()
-                .collect::<HashSet<_>>();
-            for entity in changes.entities.difference(&entities) {
-                changes.removed.push(*entity);
-            }
-            for entity in entities.difference(&changes.entities) {
-                changes.added.push(*entity);
-            }
-            changes.entities = entities;
-            *self.world.write_resource::<HierarchyChangeRes>() = changes;
-        }
-        match change {
-            StateChange::Push(mut state) => {
-                self.states.last_mut().unwrap().on_pause(&mut self.world);
-                self.world
-                    .write_resource::<AppLifeCycle>()
-                    .states_tokens
-                    .push(StateToken::new());
-                state.on_enter(&mut self.world);
-                self.states.push(state);
-            }
-            StateChange::Pop => {
-                self.states.pop().unwrap().on_exit(&mut self.world);
-                self.world
-                    .write_resource::<AppLifeCycle>()
-                    .states_tokens
-                    .pop();
-                if let Some(state) = self.states.last_mut() {
-                    state.on_resume(&mut self.world);
-                }
-            }
-            StateChange::Swap(mut state) => {
-                self.states.pop().unwrap().on_exit(&mut self.world);
-                {
-                    let lifecycle = &mut self.world.write_resource::<AppLifeCycle>();
-                    lifecycle.states_tokens.pop();
-                    lifecycle.states_tokens.push(StateToken::new());
-                }
-                state.on_enter(&mut self.world);
-                self.states.push(state);
-            }
-            StateChange::Quit => {
-                while let Some(mut state) = self.states.pop() {
-                    state.on_exit(&mut self.world);
-                    self.world
-                        .write_resource::<AppLifeCycle>()
-                        .states_tokens
-                        .pop();
-                }
-            }
-            _ => {}
-        }
-        {
-            let lifecycle = &mut self.world.write_resource::<AppLifeCycle>();
-            lifecycle.timer.tick();
-        }
+        self.multiverse.process();
     }
 }
 
-pub struct AppBuilder<'a, 'b> {
-    world: World,
-    dispatcher_builder: DispatcherBuilder<'a, 'b>,
+pub struct AppBuilder<PB>
+where
+    PB: PipelineBuilder,
+{
+    resources: HashMap<TypeId, Box<dyn Any + Send + Sync>>,
+    pipeline_builder: PB,
 }
 
-impl<'a, 'b> Default for AppBuilder<'a, 'b> {
+impl<PB> Default for AppBuilder<PB>
+where
+    PB: PipelineBuilder + Default,
+{
     fn default() -> Self {
-        Self::new()
+        Self::new(PB::default())
     }
 }
 
-impl<'a, 'b> AppBuilder<'a, 'b> {
+impl<PB> AppBuilder<PB>
+where
+    PB: PipelineBuilder,
+{
     #[inline]
-    pub fn new() -> Self {
-        let mut world = World::new();
+    pub fn new(pipeline_builder: PB) -> Self {
         Self {
-            dispatcher_builder: DispatcherBuilder::new().with(
-                HierarchySystem::<Parent>::new(&mut world),
-                "hierarchy",
-                &[],
-            ),
-            world,
+            resources: Default::default(),
+            pipeline_builder,
         }
+        .with_resource(EntityChanges::default())
+        .with_system_on_layer::<EntityLifeCycleSystemResources>(
+            "entity-life-cycle",
+            entity_life_cycle_system,
+            &[],
+            PipelineLayer::Pre,
+        )
+        .expect("Could not install entity-life-cycle system!")
+        .with_resource(Hierarchy::default())
+        .with_system_on_layer::<HierarchySystemResources>(
+            "hierarchy",
+            hierarchy_system,
+            &["entity-life-cycle"],
+            PipelineLayer::Pre,
+        )
+        .expect("Could not install hierarchy system!")
     }
 
     #[inline]
-    pub fn world_mut(&mut self) -> &mut World {
-        &mut self.world
+    pub fn pipeline_builder_mut(&mut self) -> &mut PB {
+        &mut self.pipeline_builder
     }
 
     #[inline]
-    pub fn with_bundle<ABI, D>(mut self, mut installer: ABI, data: D) -> Self
+    pub fn install_bundle<ABI, D>(
+        &mut self,
+        mut installer: ABI,
+        data: D,
+    ) -> Result<(), PipelineBuilderError>
     where
-        ABI: FnMut(&mut AppBuilder<'a, 'b>, D),
+        ABI: FnMut(&mut AppBuilder<PB>, D) -> Result<(), PipelineBuilderError>,
     {
-        installer(&mut self, data);
-        self
+        installer(self, data)?;
+        Ok(())
     }
 
     #[inline]
-    pub fn with_system<T>(mut self, system: T, name: &str, deps: &[&str]) -> Self
+    pub fn with_bundle<ABI, D>(
+        mut self,
+        installer: ABI,
+        data: D,
+    ) -> Result<Self, PipelineBuilderError>
     where
-        T: for<'c> System<'c> + Send + 'a,
+        ABI: FnMut(&mut AppBuilder<PB>, D) -> Result<(), PipelineBuilderError>,
     {
-        self.dispatcher_builder.add(system, name, deps);
-        self
-    }
-
-    #[inline]
-    pub fn with_thread_local_system<T>(mut self, system: T) -> Self
-    where
-        T: for<'c> RunNow<'c> + 'b,
-    {
-        self.dispatcher_builder.add_thread_local(system);
-        self
-    }
-
-    #[inline]
-    pub fn with_barrier(mut self) -> Self {
-        self.dispatcher_builder.add_barrier();
-        self
-    }
-
-    #[inline]
-    pub fn with_resource<T>(mut self, resource: T) -> Self
-    where
-        T: Send + Sync + 'static,
-    {
-        self.world.insert(resource);
-        self
-    }
-
-    #[inline]
-    pub fn with_component<T: Component>(mut self) -> Self
-    where
-        T::Storage: Default,
-    {
-        self.world.register::<T>();
-        self
-    }
-
-    #[inline]
-    pub fn install_bundle<ABI, D>(&mut self, mut installer: ABI, data: D)
-    where
-        ABI: FnMut(&mut AppBuilder<'a, 'b>, D),
-    {
-        installer(self, data);
-    }
-
-    #[inline]
-    pub fn install_system<T>(&mut self, system: T, name: &str, deps: &[&str])
-    where
-        T: for<'c> System<'c> + Send + 'a,
-    {
-        self.dispatcher_builder.add(system, name, deps);
-    }
-
-    #[inline]
-    pub fn install_thread_local_system<T>(&mut self, system: T)
-    where
-        T: for<'c> RunNow<'c> + 'b,
-    {
-        self.dispatcher_builder.add_thread_local(system);
-    }
-
-    #[inline]
-    pub fn install_barrier(&mut self) {
-        self.dispatcher_builder.add_barrier();
+        self.install_bundle(installer, data)?;
+        Ok(self)
     }
 
     #[inline]
     pub fn install_resource<T>(&mut self, resource: T)
     where
-        T: Send + Sync + 'static,
+        T: 'static + Send + Sync,
     {
-        self.world.insert(resource);
+        self.resources.insert(TypeId::of::<T>(), Box::new(resource));
     }
 
     #[inline]
-    pub fn install_component<T>(&mut self)
+    pub fn with_resource<T>(mut self, resource: T) -> Self
     where
-        T: Component,
-        T::Storage: Default,
+        T: 'static + Send + Sync,
     {
-        self.world.register::<T>();
+        self.install_resource(resource);
+        self
     }
 
-    pub fn build<S, AT>(mut self, state: S, app_timer: AT) -> App<'a, 'b>
+    #[inline]
+    pub fn install_system_on_layer<AT: AccessType>(
+        &mut self,
+        name: &str,
+        system: System,
+        dependencies: &[&str],
+        layer: PipelineLayer,
+    ) -> Result<(), PipelineBuilderError> {
+        self.pipeline_builder
+            .add_system_on_layer::<AT>(name, system, dependencies, layer)?;
+        Ok(())
+    }
+
+    #[inline]
+    pub fn install_system<AT: AccessType>(
+        &mut self,
+        name: &str,
+        system: System,
+        dependencies: &[&str],
+    ) -> Result<(), PipelineBuilderError> {
+        self.pipeline_builder
+            .add_system::<AT>(name, system, dependencies)?;
+        Ok(())
+    }
+
+    #[inline]
+    pub fn with_system_on_layer<AT: AccessType>(
+        mut self,
+        name: &str,
+        system: System,
+        dependencies: &[&str],
+        layer: PipelineLayer,
+    ) -> Result<Self, PipelineBuilderError> {
+        self.install_system_on_layer::<AT>(name, system, dependencies, layer)?;
+        Ok(self)
+    }
+
+    #[inline]
+    pub fn with_system<AT: AccessType>(
+        mut self,
+        name: &str,
+        system: System,
+        dependencies: &[&str],
+    ) -> Result<Self, PipelineBuilderError> {
+        self.install_system::<AT>(name, system, dependencies)?;
+        Ok(self)
+    }
+
+    #[inline]
+    pub fn build<P, S, AT>(self, state: S, app_timer: AT) -> App
     where
+        P: PipelineEngine + Send + Sync + Default + 'static,
         S: State + 'static,
         AT: AppTimer + 'static,
     {
-        self.world.insert(AppLifeCycle::new(Box::new(app_timer)));
-        self.world.insert(HierarchyChangeRes::default());
-        self.world.register::<Parent>();
-        self.world.register::<Name>();
-        self.world.register::<Tag>();
-        self.world.register::<NonPersistent>();
-        let mut dispatcher = self.dispatcher_builder.build();
-        dispatcher.setup(&mut self.world);
-        App {
-            world: self.world,
-            states: vec![Box::new(state)],
-            dispatcher,
-            setup: true,
-        }
+        self.build_with_engine(P::default(), state, app_timer)
     }
 
-    pub fn build_empty<AT>(self, app_timer: AT) -> App<'a, 'b>
+    pub fn build_with_engine<P, S, AT>(mut self, engine: P, state: S, app_timer: AT) -> App
     where
+        P: PipelineEngine + Send + Sync + 'static,
+        S: State + 'static,
         AT: AppTimer + 'static,
     {
-        self.build((), app_timer)
+        self.install_resource(AppLifeCycle::new(Box::new(app_timer)));
+        let mut multiverse =
+            Multiverse::new(self.pipeline_builder.build_with_engine(engine), state);
+        if let Some(universe) = multiverse.default_universe_mut() {
+            for (as_type, resource) in self.resources {
+                unsafe {
+                    universe.insert_resource_raw(as_type, resource);
+                }
+            }
+        }
+        App { multiverse }
+    }
+
+    #[inline]
+    pub fn build_empty<P, AT>(self, app_timer: AT) -> App
+    where
+        P: PipelineEngine + Send + Sync + Default + 'static,
+        AT: AppTimer + 'static,
+    {
+        self.build::<P, _, _>((), app_timer)
+    }
+
+    #[inline]
+    pub fn build_empty_with_engine<P, AT>(self, engine: P, app_timer: AT) -> App
+    where
+        P: PipelineEngine + Send + Sync + 'static,
+        AT: AppTimer + 'static,
+    {
+        self.build_with_engine::<P, _, _>(engine, (), app_timer)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ecs::{
+        pipeline::{engines::jobs::JobsPipelineEngine, ParallelPipelineBuilder},
+        Universe,
+    };
+
+    #[test]
+    fn test_app_builder() {
+        struct A;
+        struct B;
+        struct C;
+
+        fn system(_: &mut Universe) {
+            println!("******");
+        }
+
+        fn system_a(_: &mut Universe) {
+            println!("* Start System A");
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            println!("* Stop System A");
+        }
+
+        fn system_b(_: &mut Universe) {
+            println!("* Start System B");
+            std::thread::sleep(std::time::Duration::from_millis(150));
+            println!("* Stop System B");
+        }
+
+        fn system_c(_: &mut Universe) {
+            println!("* Start System C");
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            println!("* Stop System C");
+        }
+
+        let app = App::build::<ParallelPipelineBuilder>()
+            .with_system::<()>("", system, &[])
+            .unwrap()
+            .with_bundle(
+                |builder, _| {
+                    builder.install_resource(A);
+                    builder.install_resource(B);
+                    builder.install_system::<&mut A>("a", system_a, &[])?;
+                    builder.install_system::<&mut B>("b", system_b, &[])?;
+                    Ok(())
+                },
+                (),
+            )
+            .unwrap()
+            .with_system::<(&mut C, &A, &B)>("c", system_c, &[])
+            .unwrap()
+            .with_resource(C)
+            .build::<JobsPipelineEngine, _, _>(3, StandardAppTimer::default());
+
+        AppRunner::new(app).run(SyncAppRunner::new()).unwrap();
     }
 }

@@ -4,13 +4,13 @@ use oxygengine::prelude::*;
 pub struct GameState;
 
 impl State for GameState {
-    fn on_enter(&mut self, world: &mut World) {
-        world
-            .write_resource::<VnRenderingManager>()
-            .select_config("vn/ui-config.yaml")
-            .expect("Could not select config");
-        world
-            .write_resource::<VnStoryManager>()
+    fn on_enter(&mut self, universe: &mut Universe) {
+        universe
+            .expect_resource_mut::<PrefabManager>()
+            .instantiate("scene", universe)
+            .unwrap();
+        universe
+            .expect_resource_mut::<VnStoryManager>()
             .get_mut("vn/story.yaml")
             .unwrap()
             .run_chapter("Main")

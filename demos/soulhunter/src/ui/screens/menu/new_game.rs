@@ -59,6 +59,7 @@ pub fn new_game_button(mut context: WidgetContext) -> WidgetNode {
                 content_keep_aspect_ratio: Some(ImageBoxAspectRatio {
                     horizontal_alignment: 0.5,
                     vertical_alignment: 0.5,
+                    outside: false,
                 }),
                 material: ImageBoxMaterial::Image(ImageBoxImage {
                     id: image.to_owned(),

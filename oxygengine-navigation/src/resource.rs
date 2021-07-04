@@ -4,9 +4,9 @@ pub use navmesh::*;
 
 /// ECS resource that holds and manages nav meshes.
 #[derive(Debug, Default)]
-pub struct NavMeshesRes(pub(crate) HashMap<NavMeshID, NavMesh>);
+pub struct NavMeshes(pub(crate) HashMap<NavMeshID, NavMesh>);
 
-impl NavMeshesRes {
+impl NavMeshes {
     /// Register new nav mesh.
     ///
     /// # Arguments

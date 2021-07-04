@@ -14,9 +14,10 @@ use oxygengine_core::{
     app::AppBuilder,
     assets::{asset::AssetId, database::AssetsDatabase},
     ecs::{
-        Component, Join, Read, ReadExpect, ReadStorage, System, VecStorage, Write, WriteStorage,
+        components::Name,
+        pipeline::{PipelineBuilder, PipelineBuilderError},
+        Comp, Universe, WorldRef,
     },
-    hierarchy::Name,
     prefab::{Prefab, PrefabComponent, PrefabManager},
     Ignite, Scalar,
 };
@@ -37,27 +38,14 @@ use oxygengine_user_interface::{
             utils::{lerp, Color as RauiColor, Rect as RauiRect, Transform, Vec2 as RauiVec2},
         },
     },
-    resource::UserInterfaceRes,
+    resource::UserInterface,
     PropsData,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, marker::PhantomData};
+use std::collections::HashMap;
 
 pub mod prelude {
     pub use crate::*;
-}
-
-pub fn bundle_installer<CR>(builder: &mut AppBuilder, _phantom: PhantomData<CR>)
-where
-    CR: CompositeRenderer + 'static,
-{
-    builder.install_thread_local_system(ApplyUserInterfaceToCompositeRenderer::<CR>::default());
-}
-
-pub fn prefabs_installer(prefabs: &mut PrefabManager) {
-    prefabs.register_component_factory::<UserInterfaceViewSyncCompositeRenderable>(
-        "UserInterfaceViewSyncCompositeRenderable",
-    );
 }
 
 #[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -146,203 +134,175 @@ impl UserInterfaceViewSyncCompositeRenderable {
     }
 }
 
-impl Component for UserInterfaceViewSyncCompositeRenderable {
-    type Storage = VecStorage<Self>;
-}
-
 impl Prefab for UserInterfaceViewSyncCompositeRenderable {}
 impl PrefabComponent for UserInterfaceViewSyncCompositeRenderable {}
 
-pub struct ApplyUserInterfaceToCompositeRenderer<CR>
-where
-    CR: CompositeRenderer,
-{
+#[derive(Debug, Default)]
+pub struct ApplyUserInterfaceToCompositeRendererSystemCache {
     images_cache: HashMap<String, String>,
     atlas_table: HashMap<AssetId, String>,
     frames_cache: HashMap<String, HashMap<String, Rect>>,
     images_sizes_cache: HashMap<String, Vec2>,
     images_sizes_table: HashMap<AssetId, String>,
-    _phantom: PhantomData<CR>,
 }
 
-impl<CR> Default for ApplyUserInterfaceToCompositeRenderer<CR>
+pub type ApplyUserInterfaceToCompositeRendererSystemResources<'a, CR> = (
+    WorldRef,
+    &'a CR,
+    &'a AssetsDatabase,
+    &'a mut UserInterface,
+    &'a mut ApplyUserInterfaceToCompositeRendererSystemCache,
+    Comp<&'a mut CompositeRenderable>,
+    Comp<&'a UserInterfaceView>,
+    Comp<&'a UserInterfaceViewSyncCompositeRenderable>,
+    Comp<&'a CompositeCamera>,
+    Comp<&'a CompositeTransform>,
+    Comp<&'a Name>,
+);
+
+pub fn apply_user_interface_to_composite_renderer_system<CR>(universe: &mut Universe)
 where
-    CR: CompositeRenderer,
+    CR: CompositeRenderer + 'static,
 {
-    fn default() -> Self {
-        Self {
-            images_cache: Default::default(),
-            atlas_table: Default::default(),
-            frames_cache: Default::default(),
-            images_sizes_cache: Default::default(),
-            images_sizes_table: Default::default(),
-            _phantom: Default::default(),
+    let (world, renderer, assets, mut ui, mut cache, ..) =
+        universe.query_resources::<ApplyUserInterfaceToCompositeRendererSystemResources<CR>>();
+
+    for id in assets.lately_loaded_protocol("atlas") {
+        let id = *id;
+        let asset = assets
+            .asset_by_id(id)
+            .expect("trying to use not loaded atlas asset");
+        let path = asset.path().to_owned();
+        let asset = asset
+            .get::<SpriteSheetAsset>()
+            .expect("trying to use non-atlas asset");
+        let image = asset.info().meta.image_name();
+        let frames = asset
+            .info()
+            .frames
+            .iter()
+            .map(|(k, v)| (k.to_owned(), v.frame))
+            .collect();
+        cache.images_cache.insert(path.clone(), image);
+        cache.atlas_table.insert(id, path.clone());
+        cache.frames_cache.insert(path, frames);
+    }
+    for id in assets.lately_unloaded_protocol("atlas") {
+        if let Some(path) = cache.atlas_table.remove(id) {
+            cache.images_cache.remove(&path);
+            cache.frames_cache.remove(&path);
         }
     }
-}
+    for id in assets.lately_loaded_protocol("png") {
+        let id = *id;
+        let asset = assets
+            .asset_by_id(id)
+            .expect("trying to use not loaded png asset");
+        let path = asset.path().to_owned();
+        let asset = asset
+            .get::<PngImageAsset>()
+            .expect("trying to use non-png asset");
+        let width = asset.width() as Scalar;
+        let height = asset.height() as Scalar;
+        cache
+            .images_sizes_cache
+            .insert(path.clone(), Vec2::new(width, height));
+        cache.images_sizes_table.insert(id, path);
+    }
+    for id in assets.lately_unloaded_protocol("png") {
+        if let Some(path) = cache.images_sizes_table.remove(id) {
+            cache.images_sizes_cache.remove(&path);
+        }
+    }
+    for id in assets.lately_loaded_protocol("jpg") {
+        let id = *id;
+        let asset = assets
+            .asset_by_id(id)
+            .expect("trying to use not loaded jpg asset");
+        let path = asset.path().to_owned();
+        let asset = asset
+            .get::<JpgImageAsset>()
+            .expect("trying to use non-jpg asset");
+        let width = asset.width() as Scalar;
+        let height = asset.height() as Scalar;
+        cache
+            .images_sizes_cache
+            .insert(path.clone(), Vec2::new(width, height));
+        cache.images_sizes_table.insert(id, path);
+    }
+    for id in assets.lately_unloaded_protocol("jpg") {
+        if let Some(path) = cache.images_sizes_table.remove(id) {
+            cache.images_sizes_cache.remove(&path);
+        }
+    }
+    for id in assets.lately_loaded_protocol("svg") {
+        let id = *id;
+        let asset = assets
+            .asset_by_id(id)
+            .expect("trying to use not loaded svg asset");
+        let path = asset.path().to_owned();
+        let asset = asset
+            .get::<SvgImageAsset>()
+            .expect("trying to use non-svg asset");
+        let width = asset.width() as Scalar;
+        let height = asset.height() as Scalar;
+        cache
+            .images_sizes_cache
+            .insert(path.clone(), Vec2::new(width, height));
+        cache.images_sizes_table.insert(id, path);
+    }
+    for id in assets.lately_unloaded_protocol("svg") {
+        if let Some(path) = cache.images_sizes_table.remove(id) {
+            cache.images_sizes_cache.remove(&path);
+        }
+    }
 
-impl<'s, CR> System<'s> for ApplyUserInterfaceToCompositeRenderer<CR>
-where
-    CR: CompositeRenderer + Send + Sync + 'static,
-{
-    #[allow(clippy::type_complexity)]
-    type SystemData = (
-        Option<Read<'s, CR>>,
-        ReadExpect<'s, AssetsDatabase>,
-        Write<'s, UserInterfaceRes>,
-        WriteStorage<'s, CompositeRenderable>,
-        ReadStorage<'s, UserInterfaceView>,
-        ReadStorage<'s, UserInterfaceViewSyncCompositeRenderable>,
-        ReadStorage<'s, CompositeCamera>,
-        ReadStorage<'s, CompositeTransform>,
-        ReadStorage<'s, Name>,
-    );
+    let view_size = renderer.view_size();
 
-    fn run(
-        &mut self,
-        (
-            renderer,
-            assets,
-            mut ui,
-            mut renderables,
-            views,
-            syncs,
-            cameras,
-            transforms,
-            names,
-        ): Self::SystemData,
-    ) {
-        if renderer.is_none() {
-            return;
-        }
-
-        for id in assets.lately_loaded_protocol("atlas") {
-            let id = *id;
-            let asset = assets
-                .asset_by_id(id)
-                .expect("trying to use not loaded atlas asset");
-            let path = asset.path().to_owned();
-            let asset = asset
-                .get::<SpriteSheetAsset>()
-                .expect("trying to use non-atlas asset");
-            let image = asset.info().meta.image_name();
-            let frames = asset
-                .info()
-                .frames
-                .iter()
-                .map(|(k, v)| (k.to_owned(), v.frame))
-                .collect();
-            self.images_cache.insert(path.clone(), image);
-            self.atlas_table.insert(id, path.clone());
-            self.frames_cache.insert(path, frames);
-        }
-        for id in assets.lately_unloaded_protocol("atlas") {
-            if let Some(path) = self.atlas_table.remove(id) {
-                self.images_cache.remove(&path);
-                self.frames_cache.remove(&path);
-            }
-        }
-        for id in assets.lately_loaded_protocol("png") {
-            let id = *id;
-            let asset = assets
-                .asset_by_id(id)
-                .expect("trying to use not loaded png asset");
-            let path = asset.path().to_owned();
-            let asset = asset
-                .get::<PngImageAsset>()
-                .expect("trying to use non-png asset");
-            let width = asset.width() as Scalar;
-            let height = asset.height() as Scalar;
-            self.images_sizes_cache
-                .insert(path.clone(), Vec2::new(width, height));
-            self.images_sizes_table.insert(id, path);
-        }
-        for id in assets.lately_unloaded_protocol("png") {
-            if let Some(path) = self.images_sizes_table.remove(id) {
-                self.images_sizes_cache.remove(&path);
-            }
-        }
-        for id in assets.lately_loaded_protocol("jpg") {
-            let id = *id;
-            let asset = assets
-                .asset_by_id(id)
-                .expect("trying to use not loaded jpg asset");
-            let path = asset.path().to_owned();
-            let asset = asset
-                .get::<JpgImageAsset>()
-                .expect("trying to use non-jpg asset");
-            let width = asset.width() as Scalar;
-            let height = asset.height() as Scalar;
-            self.images_sizes_cache
-                .insert(path.clone(), Vec2::new(width, height));
-            self.images_sizes_table.insert(id, path);
-        }
-        for id in assets.lately_unloaded_protocol("jpg") {
-            if let Some(path) = self.images_sizes_table.remove(id) {
-                self.images_sizes_cache.remove(&path);
-            }
-        }
-        for id in assets.lately_loaded_protocol("svg") {
-            let id = *id;
-            let asset = assets
-                .asset_by_id(id)
-                .expect("trying to use not loaded svg asset");
-            let path = asset.path().to_owned();
-            let asset = asset
-                .get::<SvgImageAsset>()
-                .expect("trying to use non-svg asset");
-            let width = asset.width() as Scalar;
-            let height = asset.height() as Scalar;
-            self.images_sizes_cache
-                .insert(path.clone(), Vec2::new(width, height));
-            self.images_sizes_table.insert(id, path);
-        }
-        for id in assets.lately_unloaded_protocol("svg") {
-            if let Some(path) = self.images_sizes_table.remove(id) {
-                self.images_sizes_cache.remove(&path);
-            }
-        }
-
-        let renderer = renderer.unwrap();
-        let view_size = renderer.view_size();
-
-        for (renderable, view, sync) in (&mut renderables, &views, &syncs).join() {
-            let mapping = (&cameras, &names, &transforms)
-                .join()
-                .find_map(|(c, n, t)| {
-                    if sync.camera_name == n.0 {
-                        if let Some(inv_mat) = !c.view_matrix(t, view_size) {
-                            let size = view_size * inv_mat;
-                            let rect = RauiRect {
-                                left: lerp(0.0, size.x, sync.viewport.left),
-                                right: lerp(size.x, 0.0, sync.viewport.right),
-                                top: lerp(0.0, size.y, sync.viewport.top),
-                                bottom: lerp(size.y, 0.0, sync.viewport.bottom),
-                            };
-                            Some(CoordsMapping::new_scaling(rect, sync.mapping_scaling))
-                        } else {
-                            None
-                        }
+    for (_, (renderable, view, sync)) in world
+        .query::<(
+            &mut CompositeRenderable,
+            &UserInterfaceView,
+            &UserInterfaceViewSyncCompositeRenderable,
+        )>()
+        .iter()
+    {
+        let mapping = world
+            .query::<(&CompositeCamera, &Name, &CompositeTransform)>()
+            .iter()
+            .find_map(|(_, (c, n, t))| {
+                if sync.camera_name == n.0 {
+                    if let Some(inv_mat) = !c.view_matrix(t, view_size) {
+                        let size = view_size * inv_mat;
+                        let rect = RauiRect {
+                            left: lerp(0.0, size.x, sync.viewport.left),
+                            right: lerp(size.x, 0.0, sync.viewport.right),
+                            top: lerp(0.0, size.y, sync.viewport.top),
+                            bottom: lerp(size.y, 0.0, sync.viewport.bottom),
+                        };
+                        Some(CoordsMapping::new_scaling(rect, sync.mapping_scaling))
                     } else {
                         None
                     }
-                });
-            if let (Some(mapping), Some(data)) = (mapping, ui.get_mut(view.app_id())) {
-                data.coords_mapping = mapping;
-                let mut raui_renderer = RauiRenderer::new(
-                    &self.images_cache,
-                    &self.frames_cache,
-                    &self.images_sizes_cache,
-                    sync.approx_rect_values,
-                    sync.image_smoothing,
-                    32,
-                );
-                if let Ok(commands) = data
-                    .application
-                    .render(&data.coords_mapping, &mut raui_renderer)
-                {
-                    renderable.0 = Renderable::Commands(commands);
+                } else {
+                    None
                 }
+            });
+        if let (Some(mapping), Some(data)) = (mapping, ui.get_mut(view.app_id())) {
+            data.coords_mapping = mapping;
+            let mut raui_renderer = RauiRenderer::new(
+                &cache.images_cache,
+                &cache.frames_cache,
+                &cache.images_sizes_cache,
+                sync.approx_rect_values,
+                sync.image_smoothing,
+                32,
+            );
+            if let Ok(commands) = data
+                .application
+                .render(&data.coords_mapping, &mut raui_renderer)
+            {
+                renderable.0 = Renderable::Commands(commands);
             }
         }
     }
@@ -396,7 +356,7 @@ impl ImageFrame {
                     ),
                 ),
                 ImageFrame::TopRight => Rect::new(
-                    Vec2::new(rect.x + rect.w - image_frame.destination.right, rect.y),
+                    Vec2::new(rect.x + rect.w - image_frame.source.right, rect.y),
                     Vec2::new(image_frame.source.right, image_frame.source.top),
                 ),
                 ImageFrame::MiddleLeft => Rect::new(
@@ -1034,7 +994,11 @@ impl<'a> RauiRenderer<'a> {
                             let ih = rect.height();
                             let ra = size.x / size.y;
                             let ia = iw / ih;
-                            let scale = if ra >= ia { iw / size.x } else { ih / size.y };
+                            let scale = if (ra >= ia) != aspect.outside {
+                                iw / size.x
+                            } else {
+                                ih / size.y
+                            };
                             let w = size.x * scale;
                             let h = size.y * scale;
                             let ow = lerp(0.0, iw - w, aspect.horizontal_alignment);
@@ -1293,4 +1257,27 @@ pub fn filter_box(mut context: WidgetContext) -> WidgetNode {
         renderer_effect,
     }
     .into()
+}
+
+pub fn bundle_installer<CR, PB>(
+    builder: &mut AppBuilder<PB>,
+    _: (),
+) -> Result<(), PipelineBuilderError>
+where
+    CR: CompositeRenderer + 'static,
+    PB: PipelineBuilder,
+{
+    builder.install_resource(ApplyUserInterfaceToCompositeRendererSystemCache::default());
+    builder.install_system::<ApplyUserInterfaceToCompositeRendererSystemResources<CR>>(
+        "apply-user-interface-to-composite-renderer",
+        apply_user_interface_to_composite_renderer_system::<CR>,
+        &[],
+    )?;
+    Ok(())
+}
+
+pub fn prefabs_installer(prefabs: &mut PrefabManager) {
+    prefabs.register_component_factory::<UserInterfaceViewSyncCompositeRenderable>(
+        "UserInterfaceViewSyncCompositeRenderable",
+    );
 }

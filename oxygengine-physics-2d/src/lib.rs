@@ -19,17 +19,27 @@ use crate::{
         RigidBody2dPrefabProxy,
     },
     resource::{Physics2dWorld, Physics2dWorldSimulationMode},
-    system::Physics2dSystem,
+    system::{physics_2d_system, Physics2dSystemCache, Physics2dSystemResources},
 };
-use core::{app::AppBuilder, prefab::PrefabManager, Scalar};
+use core::{
+    app::AppBuilder,
+    ecs::pipeline::{PipelineBuilder, PipelineBuilderError},
+    prefab::PrefabManager,
+    Scalar,
+};
 use nphysics2d::math::Vector;
 
-pub fn bundle_installer(
-    builder: &mut AppBuilder,
+pub fn bundle_installer<PB>(
+    builder: &mut AppBuilder<PB>,
     (gravity, simulation_mode): (Vector<Scalar>, Physics2dWorldSimulationMode),
-) {
+) -> Result<(), PipelineBuilderError>
+where
+    PB: PipelineBuilder,
+{
     builder.install_resource(Physics2dWorld::new(gravity, simulation_mode));
-    builder.install_system(Physics2dSystem::default(), "physics-2d", &[]);
+    builder.install_resource(Physics2dSystemCache::default());
+    builder.install_system::<Physics2dSystemResources>("physics-2d", physics_2d_system, &[])?;
+    Ok(())
 }
 
 pub fn prefabs_installer(prefabs: &mut PrefabManager) {

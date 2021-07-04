@@ -8,10 +8,6 @@ pub enum AnimalKind {
     AirGround,
 }
 
-impl Component for AnimalKind {
-    type Storage = VecStorage<Self>;
-}
-
 impl Prefab for AnimalKind {}
 impl PrefabComponent for AnimalKind {}
 

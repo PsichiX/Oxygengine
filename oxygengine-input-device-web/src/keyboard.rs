@@ -1,5 +1,5 @@
+use crate::input::device::InputDevice;
 use core::Scalar;
-use input::device::InputDevice;
 use std::{any::Any, cell::RefCell, collections::HashSet, rc::Rc};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::*;

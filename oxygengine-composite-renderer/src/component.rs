@@ -1,12 +1,10 @@
 use crate::{
-    composite_renderer::{Command, Effect, Image, Renderable, Text},
+    composite_renderer::{Effect, Renderable},
     math::{Mat2d, Rect, Vec2},
     mesh_animation_asset_protocol::{MeshAnimation, MeshAnimationSequence},
     mesh_asset_protocol::MeshBone,
-    resource::{CompositeUiInteractibles, CompositeUiThemes, UiThemed, UiValue, UiValueVec2},
 };
 use core::{
-    ecs::{Component, DenseVecStorage, FlaggedStorage, HashMapStorage, VecStorage},
     prefab::{Prefab, PrefabComponent},
     Ignite, Scalar,
 };
@@ -20,10 +18,6 @@ use utils::grid_2d::Grid2d;
 
 #[derive(Ignite, Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct CompositeVisibility(pub bool);
-
-impl Component for CompositeVisibility {
-    type Storage = VecStorage<Self>;
-}
 
 impl Default for CompositeVisibility {
     fn default() -> Self {
@@ -85,10 +79,6 @@ impl CompositeSurfaceCache {
     }
 }
 
-impl Component for CompositeSurfaceCache {
-    type Storage = FlaggedStorage<Self, VecStorage<Self>>;
-}
-
 impl Prefab for CompositeSurfaceCache {
     fn post_from_prefab(&mut self) {
         self.dirty = true;
@@ -98,10 +88,6 @@ impl PrefabComponent for CompositeSurfaceCache {}
 
 #[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub struct CompositeRenderable(pub Renderable<'static>);
-
-impl Component for CompositeRenderable {
-    type Storage = DenseVecStorage<Self>;
-}
 
 impl Default for CompositeRenderable {
     fn default() -> Self {
@@ -127,10 +113,6 @@ impl Default for CompositeRenderableStroke {
     }
 }
 
-impl Component for CompositeRenderableStroke {
-    type Storage = VecStorage<Self>;
-}
-
 impl Prefab for CompositeRenderableStroke {}
 impl PrefabComponent for CompositeRenderableStroke {}
 
@@ -145,10 +127,6 @@ pub struct CompositeTransform {
     #[serde(skip)]
     #[ignite(ignore)]
     cached: Mat2d,
-}
-
-impl Component for CompositeTransform {
-    type Storage = DenseVecStorage<Self>;
 }
 
 impl Default for CompositeTransform {
@@ -269,29 +247,17 @@ impl PrefabComponent for CompositeTransform {}
 #[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct CompositeRenderLayer(pub usize);
 
-impl Component for CompositeRenderLayer {
-    type Storage = VecStorage<Self>;
-}
-
 impl Prefab for CompositeRenderLayer {}
 impl PrefabComponent for CompositeRenderLayer {}
 
 #[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct CompositeRenderDepth(pub Scalar);
 
-impl Component for CompositeRenderDepth {
-    type Storage = VecStorage<Self>;
-}
-
 impl Prefab for CompositeRenderDepth {}
 impl PrefabComponent for CompositeRenderDepth {}
 
 #[derive(Ignite, Debug, Copy, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct CompositeRenderAlpha(pub Scalar);
-
-impl Component for CompositeRenderAlpha {
-    type Storage = VecStorage<Self>;
-}
 
 impl Default for CompositeRenderAlpha {
     fn default() -> Self {
@@ -305,19 +271,11 @@ impl PrefabComponent for CompositeRenderAlpha {}
 #[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CompositeCameraAlignment(pub Vec2);
 
-impl Component for CompositeCameraAlignment {
-    type Storage = VecStorage<Self>;
-}
-
 impl Prefab for CompositeCameraAlignment {}
 impl PrefabComponent for CompositeCameraAlignment {}
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CompositeEffect(pub Effect);
-
-impl Component for CompositeEffect {
-    type Storage = VecStorage<Self>;
-}
 
 impl Prefab for CompositeEffect {}
 impl PrefabComponent for CompositeEffect {}
@@ -359,10 +317,6 @@ pub struct CompositeCamera {
     pub scaling_target: CompositeScalingTarget,
     #[serde(default)]
     pub tags: Vec<Cow<'static, str>>,
-}
-
-impl Component for CompositeCamera {
-    type Storage = HashMapStorage<Self>;
 }
 
 impl CompositeCamera {
@@ -518,10 +472,6 @@ impl CompositeSprite {
     pub fn apply(&mut self) {
         self.dirty = true;
     }
-}
-
-impl Component for CompositeSprite {
-    type Storage = VecStorage<Self>;
 }
 
 impl Prefab for CompositeSprite {
@@ -688,10 +638,6 @@ impl CompositeSpriteAnimation {
             }
         }
     }
-}
-
-impl Component for CompositeSpriteAnimation {
-    type Storage = VecStorage<Self>;
 }
 
 impl Prefab for CompositeSpriteAnimation {
@@ -880,10 +826,6 @@ impl CompositeTilemap {
     }
 }
 
-impl Component for CompositeTilemap {
-    type Storage = VecStorage<Self>;
-}
-
 impl Prefab for CompositeTilemap {
     fn post_from_prefab(&mut self) {
         self.dirty = true;
@@ -1045,10 +987,6 @@ impl CompositeTilemapAnimation {
     }
 }
 
-impl Component for CompositeTilemapAnimation {
-    type Storage = VecStorage<Self>;
-}
-
 impl Prefab for CompositeTilemapAnimation {
     fn post_from_prefab(&mut self) {
         self.dirty = true;
@@ -1123,10 +1061,6 @@ impl CompositeMapChunk {
     pub fn is_cached(&self) -> bool {
         !self.dirty
     }
-}
-
-impl Component for CompositeMapChunk {
-    type Storage = VecStorage<Self>;
 }
 
 impl Prefab for CompositeMapChunk {
@@ -1284,10 +1218,6 @@ impl CompositeMesh {
             Self::register_bone(bone, name, m, bones_local_transform, bones_model_space);
         }
     }
-}
-
-impl Component for CompositeMesh {
-    type Storage = VecStorage<Self>;
 }
 
 impl Prefab for CompositeMesh {
@@ -1503,10 +1433,6 @@ impl CompositeMeshAnimation {
     }
 }
 
-impl Component for CompositeMeshAnimation {
-    type Storage = VecStorage<Self>;
-}
-
 impl Prefab for CompositeMeshAnimation {
     fn post_from_prefab(&mut self) {
         self.dirty = true;
@@ -1514,694 +1440,3 @@ impl Prefab for CompositeMeshAnimation {
 }
 
 impl PrefabComponent for CompositeMeshAnimation {}
-
-#[derive(Ignite, Debug, Copy, Clone, Default, Serialize, Deserialize)]
-pub struct UiMargin {
-    #[serde(default)]
-    pub left: Scalar,
-    #[serde(default)]
-    pub right: Scalar,
-    #[serde(default)]
-    pub top: Scalar,
-    #[serde(default)]
-    pub bottom: Scalar,
-}
-
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
-pub enum UiImagePath {
-    Single(Cow<'static, str>),
-    Set(Box<[Option<Cow<'static, str>>; 9]>),
-}
-
-impl UiImagePath {
-    pub fn get(&self, index: usize) -> Option<&str> {
-        match self {
-            Self::Single(p) => Some(p),
-            Self::Set(p) => {
-                if let Some(p) = &p[index] {
-                    Some(p)
-                } else {
-                    None
-                }
-            }
-        }
-    }
-}
-
-impl Default for UiImagePath {
-    fn default() -> Self {
-        Self::Single(Default::default())
-    }
-}
-
-#[derive(Ignite, Debug, Clone, Default, Serialize, Deserialize)]
-pub struct UiImage {
-    #[serde(default)]
-    pub image_path: UiImagePath,
-    #[serde(default)]
-    pub source_rect: Rect,
-}
-
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
-pub enum UiElementType {
-    None,
-    Image(Box<UiImage>),
-    Text(Text<'static>),
-}
-
-impl Default for UiElementType {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
-/// (id?, rectangle, children)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UiRectsTree(
-    pub Option<Cow<'static, str>>,
-    pub Rect,
-    pub Vec<UiRectsTree>,
-);
-
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
-pub struct CompositeUiElement {
-    #[serde(default)]
-    pub id: Option<Cow<'static, str>>,
-    #[serde(default)]
-    pub theme: Option<Cow<'static, str>>,
-    #[serde(default)]
-    pub camera_name: Cow<'static, str>,
-    #[serde(default)]
-    pub interactive: Option<Cow<'static, str>>,
-    #[serde(default)]
-    pub element_type: UiElementType,
-    #[serde(default)]
-    pub margin: UiMargin,
-    #[serde(default)]
-    pub padding: UiMargin,
-    #[serde(default)]
-    pub left_anchor: UiValue,
-    #[serde(default)]
-    pub right_anchor: UiValue,
-    #[serde(default)]
-    pub top_anchor: UiValue,
-    #[serde(default)]
-    pub bottom_anchor: UiValue,
-    #[serde(default)]
-    pub alignment: UiValueVec2,
-    #[serde(default)]
-    pub offset: UiValueVec2,
-    #[serde(default)]
-    pub fixed_width: Option<UiValue>,
-    #[serde(default)]
-    pub fixed_height: Option<UiValue>,
-    #[serde(default = "CompositeUiElement::default_scale")]
-    pub scale: Vec2,
-    #[serde(default = "CompositeUiElement::default_alpha")]
-    pub alpha: UiValue,
-    #[serde(default)]
-    pub hidden: bool,
-    #[serde(default)]
-    pub children: Vec<CompositeUiElement>,
-    #[serde(default)]
-    pub state: HashMap<Cow<'static, str>, Scalar>,
-    #[serde(skip)]
-    #[ignite(ignore)]
-    pub(crate) dirty: bool,
-}
-
-impl Default for CompositeUiElement {
-    fn default() -> Self {
-        Self {
-            id: None,
-            theme: None,
-            camera_name: "".into(),
-            interactive: None,
-            element_type: Default::default(),
-            margin: Default::default(),
-            padding: Default::default(),
-            left_anchor: 0.0.into(),
-            right_anchor: 0.0.into(),
-            top_anchor: 0.0.into(),
-            bottom_anchor: 0.0.into(),
-            alignment: Default::default(),
-            offset: Default::default(),
-            fixed_width: None,
-            fixed_height: None,
-            scale: Self::default_scale(),
-            alpha: Self::default_alpha(),
-            hidden: false,
-            children: Default::default(),
-            state: Default::default(),
-            dirty: true,
-        }
-    }
-}
-
-impl CompositeUiElement {
-    fn default_scale() -> Vec2 {
-        Vec2::one()
-    }
-
-    fn default_alpha() -> UiValue {
-        UiValue::Value(1.0)
-    }
-
-    pub fn rebuild(&mut self) {
-        self.dirty = true;
-    }
-
-    pub fn find(&self, id: &str) -> Option<&CompositeUiElement> {
-        if let Some(index) = id.find('/') {
-            let part = &id[0..index];
-            let test = self.children.iter().enumerate().find(|(i, c)| {
-                if let Some(name) = &c.id {
-                    name == part
-                } else {
-                    i.to_string() == part
-                }
-            });
-            if let Some((_, child)) = test {
-                if index < id.len() {
-                    return child.find(&id[(index + 1)..]);
-                } else {
-                    return Some(child);
-                }
-            }
-        } else {
-            let part = id;
-            let test = self.children.iter().enumerate().find(|(i, c)| {
-                if let Some(name) = &c.id {
-                    name == part
-                } else {
-                    i.to_string() == part
-                }
-            });
-            if let Some((_, child)) = test {
-                return Some(child);
-            }
-        }
-        None
-    }
-
-    pub fn find_mut(&mut self, id: &str) -> Option<&mut CompositeUiElement> {
-        if let Some(index) = id.find('/') {
-            let part = &id[0..index];
-            let test = self.children.iter_mut().enumerate().find(|(i, c)| {
-                if let Some(name) = &c.id {
-                    name == part
-                } else {
-                    i.to_string() == part
-                }
-            });
-            if let Some((_, child)) = test {
-                if index < id.len() {
-                    return child.find_mut(&id[(index + 1)..]);
-                } else {
-                    return Some(child);
-                }
-            }
-        } else {
-            let part = id;
-            let test = self.children.iter_mut().enumerate().find(|(i, c)| {
-                if let Some(name) = &c.id {
-                    name == part
-                } else {
-                    i.to_string() == part
-                }
-            });
-            if let Some((_, child)) = test {
-                return Some(child);
-            }
-        }
-        None
-    }
-
-    pub fn calculate_rect(
-        &self,
-        parent_rect: Rect,
-        themes: &CompositeUiThemes,
-        states: &[&HashMap<Cow<'static, str>, Scalar>],
-    ) -> Rect {
-        let margin = if let Some(name) = &self.theme {
-            if let Some(UiThemed::Image { image_margin, .. }) = themes.themes.get(name) {
-                *image_margin
-            } else {
-                self.margin
-            }
-        } else {
-            self.margin
-        };
-
-        let min_width = margin.left + margin.right;
-        let min_height = margin.top + margin.bottom;
-        let left_anchor = self.calculate_value(&self.left_anchor, states);
-        let right_anchor = self.calculate_value(&self.right_anchor, states);
-        let top_anchor = self.calculate_value(&self.top_anchor, states);
-        let bottom_anchor = self.calculate_value(&self.bottom_anchor, states);
-        let offset = self.calculate_value_vec2(&self.offset, states);
-        let alignment = self.calculate_value_vec2(&self.alignment, states);
-        let (x, width) = {
-            let (x, w) = if let Some(fixed_width) = &self.fixed_width {
-                let f = parent_rect.w * left_anchor + self.padding.left;
-                let t = parent_rect.w * right_anchor - self.padding.right;
-                let fixed_width = self.calculate_value(fixed_width, states);
-                let o = (f + t) * 0.5;
-                (
-                    o,
-                    (fixed_width - self.padding.left - self.padding.right).max(min_width),
-                )
-            } else {
-                let f = parent_rect.w * left_anchor + self.padding.left;
-                let t = parent_rect.w * right_anchor - self.padding.right;
-                (f, (t - f))
-            };
-            (x, w.max(min_width) * self.scale.x)
-        };
-        let (y, height) = {
-            let (y, h) = if let Some(fixed_height) = &self.fixed_height {
-                let f = parent_rect.h * top_anchor + self.padding.top;
-                let t = parent_rect.h * bottom_anchor - self.padding.bottom;
-                let o = (f + t) * 0.5;
-                let fixed_height = self.calculate_value(fixed_height, states);
-                (
-                    o,
-                    (fixed_height - self.padding.top - self.padding.bottom).max(min_height),
-                )
-            } else {
-                let f = parent_rect.h * top_anchor + self.padding.top;
-                let t = parent_rect.h * bottom_anchor - self.padding.bottom;
-                (f, (t - f))
-            };
-            (y, h.max(min_height) * self.scale.y)
-        };
-        Rect {
-            x: offset.x + x + parent_rect.x - alignment.x * width,
-            y: offset.y + y + parent_rect.y - alignment.y * height,
-            w: width,
-            h: height,
-        }
-    }
-
-    pub fn calculate_value(
-        &self,
-        state: &UiValue,
-        states: &[&HashMap<Cow<'static, str>, Scalar>],
-    ) -> Scalar {
-        match state {
-            UiValue::Value(value) => *value,
-            UiValue::State(state) => {
-                if let Some(index) = state.find('/') {
-                    let levels = state[0..index].chars().filter(|c| *c == '.').count();
-                    let state = &state[(index + 1)..];
-                    states
-                        .get(states.len() - levels)
-                        .map(|states| states.get(state).copied().unwrap_or(0.0))
-                        .unwrap_or(0.0)
-                } else {
-                    self.state.get(state).copied().unwrap_or(0.0)
-                }
-            }
-            UiValue::MapState(state, sl, su, tl, tu) => {
-                if let Some(index) = state.find('/') {
-                    let levels = state[0..index].chars().filter(|c| *c == '.').count();
-                    let state = &state[(index + 1)..];
-                    states
-                        .get(states.len() - levels)
-                        .map(|states| {
-                            states
-                                .get(state)
-                                .map(|value| {
-                                    let f = (*value - sl) / (su - sl);
-                                    f * (tu - tl) + tl
-                                })
-                                .unwrap_or(0.0)
-                        })
-                        .unwrap_or(0.0)
-                } else {
-                    self.state.get(state).copied().unwrap_or(0.0)
-                }
-            }
-        }
-    }
-
-    pub fn calculate_value_vec2(
-        &self,
-        state: &UiValueVec2,
-        states: &[&HashMap<Cow<'static, str>, Scalar>],
-    ) -> Vec2 {
-        Vec2::new(
-            self.calculate_value(&state.x, states),
-            self.calculate_value(&state.y, states),
-        )
-    }
-
-    pub fn build_rects_tree<'a>(
-        &'a self,
-        parent_rect: Rect,
-        themes: &CompositeUiThemes,
-        states: &mut Vec<&'a HashMap<Cow<'static, str>, Scalar>>,
-    ) -> Option<UiRectsTree> {
-        states.push(&self.state);
-        let rect = self.calculate_rect(parent_rect, themes, states);
-        if self.hidden {
-            states.pop();
-            return None;
-        }
-        let children = self
-            .children
-            .iter()
-            .filter_map(|item| item.build_rects_tree(rect, themes, states))
-            .collect::<Vec<_>>();
-        states.pop();
-        Some(UiRectsTree(self.id.clone(), rect, children))
-    }
-
-    pub fn build_commands<'a>(
-        &'a self,
-        parent_rect: Rect,
-        interactibles: &mut CompositeUiInteractibles,
-        themes: &CompositeUiThemes,
-        states: &mut Vec<&'a HashMap<Cow<'static, str>, Scalar>>,
-    ) -> (Vec<Command<'static>>, Rect) {
-        states.push(&self.state);
-        let rect = self.calculate_rect(parent_rect, themes, states);
-        if self.hidden {
-            states.pop();
-            return (vec![], rect);
-        }
-        if let Some(name) = &self.interactive {
-            interactibles.bounding_boxes.insert(name.clone(), rect);
-        }
-        let mut commands = match &self.element_type {
-            UiElementType::Text(text) => {
-                let mut text = text.clone();
-                text.position = Vec2::new(rect.x, rect.y);
-                text.max_width = Some(rect.w);
-                let alpha = if let Some(name) = &self.theme {
-                    if let Some(UiThemed::Text {
-                        font_name,
-                        font_size,
-                        alpha,
-                    }) = themes.themes.get(name)
-                    {
-                        text.font = font_name.clone();
-                        text.size = self.calculate_value(font_size, states);
-                        self.calculate_value(alpha, states)
-                    } else {
-                        1.0
-                    }
-                } else {
-                    1.0
-                };
-
-                vec![
-                    Command::Store,
-                    Command::Alpha(alpha),
-                    Command::Draw(text.into()),
-                    Command::Restore,
-                ]
-            }
-            UiElementType::Image(image) => {
-                let (margin, source_rect, image_path, alpha) = if let Some(name) = &self.theme {
-                    if let Some(UiThemed::Image {
-                        image_margin,
-                        image_path,
-                        source_rect,
-                        alpha,
-                    }) = themes.themes.get(name)
-                    {
-                        (
-                            *image_margin,
-                            *source_rect,
-                            image_path,
-                            self.calculate_value(alpha, states),
-                        )
-                    } else {
-                        (self.margin, image.source_rect, &image.image_path, 1.0)
-                    }
-                } else {
-                    (self.margin, image.source_rect, &image.image_path, 1.0)
-                };
-
-                let sx1 = source_rect.x;
-                let sx2 = source_rect.x + margin.left;
-                let sx3 = source_rect.x + source_rect.w - margin.right;
-                let sy1 = source_rect.y;
-                let sy2 = source_rect.y + margin.top;
-                let sy3 = source_rect.y + source_rect.h - margin.bottom;
-
-                let sw1 = margin.left;
-                let sw2 = source_rect.w - margin.left - margin.right;
-                let sw3 = margin.right;
-                let sh1 = margin.top;
-                let sh2 = source_rect.h - margin.top - margin.bottom;
-                let sh3 = margin.bottom;
-
-                let dx1 = rect.x;
-                let dx2 = rect.x + margin.left;
-                let dx3 = rect.x + rect.w - margin.right;
-                let dy1 = rect.y;
-                let dy2 = rect.y + margin.top;
-                let dy3 = rect.y + rect.h - margin.bottom;
-
-                let dw1 = margin.left;
-                let dw2 = rect.w - margin.left - margin.right;
-                let dw3 = margin.right;
-                let dh1 = margin.top;
-                let dh2 = rect.h - margin.top - margin.bottom;
-                let dh3 = margin.bottom;
-
-                vec![
-                    Command::Store,
-                    Command::Alpha(alpha),
-                    if let Some(path) = image_path.get(0) {
-                        Command::Draw(
-                            Image {
-                                image: path.to_owned().into(),
-                                source: Some(Rect {
-                                    x: sx1,
-                                    y: sy1,
-                                    w: sw1,
-                                    h: sh1,
-                                }),
-                                destination: Some(Rect {
-                                    x: dx1,
-                                    y: dy1,
-                                    w: dw1,
-                                    h: dh1,
-                                }),
-                                alignment: Vec2::new(0.0, 0.0),
-                            }
-                            .into(),
-                        )
-                    } else {
-                        Command::None
-                    },
-                    if let Some(path) = image_path.get(1) {
-                        Command::Draw(
-                            Image {
-                                image: path.to_owned().into(),
-                                source: Some(Rect {
-                                    x: sx2,
-                                    y: sy1,
-                                    w: sw2,
-                                    h: sh1,
-                                }),
-                                destination: Some(Rect {
-                                    x: dx2,
-                                    y: dy1,
-                                    w: dw2,
-                                    h: dh1,
-                                }),
-                                alignment: Vec2::new(0.0, 0.0),
-                            }
-                            .into(),
-                        )
-                    } else {
-                        Command::None
-                    },
-                    if let Some(path) = image_path.get(2) {
-                        Command::Draw(
-                            Image {
-                                image: path.to_owned().into(),
-                                source: Some(Rect {
-                                    x: sx3,
-                                    y: sy1,
-                                    w: sw3,
-                                    h: sh1,
-                                }),
-                                destination: Some(Rect {
-                                    x: dx3,
-                                    y: dy1,
-                                    w: dw3,
-                                    h: dh1,
-                                }),
-                                alignment: Vec2::new(0.0, 0.0),
-                            }
-                            .into(),
-                        )
-                    } else {
-                        Command::None
-                    },
-                    if let Some(path) = image_path.get(3) {
-                        Command::Draw(
-                            Image {
-                                image: path.to_owned().into(),
-                                source: Some(Rect {
-                                    x: sx1,
-                                    y: sy2,
-                                    w: sw1,
-                                    h: sh2,
-                                }),
-                                destination: Some(Rect {
-                                    x: dx1,
-                                    y: dy2,
-                                    w: dw1,
-                                    h: dh2,
-                                }),
-                                alignment: Vec2::new(0.0, 0.0),
-                            }
-                            .into(),
-                        )
-                    } else {
-                        Command::None
-                    },
-                    if let Some(path) = image_path.get(4) {
-                        Command::Draw(
-                            Image {
-                                image: path.to_owned().into(),
-                                source: Some(Rect {
-                                    x: sx2,
-                                    y: sy2,
-                                    w: sw2,
-                                    h: sh2,
-                                }),
-                                destination: Some(Rect {
-                                    x: dx2,
-                                    y: dy2,
-                                    w: dw2,
-                                    h: dh2,
-                                }),
-                                alignment: Vec2::new(0.0, 0.0),
-                            }
-                            .into(),
-                        )
-                    } else {
-                        Command::None
-                    },
-                    if let Some(path) = image_path.get(5) {
-                        Command::Draw(
-                            Image {
-                                image: path.to_owned().into(),
-                                source: Some(Rect {
-                                    x: sx3,
-                                    y: sy2,
-                                    w: sw3,
-                                    h: sh2,
-                                }),
-                                destination: Some(Rect {
-                                    x: dx3,
-                                    y: dy2,
-                                    w: dw3,
-                                    h: dh2,
-                                }),
-                                alignment: Vec2::new(0.0, 0.0),
-                            }
-                            .into(),
-                        )
-                    } else {
-                        Command::None
-                    },
-                    if let Some(path) = image_path.get(6) {
-                        Command::Draw(
-                            Image {
-                                image: path.to_owned().into(),
-                                source: Some(Rect {
-                                    x: sx1,
-                                    y: sy3,
-                                    w: sw1,
-                                    h: sh3,
-                                }),
-                                destination: Some(Rect {
-                                    x: dx1,
-                                    y: dy3,
-                                    w: dw1,
-                                    h: dh3,
-                                }),
-                                alignment: Vec2::new(0.0, 0.0),
-                            }
-                            .into(),
-                        )
-                    } else {
-                        Command::None
-                    },
-                    if let Some(path) = image_path.get(7) {
-                        Command::Draw(
-                            Image {
-                                image: path.to_owned().into(),
-                                source: Some(Rect {
-                                    x: sx2,
-                                    y: sy3,
-                                    w: sw2,
-                                    h: sh3,
-                                }),
-                                destination: Some(Rect {
-                                    x: dx2,
-                                    y: dy3,
-                                    w: dw2,
-                                    h: dh3,
-                                }),
-                                alignment: Vec2::new(0.0, 0.0),
-                            }
-                            .into(),
-                        )
-                    } else {
-                        Command::None
-                    },
-                    if let Some(path) = image_path.get(8) {
-                        Command::Draw(
-                            Image {
-                                image: path.to_owned().into(),
-                                source: Some(Rect {
-                                    x: sx3,
-                                    y: sy3,
-                                    w: sw3,
-                                    h: sh3,
-                                }),
-                                destination: Some(Rect {
-                                    x: dx3,
-                                    y: dy3,
-                                    w: dw3,
-                                    h: dh3,
-                                }),
-                                alignment: Vec2::new(0.0, 0.0),
-                            }
-                            .into(),
-                        )
-                    } else {
-                        Command::None
-                    },
-                    Command::Restore,
-                ]
-            }
-            _ => vec![],
-        };
-        for child in &self.children {
-            commands.extend(child.build_commands(rect, interactibles, themes, states).0);
-        }
-        states.pop();
-        (commands, rect)
-    }
-}
-
-impl Component for CompositeUiElement {
-    type Storage = VecStorage<Self>;
-}
-
-impl Prefab for CompositeUiElement {
-    fn post_from_prefab(&mut self) {
-        self.dirty = true;
-    }
-}
-impl PrefabComponent for CompositeUiElement {}

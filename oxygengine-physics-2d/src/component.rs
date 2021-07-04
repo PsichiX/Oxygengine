@@ -1,5 +1,5 @@
 use core::{
-    ecs::{Component, Entity, FlaggedStorage, VecStorage},
+    ecs::Entity,
     prefab::{Prefab, PrefabError, PrefabProxy},
     state::StateToken,
     Scalar,
@@ -29,10 +29,6 @@ pub(crate) enum RigidBody2dInner {
 }
 
 pub struct RigidBody2d(pub(crate) RigidBody2dInner);
-
-impl Component for RigidBody2d {
-    type Storage = FlaggedStorage<Self, VecStorage<Self>>;
-}
 
 impl RigidBody2d {
     pub fn new(desc: RigidBodyDesc<Scalar>) -> Self {
@@ -238,10 +234,6 @@ pub(crate) enum Collider2dInner {
 
 pub struct Collider2d(pub(crate) Collider2dInner);
 
-impl Component for Collider2d {
-    type Storage = FlaggedStorage<Self, VecStorage<Self>>;
-}
-
 impl Collider2d {
     pub fn new(desc: ColliderDesc<Scalar>) -> Self {
         Self(Collider2dInner::Description(desc))
@@ -417,10 +409,6 @@ impl PrefabProxy<Collider2dPrefabProxy> for Collider2d {
 pub enum Collider2dBody {
     Me,
     Entity(Entity),
-}
-
-impl Component for Collider2dBody {
-    type Storage = VecStorage<Self>;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

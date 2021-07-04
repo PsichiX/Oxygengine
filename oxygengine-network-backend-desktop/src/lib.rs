@@ -1,7 +1,5 @@
-extern crate byteorder;
 extern crate oxygengine_core as core;
 extern crate oxygengine_network as network;
-extern crate ws;
 
 pub mod prelude {
     pub use crate::*;

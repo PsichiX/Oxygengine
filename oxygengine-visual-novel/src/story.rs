@@ -5,11 +5,7 @@ use crate::{
     scene::{ActiveScene, Scene},
     script::{Action, Chapter, LogType},
 };
-#[cfg(feature = "script-flow")]
-use core::prefab::PrefabValue;
 use core::{error, info, prefab::Prefab, warn, Ignite, Scalar};
-#[cfg(feature = "script-flow")]
-use flow::Guid;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
@@ -48,33 +44,6 @@ pub struct StoryDebugState {
     pub is_complete: bool,
 }
 
-#[cfg(feature = "script-flow")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) enum ScriptFlowEvent {
-    None,
-    /// (VM name, event name, parameters)
-    Call(String, String, Vec<PrefabValue>),
-    InProgress(Guid),
-    Done(Vec<PrefabValue>),
-}
-
-#[cfg(feature = "script-flow")]
-impl Default for ScriptFlowEvent {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
-#[cfg(feature = "script-flow")]
-impl ScriptFlowEvent {
-    pub fn in_progress(&self) -> bool {
-        match self {
-            Self::Call(_, _, _) | Self::InProgress(_) => true,
-            _ => false,
-        }
-    }
-}
-
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Story {
     #[serde(default)]
@@ -94,9 +63,6 @@ pub struct Story {
     current_chapter: Option<(String, usize)>,
     #[serde(skip)]
     dialogue_action_selected: Option<DialogueAction>,
-    #[cfg(feature = "script-flow")]
-    #[serde(default)]
-    script_flow_event: ScriptFlowEvent,
     #[serde(default)]
     wait: Scalar,
     #[serde(default)]
@@ -202,11 +168,6 @@ impl Story {
 
     pub fn set_paused(&mut self, value: bool) {
         self.paused = value;
-    }
-
-    #[cfg(feature = "script-flow")]
-    pub(crate) fn replace_script_flow_event(&mut self, event: ScriptFlowEvent) -> ScriptFlowEvent {
-        std::mem::replace(&mut self.script_flow_event, event)
     }
 
     pub fn is_waiting_for_dialogue_option_selection(&self) -> bool {
@@ -364,22 +325,12 @@ impl Story {
     }
 
     pub fn in_progress(&self) -> bool {
-        if self.characters.values().any(|c| c.is_dirty())
+        self.characters.values().any(|c| c.is_dirty())
             || self.scenes.values().any(|s| s.in_progress())
             || self.active_scene.in_progress()
             || self.active_dialogue.in_progress()
             || self.is_waiting_for_dialogue_option_selection()
             || self.wait > 0.0
-        {
-            return true;
-        }
-        #[cfg(feature = "script-flow")]
-        {
-            if self.script_flow_event.in_progress() {
-                return true;
-            }
-        }
-        false
     }
 
     pub fn is_dirty(&self) -> bool {
@@ -569,6 +520,17 @@ impl Story {
                     None
                 }
             }
+            Action::HideAllCharacters => {
+                for character in self.characters.values_mut() {
+                    character.set_visibility(0.0);
+                }
+                index += 1;
+                if index < count {
+                    Some((chapter_name, index))
+                } else {
+                    None
+                }
+            }
             Action::ChangeCharacterVisibility(name, value) => {
                 if let Some(character) = self.characters.get_mut(&name) {
                     character.set_visibility(value);
@@ -735,16 +697,6 @@ impl Story {
             Action::HideDialogue => {
                 self.active_dialogue.set(None);
                 self.active_dialogue.playing = true;
-                index += 1;
-                if index < count {
-                    Some((chapter_name, index))
-                } else {
-                    None
-                }
-            }
-            #[cfg(feature = "script-flow")]
-            Action::CallScriptFlow(vm_name, event_name, parameters) => {
-                self.script_flow_event = ScriptFlowEvent::Call(vm_name, event_name, parameters);
                 index += 1;
                 if index < count {
                     Some((chapter_name, index))

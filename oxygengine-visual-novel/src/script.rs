@@ -1,6 +1,4 @@
 use crate::{dialogue::Dialogue, Color, Position, Scale};
-#[cfg(feature = "script-flow")]
-use core::prefab::PrefabValue;
 use core::{prefab::Prefab, Ignite, Scalar};
 use serde::{Deserialize, Serialize};
 
@@ -23,6 +21,7 @@ pub enum Action {
     ChangeSceneBackground(String),
     ShowCharacter(String),
     HideCharacter(String),
+    HideAllCharacters,
     /// (character name, visibility percentage)
     ChangeCharacterVisibility(String, Scalar),
     /// (character name, color)
@@ -44,9 +43,6 @@ pub enum Action {
     Parallel(Vec<Action>),
     ShowDialogue(Dialogue),
     HideDialogue,
-    /// (VM name, event name, [parameter])
-    #[cfg(feature = "script-flow")]
-    CallScriptFlow(String, String, Vec<PrefabValue>),
 }
 
 impl Default for Action {

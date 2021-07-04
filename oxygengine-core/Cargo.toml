@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-core"
-version = "0.19.2"
+version = "0.20.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2018"
 description = "Core module for Oxygen Engine"
@@ -12,22 +12,19 @@ readme = "../README.md"
 
 [features]
 web = ["typid/web"]
-parallel = ["rayon", "specs/parallel", "specs-hierarchy/parallel", "shred/parallel"]
+parallel = ["rayon"]
 scalar64 = []
 profiler = []
 
 [dependencies]
-oxygengine-ignite-types = { version = "0.19", path = "../oxygengine-ignite-types" }
-oxygengine-ignite-derive = { version = "0.19", path = "../oxygengine-ignite-derive" }
+oxygengine-ignite-types = { version = "0.20", path = "../oxygengine-ignite-types" }
+oxygengine-ignite-derive = { version = "0.20", path = "../oxygengine-ignite-derive" }
 typid = "1"
 serde = { version = "1", features = ["derive"] }
 bincode = "1"
 serde_yaml = "0.8"
 rayon = { version = "1.3", optional = true }
-specs = { version = "0.16", default-features = false }
-specs-hierarchy = { version = "0.6", default-features = false }
-shred = { version = "0.10", default-features = false }
-shrev = { version = "1.1" }
+hecs = { version = "0.5", features = ["macros"] }
 lazy_static = "1.4"
 pest = "2.1"
 pest_derive = "2.1"
