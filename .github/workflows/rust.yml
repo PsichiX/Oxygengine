@@ -26,6 +26,16 @@ jobs:
         with:
           command: install
           args: --path ./engine/ignite --force
+      - name: Install Composite Renderer tools
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: --path ./engine/composite-renderer-tools --force
+      - name: Install HA Renderer tools
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: --path ./engine/ha-renderer-tools --force
       - name: Clean project for the test
         run: rm -rf ./* && ls -al
       - name: Create project with Ignite CLI

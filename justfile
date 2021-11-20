@@ -31,6 +31,10 @@ make-presets-pack:
 list-outdated:
   cargo outdated -R -w -m ./engine/Cargo.toml
 
+book:
+  mdbook build book --open
+  mdbook test book -L ./target/debug/deps
+
 update:
   cargo update --manifest-path ./engine/_/Cargo.toml
   cargo update --manifest-path ./engine/animation/Cargo.toml

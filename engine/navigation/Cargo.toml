@@ -1,9 +1,9 @@
 [package]
 name = "oxygengine-navigation"
-version = "0.21.0"
+version = "0.21.1"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
-description = "Navigation module for Oxygen Engine"
+description = "Navigation module for Oxygengine"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"

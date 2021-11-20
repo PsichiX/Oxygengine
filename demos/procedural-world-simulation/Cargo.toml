@@ -1,9 +1,9 @@
 [package]
 name = "oxygengine-pws"
-version = "0.21.0"
+version = "0.21.1"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
-description = "Oxygen Engine procedural world simulation"
+description = "Oxygengine procedural world simulation"
 license = "MIT"
 homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"

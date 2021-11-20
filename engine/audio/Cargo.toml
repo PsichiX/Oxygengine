@@ -1,9 +1,9 @@
 [package]
 name = "oxygengine-audio"
-version = "0.21.0"
+version = "0.21.1"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
-description = "Audio module for Oxygen Engine"
+description = "Audio module for Oxygengine"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"

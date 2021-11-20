@@ -3,6 +3,7 @@ use crate::{
     ha_renderer::HaRenderer,
     image::ImageResourceMapping,
     material::{domains::gizmo::GizmoVertex, MaterialResourceMapping},
+    math::*,
     mesh::{vertex_factory::VertexType, BufferStorage, Mesh, MeshDrawRange, MeshId},
     pipeline::render_queue::RenderCommand,
     resources::gizmos::Gizmos,
@@ -110,7 +111,7 @@ pub fn ha_render_gizmo_stage_system(universe: &mut Universe) {
             let _ = recorder.record(RenderCommand::SubmitUniform {
                 signature: signature.to_owned(),
                 name: MODEL_MATRIX_NAME.into(),
-                value: transform.world_matrix().into(),
+                value: Mat4::identity().into(),
             });
             let _ = recorder.record(RenderCommand::SubmitUniform {
                 signature: signature.to_owned(),
