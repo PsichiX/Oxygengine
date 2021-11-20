@@ -100,46 +100,46 @@ publish:
   #sleep 15
   #cargo publish --no-verify --manifest-path ./engine/composite-renderer-tools/Cargo.toml
   #sleep 15
-  cargo publish --no-verify --manifest-path ./engine/ha-renderer/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/ha-renderer-tools/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/editor-tools/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/input/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/input-device-web/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/navigation/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/network/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/network-backend-desktop/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/network-backend-native/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/network-backend-web/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/physics-2d/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/procedural/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/script-flow/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/user-interface/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/visual-novel/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/overworld/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/integration-ow-ha/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/integration-p2d-cr/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/integration-ui-cr/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/integration-ui-ha/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/integration-vn-ui/Cargo.toml
-  sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/ha-renderer/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/ha-renderer-tools/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/editor-tools/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/input/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/input-device-web/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/navigation/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/network/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/network-backend-desktop/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/network-backend-native/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/network-backend-web/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/physics-2d/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/procedural/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/script-flow/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/user-interface/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/visual-novel/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/overworld/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/integration-ow-ha/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/integration-p2d-cr/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/integration-ui-cr/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/integration-ui-ha/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/integration-vn-ui/Cargo.toml
+  #sleep 15
   cargo publish --no-verify --manifest-path ./engine/_/Cargo.toml
