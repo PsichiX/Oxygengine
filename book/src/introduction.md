@@ -8,11 +8,10 @@ and what's definitely not made for.
 
 Oxygengine is an all-batteries-included kind of engine, focused on being Web-first.
 The **goal** is for it to be a Rust version of Unreal Engine for 2D games, which
-made us take a very important decision from the beggining, for engine being
-completely asset-driven game engine with game editor dedicated mostly for **Game
-Designers** to use. That means, all architecture decisions are made to ease
-interacting with al parts of the engine from game editor with next to none use of
-code.
+made us take a very important decision from the beggining, for it being a completely
+asset-driven game engine with game editor dedicated mostly for **Game Designers**
+to use. That means, all architecture decisions are made to ease interacting with
+all parts of the engine from game editor with next to none use of code.
 
 This also means that while Oxygengine is a general purpose 2D game engine, it aims
 to provide specialized modules to ease work on specific game genres. At the moment
@@ -23,10 +22,10 @@ we already have specialized game modules for these kind of games:
 
 ## Where we are now
 
-At this point Oxygengine has near its stable version from the code architecture
-point of view, but **does not have yet** a game editor ready to use, although
+At this point Oxygengine is near its stable version from the code architecture
+point of view, but **does not have** a game editor ready to use yet, although
 editor is still work in progress and it might be released in 2022, not yet decided
-on particular month.
+on any particular month.
 
 ## Where could i use Oxygengine
 

@@ -32,7 +32,7 @@ list-outdated:
   cargo outdated -R -w -m ./engine/Cargo.toml
 
 book:
-  mdbook build book --open
+  mdbook build book
   mdbook test book -L ./target/debug/deps
 
 update:
@@ -84,6 +84,8 @@ publish:
   sleep 15
   cargo publish --no-verify --manifest-path ./engine/ignite/Cargo.toml
   sleep 15
+  cargo publish --no-verify --manifest-path ./engine/build-tools/Cargo.toml
+  sleep 15
   cargo publish --no-verify --manifest-path ./engine/core/Cargo.toml
   sleep 15
   cargo publish --no-verify --manifest-path ./engine/backend-web/Cargo.toml
@@ -95,8 +97,6 @@ publish:
   cargo publish --no-verify --manifest-path ./engine/audio/Cargo.toml
   sleep 15
   cargo publish --no-verify --manifest-path ./engine/audio-backend-web/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/build-tools/Cargo.toml
   sleep 15
   cargo publish --no-verify --manifest-path ./engine/composite-renderer/Cargo.toml
   sleep 15
