@@ -8,7 +8,7 @@ license-file = "../LICENSE"
 homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine-ha-renderer"
-readme = "../README.md"
+readme = "../../README.md"
 
 [features]
 web = ["wasm-bindgen", "web-sys", "oxygengine-core/web"]

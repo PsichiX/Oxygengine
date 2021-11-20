@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 homepage = "https://github.com/PsichiX/oxygengine"
 repository = "https://github.com/PsichiX/oxygengine"
 documentation = "https://docs.rs/oxygengine-composite-renderer-backend-web"
-readme = "../README.md"
+readme = "../../README.md"
 
 [features]
 scalar64 = ["oxygengine-core/scalar64", "oxygengine-composite-renderer/scalar64"]
