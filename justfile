@@ -74,12 +74,12 @@ update:
   cd ./templates/web-ha-game/ && cargo update
 
 publish:
-  cargo publish --no-verify --manifest-path ./engine/ignite-types/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/ignite-derive/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/ignite/Cargo.toml
-  sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/ignite-types/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/ignite-derive/Cargo.toml
+  #sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/ignite/Cargo.toml
+  #sleep 15
   #cargo publish --no-verify --manifest-path ./engine/core/Cargo.toml
   #sleep 15
   #cargo publish --no-verify --manifest-path ./engine/backend-web/Cargo.toml
@@ -98,8 +98,8 @@ publish:
   #sleep 15
   #cargo publish --no-verify --manifest-path ./engine/composite-renderer-backend-web/Cargo.toml
   #sleep 15
-  cargo publish --no-verify --manifest-path ./engine/composite-renderer-tools/Cargo.toml
-  sleep 15
+  #cargo publish --no-verify --manifest-path ./engine/composite-renderer-tools/Cargo.toml
+  #sleep 15
   cargo publish --no-verify --manifest-path ./engine/ha-renderer/Cargo.toml
   sleep 15
   cargo publish --no-verify --manifest-path ./engine/ha-renderer-tools/Cargo.toml
