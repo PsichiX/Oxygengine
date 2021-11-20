@@ -21,11 +21,6 @@ Oxygengine is using `hecs` as its ECS framework to achieve better performance,
 reduce application complexity and help decouple state from the logic as much as
 possible. More about `hecs` and ECS here: https://github.com/Ralith/hecs
 
-## Installation
-Make sure that you have latest `oxygengine-ignite` binary installed
-(`cargo install oxygengine-ignite`) - this binary is a set of vital tools that
-will govern managing most of your project.
-
 ## Teaser
 ![Visual Novel](https://raw.githubusercontent.com/PsichiX/Oxygengine/master/media/oxygengine-visual-novel-teaser.gif)
 ![RPG](https://raw.githubusercontent.com/PsichiX/Oxygengine/master/media/oxygengine-raui-navigation.gif)
