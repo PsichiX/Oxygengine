@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="cli/introduction.html"><strong aria-hidden="true">2.</strong> Oxygengine Ignite CLI tool</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="cli/update.html"><strong aria-hidden="true">2.1.</strong> Update engine version used in your game project</a></li><li class="chapter-item expanded "><a href="cli/faster-compilation-times.html"><strong aria-hidden="true">2.2.</strong> Speed up compilation times for new projects</a></li><li class="chapter-item expanded "><a href="cli/asset-pipeline.html"><strong aria-hidden="true">2.3.</strong> Asset pipeline and its tools</a></li><li class="chapter-item expanded "><a href="cli/new-project.html"><strong aria-hidden="true">2.4.</strong> Creating new project</a></li><li class="chapter-item expanded "><a href="cli/build-project.html"><strong aria-hidden="true">2.5.</strong> Building your project</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Concepts explained</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.</strong> Hardware Accelerated rendering</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.1.</strong> Render pipeline</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.2.</strong> Camera</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.3.</strong> Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.4.</strong> Virtual Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.5.</strong> Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.6.</strong> Virtual Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.7.</strong> Material</div></li></ol></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Tutorials</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">4.1.</strong> RPG game using Overworld module</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> VN game using Visual Novel module</div></li></ol></li><li class="chapter-item expanded "><a href="more.html"><strong aria-hidden="true">5.</strong> More...</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="cli/introduction.html"><strong aria-hidden="true">2.</strong> Oxygengine Ignite CLI tool</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="cli/update.html"><strong aria-hidden="true">2.1.</strong> Update engine version used in your game project</a></li><li class="chapter-item expanded "><a href="cli/faster-compilation-times.html"><strong aria-hidden="true">2.2.</strong> Speed up compilation times for new projects</a></li><li class="chapter-item expanded "><a href="cli/asset-pipeline.html"><strong aria-hidden="true">2.3.</strong> Asset pipeline and its tools</a></li><li class="chapter-item expanded "><a href="cli/new-project.html"><strong aria-hidden="true">2.4.</strong> Creating new project</a></li><li class="chapter-item expanded "><a href="cli/build-project.html"><strong aria-hidden="true">2.5.</strong> Building your project</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Concepts explained</div></li><li><ol class="section"><li class="chapter-item expanded "><a href="concepts/ha-renderer/introduction.html"><strong aria-hidden="true">3.1.</strong> Hardware Accelerated rendering</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="concepts/ha-renderer/render-pipeline.html"><strong aria-hidden="true">3.1.1.</strong> Render Pipeline</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.2.</strong> Camera</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.3.</strong> Render Target</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.4.</strong> Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.5.</strong> Virtual Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.6.</strong> Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.7.</strong> Virtual Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.8.</strong> Material</div></li></ol></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Tutorials</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">4.1.</strong> RPG game using Overworld module</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> VN game using Visual Novel module</div></li></ol></li><li class="chapter-item expanded "><a href="more.html"><strong aria-hidden="true">5.</strong> More...</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -142,11 +142,10 @@ and what's definitely not made for.</p>
 <h2 id="the-goal"><a class="header" href="#the-goal">The goal</a></h2>
 <p>Oxygengine is an all-batteries-included kind of engine, focused on being Web-first.
 The <strong>goal</strong> is for it to be a Rust version of Unreal Engine for 2D games, which
-made us take a very important decision from the beggining, for engine being
-completely asset-driven game engine with game editor dedicated mostly for <strong>Game
-Designers</strong> to use. That means, all architecture decisions are made to ease
-interacting with al parts of the engine from game editor with next to none use of
-code.</p>
+made us take a very important decision from the beggining, for it being a completely
+asset-driven game engine with game editor dedicated mostly for <strong>Game Designers</strong>
+to use. That means, all architecture decisions are made to ease interacting with
+all parts of the engine from game editor with next to none use of code.</p>
 <p>This also means that while Oxygengine is a general purpose 2D game engine, it aims
 to provide specialized modules to ease work on specific game genres. At the moment
 we already have specialized game modules for these kind of games:</p>
@@ -155,10 +154,10 @@ we already have specialized game modules for these kind of games:</p>
 <li><a href="https://github.com/PsichiX/Oxygengine/tree/master/engine/overworld">Role-Playing Game</a></li>
 </ul>
 <h2 id="where-we-are-now"><a class="header" href="#where-we-are-now">Where we are now</a></h2>
-<p>At this point Oxygengine has near its stable version from the code architecture
-point of view, but <strong>does not have yet</strong> a game editor ready to use, although
+<p>At this point Oxygengine is near its stable version from the code architecture
+point of view, but <strong>does not have</strong> a game editor ready to use yet, although
 editor is still work in progress and it might be released in 2022, not yet decided
-on particular month.</p>
+on any particular month.</p>
 <h2 id="where-could-i-use-oxygengine"><a class="header" href="#where-could-i-use-oxygengine">Where could i use Oxygengine</a></h2>
 <p>Since this engine is Web-first and 2D-focused and it aims to give you a specific
 games genre solutions to let you just make a game, you most likely would want to
@@ -312,6 +311,334 @@ browser, run:</p>
 <p>To produce a debug mode package you have to run:</p>
 <pre><code class="language-bash">oxygengine-ignite package -d
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="hardware-accelerated-rendering"><a class="header" href="#hardware-accelerated-rendering">Hardware Accelerated rendering</a></h1>
+<p>Here we will take a deeper look at how Oxygengine's hardware Accelerated rendering model works.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>HA renderer uses completely data-driven, material-graph based rendering approach.
+The most important unit in HA renderer is Render Pipeline.</p>
+<ul>
+<li>Render Pipelines are containers for Render Targets and Render Stages.</li>
+<li>Render Targets are a GPU storage, more precisely dynamic textures that all
+rendered information gets stored into.</li>
+<li>Render Stages are containers for Render Queues and are used by dedicated render
+systems which define how entities (or any custom data in mater of fact) gets
+rendered into Render Target that Render Stage points to.</li>
+<li>Render systems work on cameras and record Render Commands into Render Queue
+assigned to given Render Stage.</li>
+<li>Render Stage also defines Material Domain (which is basically a shader backend)
+that will be linked with Material Graphs (which are shader frontends) of
+entities that gets rendered (more about how Materials works later on this page).</li>
+</ul>
+<h2 id="material-graph-based-rendering"><a class="header" href="#material-graph-based-rendering">Material-graph based rendering</a></h2>
+<p>While most game engines expose raw shaders to the users to make them tell exactly
+how anything should be rendered, Oxygengine took another path and do not expose
+any shader code, these are considered engine internals that user should never be
+forced to write on their own. More than that, shaders gets baked at runtime (or
+build-time, both material graphs and baked materials are assets) only when engine
+finds that certain pair of material domain (backend) and material graph (frontend)
+are gonna be used in rendering.</p>
+<p>Material domain and material graphs always work in tandem, material domain job is to preprocess vertex and uniform data and send it to material graph (via specific interface that given domain defines) for it to post process that data and send it back for material domain to store it properly in target outputs.</p>
+<p>The reason for them being separate units is because HA renderer aims for in case
+of user wanting to do some different visuals than default ones provided by the
+engine, to focus only on the effect and don't bother writing additional logic just
+to meet specialized vertex format and render target requirements. Another benefit
+we get from this approach is that now user can make his frontend material once and
+renderer will bake at runtime all variants needed all pairs of domain and graph
+materials. This basically means that user can now get his material graph working
+without any additional work with any vertex format and target format that renderer
+find compatible at runtime. In even simpler words: imagine you have a material
+graph that has to add outlines to the image, in that case no matter if you render
+your entity for example in forward or deferred renderer, it will work for both by
+default as long as both use material domains which provide domain node that your
+outline material uses.</p>
+<p><strong>IMPORTANT:</strong> all shader variants for given material are considered unique as
+long as they have different Material Signatures:</p>
+<ul>
+<li>Material Signature is defined by Material Mesh Signature + Material Render
+Target Signature + Domain name</li>
+<li>Material Mesh Signature is defined by unique Vertex Layout (vertex layouts are
+defined by meshes, to be more precise by the vertex format given mesh data uses)</li>
+<li>Material Render Target Signature is defined by set of render target output
+names.</li>
+</ul>
+<h2 id="1-picture-say-more-than-1000-words"><a class="header" href="#1-picture-say-more-than-1000-words">1 picture say more than 1000 words</a></h2>
+<p>Let's take a look at the simplest material domain (this is code-side
+representation of the material domain/graph):</p>
+<pre><code class="language-rust ignore">material_graph! {
+    inputs {
+        [fragment] domain BaseColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+
+        [vertex] uniform model: mat4;
+        [vertex] uniform view: mat4;
+        [vertex] uniform projection: mat4;
+
+        [vertex] in position: vec3 = vec3(0.0, 0.0, 0.0);
+        [vertex] in color: vec4 = vec4(1.0, 1.0, 1.0, 1.0);
+    }
+
+    outputs {
+        [vertex] domain TintColor: vec4;
+        [vertex] domain ScreenPosition: vec4;
+
+        [vertex] builtin gl_Position: vec4;
+        [fragment] out finalColor: vec4;
+    }
+
+    [model_view_projection = (mul_mat4,
+      a: projection,
+      b: (mul_mat4,
+        a: view,
+        b: model
+      )
+    )]
+    [pos = (append_vec4, a: position, b: {1.0})]
+    [screen_position = (mul_mat4_vec4, a: model_view_projection, b: pos)]
+
+    [color -&gt; TintColor]
+    [screen_position -&gt; ScreenPosition]
+    [screen_position -&gt; gl_Position]
+    [BaseColor -&gt; finalColor]
+}
+</code></pre>
+<p>In this snippet we can see that this particular material domain expects model +
+view + projection uniforms, as well as position + color vertex inputs, and it
+writes data to gl_Position vertex output and finalColor target output. This
+basically means that this material domain will work with stage that writes to
+finalColor target output and position + color vertex format. It also will bake
+shader variants for any material graph that <strong>might read</strong> TintColor and/or
+ScreenPosition domain input, and <strong>might write</strong> BaseColor domain output.</p>
+<p>Consider domain input/outputs to be purely an optional interface between material
+domain and material graph. You might ask now: &quot;why domain interface is
+optional?&quot; - well, this is where this approach shines too: you see, when material
+domain  gets combined with material graph, it will bake shader only from nodes
+that leads  directly from target outputs to vertex inputs, with all required
+nodes along the way.</p>
+<p>Now let's take a look at the simplest material graph:</p>
+<pre><code class="language-rust ignore">material_graph! {
+    inputs {
+        [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+    }
+
+    outputs {
+        [fragment] domain BaseColor: vec4;
+    }
+
+    [[TintColor =&gt; vColor] -&gt; BaseColor]
+}
+</code></pre>
+<p>Here in this material graph we can see we only use domain interface and just move input color from vertex shader stage to fragment shader stage and send it back to material domain to let it store properly for its render target outputs - when user is making material graph, he doesn't have to care about how to write to targets, he can only care how to process domain inputs into domain outputs and domain takes care of properly storing data into target outputs.</p>
+<p>Now imagine user wants to create material graph that do not use TintColor at all,
+rather converts ScreenPosition into BaseColor:</p>
+<pre><code class="language-rust ignore">material_graph! {
+    inputs {
+        [vertex] domain ScreenPosition: vec4 = {vec4(0.0, 0.0, 0.0, 0.0)};
+    }
+
+    outputs {
+        [fragment] domain BaseColor: vec4;
+    }
+
+    [[ScreenPosition =&gt; vColor] -&gt; BaseColor]
+}
+</code></pre>
+<p>This material graph when combined with our previously defined material domain,
+will bake shader with nodes that only use screen position calculated in domain
+graph and not include color vertex data in the shader at all since this shader
+variant does not use it. Now, do you also see the benefits of this over usual
+<code>#ifdef</code>-ed raw shaders?</p>
+<hr />
+<p>As you can see, all of this moves away a burden of careful producing of all
+shader code from user to the engine. With materials there is no more need for any
+tedious, boilerplate-y and unnecessary <code>#ifdef</code>-ed shader code - we have reduced
+the complexity of shader creation and management.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="render-pipeline"><a class="header" href="#render-pipeline">Render Pipeline</a></h1>
+<h2 id="overview-1"><a class="header" href="#overview-1">Overview</a></h2>
+<p>HA renderer requires user to define render pipelines on game app setup phase.
+Render pipelines describe how camera that uses given render pipeline, should
+render world entities.</p>
+<p>Let's take a look at typical renderer setup first:</p>
+<pre><code class="language-rust ignore">HaRenderer::new(WebPlatformInterface::with_canvas_id(
+    &quot;screen&quot;,
+    WebContextOptions::default(),
+)?)
+.with_stage::&lt;RenderForwardStage&gt;(&quot;forward&quot;)
+.with_stage::&lt;RenderGizmoStage&gt;(&quot;gizmos&quot;)
+.with_stage::&lt;RenderUiStage&gt;(&quot;ui&quot;)
+.with_pipeline(
+    &quot;default&quot;,
+    PipelineDescriptor::default()
+        .render_target(&quot;main&quot;, RenderTargetDescriptor::Main)
+        .stage(
+            StageDescriptor::new(&quot;forward&quot;)
+                .render_target(&quot;main&quot;)
+                .domain(&quot;@material/domain/surface/flat&quot;)
+                .clear_settings(ClearSettings {
+                    color: Some(Rgba::gray(0.2)),
+                    depth: false,
+                    stencil: false,
+                }),
+        )
+        .stage(
+            StageDescriptor::new(&quot;gizmos&quot;)
+                .render_target(&quot;main&quot;)
+                .domain(&quot;@material/domain/gizmo&quot;),
+        )
+        .stage(
+            StageDescriptor::new(&quot;ui&quot;)
+                .render_target(&quot;main&quot;)
+                .domain(&quot;@material/domain/surface/flat&quot;),
+        )
+)
+</code></pre>
+<p>From that code snippet we can tell than render pipelines contains:</p>
+<ul>
+<li>set of render targets used to render into.</li>
+<li>set of render stages that tells how to render geometry to given render target.</li>
+</ul>
+<p>What is important here is that for render stages we are required to provide its
+render target name for stage to know where to store all information it produces,
+as well as domain graph name which is the shader backend for all shader frontends
+(material graphs) used by entities in the world.</p>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<h4 id="recording-to-render-queue"><a class="header" href="#recording-to-render-queue">Recording to Render Queue</a></h4>
+<p>At first, renderer searches for new camera components, for each camera it creates its own instance of render pipeline that camera component points at.</p>
+<p>Then all render stage systems goes through all cameras that contain render stages
+with stage type given system provides, here is a brief snippet example:</p>
+<pre><code class="language-rust ignore">pub fn ha_render_gizmo_stage_system(universe: &amp;mut Universe) {
+<span class="boring">   type V = GizmoVertex;
+</span><span class="boring">
+</span>    let (world, mut renderer, mut gizmos, material_mapping, image_mapping, mut cache, ..) =
+        universe.query_resources::&lt;HaRenderGizmoStageSystemResources&gt;();
+
+<span class="boring">   if gizmos.factory.is_empty() {
+</span><span class="boring">       return;
+</span><span class="boring">   }
+</span><span class="boring">
+</span><span class="boring">   let layout = match V::vertex_layout() {
+</span><span class="boring">       Ok(layout) =&gt; layout,
+</span><span class="boring">       Err(_) =&gt; return,
+</span><span class="boring">   };
+</span><span class="boring">
+</span><span class="boring">   let mesh_id = match cache.mesh {
+</span><span class="boring">       Some(mesh_id) =&gt; mesh_id,
+</span><span class="boring">       None =&gt; {
+</span><span class="boring">           let mut m = Mesh::new(layout.to_owned());
+</span><span class="boring">           m.set_vertex_storage_all(BufferStorage::Dynamic);
+</span><span class="boring">           m.set_index_storage(BufferStorage::Dynamic);
+</span><span class="boring">           match renderer.add_mesh(m) {
+</span><span class="boring">               Ok(mesh_id) =&gt; {
+</span><span class="boring">                   cache.mesh = Some(mesh_id);
+</span><span class="boring">                   mesh_id
+</span><span class="boring">               }
+</span><span class="boring">               Err(_) =&gt; return,
+</span><span class="boring">           }
+</span><span class="boring">       }
+</span><span class="boring">   };
+</span><span class="boring">   match renderer.mesh_mut(mesh_id) {
+</span><span class="boring">       Some(mesh) =&gt; match gizmos.factory.factory() {
+</span><span class="boring">           Ok(factory) =&gt; {
+</span><span class="boring">               if factory.write_into(mesh).is_err() {
+</span><span class="boring">                   return;
+</span><span class="boring">               }
+</span><span class="boring">           }
+</span><span class="boring">           Err(_) =&gt; return,
+</span><span class="boring">       },
+</span><span class="boring">       None =&gt; return,
+</span><span class="boring">   }
+</span><span class="boring">
+</span><span class="boring">   gizmos
+</span><span class="boring">       .material
+</span><span class="boring">       .update_references(&amp;material_mapping, &amp;image_mapping);
+</span><span class="boring">   let material_id = match gizmos.material.reference.id().copied() {
+</span><span class="boring">       Some(material_id) =&gt; material_id,
+</span><span class="boring">       None =&gt; return,
+</span><span class="boring">   };
+</span><span class="boring">
+</span>    for (_, (visibility, camera, transform)) in world
+        .query::&lt;(Option&lt;&amp;HaVisibility&gt;, &amp;HaCamera, &amp;HaTransform)&gt;()
+        .iter()
+    {
+        if !visibility.map(|v| v.0).unwrap_or(true) {
+            continue;
+        }
+        let iter = match camera.record_to_pipeline_stage::&lt;RenderGizmoStage&gt;(&amp;renderer, transform) {
+            Some(iter) =&gt; iter,
+            None =&gt; continue,
+        };
+        for (info, render_queue) in iter {
+            let mut render_queue = match render_queue.write() {
+                Ok(render_queue) =&gt; render_queue,
+                Err(_) =&gt; continue,
+            };
+            render_queue.clear();
+            let mut recorder = render_queue.auto_recorder(None);
+<span class="boring">
+</span><span class="boring">           let _ = recorder.record(RenderCommand::ActivateMesh(mesh_id));
+</span><span class="boring">           let signature = info.make_material_signature(&amp;layout);
+</span><span class="boring">           let _ = recorder.record(RenderCommand::ActivateMaterial {
+</span><span class="boring">               id: material_id,
+</span><span class="boring">               signature: signature.to_owned(),
+</span><span class="boring">           });
+</span><span class="boring">           let _ = recorder.record(RenderCommand::SubmitUniform {
+</span><span class="boring">               signature: signature.to_owned(),
+</span><span class="boring">               name: MODEL_MATRIX_NAME.into(),
+</span><span class="boring">               value: Mat4::identity().into(),
+</span><span class="boring">           });
+</span><span class="boring">           let _ = recorder.record(RenderCommand::SubmitUniform {
+</span><span class="boring">               signature: signature.to_owned(),
+</span><span class="boring">               name: VIEW_MATRIX_NAME.into(),
+</span><span class="boring">               value: info.view_matrix.into(),
+</span><span class="boring">           });
+</span><span class="boring">           let _ = recorder.record(RenderCommand::SubmitUniform {
+</span><span class="boring">               signature: signature.to_owned(),
+</span><span class="boring">               name: PROJECTION_MATRIX_NAME.into(),
+</span><span class="boring">               value: info.projection_matrix.into(),
+</span><span class="boring">           });
+</span><span class="boring">           if let Some(draw_options) = &amp;gizmos.material.override_draw_options {
+</span><span class="boring">               let _ = recorder.record(RenderCommand::ApplyDrawOptions(draw_options.to_owned()));
+</span><span class="boring">           }
+</span><span class="boring">           for (name, value) in &amp;gizmos.material.values {
+</span><span class="boring">               let _ = recorder.record(RenderCommand::SubmitUniform {
+</span><span class="boring">                   signature: signature.to_owned(),
+</span><span class="boring">                   name: name.to_owned().into(),
+</span><span class="boring">                   value: value.to_owned(),
+</span><span class="boring">               });
+</span><span class="boring">           }
+</span><span class="boring">           let _ = recorder.record(RenderCommand::DrawMesh(MeshDrawRange::All));
+</span><span class="boring">           let _ = recorder.record(RenderCommand::SortingBarrier);
+</span>        }
+    }
+<span class="boring">
+</span><span class="boring">   gizmos.factory.clear();
+</span>}
+</code></pre>
+<p><em>You can toggle full code reveal to see what is actually happening there.</em></p>
+<p>As you can see, when we get an iterator over requested render stages for cameras,
+all we do next is to get access to render queue, create auto recorder (to ease
+writing ordered render commands) and start recording commands. Although Gizmo
+render system renders already batched gizmo geometry in other render systems, you
+can get the idea that all what recording phase cares about is to just record
+render commands into render queue of given camera render pipeline, it doesn't
+really matter where we get data from, what matters is what gets into render
+queue. We could also just iterate over world entities and record their render
+commands to the queue - in matter of fact, this is how Render Forward Stage does
+that, here we show Render Gizmo Stage for the sake of simplified explanation.</p>
+<h4 id="execution-of-render-queues"><a class="header" href="#execution-of-render-queues">Execution of render queues</a></h4>
+<p>After all render stage systems complete recording commands into queues, renderer
+is now ready to go through all active render pipelines and execute their render
+queues.</p>
+<p>You can remember that when we were talking about recording to Render Queues, we
+have been mentioning auto ordered recordings of commands - but what does that
+means? Well, sometimes your render stage system might require its commands to be
+ordered by for example some kind of depth value. For this case, to not require
+user to collect entities to sort them and then record them in proper order, we
+just encode order information in render command group index and enable optional
+render queue sorting in stage descriptor. That way we do not break unspecified
+order of entities iteration and just sort render commands itself. This obviously
+has its own cost so it's just an optional step and you should definitely
+benchmark to decide which of either render commands sorting or manual entity
+sorting approach will benefit more your stage rendering.</p>
+<p>Another thing worth mentioning about render queues is that they are only data containers so you can for example create your own render queues separately from what render pipeline provides, for example as a way of caching queues and reusing them with multiple pipelines by flushing your custom render queue into one provided by the render pipeline. Yet another use of render queues is to instead of recording them in your application, you can send them via network socket to render it on client application that will reflect your camera setup, but instead of recording world itself, it will render what server sends - similar use case could be for making both game and editor worlds embeded in one application host and game world sending its recorded queues to editor world which then renders game view in its rendering context.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="more"><a class="header" href="#more">More...</a></h1>
 <p>If you need an explanation of some Oxygengine related topic, consider creating
 an issue on GitHub explaining what are you trying to achieve.</p>
