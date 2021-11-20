@@ -1,0 +1,38 @@
+[package]
+name = "oxygengine-integration-vn-ui"
+version = "0.21.0"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+edition = "2021"
+description = "Integration module of visual novel and user interface for Oxygen Engine"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine-integration-vn-ui"
+readme = "../README.md"
+
+[features]
+web = [
+  "oxygengine-core/web",
+  "oxygengine-animation/web",
+  "oxygengine-visual-novel/web",
+  "oxygengine-user-interface/web",
+]
+parallel = [
+  "oxygengine-core/parallel",
+  "oxygengine-animation/parallel",
+  "oxygengine-visual-novel/parallel",
+  "oxygengine-user-interface/parallel",
+]
+scalar64 = [
+  "oxygengine-core/scalar64",
+  "oxygengine-animation/scalar64",
+  "oxygengine-visual-novel/scalar64",
+  "oxygengine-user-interface/scalar64",
+]
+
+[dependencies]
+oxygengine-core = { version = "0.21", path = "../core" }
+oxygengine-animation = { version = "0.21", path = "../animation" }
+oxygengine-visual-novel = { version = "0.21", path = "../visual-novel" }
+oxygengine-user-interface = { version = "0.21", path = "../user-interface" }
+serde = { version = "1", features = ["derive"] }

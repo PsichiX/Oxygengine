@@ -1,0 +1,32 @@
+[package]
+name = "oxygengine-ignite"
+version = "0.21.0"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+edition = "2021"
+description = "CLI app used to setup and develop Oxygen Engine projects"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine-ignite"
+readme = "../README.md"
+
+[dependencies]
+clap = "2.33"
+cargo_metadata = "0.14"
+toml = "0.5"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bincode = "1"
+oxygengine-ignite-types = { version = "0.21", path = "../ignite-types" }
+dirs = "4.0"
+reqwest = { version = "0.11", default-features = false, features = ["blocking", "rustls-tls"] }
+chrobry-core = "1"
+warp = "0.3"
+tokio = { version = "1", features = ["macros"] }
+hotwatch = "0.4"
+open = "2.0"
+wasm-pack = { version = "0.10", default-features = false }
+fs_extra = "1.1"
+pathdiff = "0.2"
+which = "4.2"
+ignore = "0.4"

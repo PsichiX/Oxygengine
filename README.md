@@ -31,9 +31,11 @@ Create Oxygen Engine project with `oxygengine-ignite`:
 cd /path/to/parent/
 oxygengine-ignite new <project-name>
 ```
-Which will create default web game project using `web-composite-game` preset.
+Which will create default web game project using `web-ha-game` preset using WebGL2 rendering.
 You can create projects with different presets:
-- __desktop-headless-game__ - typical server-like project without graphics.
+- `desktop-headless-game` - typical server-like project without graphics.
+- `web-composite-game` - typical web game using Canvas rendering.
+- `web-composite-visual-novel-game` - typical Visual Novel web game using Canvas rendering.
 
 using:
 ```bash

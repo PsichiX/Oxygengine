@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+    <g transform="matrix(1,0,0,1,0,3.13002)">
+        <g id="chip">
+            <path id="chip1" serif:id="chip" d="M424,253.043C451.605,243.647 481.212,238.548 512,238.548C542.788,238.548 572.395,243.647 600,253.043L600,391.754C636.993,418.886 661.025,462.659 661.025,512C661.025,561.341 636.993,605.114 600,632.246L600,770.957C572.395,780.353 542.788,785.452 512,785.452C481.212,785.452 451.605,780.353 424,770.957L424,632.246C387.007,605.114 362.975,561.341 362.975,512C362.975,462.659 387.007,418.886 424,391.754L424,253.043Z" style="fill:white;fill-opacity:0.6;stroke:black;stroke-width:4.17px;"/>
+        </g>
+    </g>
+</svg>

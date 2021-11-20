@@ -1,0 +1,29 @@
+[package]
+name = "oxygengine-composite-renderer-tools"
+version = "0.21.0"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+edition = "2021"
+description = "Tools for composite renderer module for Oxygen Engine"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine-composite-renderer-tools"
+readme = "../README.md"
+
+[dependencies]
+oxygengine-build-tools = { version = "0.21", path = "../build-tools" }
+oxygengine-composite-renderer = { version = "0.21", path = "../composite-renderer" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bincode = "1"
+pathdiff = "0.2"
+texture_packer = "0.23"
+image = "0.23"
+
+[[bin]]
+name = "oxygengine-composite-renderer-atlas"
+path = "./src/atlas_tool.rs"
+
+[[bin]]
+name = "oxygengine-composite-renderer-tiled"
+path = "./src/tiled_tool.rs"

@@ -4,20 +4,31 @@ on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v2
-    - name: Build
-      run: cargo build --all --verbose --exclude oxygengine-pws
-    - name: Run tests
-      run: cargo test --all --verbose --exclude oxygengine-pws
-    - name: Install Ignite CLI
-      run: cargo install --path oxygengine-ignite --force
-    - name: Clean project for the test
-      run: rm -rf ./* && ls -al
-    - name: Create project with Ignite CLI
-      run: OXY_UPDATE_PRESETS=1 oxygengine-ignite new test
-    - name: Build test project
-      run: cd test && ls -al && cat Cargo.toml && oxygengine-ignite package
+      - uses: actions/checkout@v2
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --all --manifest-path ./engine/Cargo.toml --verbose
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all --manifest-path ./engine/Cargo.toml --verbose
+      - name: Install Ignite CLI
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: --path ./engine/ignite --force
+      - name: Clean project for the test
+        run: rm -rf ./* && ls -al
+      - name: Create project with Ignite CLI
+        run: OXY_UPDATE_PRESETS=1 oxygengine-ignite new test
+      - name: Build test project
+        run: cd test && ls -al && cat Cargo.toml && oxygengine-ignite package

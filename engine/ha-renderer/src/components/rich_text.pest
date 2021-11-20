@@ -1,0 +1,32 @@
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+number = @{
+    "-"?
+    ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*)
+    ~ ("." ~ ASCII_DIGIT*)?
+    ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+)?
+}
+string = ${ "`" ~ inner ~ "`" }
+inner = @{ char* }
+char = {
+    !("`" | "\\") ~ ANY
+    | "\\" ~ ("`" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+color = { ("(" ~ number ~ "," ~ number ~ "," ~ number ~ "," ~ number ~ ")") }
+opt_size = { ("size" | "s") ~ ":" ~ number }
+opt_color = { ("color" | "c") ~ ":" ~ color }
+opt_outline = { ("outline" | "o") ~ ":" ~ color }
+opt_thickness = { ("bold" | "b") ~ ":" ~ number }
+opt_cursive = { ("italic" | "i") ~ ":" ~ number }
+opt_wrapping_char = { "char" | "c" }
+opt_wrapping_word = { "word" | "w" }
+opt_wrapping_set = { string }
+opt_wrapping = { ("wrap" | "w") ~ ":" ~ (opt_wrapping_char | opt_wrapping_word | opt_wrapping_set) }
+option = { opt_size | opt_color | opt_outline | opt_thickness | opt_cursive | opt_wrapping }
+tag_open = { "[" ~ (option ~ "|")* }
+tag_close = _{ "]" }
+new_line = { "#" }
+group = { tag_open ~ content ~ tag_close }
+content = { (group | string | new_line)+ }
+main = { SOI ~ content ~ EOI }

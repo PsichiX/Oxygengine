@@ -1,8 +1,8 @@
 [package]
 name = "oxygengine-pws"
-version = "0.20.0"
+version = "0.21.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "Oxygen Engine procedural world simulation"
 license = "MIT"
 homepage = "https://github.com/PsichiX/oxygengine"
@@ -14,6 +14,6 @@ minifb = "0.19"
 rand = "0.8"
 
 [dependencies.oxygengine-procedural]
-version = "0.20"
-path = "../../oxygengine-procedural"
+version = "0.21"
+path = "../../engine/procedural"
 features = ["parallel"]

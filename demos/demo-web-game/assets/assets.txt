@@ -1,6 +1,0 @@
-png://splash.png
-map://map.map
-audio://audio/explosion.ogg
-audio://audio/firegun.ogg
-audio://audio/ancient-rite.ogg
-audio://audio/strength-of-the-titans.ogg

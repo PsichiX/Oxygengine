@@ -1,4 +1,0 @@
-png://images/logo.png
-mesh://meshes/logo.yaml
-mesh-anim://animations/logo.yaml
-prefab://prefabs/scene.yaml

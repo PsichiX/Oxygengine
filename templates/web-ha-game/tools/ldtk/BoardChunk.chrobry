@@ -1,0 +1,6 @@
+inject
+```
+HaBoardChunkSync:
+  col: %{ $level_world_col }%
+  row: %{ $level_world_row }%
+```

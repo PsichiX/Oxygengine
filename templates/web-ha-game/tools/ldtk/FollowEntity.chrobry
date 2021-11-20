@@ -1,0 +1,7 @@
+inject
+```
+HaCameraFollowBoardEntity:
+  name: %{ $NAME }%
+  strength_factor: %{ $STRENGTH_FACTOR }%
+  constraints: Region
+```

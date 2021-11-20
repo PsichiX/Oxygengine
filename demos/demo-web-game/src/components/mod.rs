@@ -1,9 +1,0 @@
-pub mod ammo;
-pub mod bonus;
-pub mod bullet;
-pub mod death;
-pub mod follow;
-pub mod health;
-pub mod lifetime;
-pub mod player;
-pub mod speed;

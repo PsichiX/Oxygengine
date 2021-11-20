@@ -1,0 +1,12 @@
+font://fonts/roboto.ttf
+fontface://fonts/roboto.json
+svg://images/arena.svg
+svg://images/background.svg
+svg://images/chip.svg
+svg://images/logo.svg
+svg://images/wind.svg
+svg://images/ui-dark-bg.svg
+svg://images/ui-light-bg.svg
+svg://images/ui-loading.svg
+svg://images/ui-ghost.svg
+prefab://prefabs/battle-arena.yaml

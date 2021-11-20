@@ -1,0 +1,11 @@
+[package]
+name = "desktop-headless-game"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+
+[dependencies.oxygengine]
+version = "0.21"
+features = ["desktop-headless-game"]

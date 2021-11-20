@@ -1,0 +1,46 @@
+[package]
+name = "oxygengine-backend-web"
+version = "0.21.0"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+edition = "2021"
+description = "Web backend module for Oxygen Engine"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine-backend-web"
+readme = "../README.md"
+
+[features]
+scalar64 = ["oxygengine-core/scalar64"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+futures = "0.3"
+url = "2.2"
+
+[dependencies.oxygengine-core]
+version = "0.21"
+path = "../core"
+features = ["web"]
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+  'Document',
+  'Location',
+  'Element',
+  'HtmlElement',
+  'Node',
+  'Window',
+  'Headers',
+  'Request',
+  'RequestInit',
+  'RequestMode',
+  'RequestCache',
+  'RequestCredentials',
+  'Response',
+  'Performance',
+  'Storage',
+]

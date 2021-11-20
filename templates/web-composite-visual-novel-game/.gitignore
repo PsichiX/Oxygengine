@@ -1,0 +1,8 @@
+/assets-intermediate
+/assets-baked
+/bin
+/dist
+/target
+wasm-pack.log
+preview.png
+ignite.json

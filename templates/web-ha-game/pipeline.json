@@ -1,0 +1,123 @@
+{
+  "commands": [
+    {
+      "Pipeline": {
+        "source": "assets",
+        "destination": "assets-intermediate",
+        "clear_destination": true,
+        "commands": [
+          {
+            "Copy": {
+              "from": [
+                "animations/"
+              ]
+            }
+          },
+          {
+            "Plugin": {
+              "name": "oxygengine-ha-renderer-atlas",
+              "params": {
+                "input_directories": ["atlases/ui"],
+                "output": "atlases/",
+                "assets_path_prefix": "atlases/",
+                "image_filtering": "Nearest",
+                "max_width": 64,
+                "max_height": 64
+              }
+            }
+          },
+          {
+            "Plugin": {
+              "name": "oxygengine-ha-renderer-bmfont",
+              "params": {
+                "descriptors": ["fonts/pixel.fnt"],
+                "output": "fonts/",
+                "assets_path_prefix": "fonts/",
+                "image_filtering": "Nearest",
+                "padding": 1,
+                "max_width": 64,
+                "max_height": 64,
+                "generator": {
+                  "resolution": 0,
+                  "write_channels": {
+                    "red": "Alpha",
+                    "green": "Alpha",
+                    "blue": "Alpha",
+                    "alpha": "Alpha"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "Plugin": {
+              "name": "debug/oxygengine-ha-renderer-ldtk",
+              "params": {
+                "input_projects": ["levels/world.ldtk"],
+                "output": "levels/",
+                "assets_path_prefix": "levels/",
+                "image_filtering": "Nearest",
+                "tile_margin": {
+                  "x": 0.1,
+                  "y": 0.1
+                },
+                "rules": [
+                  {
+                    "name": "UiView",
+                    "macro_file": "./tools/ldtk/UiView.chrobry"
+                  },
+                  {
+                    "name": "UiSync",
+                    "macro_file": "./tools/ldtk/UiSync.chrobry"
+                  },
+                  {
+                    "name": "BoardAvatar",
+                    "macro_file": "./tools/ldtk/BoardAvatar.chrobry"
+                  },
+                  {
+                    "name": "BoardChunk",
+                    "macro_file": "./tools/ldtk/BoardChunk.chrobry"
+                  },
+                  {
+                    "name": "AvatarMovement",
+                    "macro_file": "./tools/ldtk/AvatarMovement.chrobry"
+                  },
+                  {
+                    "name": "FollowEntity",
+                    "macro_file": "./tools/ldtk/FollowEntity.chrobry"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "Copy": {
+              "from": [
+                "assets.txt"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "Pipeline": {
+        "destination": "assets-baked",
+        "clear_destination": true,
+        "commands": [
+          {
+            "Pack": {
+              "paths": ["assets-intermediate/"],
+              "output": "assets.pack"
+            }
+          },
+          {
+            "Copy": {
+              "from": ["assets/index.html"]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+font://fonts/pixel.yaml
+atlas://atlases/ui.yaml
+set://levels/Level_0x0.txt
+set://levels/Level_0x1.txt
+set://levels/Level_1x0.txt
+set://levels/Level_1x1.txt

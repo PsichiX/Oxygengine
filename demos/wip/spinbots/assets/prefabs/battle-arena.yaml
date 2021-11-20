@@ -1,0 +1,69 @@
+template_name: battle-arena
+entities:
+  - Data:
+      components:
+        Name: camera
+        CompositeCamera:
+          scaling: CenterAspect
+          tags:
+            - world
+        CompositeTransform:
+          scale:
+            x: 1050
+            y: 1050
+        NonPersistent: ~
+  - Data:
+      components:
+        Name: camera_ui
+        CompositeCamera:
+          tags:
+            - ui
+        CompositeTransform: {}
+        NonPersistent: ~
+  - Data:
+      components:
+        Tag: world
+        Name: background
+        CompositeRenderable: None
+        CompositeTransform:
+          rotation: 0.2
+        AnimatedBackground:
+          cols: 4
+          rows: 3
+          phase:
+            x: 0.5
+            y: 0.5
+          speed:
+            x: 0.05
+            y: -0.025
+        NonPersistent: ~
+  - Data:
+      components:
+        Tag: world
+        Name: arena
+        CompositeRenderable:
+          Image:
+            image: images/arena.svg
+            alignment:
+              x: 0.5
+              y: 0.5
+        CompositeTransform: {}
+        NonPersistent: ~
+  - Data:
+      components:
+        Tag: ui
+        CompositeRenderable: None
+        CompositeTransform: {}
+        UserInterfaceView:
+          root:
+            Component:
+              type_name: battle
+              key: battle
+        UserInterfaceViewSyncCompositeRenderable:
+          camera_name: camera_ui
+          mapping_scaling:
+            FitToView:
+              - [1024, 1024]
+              - false
+          approx_rect_values: Round
+        NonPersistent: ~

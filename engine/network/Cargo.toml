@@ -1,0 +1,19 @@
+[package]
+name = "oxygengine-network"
+version = "0.21.0"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+edition = "2021"
+description = "Network module for Oxygen Engine"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine-network"
+readme = "../README.md"
+
+[features]
+web = ["oxygengine-core/web"]
+parallel = ["oxygengine-core/parallel"]
+scalar64 = ["oxygengine-core/scalar64"]
+
+[dependencies]
+oxygengine-core = { version = "0.21", path = "../core" }
