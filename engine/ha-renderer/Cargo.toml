@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-ha-renderer"
-version = "0.21.1"
+version = "0.22.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Hardware Accelerated renderer module for Oxygengine"
@@ -16,7 +16,7 @@ parallel = ["oxygengine-core/parallel"]
 scalar64 = ["oxygengine-core/scalar64"]
 
 [dependencies]
-oxygengine-core = { version = "0.21", path = "../core" }
+oxygengine-core = { version = "0.22", path = "../core" }
 glow = "0.11"
 vek = { version = "0.15", features = ["mint", "rgba", "uv"] }
 png = "0.17"

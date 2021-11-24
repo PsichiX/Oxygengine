@@ -41,14 +41,14 @@ use core::{
     prefab::PrefabManager,
 };
 
-pub fn bundle_installer<Q, PB>(
+pub fn bundle_installer<PB, Q>(
     builder: &mut AppBuilder<PB>,
     user_interface: UserInterface,
 ) -> Result<(), PipelineBuilderError>
 where
+    PB: PipelineBuilder,
     Q: AccessType + ResQuery + 'static,
     <Q as ResQuery>::Fetch: FeedProcessContext,
-    PB: PipelineBuilder,
 {
     builder.install_resource(user_interface);
     builder.install_resource(UserInterfaceSystemCache::default());

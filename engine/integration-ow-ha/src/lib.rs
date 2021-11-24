@@ -114,13 +114,13 @@ pub fn board_region_rect(
     Rect { x, y, w, h }
 }
 
-pub fn bundle_installer<S, PB>(
+pub fn bundle_installer<PB, S>(
     builder: &mut AppBuilder<PB>,
     data: HaBoardSettings,
 ) -> Result<(), PipelineBuilderError>
 where
-    S: 'static,
     PB: PipelineBuilder,
+    S: 'static,
 {
     builder.install_resource(data);
     builder.install_resource(HaBoardSyncSystemCache::default());

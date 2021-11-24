@@ -32,17 +32,17 @@ use oxygengine_core::{
     prefab::PrefabManager,
 };
 
-pub fn bundle_installer<I, V, Q, B, F, PB>(
+pub fn bundle_installer<PB, I, V, Q, B, F>(
     builder: &mut AppBuilder<PB>,
     mut f: F,
 ) -> Result<(), PipelineBuilderError>
 where
+    PB: PipelineBuilder,
     I: std::fmt::Debug + Clone + Send + Sync + 'static,
     V: Currency + std::fmt::Debug + Default + Clone + Send + Sync + 'static,
     Q: std::fmt::Debug + Clone + Send + Sync + 'static,
     B: std::fmt::Debug + Clone + Send + Sync + 'static,
     F: FnMut(&mut Bank<V>, &mut MarketDatabase<I, V>, &mut QuestsDatabase<Q, B, V>) -> Board,
-    PB: PipelineBuilder,
 {
     let mut bank = Bank::<V>::default();
     let mut market = MarketDatabase::<I, V>::default();

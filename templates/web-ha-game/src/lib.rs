@@ -43,7 +43,7 @@ pub fn main_js() -> Result<(), JsValue> {
             .with_bundle(oxygengine::overworld::bundle_installer, make_overworld())
             .unwrap()
             .with_bundle(
-                oxygengine::user_interface::bundle_installer::<&GameStateInfo, _>,
+                oxygengine::user_interface::bundle_installer::<_, &GameStateInfo>,
                 make_ui(),
             )
             .unwrap()
@@ -54,8 +54,8 @@ pub fn main_js() -> Result<(), JsValue> {
             .unwrap()
             .with_bundle(
                 oxygengine::integration_overworld_ha_renderer::bundle_installer::<
-                    RenderForwardStage,
                     _,
+                    RenderForwardStage,
                 >,
                 make_board_settings(),
             )

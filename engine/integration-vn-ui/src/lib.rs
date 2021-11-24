@@ -416,13 +416,13 @@ pub fn ui_setup(app: &mut Application) {
     app.register_component("visual_novel_backgrounds", visual_novel_backgrounds);
 }
 
-pub fn bundle_installer<Q, PB>(
+pub fn bundle_installer<PB, Q>(
     builder: &mut AppBuilder<PB>,
     _: (),
 ) -> Result<(), PipelineBuilderError>
 where
-    Q: AccessType + ResQuery + 'static,
     PB: PipelineBuilder,
+    Q: AccessType + ResQuery + 'static,
 {
     builder.install_system::<ApplyVisualNovelToUserInterfaceSystemResources>(
         "apply-visual-novel-to-user-interface",

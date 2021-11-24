@@ -83,6 +83,10 @@ pub mod visual_novel {
 pub mod overworld {
     pub use oxygengine_overworld::*;
 }
+#[cfg(feature = "oxygengine-ai")]
+pub mod ai {
+    pub use oxygengine_ai::*;
+}
 #[cfg(feature = "oxygengine-animation")]
 pub mod animation {
     pub use oxygengine_animation::*;
@@ -97,6 +101,8 @@ pub mod editor_tools {
 }
 
 pub mod prelude {
+    #[cfg(feature = "oxygengine-ai")]
+    pub use oxygengine_ai::*;
     #[cfg(feature = "oxygengine-animation")]
     pub use oxygengine_animation::prelude::*;
     #[cfg(feature = "oxygengine-audio")]
@@ -109,8 +115,7 @@ pub mod prelude {
     pub use oxygengine_composite_renderer::prelude::*;
     #[cfg(feature = "oxygengine-composite-renderer-backend-web")]
     pub use oxygengine_composite_renderer_backend_web::prelude::*;
-    pub use oxygengine_core::prelude::*;
-    pub use oxygengine_core::Scalar;
+    pub use oxygengine_core::{prelude::*, Scalar};
     #[cfg(feature = "oxygengine-editor-tools")]
     pub use oxygengine_editor_tools::prelude::*;
     #[cfg(feature = "oxygengine-ha-renderer")]

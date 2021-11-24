@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-build-tools"
-version = "0.21.1"
+version = "0.22.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Build tools for Oxygengine"

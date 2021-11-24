@@ -77,7 +77,7 @@ pub fn main_js() -> Result<(), JsValue> {
         .unwrap()
         // install UI support.
         .with_bundle(
-            oxygengine::user_interface::bundle_installer::<&VnStoryManager, _>,
+            oxygengine::user_interface::bundle_installer::<_, &VnStoryManager>,
             UserInterface::new(oxygengine::integration_visual_novel_user_interface::ui_setup)
                 .with_pointer_axis("pointer-x", "pointer-y")
                 .with_pointer_trigger("pointer-action", "pointer-context")
@@ -88,8 +88,8 @@ pub fn main_js() -> Result<(), JsValue> {
         // install integration between UI and composite rendering.
         .with_bundle(
             oxygengine::integration_user_interface_composite_renderer::bundle_installer::<
-                WebCompositeRenderer,
                 _,
+                WebCompositeRenderer,
             >,
             (),
         )
@@ -103,8 +103,8 @@ pub fn main_js() -> Result<(), JsValue> {
         // install integration between VN and UI.
         .with_bundle(
             oxygengine::integration_visual_novel_user_interface::bundle_installer::<
-                &VnStoryManager,
                 _,
+                &VnStoryManager,
             >,
             (),
         )

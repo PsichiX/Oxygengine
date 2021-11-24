@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "_",
+  "ai",
   "animation",
   "audio",
   "audio-backend-web",

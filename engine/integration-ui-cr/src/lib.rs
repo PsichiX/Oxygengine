@@ -1259,13 +1259,13 @@ pub fn filter_box(mut context: WidgetContext) -> WidgetNode {
     .into()
 }
 
-pub fn bundle_installer<CR, PB>(
+pub fn bundle_installer<PB, CR>(
     builder: &mut AppBuilder<PB>,
     _: (),
 ) -> Result<(), PipelineBuilderError>
 where
-    CR: CompositeRenderer + 'static,
     PB: PipelineBuilder,
+    CR: CompositeRenderer + 'static,
 {
     builder.install_resource(ApplyUserInterfaceToCompositeRendererSystemCache::default());
     builder.install_system::<ApplyUserInterfaceToCompositeRendererSystemResources<CR>>(

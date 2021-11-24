@@ -37,6 +37,7 @@ book:
 
 update:
   cargo update --manifest-path ./engine/_/Cargo.toml
+  cargo update --manifest-path ./engine/ai/Cargo.toml
   cargo update --manifest-path ./engine/animation/Cargo.toml
   cargo update --manifest-path ./engine/audio/Cargo.toml
   cargo update --manifest-path ./engine/audio-backend-web/Cargo.toml
@@ -91,6 +92,8 @@ publish:
   cargo publish --no-verify --manifest-path ./engine/backend-web/Cargo.toml
   sleep 15
   cargo publish --no-verify --manifest-path ./engine/utils/Cargo.toml
+  sleep 15
+  cargo publish --no-verify --manifest-path ./engine/ai/Cargo.toml
   sleep 15
   cargo publish --no-verify --manifest-path ./engine/animation/Cargo.toml
   sleep 15

@@ -11,15 +11,12 @@ use crate::{
 };
 use hecs::*;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    sync::{Arc, RwLock},
-};
+use std::collections::HashMap;
 
 pub use serde_yaml::{Number as PrefabNumber, Value as PrefabValue};
 
 type ComponentFactory = Box<
-    dyn FnMut(
+    dyn Fn(
             &mut EntityBuilder,
             PrefabValue,
             &HashMap<String, Entity>,
@@ -139,7 +136,7 @@ impl Prefab for PrefabSceneEntityData {}
 
 #[derive(Default)]
 pub struct PrefabManager {
-    component_factory: Arc<RwLock<HashMap<String, ComponentFactory>>>,
+    component_factory: HashMap<String, ComponentFactory>,
     templates: HashMap<String, PrefabScene>,
 }
 
@@ -148,19 +145,17 @@ impl PrefabManager {
     where
         T: PrefabComponent,
     {
-        if let Ok(mut component_factory) = self.component_factory.write() {
-            component_factory.insert(
-                name.to_owned(),
-                Box::new(move |builder, prefab, named_entities, state_token| {
-                    builder.add(T::from_prefab_with_extras(
-                        prefab,
-                        named_entities,
-                        state_token,
-                    )?);
-                    Ok(())
-                }),
-            );
-        }
+        self.component_factory.insert(
+            name.to_owned(),
+            Box::new(|builder, prefab, named_entities, state_token| {
+                builder.add(T::from_prefab_with_extras(
+                    prefab,
+                    named_entities,
+                    state_token,
+                )?);
+                Ok(())
+            }),
+        );
     }
 
     pub fn register_component_factory_proxy<T, P>(&mut self, name: &str)
@@ -168,22 +163,18 @@ impl PrefabManager {
         P: Prefab,
         T: PrefabProxy<P>,
     {
-        if let Ok(mut component_factory) = self.component_factory.write() {
-            component_factory.insert(
-                name.to_owned(),
-                Box::new(move |builder, prefab, named_entities, state_token| {
-                    let p = P::from_prefab(prefab)?;
-                    builder.add(T::from_proxy_with_extras(p, named_entities, state_token)?);
-                    Ok(())
-                }),
-            );
-        }
+        self.component_factory.insert(
+            name.to_owned(),
+            Box::new(|builder, prefab, named_entities, state_token| {
+                let p = P::from_prefab(prefab)?;
+                builder.add(T::from_proxy_with_extras(p, named_entities, state_token)?);
+                Ok(())
+            }),
+        );
     }
 
     pub fn unregister_component_factory(&mut self, name: &str) {
-        if let Ok(mut component_factory) = self.component_factory.write() {
-            component_factory.remove(name);
-        }
+        self.component_factory.remove(name);
     }
 
     pub fn register_scene_template(&mut self, prefab: PrefabScene) -> Result<(), PrefabError> {
@@ -305,29 +296,23 @@ impl PrefabManager {
         state_token: StateToken,
         named_entities: &HashMap<String, Entity>,
     ) -> Result<Entity, PrefabError> {
-        if let Ok(mut component_factory) = self.component_factory.write() {
-            let mut entity_builder = EntityBuilder::new();
-            for (key, component_meta) in components {
-                if let Some(factory) = component_factory.get_mut(key) {
-                    factory(
-                        &mut entity_builder,
-                        component_meta.clone(),
-                        named_entities,
-                        state_token,
-                    )?;
-                } else {
-                    return Err(PrefabError::CouldNotDeserialize(format!(
-                        "Could not find component factory: {}",
-                        key
-                    )));
-                }
+        let mut entity_builder = EntityBuilder::new();
+        for (key, component_meta) in components {
+            if let Some(factory) = self.component_factory.get_mut(key) {
+                factory(
+                    &mut entity_builder,
+                    component_meta.clone(),
+                    named_entities,
+                    state_token,
+                )?;
+            } else {
+                return Err(PrefabError::CouldNotDeserialize(format!(
+                    "Could not find component factory: {}",
+                    key
+                )));
             }
-            Ok(world.spawn(entity_builder.build()))
-        } else {
-            Err(PrefabError::Custom(
-                "Could not acquire lock on component factory".to_owned(),
-            ))
         }
+        Ok(world.spawn(entity_builder.build()))
     }
 
     fn build_template(
