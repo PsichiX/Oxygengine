@@ -4,10 +4,11 @@ pub mod systems;
 
 pub mod prelude {
     pub use crate::{
+        board_direction_to_vector, board_location_to_world_position,
         components::{board_avatar_sync::*, board_chunk_sync::*, camera_follow_board_entity::*},
-        location_to_position,
         resources::*,
         systems::{board_sync::*, camera_follow_board_entity::*},
+        vector_to_board_direction, world_position_to_board_location,
     };
 }
 
@@ -31,9 +32,15 @@ use oxygengine_core::{
     Scalar,
 };
 use oxygengine_ha_renderer::math::*;
-use oxygengine_overworld::resources::board::{Board, BoardLocation, ChunkLocation, Location};
+use oxygengine_overworld::resources::board::{
+    Board, BoardDirection, BoardLocation, ChunkLocation, Location,
+};
 
-pub fn location_to_position(location: Location, board: &Board, settings: &HaBoardSettings) -> Vec3 {
+pub fn board_location_to_world_position(
+    location: Location,
+    board: &Board,
+    settings: &HaBoardSettings,
+) -> Vec3 {
     let cell_size = settings.cell_size();
     let origin = settings.origin();
     let (chunk_cols, chunk_rows) = board.chunk_size();
@@ -44,7 +51,11 @@ pub fn location_to_position(location: Location, board: &Board, settings: &HaBoar
     Vec3::new(x, y, 0.0)
 }
 
-pub fn position_to_location(position: Vec3, board: &Board, settings: &HaBoardSettings) -> Location {
+pub fn world_position_to_board_location(
+    position: Vec3,
+    board: &Board,
+    settings: &HaBoardSettings,
+) -> Location {
     let cell_size = settings.cell_size();
     let origin = settings.origin();
     let (chunk_cols, chunk_rows) = board.chunk_size();
@@ -114,6 +125,63 @@ pub fn board_region_rect(
     Rect { x, y, w, h }
 }
 
+pub fn board_direction_to_vector(direction: BoardDirection) -> Vec2 {
+    match direction {
+        BoardDirection::NorthWest => Vec2::new(-1.0, -1.0).normalized(),
+        BoardDirection::North => Vec2::new(0.0, -1.0),
+        BoardDirection::NorthEast => Vec2::new(1.0, -1.0).normalized(),
+        BoardDirection::West => Vec2::new(-1.0, 0.0),
+        BoardDirection::East => Vec2::new(1.0, 0.0),
+        BoardDirection::SouthWest => Vec2::new(-1.0, 1.0).normalized(),
+        BoardDirection::South => Vec2::new(0.0, 1.0),
+        BoardDirection::SouthEast => Vec2::new(1.0, 1.0).normalized(),
+    }
+}
+
+pub fn vector_to_board_direction(mut direction: Vec2, diagonal: bool) -> Option<BoardDirection> {
+    if direction.is_approx_zero() {
+        return None;
+    }
+    direction.normalize();
+    if diagonal {
+        [
+            (BoardDirection::East, Vec2::new(1.0, 0.0).dot(direction)),
+            (
+                BoardDirection::SouthEast,
+                Vec2::new(1.0, 1.0).normalized().dot(direction),
+            ),
+            (BoardDirection::South, Vec2::new(0.0, 1.0).dot(direction)),
+            (
+                BoardDirection::SouthWest,
+                Vec2::new(-1.0, 1.0).normalized().dot(direction),
+            ),
+            (BoardDirection::West, Vec2::new(-1.0, 0.0).dot(direction)),
+            (
+                BoardDirection::NorthWest,
+                Vec2::new(-1.0, -1.0).normalized().dot(direction),
+            ),
+            (BoardDirection::North, Vec2::new(0.0, -1.0).dot(direction)),
+            (
+                BoardDirection::NorthEast,
+                Vec2::new(1.0, -1.0).normalized().dot(direction),
+            ),
+        ]
+        .into_iter()
+        .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+        .map(|(d, _)| d)
+    } else {
+        [
+            (BoardDirection::East, Vec2::new(1.0, 0.0).dot(direction)),
+            (BoardDirection::South, Vec2::new(0.0, 1.0).dot(direction)),
+            (BoardDirection::West, Vec2::new(-1.0, 0.0).dot(direction)),
+            (BoardDirection::North, Vec2::new(0.0, -1.0).dot(direction)),
+        ]
+        .into_iter()
+        .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+        .map(|(d, _)| d)
+    }
+}
+
 pub fn bundle_installer<PB, S>(
     builder: &mut AppBuilder<PB>,
     data: HaBoardSettings,
@@ -128,7 +196,7 @@ where
     builder.install_system::<HaBoardSyncSystemResources>(
         "board-sync",
         ha_board_sync_system,
-        &["board", "renderer"],
+        &["board"],
     )?;
     builder.install_system::<HaCameraFollowBoardEntitySystemResources>(
         "camera-follow-board-entity",

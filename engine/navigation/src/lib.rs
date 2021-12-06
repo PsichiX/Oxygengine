@@ -1,24 +1,31 @@
 extern crate oxygengine_core as core;
 
-pub mod component;
-pub mod nav_mesh_asset_protocol;
-pub mod resource;
-pub mod system;
+pub mod asset_protocols;
+pub mod components;
+pub mod resources;
+pub mod systems;
 
 pub mod prelude {
-    pub use crate::{component::*, nav_mesh_asset_protocol::*, resource::*, system::*};
+    pub use crate::{
+        asset_protocols::{nav_grid::*, nav_mesh::*, *},
+        components::*,
+        resources::{nav_grids::*, nav_meshes::*, *},
+        systems::*,
+    };
 }
 
 use crate::{
-    component::{NavAgent, SimpleNavDriverTag},
-    resource::NavMeshes,
-    system::{
+    asset_protocols::{nav_grid::NavGridAssetProtocol, nav_mesh::NavMeshAssetProtocol},
+    components::{NavAgent, SimpleNavDriverTag},
+    resources::{nav_grids::NavGrids, nav_meshes::NavMeshes},
+    systems::{
         nav_agent_maintain_system, simple_nav_driver_system, NavAgentMaintainSystemResources,
         SimpleNavDriverSystemResources,
     },
 };
 use core::{
     app::AppBuilder,
+    assets::database::AssetsDatabase,
     ecs::pipeline::{PipelineBuilder, PipelineBuilderError},
     ignite_proxy,
     prefab::PrefabManager,
@@ -49,6 +56,7 @@ where
     PB: PipelineBuilder,
 {
     builder.install_resource(NavMeshes::default());
+    builder.install_resource(NavGrids::default());
     builder.install_system::<NavAgentMaintainSystemResources>(
         "nav-agent-maintain",
         nav_agent_maintain_system,
@@ -60,6 +68,11 @@ where
         &["nav-agent-maintain"],
     )?;
     Ok(())
+}
+
+pub fn protocols_installer(database: &mut AssetsDatabase) {
+    database.register(NavMeshAssetProtocol);
+    database.register(NavGridAssetProtocol);
 }
 
 pub fn prefabs_installer(prefabs: &mut PrefabManager) {

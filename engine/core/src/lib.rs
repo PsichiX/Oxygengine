@@ -44,6 +44,7 @@ pub mod prelude {
             *,
         },
         ecs::{
+            commands::*,
             components::*,
             hierarchy::*,
             life_cycle::*,

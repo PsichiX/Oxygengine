@@ -1,7 +1,13 @@
 use crate::{
     builtin_material_function, builtin_material_functions, code_material_function,
     code_material_functions,
-    material::graph::{function::MaterialFunction, MaterialGraph},
+    material::{
+        common::{BakedMaterialShaders, MaterialSignature},
+        graph::{function::MaterialFunction, MaterialGraph},
+        MaterialError,
+    },
+    mesh::VertexLayout,
+    render_target::{RenderTarget, RenderTargetDescriptor},
 };
 use std::collections::HashMap;
 
@@ -915,6 +921,57 @@ impl MaterialLibrary {
             { "return v.xyz;" }
         });
         self
+    }
+
+    pub fn validate_material_compilation(
+        vertex_layout: &VertexLayout,
+        render_target: RenderTargetDescriptor,
+        domain: &MaterialGraph,
+        graph: &MaterialGraph,
+    ) -> Result<Option<BakedMaterialShaders>, MaterialError> {
+        let render_target = match render_target {
+            RenderTargetDescriptor::Main => RenderTarget::main(),
+            RenderTargetDescriptor::Custom {
+                buffers,
+                width,
+                height,
+            } => RenderTarget::new(buffers, width, height),
+        };
+        let signature =
+            MaterialSignature::from_objects(vertex_layout, &render_target, Some("test".to_owned()));
+        graph.bake(&signature, Some(domain), &Self::default())
+    }
+
+    pub fn assert_validate_material_compilation(
+        vertex_layout: &VertexLayout,
+        render_target: RenderTargetDescriptor,
+        domain: &MaterialGraph,
+        graph: &MaterialGraph,
+    ) {
+        let baked =
+            Self::validate_material_compilation(vertex_layout, render_target, domain, graph)
+                .unwrap_or_else(|error| match &error {
+                    MaterialError::Baking(graph, error) => match &**error {
+                        MaterialError::GraphIsCyclic(nodes) => {
+                            let nodes = nodes
+                                .iter()
+                                .map(|id| (id, graph.node(*id).unwrap()))
+                                .collect::<Vec<_>>();
+                            panic!(
+                                "Could not bake shaders from material: {:?} | Cycle: {:#?}",
+                                error, nodes
+                            );
+                        }
+                        _ => panic!("Could not bake shaders from material: {:?}", error),
+                    },
+                    _ => panic!("Could not bake shaders from material: {:?}", error),
+                })
+                .expect("Baked shaders are empty");
+        println!("* compiled vertex material graph text:\n{}", baked.vertex);
+        println!(
+            "* compiled fragment material graph text:\n{}",
+            baked.fragment
+        );
     }
 }
 

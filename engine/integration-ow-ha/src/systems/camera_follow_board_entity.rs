@@ -3,8 +3,8 @@ use crate::{
     components::camera_follow_board_entity::{
         HaCameraFollowBoardEntity, HaCameraFollowConstraints,
     },
-    position_to_location,
     resources::HaBoardSettings,
+    world_position_to_board_location,
 };
 use oxygengine_core::{
     app::AppLifeCycle,
@@ -13,8 +13,8 @@ use oxygengine_core::{
 };
 use oxygengine_ha_renderer::{
     components::{camera::HaCamera, transform::HaTransform},
-    ha_renderer::HaRenderer,
     math::*,
+    resources::camera_cache::CameraCache,
 };
 use oxygengine_overworld::resources::board::Board;
 
@@ -22,22 +22,23 @@ pub type HaCameraFollowBoardEntitySystemResources<'a> = (
     WorldRef,
     &'a AppLifeCycle,
     &'a Hierarchy,
-    &'a HaRenderer,
     &'a Board,
     &'a HaBoardSettings,
+    &'a CameraCache,
     Comp<&'a mut HaTransform>,
     Comp<&'a HaCamera>,
     Comp<&'a HaCameraFollowBoardEntity>,
 );
 
 pub fn ha_camera_follow_board_entity<T: 'static>(universe: &mut Universe) {
-    let (world, lifecycle, hierarchy, renderer, board, settings, ..) =
+    let (world, lifecycle, hierarchy, board, settings, cache, ..) =
         universe.query_resources::<HaCameraFollowBoardEntitySystemResources>();
 
     let dt = lifecycle.delta_time_seconds();
 
-    for (me, (my_transform, follow, camera)) in world
-        .query::<(&mut HaTransform, &HaCameraFollowBoardEntity, &HaCamera)>()
+    for (me, (my_transform, follow)) in world
+        .query::<(&mut HaTransform, &HaCameraFollowBoardEntity)>()
+        .with::<HaCamera>()
         .iter()
     {
         if let Some(other) = follow
@@ -55,15 +56,14 @@ pub fn ha_camera_follow_board_entity<T: 'static>(universe: &mut Universe) {
                             my_transform.set_translation(Vec3::lerp(from, to, f));
                         }
                         HaCameraFollowConstraints::Chunk => {
-                            let (min, max) = match camera
-                                .pipeline_stage_info::<T>(&renderer, my_transform)
-                                .and_then(|mut iter| iter.next())
+                            let (min, max) = match cache
+                                .get::<T>(me, follow.nth)
                                 .map(|info| info.world_bounds())
                             {
                                 Some(result) => result,
                                 None => continue,
                             };
-                            let location = position_to_location(to, &board, &settings);
+                            let location = world_position_to_board_location(to, &board, &settings);
                             let rect = board_chunk_rect(location.world, &board, &settings);
                             let width = max.x - min.x;
                             let height = max.y - min.y;
@@ -71,15 +71,14 @@ pub fn ha_camera_follow_board_entity<T: 'static>(universe: &mut Universe) {
                             my_transform.set_translation(Vec3::lerp(from, to, f));
                         }
                         HaCameraFollowConstraints::Region => {
-                            let (min, max) = match camera
-                                .pipeline_stage_info::<T>(&renderer, my_transform)
-                                .and_then(|mut iter| iter.next())
+                            let (min, max) = match cache
+                                .get::<T>(me, follow.nth)
                                 .map(|info| info.world_bounds())
                             {
                                 Some(result) => result,
                                 None => continue,
                             };
-                            let location = position_to_location(to, &board, &settings);
+                            let location = world_position_to_board_location(to, &board, &settings);
                             let (top_left, bottom_right) =
                                 match settings.find_region(location.world) {
                                     Some(result) => result,

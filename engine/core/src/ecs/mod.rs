@@ -1,3 +1,4 @@
+pub mod commands;
 pub mod components;
 pub mod hierarchy;
 pub mod life_cycle;
@@ -6,7 +7,9 @@ pub mod pipeline;
 use crate::{
     app::AppLifeCycle,
     ecs::{
+        commands::UniverseCommands,
         components::NonPersistent,
+        life_cycle::EntityChanges,
         pipeline::{PipelineEngine, PipelineId},
     },
     state::{State, StateChange, StateToken},
@@ -15,10 +18,9 @@ pub use hecs::*;
 use std::{
     any::{type_name, Any, TypeId},
     cell::{Ref, RefCell, RefMut},
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashMap, HashSet},
     marker::PhantomData,
     ops::{Deref, DerefMut},
-    sync::{Arc, RwLock},
 };
 use typid::ID;
 
@@ -27,7 +29,6 @@ pub type UniverseId = ID<Universe>;
 pub type Resource = dyn Any + Send + Sync;
 
 pub struct WorldRef;
-pub struct WorldMut;
 pub struct Comp<T>(PhantomData<fn() -> T>);
 
 #[derive(Default)]
@@ -180,7 +181,6 @@ impl Multiverse {
                 }
             }
             for universe in self.universes.values_mut() {
-                universe.commands().run(universe);
                 universe.maintain();
             }
         }
@@ -215,63 +215,9 @@ impl Multiverse {
                     }
                 }
                 for universe in self.universes.values_mut() {
-                    universe.commands().run(universe);
                     universe.maintain();
                 }
             }
-        }
-    }
-}
-
-pub trait UniverseCommand: Send + Sync {
-    fn run(&mut self, universe: &mut Universe);
-}
-
-struct ClosureUniverseCommand(Box<dyn FnMut(&mut Universe) + Send + Sync>);
-
-impl UniverseCommand for ClosureUniverseCommand {
-    fn run(&mut self, universe: &mut Universe) {
-        (self.0)(universe);
-    }
-}
-
-#[derive(Default, Clone)]
-pub struct UniverseCommands {
-    queue: Arc<RwLock<VecDeque<Box<dyn UniverseCommand>>>>,
-}
-
-impl UniverseCommands {
-    pub fn with_capacity(size: usize) -> Self {
-        Self {
-            queue: Arc::new(RwLock::new(VecDeque::with_capacity(size))),
-        }
-    }
-
-    pub fn schedule<T>(&mut self, command: T) -> bool
-    where
-        T: UniverseCommand + 'static,
-    {
-        if let Ok(mut queue) = self.queue.try_write() {
-            queue.push_back(Box::new(command));
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn schedule_fn<F>(&mut self, f: F) -> bool
-    where
-        F: FnMut(&mut Universe) + Send + Sync + 'static,
-    {
-        self.schedule(ClosureUniverseCommand(Box::new(f)))
-    }
-
-    pub fn run(&mut self, universe: &mut Universe) {
-        if let Ok(mut queue) = self.queue.try_write() {
-            while let Some(mut command) = queue.pop_front() {
-                command.run(universe);
-            }
-            queue.clear();
         }
     }
 }
@@ -281,9 +227,9 @@ pub struct Universe {
     states: Vec<Box<dyn State>>,
     startup: bool,
     world: RefCell<World>,
-    commands: UniverseCommands,
 }
 
+// TODO: consider finding idiomatic solution for ensuring Universe is Send + Sync.
 unsafe impl Send for Universe {}
 unsafe impl Sync for Universe {}
 
@@ -294,7 +240,6 @@ impl Default for Universe {
             states: vec![],
             startup: true,
             world: Default::default(),
-            commands: UniverseCommands::with_capacity(1024),
         }
     }
 }
@@ -309,7 +254,6 @@ impl Universe {
             states: vec![Box::new(state)],
             startup: true,
             world: Default::default(),
-            commands: UniverseCommands::with_capacity(1024),
         }
     }
 
@@ -333,10 +277,6 @@ impl Universe {
             Ok(v) => Some(v),
             Err(_) => None,
         }
-    }
-
-    pub fn commands(&self) -> UniverseCommands {
-        self.commands.clone()
     }
 
     pub fn insert_resource<T>(&mut self, resource: T)
@@ -419,17 +359,17 @@ impl Universe {
     }
 
     pub fn is_running(&self) -> bool {
-        !self.states.is_empty()
-            && self
-                .resource::<AppLifeCycle>()
-                .map(|lifecycle| lifecycle.running)
-                .unwrap_or_default()
+        !self.states.is_empty() && self.expect_resource::<AppLifeCycle>().running
     }
 
     pub fn maintain(&mut self) {
         if self.states.is_empty() {
             return;
         }
+        self.expect_resource_mut::<UniverseCommands>().execute(self);
+        self.expect_resource_mut::<EntityChanges>()
+            .entities
+            .extend(self.world().iter().map(|entity_ref| entity_ref.entity()));
         let mut states = std::mem::take(&mut self.states);
         if self.startup {
             states.last_mut().unwrap().on_enter(self);
@@ -442,18 +382,13 @@ impl Universe {
         let change = states.last_mut().unwrap().on_process(self);
         match &change {
             StateChange::Pop | StateChange::Swap(_) => {
-                let to_delete = if let Some(lifecycle) = self.resource::<AppLifeCycle>() {
-                    let token = lifecycle.current_state_token();
-                    self.world()
-                        .query::<&NonPersistent>()
-                        .iter()
-                        .filter_map(
-                            |(entity, pers)| if pers.0 == token { Some(entity) } else { None },
-                        )
-                        .collect::<Vec<_>>()
-                } else {
-                    vec![]
-                };
+                let token = self.expect_resource::<AppLifeCycle>().current_state_token();
+                let to_delete = self
+                    .world()
+                    .query::<&NonPersistent>()
+                    .iter()
+                    .filter_map(|(entity, pers)| if pers.0 == token { Some(entity) } else { None })
+                    .collect::<Vec<_>>();
                 for entity in to_delete {
                     let _ = self.world_mut().despawn(entity);
                 }
@@ -474,48 +409,63 @@ impl Universe {
         match change {
             StateChange::Push(mut state) => {
                 states.last_mut().unwrap().on_pause(self);
-                if let Some(mut lifecycle) = self.resource_mut::<AppLifeCycle>() {
-                    lifecycle.states_tokens.push(StateToken::new());
-                }
+                self.expect_resource_mut::<AppLifeCycle>()
+                    .states_tokens
+                    .push(StateToken::new());
                 state.on_enter(self);
                 states.push(state);
             }
             StateChange::Pop => {
                 states.pop().unwrap().on_exit(self);
-                if let Some(mut lifecycle) = self.resource_mut::<AppLifeCycle>() {
-                    lifecycle.states_tokens.pop();
-                }
+                self.expect_resource_mut::<AppLifeCycle>()
+                    .states_tokens
+                    .pop();
                 if let Some(state) = states.last_mut() {
                     state.on_resume(self);
                 }
             }
             StateChange::Swap(mut state) => {
                 states.pop().unwrap().on_exit(self);
-                if let Some(mut lifecycle) = self.resource_mut::<AppLifeCycle>() {
-                    lifecycle.states_tokens.pop();
-                    lifecycle.states_tokens.push(StateToken::new());
-                }
+                let mut lifecycle = self.expect_resource_mut::<AppLifeCycle>();
+                lifecycle.states_tokens.pop();
+                lifecycle.states_tokens.push(StateToken::new());
                 state.on_enter(self);
                 states.push(state);
             }
             StateChange::Quit => {
                 while let Some(mut state) = states.pop() {
                     state.on_exit(self);
-                    if let Some(mut lifecycle) = self.resource_mut::<AppLifeCycle>() {
-                        lifecycle.states_tokens.pop();
-                    }
+                    self.expect_resource_mut::<AppLifeCycle>()
+                        .states_tokens
+                        .pop();
                 }
             }
             _ => {}
         }
-        if let Some(mut lifecycle) = self.resource_mut::<AppLifeCycle>() {
-            lifecycle.timer.tick();
-        }
+        self.expect_resource_mut::<AppLifeCycle>().timer.tick();
+        self.expect_resource_mut::<EntityChanges>().clear();
+
         let _ = std::mem::replace(&mut self.states, states);
     }
 }
 
 pub struct UnsafeScope;
+
+impl UnsafeScope {
+    /// # Safety
+    /// Extending lifetimes is unsafe and when done wrongly can cause undefined behaviour.
+    /// Make sure lifetime can be extended to the scope where data behind reference won't be moved.
+    pub unsafe fn lifetime_ref<'a>(&self) -> &'a Self {
+        std::mem::transmute(self)
+    }
+
+    /// # Safety
+    /// Extending lifetimes is unsafe and when done wrongly can cause undefined behaviour.
+    /// Make sure lifetime can be extended to the scope where data behind reference won't be moved.
+    pub unsafe fn lifetime_mut<'a>(&mut self) -> &'a mut Self {
+        std::mem::transmute(self)
+    }
+}
 
 pub struct UnsafeRef<'a, T>(&'a UnsafeScope, &'a T);
 
@@ -563,6 +513,8 @@ impl<'a, T> UnsafeMut<'a, T> {
 pub trait ResAccess {}
 
 impl ResAccess for () {}
+
+pub type ResQueryItem<Q> = <Q as ResQuery>::Fetch;
 
 pub trait ResQuery {
     type Fetch: ResAccess;
@@ -656,14 +608,6 @@ impl ResQuery for WorldRef {
 
     fn fetch(universe: &Universe) -> Self::Fetch {
         RefRead(unsafe { std::mem::transmute(universe.world()) })
-    }
-}
-
-impl ResQuery for WorldMut {
-    type Fetch = RefWrite<World>;
-
-    fn fetch(universe: &Universe) -> Self::Fetch {
-        RefWrite(unsafe { std::mem::transmute(universe.world_mut()) })
     }
 }
 
@@ -770,12 +714,6 @@ impl AccessType for () {}
 impl AccessType for WorldRef {
     fn feed_types(reads: &mut HashSet<TypeId>, _: &mut HashSet<TypeId>) {
         reads.insert(TypeId::of::<World>());
-    }
-}
-
-impl AccessType for WorldMut {
-    fn feed_types(_: &mut HashSet<TypeId>, writes: &mut HashSet<TypeId>) {
-        writes.insert(TypeId::of::<World>());
     }
 }
 

@@ -1,11 +1,17 @@
-use crate::ecs::{Entity, Universe, WorldRef};
-use std::collections::HashSet;
+use crate::ecs::Entity;
+use std::{
+    any::TypeId,
+    collections::{HashMap, HashSet},
+};
 
 #[derive(Debug, Default)]
 pub struct EntityChanges {
-    entities: HashSet<Entity>,
-    spawned: HashSet<Entity>,
-    despawned: HashSet<Entity>,
+    pub skip_clearing: bool,
+    pub(crate) entities: HashSet<Entity>,
+    pub(crate) spawned: HashSet<Entity>,
+    pub(crate) despawned: HashSet<Entity>,
+    pub(crate) added_components: HashMap<Entity, HashSet<TypeId>>,
+    pub(crate) removed_components: HashMap<Entity, HashSet<TypeId>>,
 }
 
 impl EntityChanges {
@@ -24,17 +30,44 @@ impl EntityChanges {
     pub fn despawned(&self) -> impl Iterator<Item = Entity> + '_ {
         self.despawned.iter().copied()
     }
-}
 
-pub type EntityLifeCycleSystemResources<'a> = (WorldRef, &'a mut EntityChanges);
+    pub fn added_components(&self, entity: Entity) -> Option<impl Iterator<Item = TypeId> + '_> {
+        self.added_components
+            .get(&entity)
+            .map(|types| types.iter().copied())
+    }
 
-pub fn entity_life_cycle_system(universe: &mut Universe) {
-    let (world, mut changes) = universe.query_resources::<EntityLifeCycleSystemResources>();
+    pub fn has_added_component<T: 'static>(&self, entity: Entity) -> bool {
+        let type_id = TypeId::of::<T>();
+        self.added_components
+            .get(&entity)
+            .map(|types| types.iter().any(|t| t == &type_id))
+            .unwrap_or_default()
+    }
 
-    let old = std::mem::replace(
-        &mut changes.entities,
-        world.iter().map(|id| id.entity()).collect(),
-    );
-    changes.spawned = changes.entities.difference(&old).copied().collect();
-    changes.despawned = old.difference(&changes.entities).copied().collect();
+    pub fn removed_components(&self, entity: Entity) -> Option<impl Iterator<Item = TypeId> + '_> {
+        self.removed_components
+            .get(&entity)
+            .map(|types| types.iter().copied())
+    }
+
+    pub fn has_removed_component<T: 'static>(&self, entity: Entity) -> bool {
+        let type_id = TypeId::of::<T>();
+        self.removed_components
+            .get(&entity)
+            .map(|types| types.iter().any(|t| t == &type_id))
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn clear(&mut self) {
+        if self.skip_clearing {
+            self.skip_clearing = false;
+            return;
+        }
+        self.entities.clear();
+        self.spawned.clear();
+        self.despawned.clear();
+        self.added_components.clear();
+        self.removed_components.clear();
+    }
 }

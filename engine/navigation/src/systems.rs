@@ -1,6 +1,6 @@
 use crate::{
-    component::{NavAgent, NavAgentTarget, SimpleNavDriverTag},
-    resource::{NavMesh, NavMeshes},
+    components::{NavAgent, NavAgentTarget, SimpleNavDriverTag},
+    resources::{nav_meshes::NavMeshes, NavMesh},
 };
 use core::{
     app::AppLifeCycle,

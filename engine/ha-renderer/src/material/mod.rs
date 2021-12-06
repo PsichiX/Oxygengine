@@ -65,7 +65,7 @@ pub enum MaterialError {
         to_value_type: Option<MaterialValueType>,
         param: Option<String>,
     },
-    GraphIsCyclic(MaterialGraphNodeId),
+    GraphIsCyclic(Vec<MaterialGraphNodeId>),
     NoTransferFound(MaterialGraphNodeId),
     CouldNotCompileVertexShader(String),
     CouldNotCompileFragmentShader(String),
@@ -75,6 +75,7 @@ pub enum MaterialError {
     InvalidUniformTypeToSubmit(MaterialValueType),
     CouldNotBuildSubgraphForSignature(MaterialSignature),
     SubgraphInputsDoesNotMatchSignature(HashSet<String>, MaterialSignature),
+    Baking(MaterialGraph, Box<MaterialError>),
 }
 
 pub type MaterialInstanceReference = ResourceInstanceReference<MaterialId>;
@@ -898,6 +899,8 @@ macro_rules! material_graph {
             #[allow(unused_mut)]
             let mut ___graph = $crate::material::graph::MaterialGraph::default();
             $(
+                #[deny(clippy::shadow_reuse)]
+                #[warn(clippy::shadow_unrelated)]
                 #[allow(non_snake_case)]
                 let $in_name = ___graph.add_node($crate::material_graph_input! {
                     $( [ $in_shader_type ] )?
@@ -906,6 +909,8 @@ macro_rules! material_graph {
                 });
             )*
             $(
+                #[deny(clippy::shadow_reuse)]
+                #[warn(clippy::shadow_unrelated)]
                 #[allow(non_snake_case)]
                 let $out_name = ___graph.add_node($crate::material_graph_output! {
                     $( [ $out_shader_type ] )? $out_data_type $out_name : $out_value_type
@@ -924,6 +929,8 @@ macro_rules! material_graph {
         }
     };
     ( @statement [ $node:ident = $expression:tt ], $graph:expr, $result:ident ) => {
+        #[deny(clippy::shadow_reuse)]
+        #[warn(clippy::shadow_unrelated)]
         #[allow(non_snake_case)]
         let $node = $crate::material_graph!(@expression $expression, $graph);
     };

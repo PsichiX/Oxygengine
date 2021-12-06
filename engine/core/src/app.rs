@@ -1,7 +1,8 @@
 use crate::{
     ecs::{
+        commands::UniverseCommands,
         hierarchy::{hierarchy_system, Hierarchy, HierarchySystemResources},
-        life_cycle::{entity_life_cycle_system, EntityChanges, EntityLifeCycleSystemResources},
+        life_cycle::EntityChanges,
         pipeline::{PipelineBuilder, PipelineBuilderError, PipelineEngine, PipelineLayer},
         AccessType, Multiverse, System,
     },
@@ -255,20 +256,13 @@ where
             resources: Default::default(),
             pipeline_builder,
         }
+        .with_resource(UniverseCommands::default())
         .with_resource(EntityChanges::default())
-        .with_system_on_layer::<EntityLifeCycleSystemResources>(
-            "entity-life-cycle",
-            entity_life_cycle_system,
-            &[],
-            PipelineLayer::Pre,
-            false,
-        )
-        .expect("Could not install entity-life-cycle system!")
         .with_resource(Hierarchy::default())
         .with_system_on_layer::<HierarchySystemResources>(
             "hierarchy",
             hierarchy_system,
-            &["entity-life-cycle"],
+            &[],
             PipelineLayer::Pre,
             false,
         )

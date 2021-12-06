@@ -1,11 +1,13 @@
 mod build;
 mod pack;
 mod pipeline;
+mod test;
 
 use crate::{
     build::{build_project, BuildProfile},
     pack::pack_assets_and_write_to_file,
     pipeline::{Pipeline, PipelineCommand},
+    test::{test_project, TestProfile},
 };
 use cargo_metadata::MetadataCommand;
 use clap::{App, Arg, SubCommand};
@@ -329,6 +331,29 @@ async fn main() -> Result<()> {
                         .long("out_dir")
                         .value_name("PATH")
                         .help("Binaries output directory relative to crate directory")
+                        .takes_value(true)
+                        .required(false),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("test")
+                .about("Test project")
+                .arg(
+                    Arg::with_name("profile")
+                        .short("p")
+                        .long("profile")
+                        .value_name("PROFILE")
+                        .help("Project build profile. Possible values: debug, release")
+                        .takes_value(true)
+                        .required(false)
+                        .default_value("debug"),
+                )
+                .arg(
+                    Arg::with_name("crate_dir")
+                        .short("c")
+                        .long("crate_dir")
+                        .value_name("PATH")
+                        .help("Project crate directory")
                         .takes_value(true)
                         .required(false),
                 ),
@@ -687,6 +712,19 @@ async fn main() -> Result<()> {
         let crate_dir = matches.value_of("crate_dir").map(|v| v.to_owned());
         let out_dir = matches.value_of("out_dir").map(|v| v.to_owned());
         build_project(profile, crate_dir, out_dir, vec![])?;
+    } else if let Some(matches) = matches.subcommand_matches("test") {
+        let profile = match matches.value_of("profile").unwrap() {
+            "debug" => TestProfile::Debug,
+            "release" => TestProfile::Release,
+            profile => {
+                return Err(Error::new(
+                    ErrorKind::NotFound,
+                    format!("Unknown build profile: {}", profile),
+                ))
+            }
+        };
+        let crate_dir = matches.value_of("crate_dir").map(|v| v.to_owned());
+        test_project(profile, crate_dir, vec![])?;
     } else if let Some(matches) = matches.subcommand_matches("serve") {
         let port = matches
             .value_of("port")

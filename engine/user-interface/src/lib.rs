@@ -36,7 +36,7 @@ use core::{
     assets::database::AssetsDatabase,
     ecs::{
         pipeline::{PipelineBuilder, PipelineBuilderError},
-        AccessType, ResQuery, ResRead, ResWrite,
+        AccessType, ResQuery, ResQueryItem, ResRead, ResWrite,
     },
     prefab::PrefabManager,
 };
@@ -48,7 +48,7 @@ pub fn bundle_installer<PB, Q>(
 where
     PB: PipelineBuilder,
     Q: AccessType + ResQuery + 'static,
-    <Q as ResQuery>::Fetch: FeedProcessContext,
+    ResQueryItem<Q>: FeedProcessContext,
 {
     builder.install_resource(user_interface);
     builder.install_resource(UserInterfaceSystemCache::default());

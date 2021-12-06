@@ -1,4 +1,4 @@
-use crate::resource::{NavMeshID, NavPathMode, NavQuery, NavVec3};
+use crate::resources::{NavMeshID, NavPathMode, NavQuery, NavVec3};
 use core::{
     ecs::Entity,
     id::ID,

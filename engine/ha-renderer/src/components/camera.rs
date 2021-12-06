@@ -170,10 +170,86 @@ pub struct HaStageCameraInfo {
 }
 
 impl HaStageCameraInfo {
-    /// (min, max)
-    pub fn world_bounds(&self) -> (Vec3, Vec3) {
-        let matrix = (self.projection_matrix * self.view_matrix).inverted();
-        let vertices = [
+    pub fn render_target_to_screen(&self, mut point: Vec2) -> Vec2 {
+        point.x = (2.0 * point.x / self.width as Scalar) - 1.0;
+        point.y = (-2.0 * point.y / self.height as Scalar) + 1.0;
+        point
+    }
+
+    pub fn screen_to_device(&self, mut point: Vec2) -> Vec2 {
+        point.x = (point.x + 1.0) * 0.5 * self.width as Scalar;
+        point.y = (point.y + 1.0) * 0.5 * self.height as Scalar;
+        point
+    }
+
+    pub fn world_to_screen(&self) -> Mat4 {
+        self.projection_matrix * self.view_matrix
+    }
+
+    pub fn world_to_screen_point(&self, point: Vec3) -> Vec3 {
+        self.world_to_screen().mul_point(point)
+    }
+
+    pub fn world_to_screen_direction(&self, point: Vec3) -> Vec3 {
+        self.world_to_screen().mul_direction(point)
+    }
+
+    pub fn screen_to_world(&self) -> Mat4 {
+        self.world_to_screen().inverted()
+    }
+
+    pub fn screen_to_world_point(&self, point: Vec3) -> Vec3 {
+        self.screen_to_world().mul_point(point)
+    }
+
+    pub fn screen_to_world_direction(&self, point: Vec3) -> Vec3 {
+        self.screen_to_world().mul_direction(point)
+    }
+
+    /// [(plane center, plane outward normal); 6]
+    pub fn world_planes(&self) -> [(Vec3, Vec3); 6] {
+        let matrix = self.screen_to_world();
+        [
+            (
+                matrix.mul_point(Vec3::new(-1.0, 0.0, 0.0)),
+                matrix.mul_direction(Vec3::new(-1.0, 0.0, 0.0)),
+            ),
+            (
+                matrix.mul_point(Vec3::new(1.0, 0.0, 0.0)),
+                matrix.mul_direction(Vec3::new(1.0, 0.0, 0.0)),
+            ),
+            (
+                matrix.mul_point(Vec3::new(0.0, -1.0, 0.0)),
+                matrix.mul_direction(Vec3::new(0.0, -1.0, 0.0)),
+            ),
+            (
+                matrix.mul_point(Vec3::new(0.0, 1.0, 0.0)),
+                matrix.mul_direction(Vec3::new(0.0, 1.0, 0.0)),
+            ),
+            (
+                matrix.mul_point(Vec3::new(0.0, 0.0, -1.0)),
+                matrix.mul_direction(Vec3::new(0.0, 0.0, -1.0)),
+            ),
+            (
+                matrix.mul_point(Vec3::new(0.0, 0.0, 1.0)),
+                matrix.mul_direction(Vec3::new(0.0, 0.0, 1.0)),
+            ),
+        ]
+    }
+
+    pub fn is_inside_world_bounds(&self, point: Vec3) -> bool {
+        let point = self.world_to_screen_point(point);
+        point.x >= -1.0
+            && point.x <= 1.0
+            && point.y >= -1.0
+            && point.y <= 1.0
+            && point.z >= -1.0
+            && point.z <= 1.0
+    }
+
+    pub fn world_vertices(&self) -> [Vec3; 8] {
+        let matrix = self.screen_to_world();
+        [
             matrix.mul_point(Vec3::new(-1.0, -1.0, -1.0)),
             matrix.mul_point(Vec3::new(1.0, -1.0, -1.0)),
             matrix.mul_point(Vec3::new(1.0, 1.0, -1.0)),
@@ -182,7 +258,12 @@ impl HaStageCameraInfo {
             matrix.mul_point(Vec3::new(1.0, -1.0, 1.0)),
             matrix.mul_point(Vec3::new(1.0, 1.0, 1.0)),
             matrix.mul_point(Vec3::new(-1.0, 1.0, 1.0)),
-        ];
+        ]
+    }
+
+    /// (min, max)
+    pub fn world_bounds(&self) -> (Vec3, Vec3) {
+        let vertices = self.world_vertices();
         vertices
             .iter()
             .skip(1)
@@ -211,14 +292,25 @@ impl HaCamera {
         renderer: &'a HaRenderer,
         camera_transform: &'a HaTransform,
     ) -> Option<impl Iterator<Item = HaStageCameraInfo> + 'a> {
-        let type_id = TypeId::of::<T>();
+        Some(
+            self.pipeline_stage_info_raw(Some(TypeId::of::<T>()), renderer, camera_transform)?
+                .map(|(_, info)| info),
+        )
+    }
+
+    pub fn pipeline_stage_info_raw<'a>(
+        &'a self,
+        type_id: Option<TypeId>,
+        renderer: &'a HaRenderer,
+        camera_transform: &'a HaTransform,
+    ) -> Option<impl Iterator<Item = (TypeId, HaStageCameraInfo)> + 'a> {
         let id = self.cached_pipeline?;
         let pipeline = renderer.pipelines.get(&id)?;
         Some(
             pipeline
                 .stages
                 .iter()
-                .filter(move |stage| stage.type_id == type_id)
+                .filter(move |stage| type_id.map(|tid| stage.type_id == tid).unwrap_or(true))
                 .filter_map(|stage| {
                     let render_target = pipeline.render_targets.get(&stage.render_target)?;
                     let render_target = renderer.render_targets.get(render_target.1)?;
@@ -229,13 +321,16 @@ impl HaCamera {
                     let view_matrix = transform_matrix.inverted();
                     let projection_matrix =
                         self.projection.matrix(Vec2::new(width as _, height as _));
-                    Some(HaStageCameraInfo {
-                        width,
-                        height,
-                        transform_matrix,
-                        view_matrix,
-                        projection_matrix,
-                    })
+                    Some((
+                        stage.type_id,
+                        HaStageCameraInfo {
+                            width,
+                            height,
+                            transform_matrix,
+                            view_matrix,
+                            projection_matrix,
+                        },
+                    ))
                 }),
         )
     }
@@ -245,14 +340,26 @@ impl HaCamera {
         renderer: &'a HaRenderer,
         camera_transform: &'a HaTransform,
     ) -> Option<impl Iterator<Item = (StageProcessInfo, Arc<RwLock<RenderQueue>>)> + 'a> {
-        let type_id = TypeId::of::<T>();
+        Some(
+            self.record_to_pipeline_stage_raw(Some(TypeId::of::<T>()), renderer, camera_transform)?
+                .map(|(_, info, queue)| (info, queue)),
+        )
+    }
+
+    pub fn record_to_pipeline_stage_raw<'a>(
+        &'a self,
+        type_id: Option<TypeId>,
+        renderer: &'a HaRenderer,
+        camera_transform: &'a HaTransform,
+    ) -> Option<impl Iterator<Item = (TypeId, StageProcessInfo, Arc<RwLock<RenderQueue>>)> + 'a>
+    {
         let id = self.cached_pipeline?;
         let pipeline = renderer.pipelines.get(&id)?;
         Some(
             pipeline
                 .stages
                 .iter()
-                .filter(move |stage| stage.type_id == type_id)
+                .filter(move |stage| type_id.map(|tid| stage.type_id == tid).unwrap_or(true))
                 .filter_map(|stage| {
                     let render_target = pipeline.render_targets.get(&stage.render_target)?;
                     let render_target = renderer.render_targets.get(render_target.1)?;
@@ -283,7 +390,7 @@ impl HaCamera {
                             queue.record(0, 0, RenderCommand::SortingBarrier).ok()?;
                         }
                     }
-                    Some((info, Arc::clone(&stage.render_queue)))
+                    Some((stage.type_id, info, Arc::clone(&stage.render_queue)))
                 }),
         )
     }
@@ -292,3 +399,10 @@ impl HaCamera {
 impl Prefab for HaCamera {}
 
 impl PrefabComponent for HaCamera {}
+
+#[derive(Ignite, Debug, Default, Copy, Clone, Serialize, Deserialize)]
+pub struct HaDefaultCamera;
+
+impl Prefab for HaDefaultCamera {}
+
+impl PrefabComponent for HaDefaultCamera {}

@@ -598,41 +598,53 @@ fn bake_project(
                             }),
                         );
                     }
-                    let has_camera =
-                        if let Some(pipeline) = entity_field_value("Camera", entity, entity_def) {
-                            let pipeline = pipeline
-                                .as_str()
-                                .unwrap_or_else(|| {
-                                    panic!(
-                                        "Could not get camera pipeline string for entity: {}",
-                                        entity.identifier
-                                    )
-                                })
-                                .to_owned();
-                            let inside = entity_field_value("CameraInsideView", entity, entity_def)
-                                .and_then(|v| v.as_bool())
-                                .unwrap_or_default();
-                            let mut camera = HaCamera::default();
-                            camera.projection =
-                                HaCameraProjection::Orthographic(HaCameraOrthographic {
-                                    scaling: HaCameraOrtographicScaling::FitToView(
-                                        Vec2::new(entity.width as _, entity.height as _),
-                                        inside,
-                                    ),
-                                    centered: true,
-                                    ignore_depth_planes: false,
-                                });
-                            camera.pipeline = PipelineSource::Registry(pipeline);
+                    let has_camera = if let Some(pipeline) =
+                        entity_field_value("Camera", entity, entity_def)
+                    {
+                        let pipeline = pipeline
+                            .as_str()
+                            .unwrap_or_else(|| {
+                                panic!(
+                                    "Could not get camera pipeline string for entity: {}",
+                                    entity.identifier
+                                )
+                            })
+                            .to_owned();
+                        let inside = entity_field_value("CameraInsideView", entity, entity_def)
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or_default();
+                        let mut camera = HaCamera::default();
+                        camera.projection =
+                            HaCameraProjection::Orthographic(HaCameraOrthographic {
+                                scaling: HaCameraOrtographicScaling::FitToView(
+                                    Vec2::new(entity.width as _, entity.height as _),
+                                    inside,
+                                ),
+                                centered: true,
+                                ignore_depth_planes: false,
+                            });
+                        camera.pipeline = PipelineSource::Registry(pipeline);
+                        entity_data.components.insert(
+                            "HaCamera".to_owned(),
+                            camera.to_prefab().unwrap_or_else(|_| {
+                                panic!("Could not serialize HaCamera to prefab")
+                            }),
+                        );
+                        let is_default = entity_field_value("DefaultCamera", entity, entity_def)
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or_default();
+                        if is_default {
                             entity_data.components.insert(
-                                "HaCamera".to_owned(),
-                                camera.to_prefab().unwrap_or_else(|_| {
-                                    panic!("Could not serialize HaTransform to prefab")
+                                "HaDefaultCamera".to_owned(),
+                                HaDefaultCamera.to_prefab().unwrap_or_else(|_| {
+                                    panic!("Could not serialize HaDefaultCamera to prefab")
                                 }),
                             );
-                            true
-                        } else {
-                            false
-                        };
+                        }
+                        true
+                    } else {
+                        false
+                    };
                     if !no_transform {
                         let position = if has_camera {
                             Vec3::new(

@@ -1,5 +1,10 @@
 use crate::{
-    ecs::{components::Name, life_cycle::EntityChanges, Comp, Entity, Universe, World, WorldMut},
+    ecs::{
+        commands::{DespawnEntity, UniverseCommands},
+        components::Name,
+        life_cycle::EntityChanges,
+        Comp, Entity, Universe, WorldRef,
+    },
     prefab::{Prefab, PrefabError, PrefabProxy},
     state::StateToken,
 };
@@ -110,7 +115,8 @@ impl Hierarchy {
 }
 
 pub type HierarchySystemResources<'a> = (
-    WorldMut,
+    WorldRef,
+    &'a mut UniverseCommands,
     &'a EntityChanges,
     &'a mut Hierarchy,
     Comp<&'a Parent>,
@@ -118,11 +124,11 @@ pub type HierarchySystemResources<'a> = (
 );
 
 pub fn hierarchy_system(universe: &mut Universe) {
-    let (mut world, changes, mut hierarchy, ..) =
+    let (world, mut commands, changes, mut hierarchy, ..) =
         universe.query_resources::<HierarchySystemResources>();
 
     if changes.has_changed() {
-        despawn(&mut world, &changes, &hierarchy);
+        despawn(&mut commands, &changes, &hierarchy);
 
         hierarchy.child_parent_relations = HashMap::with_capacity(world.len() as usize);
         hierarchy.parent_children_relations = HashMap::with_capacity(world.len() as usize / 10);
@@ -152,17 +158,17 @@ pub fn hierarchy_system(universe: &mut Universe) {
     }
 }
 
-fn despawn(world: &mut World, changes: &EntityChanges, hierarchy: &Hierarchy) {
+fn despawn(commands: &mut UniverseCommands, changes: &EntityChanges, hierarchy: &Hierarchy) {
     for entity in changes.despawned() {
-        despawn_children(world, entity, hierarchy);
+        despawn_children(commands, entity, hierarchy);
     }
 }
 
-fn despawn_children(world: &mut World, parent: Entity, hierarchy: &Hierarchy) {
+fn despawn_children(commands: &mut UniverseCommands, parent: Entity, hierarchy: &Hierarchy) {
     if let Some(iter) = hierarchy.children(parent) {
         for entity in iter {
-            let _ = world.despawn(entity);
-            despawn_children(world, entity, hierarchy);
+            commands.schedule(DespawnEntity(entity));
+            despawn_children(commands, entity, hierarchy);
         }
     }
 }
@@ -174,7 +180,10 @@ mod tests {
 
     #[test]
     fn test_send_sync() {
-        fn foo<T: Component>() {
+        fn foo<T>()
+        where
+            T: Component + Send + Sync,
+        {
             println!("{} is Component", std::any::type_name::<T>());
         }
 

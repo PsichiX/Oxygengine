@@ -21,6 +21,6 @@ serde_yaml = "0.8"
 vek = "0.15"
 
 [dependencies.oxygengine]
-version = "0.22"
+version = "0.24"
 features = ["web-composite-game"]
 path = "../../engine/_"

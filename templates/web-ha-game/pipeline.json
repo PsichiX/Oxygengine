@@ -51,7 +51,7 @@
           },
           {
             "Plugin": {
-              "name": "debug/oxygengine-ha-renderer-ldtk",
+              "name": "oxygengine-ha-renderer-ldtk",
               "params": {
                 "input_projects": ["levels/world.ldtk"],
                 "output": "levels/",
@@ -63,12 +63,12 @@
                 },
                 "rules": [
                   {
-                    "name": "UiView",
-                    "macro_file": "./tools/ldtk/UiView.chrobry"
+                    "name": "AvatarCombat",
+                    "macro_file": "./tools/ldtk/AvatarCombat.chrobry"
                   },
                   {
-                    "name": "UiSync",
-                    "macro_file": "./tools/ldtk/UiSync.chrobry"
+                    "name": "AvatarMovement",
+                    "macro_file": "./tools/ldtk/AvatarMovement.chrobry"
                   },
                   {
                     "name": "BoardAvatar",
@@ -79,12 +79,32 @@
                     "macro_file": "./tools/ldtk/BoardChunk.chrobry"
                   },
                   {
-                    "name": "AvatarMovement",
-                    "macro_file": "./tools/ldtk/AvatarMovement.chrobry"
+                    "name": "Enemy",
+                    "macro_file": "./tools/ldtk/Enemy.chrobry"
                   },
                   {
                     "name": "FollowEntity",
                     "macro_file": "./tools/ldtk/FollowEntity.chrobry"
+                  },
+                  {
+                    "name": "Health",
+                    "macro_file": "./tools/ldtk/Health.chrobry"
+                  },
+                  {
+                    "name": "Player",
+                    "macro_file": "./tools/ldtk/Player.chrobry"
+                  },
+                  {
+                    "name": "UiSync",
+                    "macro_file": "./tools/ldtk/UiSync.chrobry"
+                  },
+                  {
+                    "name": "UiView",
+                    "macro_file": "./tools/ldtk/UiView.chrobry"
+                  },
+                  {
+                    "name": "Weapon",
+                    "macro_file": "./tools/ldtk/Weapon.chrobry"
                   }
                 ]
               }

@@ -19,19 +19,19 @@ use glow::*;
 use std::collections::{hash_map::Entry, HashMap};
 
 #[derive(Debug, Default)]
-pub struct HaRendererSystemCache {
+pub struct HaRendererMaintenanceSystemCache {
     material_function_map: HashMap<AssetId, String>,
     material_domain_map: HashMap<AssetId, String>,
     pipeline_map: HashMap<Entity, PipelineId>,
 }
 
-pub type HaRendererSystemResources<'a> = (
+pub type HaRendererMaintenanceSystemResources<'a> = (
     WorldRef,
     &'a EntityChanges,
     &'a mut HaRenderer,
     &'a AssetsDatabase,
     &'a mut MaterialLibrary,
-    &'a mut HaRendererSystemCache,
+    &'a mut HaRendererMaintenanceSystemCache,
     &'a mut ImageResourceMapping,
     &'a mut MeshResourceMapping,
     &'a mut MaterialResourceMapping,
@@ -41,7 +41,7 @@ pub type HaRendererSystemResources<'a> = (
     Comp<&'a mut HaMaterialInstance>,
 );
 
-pub fn ha_renderer_system(universe: &mut Universe) {
+pub fn ha_renderer_maintenance_system(universe: &mut Universe) {
     let (
         world,
         changes,
@@ -53,7 +53,7 @@ pub fn ha_renderer_system(universe: &mut Universe) {
         mut mesh_mapping,
         mut material_mapping,
         ..,
-    ) = universe.query_resources::<HaRendererSystemResources>();
+    ) = universe.query_resources::<HaRendererMaintenanceSystemResources>();
 
     renderer.errors_cache.clear();
     renderer.maintain_platform_interface();
@@ -75,6 +75,13 @@ pub fn ha_renderer_system(universe: &mut Universe) {
     renderer.maintain_meshes();
     renderer.maintain_materials(&material_library);
     update_resource_references(&world, &image_mapping, &mesh_mapping, &material_mapping);
+}
+
+pub type HaRendererExecutionSystemResources<'a> = &'a mut HaRenderer;
+
+pub fn ha_renderer_execution_system(universe: &mut Universe) {
+    let mut renderer = universe.query_resources::<HaRendererExecutionSystemResources>();
+
     execute_pipelines(&mut renderer);
 }
 
@@ -153,7 +160,7 @@ fn sync_material_assets(
     renderer: &mut HaRenderer,
     assets: &AssetsDatabase,
     material_library: &mut MaterialLibrary,
-    cache: &mut HaRendererSystemCache,
+    cache: &mut HaRendererMaintenanceSystemCache,
     material_mapping: &mut MaterialResourceMapping,
 ) {
     for id in assets.lately_loaded_protocol("material") {
@@ -224,7 +231,7 @@ fn sync_cache(
     renderer: &mut HaRenderer,
     assets: &AssetsDatabase,
     material_library: &mut MaterialLibrary,
-    cache: &mut HaRendererSystemCache,
+    cache: &mut HaRendererMaintenanceSystemCache,
     image_mapping: &mut ImageResourceMapping,
     mesh_mapping: &mut MeshResourceMapping,
     material_mapping: &mut MaterialResourceMapping,

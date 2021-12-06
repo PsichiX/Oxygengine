@@ -4,6 +4,7 @@ use crate::{
     app::{App, AppRunner, StandardAppTimer, SyncAppRunner},
     assets::{database::AssetsDatabase, protocols::prefab::PrefabAsset},
     ecs::{
+        commands::{DespawnEntity, SpawnEntity, UniverseCommand},
         components::Name,
         hierarchy::{Hierarchy, Parent},
         life_cycle::EntityChanges,
@@ -68,7 +69,6 @@ struct Child {
 #[test]
 fn test_prefabs() {
     let prefab = PrefabScene {
-        autoload: false,
         template_name: None,
         dependencies: vec![],
         entities: vec![
@@ -189,14 +189,19 @@ fn test_entity_life_cycle() {
         assert_eq!(&changes.despawned().collect::<Vec<_>>(), &[]);
     }
     let (root, e1) = {
-        let mut world = app.multiverse.default_universe_mut().unwrap().world_mut();
-        let root = world.spawn(Root {
+        let universe = app.multiverse.default_universe_mut().unwrap();
+        universe
+            .expect_resource_mut::<EntityChanges>()
+            .skip_clearing = true;
+        let root = SpawnEntity::from_bundle(Root {
             name: Name("root".into()),
-        });
-        let e1 = world.spawn(Child {
+        })
+        .execute(universe);
+        let e1 = SpawnEntity::from_bundle(Child {
             name: Name("a".into()),
             parent: Parent(root),
-        });
+        })
+        .execute(universe);
         (root, e1)
     };
     app.process();
@@ -230,10 +235,17 @@ fn test_entity_life_cycle() {
         );
     }
     {
-        let mut world = app.multiverse.default_universe_mut().unwrap().world_mut();
-        let _ = world.despawn(root);
+        let universe = app.multiverse.default_universe_mut().unwrap();
+        universe
+            .expect_resource_mut::<EntityChanges>()
+            .skip_clearing = true;
+        DespawnEntity(root).run(universe);
         assert_eq!(
-            world.iter().map(|id| id.entity()).collect::<HashSet<_>>(),
+            universe
+                .world()
+                .iter()
+                .map(|id| id.entity())
+                .collect::<HashSet<_>>(),
             set(&[e1])
         );
     }
@@ -245,7 +257,10 @@ fn test_entity_life_cycle() {
             .unwrap()
             .expect_resource::<EntityChanges>();
         assert_eq!(changes.spawned().collect::<HashSet<_>>(), set(&[]));
-        assert_eq!(changes.despawned().collect::<HashSet<_>>(), set(&[root]));
+        assert_eq!(
+            changes.despawned().collect::<HashSet<_>>(),
+            set(&[root, e1])
+        );
         let world = app.multiverse.default_universe_mut().unwrap().world_mut();
         assert_eq!(
             world.iter().map(|id| id.entity()).collect::<HashSet<_>>(),
@@ -260,7 +275,7 @@ fn test_entity_life_cycle() {
             .unwrap()
             .expect_resource::<EntityChanges>();
         assert_eq!(changes.spawned().collect::<HashSet<_>>(), set(&[]));
-        assert_eq!(changes.despawned().collect::<HashSet<_>>(), set(&[e1]));
+        assert_eq!(changes.despawned().collect::<HashSet<_>>(), set(&[]));
         let world = app.multiverse.default_universe_mut().unwrap().world_mut();
         assert_eq!(
             world.iter().map(|id| id.entity()).collect::<HashSet<_>>(),

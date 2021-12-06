@@ -78,8 +78,17 @@ pub enum RenderTargetSizeValue {
         #[serde(default)]
         level: i8,
     },
-    Exact {
+    ScreenAspectWidth {
+        value: usize,
         #[serde(default)]
+        round_up: bool,
+    },
+    ScreenAspectHeight {
+        value: usize,
+        #[serde(default)]
+        round_up: bool,
+    },
+    Exact {
         value: usize,
         #[serde(default)]
         level: i8,
@@ -93,9 +102,34 @@ impl Default for RenderTargetSizeValue {
 }
 
 impl RenderTargetSizeValue {
-    pub fn value(&self, screen_size: usize) -> usize {
+    pub fn width(self, width: usize, height: usize) -> usize {
         match self {
-            Self::Screen { level } => screen_size << level,
+            Self::Screen { level } => width << level,
+            Self::ScreenAspectWidth { value, .. } => value,
+            Self::ScreenAspectHeight { value, round_up } => {
+                let value = (value as Scalar * width as Scalar) / height as Scalar;
+                if round_up {
+                    value.ceil() as _
+                } else {
+                    value.floor() as _
+                }
+            }
+            Self::Exact { value, level } => value << level,
+        }
+    }
+
+    pub fn height(self, width: usize, height: usize) -> usize {
+        match self {
+            Self::Screen { level } => height << level,
+            Self::ScreenAspectWidth { value, round_up } => {
+                let value = (value as Scalar * height as Scalar) / width as Scalar;
+                if round_up {
+                    value.ceil() as _
+                } else {
+                    value.floor() as _
+                }
+            }
+            Self::ScreenAspectHeight { value, .. } => value,
             Self::Exact { value, level } => value << level,
         }
     }
@@ -452,8 +486,8 @@ impl RenderTarget {
         width: usize,
         height: usize,
     ) -> Result<(), RenderTargetError> {
-        let width = self.preferred_width.value(width);
-        let height = self.preferred_height.value(height);
+        let width = self.preferred_width.width(width, height);
+        let height = self.preferred_height.height(width, height);
         if width != self.cached_width || height != self.cached_height {
             self.cached_width = width;
             self.cached_height = height;

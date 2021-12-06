@@ -1,4 +1,8 @@
-use oxygengine_core::{id::ID, Ignite};
+use oxygengine_core::{id::ID, Ignite, Scalar};
+use oxygengine_navigation::resources::{
+    Error as NavError, NavGrid, NavGridConnection, NavIslandPortal, NavIslands,
+    NavIslandsConnection,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     cmp::Ordering,
@@ -17,6 +21,15 @@ pub enum BoardError {
     LocationUnavailable(ChunkLocation),
     TokenDoesNotExists(BoardToken),
     CannotTraverse(usize, usize),
+    ThereisNoBuiltNavigation,
+    ChunkIsTooSmallForNavigation(usize, usize),
+    ThereAreNoChunksForNavigation,
+    ThereAreNoConnectionsForNavigation,
+    ChunkNavigation(NavError),
+    ChunkLocationsAreOnSeparateIslands(ChunkLocation, ChunkLocation),
+    ChunkPathNotFound(ChunkLocation, ChunkLocation),
+    PathNotFound(Location, Location),
+    IslandNotFoundInChunk(ChunkLocation),
 }
 
 #[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -203,7 +216,8 @@ impl BoardTraverseRules {
     }
 
     pub fn can_traverse(&self, from: usize, to: usize) -> bool {
-        from == to
+        self.map.is_empty()
+            || from == to
             || self
                 .map
                 .get(&from)
@@ -224,6 +238,23 @@ impl BoardTraverseRules {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum BoardIgnoreOccupancy<'a> {
+    Never,
+    ForTokens(&'a [BoardToken]),
+    Always,
+}
+
+#[derive(Debug, Clone)]
+struct ChunkNavigation {
+    grid: NavGrid,
+    islands_count: usize,
+    // {chunk location: island index}
+    islands_map: HashMap<ChunkLocation, usize>,
+    // [from portal location?, to portal location?, island index, linear cost estimate]
+    islands_portals_costs: Vec<(Option<ChunkLocation>, Option<ChunkLocation>, usize, Scalar)>,
+}
+
 #[derive(Debug, Clone)]
 pub struct BoardChunk {
     cols: usize,
@@ -231,6 +262,7 @@ pub struct BoardChunk {
     tile_values: Vec<Option<usize>>,
     occupancy: Vec<Option<BoardToken>>,
     tokens: HashMap<BoardToken, ChunkLocation>,
+    navigation: Option<ChunkNavigation>,
 }
 
 impl BoardChunk {
@@ -270,6 +302,174 @@ impl BoardChunk {
         self.tokens
             .iter()
             .map(|(token, location)| (*token, *location))
+    }
+
+    // TODO: dear heavenly beings, reduce these micro-allocations!
+    pub fn rebuild_navigation(
+        &mut self,
+        traverse_rules: &BoardTraverseRules,
+    ) -> Result<(), BoardError> {
+        if self.cols <= 1 && self.rows <= 1 {
+            return Err(BoardError::ChunkIsTooSmallForNavigation(
+                self.cols, self.rows,
+            ));
+        }
+        let mut connections =
+            Vec::with_capacity((self.cols - 1) * self.rows + (self.rows - 1) * self.cols);
+        for col in 0..(self.cols - 1) {
+            for row in 0..self.rows {
+                let ca = (col, row).into();
+                let cb = (col + 1, row).into();
+                let va = match self.tile_value(ca)? {
+                    Some(v) => v,
+                    None => continue,
+                };
+                let vb = match self.tile_value(cb)? {
+                    Some(v) => v,
+                    None => continue,
+                };
+                if traverse_rules.can_traverse(va, vb) {
+                    connections.push(NavGridConnection {
+                        from: (ca.col, ca.row),
+                        to: (cb.col, cb.row),
+                    });
+                }
+                if traverse_rules.can_traverse(vb, va) {
+                    connections.push(NavGridConnection {
+                        from: (cb.col, cb.row),
+                        to: (ca.col, ca.row),
+                    });
+                }
+            }
+        }
+        for col in 0..self.cols {
+            for row in 0..(self.rows - 1) {
+                let ca = (col, row).into();
+                let cb = (col, row + 1).into();
+                let va = match self.tile_value(ca)? {
+                    Some(v) => v,
+                    None => continue,
+                };
+                let vb = match self.tile_value(cb)? {
+                    Some(v) => v,
+                    None => continue,
+                };
+                if traverse_rules.can_traverse(va, vb) {
+                    connections.push(NavGridConnection {
+                        from: (ca.col, ca.row),
+                        to: (cb.col, cb.row),
+                    });
+                }
+                if traverse_rules.can_traverse(vb, va) {
+                    connections.push(NavGridConnection {
+                        from: (cb.col, cb.row),
+                        to: (ca.col, ca.row),
+                    });
+                }
+            }
+        }
+        let grid = match NavGrid::with_connections(self.cols, self.rows, connections) {
+            Ok(grid) => grid,
+            Err(error) => return Err(BoardError::ChunkNavigation(error)),
+        };
+        let islands = grid.find_islands();
+        let islands_count = islands.len();
+        let islands_map = islands
+            .iter()
+            .enumerate()
+            .flat_map(|(island, coords)| {
+                coords
+                    .iter()
+                    .map(move |coord| (ChunkLocation::from(*coord), island))
+            })
+            .collect::<HashMap<_, _>>();
+        let islands_portals_costs = islands
+            .into_iter()
+            .enumerate()
+            .map(|(index, island)| {
+                let island = island
+                    .into_iter()
+                    .filter_map(|coord| {
+                        let index = coord.1 * self.cols + coord.0;
+                        if (coord.0 == 0
+                            || coord.1 == 0
+                            || coord.0 == self.cols - 1
+                            || coord.1 == self.rows - 1)
+                            && self.tile_values.get(index).unwrap().is_some()
+                        {
+                            Some(ChunkLocation::from((coord.0, coord.1)))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                (index, island)
+            })
+            .filter(|(_, island)| !island.is_empty())
+            .flat_map(|(index, island)| {
+                let cost = island.len() as Scalar;
+                let mut result = Vec::with_capacity(island.len() * 2);
+                for c in island {
+                    result.push((Some(c), None, index, cost));
+                    result.push((None, Some(c), index, cost));
+                }
+                result
+            })
+            .collect::<Vec<_>>();
+        self.navigation = Some(ChunkNavigation {
+            grid,
+            islands_count,
+            islands_map,
+            islands_portals_costs,
+        });
+        Ok(())
+    }
+
+    pub fn clear_navigation(&mut self) {
+        self.navigation = None;
+    }
+
+    // TODO: dear heavenly beings, reduce these micro-allocations!
+    pub fn find_path(
+        &self,
+        from: ChunkLocation,
+        to: ChunkLocation,
+        ignore_occupancy: BoardIgnoreOccupancy,
+    ) -> Result<Vec<ChunkLocation>, BoardError> {
+        let navigation = self
+            .navigation
+            .as_ref()
+            .ok_or(BoardError::ThereisNoBuiltNavigation)?;
+        if navigation.islands_map.get(&from) != navigation.islands_map.get(&to) {
+            return Err(BoardError::ChunkLocationsAreOnSeparateIslands(from, to));
+        }
+        let path = navigation
+            .grid
+            .find_path((from.col, from.row), (to.col, to.row))
+            .ok_or(BoardError::ChunkPathNotFound(from, to))?
+            .into_iter()
+            .map(|coord| {
+                let location = ChunkLocation::from(coord);
+                let success = match ignore_occupancy {
+                    BoardIgnoreOccupancy::Never => self.occupancy(location)?.is_none(),
+                    BoardIgnoreOccupancy::ForTokens(tokens) => self
+                        .occupancy(location)?
+                        .map(|t| tokens.contains(&t))
+                        .unwrap_or(true),
+                    BoardIgnoreOccupancy::Always => true,
+                };
+                if success {
+                    Ok(location)
+                } else {
+                    Err(BoardError::LocationOccupied(location))
+                }
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if path.is_empty() {
+            Err(BoardError::ChunkPathNotFound(from, to))
+        } else {
+            Ok(path)
+        }
     }
 
     fn acquire_token(&mut self, location: ChunkLocation) -> Result<BoardToken, BoardError> {
@@ -338,6 +538,7 @@ pub struct Board {
     chunk_rows: usize,
     pub traverse_rules: BoardTraverseRules,
     chunks: HashMap<BoardLocation, BoardChunk>,
+    navigation: Option<NavIslands<(BoardLocation, usize), ChunkLocation>>,
 }
 
 impl Board {
@@ -347,6 +548,7 @@ impl Board {
             chunk_rows: chunk_rows.max(1),
             traverse_rules,
             chunks: Default::default(),
+            navigation: None,
         }
     }
 
@@ -403,40 +605,17 @@ impl Board {
         location
     }
 
+    pub fn location_relative(&self, from: Location, to: Location) -> (isize, isize) {
+        let wx = (to.world.col - from.world.col) * self.chunk_cols as isize;
+        let wy = (to.world.row - from.world.row) * self.chunk_rows as isize;
+        let cx = to.chunk.col as isize - from.chunk.col as isize;
+        let cy = to.chunk.row as isize - from.chunk.row as isize;
+        (wx + cx, wy + cy)
+    }
+
     pub fn locations_in_range(&self, a: Location, b: Location, range: usize) -> bool {
-        let dw = b.world.col - a.world.col;
-        match dw.cmp(&0) {
-            Ordering::Greater => {
-                let dc = dw as usize * self.chunk_cols + b.chunk.col - a.chunk.col;
-                if dc > range {
-                    return false;
-                }
-            }
-            Ordering::Less => {
-                let dc = (-dw) as usize * self.chunk_cols + a.chunk.col - b.chunk.col;
-                if dc > range {
-                    return false;
-                }
-            }
-            _ => {}
-        }
-        let dh = b.world.row - a.world.row;
-        match dh.cmp(&0) {
-            Ordering::Greater => {
-                let dc = dh as usize * self.chunk_rows + b.chunk.row - a.chunk.row;
-                if dc > range {
-                    return false;
-                }
-            }
-            Ordering::Less => {
-                let dc = (-dh) as usize * self.chunk_rows + a.chunk.row - b.chunk.row;
-                if dc > range {
-                    return false;
-                }
-            }
-            _ => {}
-        }
-        true
+        let (dx, dy) = self.location_relative(a, b);
+        dx.abs() as usize <= range && dy.abs() as usize <= range
     }
 
     pub fn create_chunk(&mut self, location: BoardLocation) -> Result<(), BoardError> {
@@ -452,6 +631,7 @@ impl Board {
                 tile_values: vec![None; size],
                 tokens: Default::default(),
                 occupancy: vec![None; size],
+                navigation: None,
             },
         );
         Ok(())
@@ -685,6 +865,284 @@ impl Board {
         Ok(())
     }
 
+    // TODO: dear heavenly beings, reduce these micro-allocations!
+    pub fn rebuild_navigation(&mut self) -> Result<(), BoardError> {
+        macro_rules! impl_collect_connections {
+            (
+                $connections:expr,
+                $chunk:expr,
+                $from_navigation:expr,
+                $from_board_location:expr,
+                $to_board_location:expr,
+                $direction:expr,
+            ) => {
+                if let Some(neighbor) = self.chunks.get(&$to_board_location) {
+                    let to_navigation = match neighbor.navigation.as_ref() {
+                        Some(navigation) => navigation,
+                        None => continue,
+                    };
+                    let count = match $direction {
+                        BoardDirection::North | BoardDirection::South => self.chunk_cols,
+                        BoardDirection::East | BoardDirection::West => self.chunk_rows,
+                        _ => unreachable!(),
+                    };
+                    $connections.reserve(count);
+                    for index in 0..count {
+                        let from_chunk_location = match $direction {
+                            BoardDirection::North => ChunkLocation { col: index, row: 0 },
+                            BoardDirection::South => ChunkLocation {
+                                col: index,
+                                row: self.chunk_rows - 1,
+                            },
+                            BoardDirection::West => ChunkLocation { col: 0, row: index },
+                            BoardDirection::East => ChunkLocation {
+                                col: self.chunk_cols - 1,
+                                row: index,
+                            },
+                            _ => unreachable!(),
+                        };
+                        let from_value =
+                            match $chunk.tile_value(from_chunk_location).ok().and_then(|v| v) {
+                                Some(value) => value,
+                                None => continue,
+                            };
+                        let from_island =
+                            match $from_navigation.islands_map.get(&from_chunk_location) {
+                                Some(value) => *value,
+                                None => continue,
+                            };
+                        let to_chunk_location = match $direction {
+                            BoardDirection::North => ChunkLocation {
+                                col: index,
+                                row: self.chunk_rows - 1,
+                            },
+                            BoardDirection::South => ChunkLocation { col: index, row: 0 },
+                            BoardDirection::West => ChunkLocation {
+                                col: self.chunk_rows - 1,
+                                row: index,
+                            },
+                            BoardDirection::East => ChunkLocation { col: 0, row: index },
+                            _ => unreachable!(),
+                        };
+                        let to_value =
+                            match neighbor.tile_value(to_chunk_location).ok().and_then(|v| v) {
+                                Some(value) => value,
+                                None => continue,
+                            };
+                        let to_island = match to_navigation.islands_map.get(&to_chunk_location) {
+                            Some(value) => *value,
+                            None => continue,
+                        };
+                        if self.traverse_rules.can_traverse(from_value, to_value) {
+                            $connections.push(NavIslandsConnection {
+                                from: NavIslandPortal {
+                                    island: (*$from_board_location, from_island),
+                                    portal: Some(from_chunk_location),
+                                },
+                                to: NavIslandPortal {
+                                    island: ($to_board_location, to_island),
+                                    portal: Some(to_chunk_location),
+                                },
+                                distance: 0.0,
+                            });
+                        }
+                    }
+                }
+            };
+        }
+
+        if self.chunks.is_empty() {
+            return Err(BoardError::ThereAreNoChunksForNavigation);
+        }
+        let mut connections = vec![];
+        for (from_board_location, chunk) in &self.chunks {
+            let from_navigation = match chunk.navigation.as_ref() {
+                Some(navigation) => navigation,
+                None => continue,
+            };
+            let to_board_location = BoardLocation {
+                col: from_board_location.col,
+                row: from_board_location.row - 1,
+            };
+            impl_collect_connections!(
+                connections,
+                chunk,
+                from_navigation,
+                from_board_location,
+                to_board_location,
+                BoardDirection::North,
+            );
+            let to_board_location = BoardLocation {
+                col: from_board_location.col,
+                row: from_board_location.row + 1,
+            };
+            impl_collect_connections!(
+                connections,
+                chunk,
+                from_navigation,
+                from_board_location,
+                to_board_location,
+                BoardDirection::South,
+            );
+            let to_board_location = BoardLocation {
+                col: from_board_location.col - 1,
+                row: from_board_location.row,
+            };
+            impl_collect_connections!(
+                connections,
+                chunk,
+                from_navigation,
+                from_board_location,
+                to_board_location,
+                BoardDirection::West,
+            );
+            let to_board_location = BoardLocation {
+                col: from_board_location.col + 1,
+                row: from_board_location.row,
+            };
+            impl_collect_connections!(
+                connections,
+                chunk,
+                from_navigation,
+                from_board_location,
+                to_board_location,
+                BoardDirection::East,
+            );
+            if connections.is_empty() {
+                continue;
+            }
+            connections.reserve(from_navigation.islands_portals_costs.len());
+            for (from, to, island, cost) in &from_navigation.islands_portals_costs {
+                connections.push(NavIslandsConnection {
+                    from: NavIslandPortal {
+                        island: (*from_board_location, *island),
+                        portal: *from,
+                    },
+                    to: NavIslandPortal {
+                        island: (*from_board_location, *island),
+                        portal: *to,
+                    },
+                    distance: *cost,
+                });
+            }
+        }
+        if connections.is_empty() {
+            return Err(BoardError::ThereAreNoConnectionsForNavigation);
+        }
+        self.navigation = Some(NavIslands::new(connections, false));
+        Ok(())
+    }
+
+    pub fn clear_navigation(&mut self) {
+        self.navigation = None;
+    }
+
+    // TODO: dear heavenly beings, reduce these micro-allocations!
+    pub fn find_path(
+        &self,
+        from: Location,
+        to: Location,
+        ignore_occupancy: BoardIgnoreOccupancy,
+    ) -> Result<Vec<Location>, BoardError> {
+        let from_chunk = self
+            .chunks
+            .get(&from.world)
+            .ok_or(BoardError::ChunkDoesNotExists(from.world))?;
+        let from_navigation = from_chunk
+            .navigation
+            .as_ref()
+            .ok_or(BoardError::ThereisNoBuiltNavigation)?;
+        let from_island = *from_navigation
+            .islands_map
+            .get(&from.chunk)
+            .ok_or(BoardError::IslandNotFoundInChunk(from.chunk))?;
+        let to_chunk = self
+            .chunks
+            .get(&to.world)
+            .ok_or(BoardError::ChunkDoesNotExists(to.world))?;
+        let to_navigation = to_chunk
+            .navigation
+            .as_ref()
+            .ok_or(BoardError::ThereisNoBuiltNavigation)?;
+        let to_island = *to_navigation
+            .islands_map
+            .get(&to.chunk)
+            .ok_or(BoardError::IslandNotFoundInChunk(to.chunk))?;
+        if from.world == to.world && from_island == to_island {
+            return Ok(from_chunk
+                .find_path(from.chunk, to.chunk, ignore_occupancy)?
+                .into_iter()
+                .map(|c| Location {
+                    world: from.world,
+                    chunk: c,
+                })
+                .collect());
+        }
+        let navigation = self
+            .navigation
+            .as_ref()
+            .ok_or(BoardError::ThereisNoBuiltNavigation)?;
+        let path = navigation
+            .find_path(
+                &NavIslandPortal {
+                    island: (from.world, from_island),
+                    portal: None,
+                },
+                &NavIslandPortal {
+                    island: (to.world, to_island),
+                    portal: None,
+                },
+            )
+            .ok_or(BoardError::PathNotFound(from, to))?
+            .1;
+        let mut result = vec![];
+        for pair in path.chunks_exact(2) {
+            if pair[0].island != pair[1].island {
+                continue;
+            }
+            let board_location = pair[0].island.0;
+            let chunk = self
+                .chunks
+                .get(&board_location)
+                .ok_or(BoardError::ChunkDoesNotExists(board_location))?;
+            match (&pair[0].portal, &pair[1].portal) {
+                (None, Some(portal)) => result.extend(
+                    chunk
+                        .find_path(from.chunk, *portal, ignore_occupancy)?
+                        .into_iter()
+                        .map(|c| Location {
+                            world: board_location,
+                            chunk: c,
+                        }),
+                ),
+                (Some(portal), None) => result.extend(
+                    chunk
+                        .find_path(*portal, to.chunk, ignore_occupancy)?
+                        .into_iter()
+                        .map(|c| Location {
+                            world: board_location,
+                            chunk: c,
+                        }),
+                ),
+                (Some(from_portal), Some(to_portal)) => result.extend(
+                    chunk
+                        .find_path(*from_portal, *to_portal, ignore_occupancy)?
+                        .into_iter()
+                        .map(|c| Location {
+                            world: board_location,
+                            chunk: c,
+                        }),
+                ),
+                (None, None) => continue,
+            }
+        }
+        if result.len() <= 1 {
+            Err(BoardError::PathNotFound(from, to))
+        } else {
+            Ok(result)
+        }
+    }
+
     fn occupy_location(&mut self, location: Location, token: BoardToken) -> Result<(), BoardError> {
         match self.chunks.get_mut(&location.world) {
             Some(chunk) => chunk.occupy_location(location.chunk, token),
@@ -697,5 +1155,92 @@ impl Board {
             Some(chunk) => chunk.free_location(location.chunk),
             None => Err(BoardError::ChunkDoesNotExists(location.world)),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_navigation() {
+        let traverse_rules = BoardTraverseRules::default();
+        let mut board = Board::new(3, 3, traverse_rules.clone());
+        let a = (0, 0).into();
+        let b = (0, 1).into();
+        board.create_chunk(a).unwrap();
+        {
+            let chunk = board.chunk_mut(a).unwrap();
+            chunk.write_values().copy_from_slice(&[
+                Some(1),
+                Some(1),
+                Some(1),
+                Some(1),
+                None,
+                Some(1),
+                Some(1),
+                None,
+                Some(1),
+            ]);
+            chunk.rebuild_navigation(&traverse_rules).unwrap();
+        }
+        board.create_chunk(b).unwrap();
+        {
+            let chunk = board.chunk_mut(b).unwrap();
+            chunk.write_values().copy_from_slice(&[
+                Some(1),
+                None,
+                Some(1),
+                Some(1),
+                None,
+                Some(1),
+                Some(1),
+                Some(1),
+                Some(1),
+            ]);
+            chunk.rebuild_navigation(&traverse_rules).unwrap();
+        }
+        board.rebuild_navigation().unwrap();
+        let a = Location::from(((0, 0).into(), (0, 0).into()));
+        let b = Location::from(((0, 1).into(), (1, 2).into()));
+        let path = board.find_path(a, b, BoardIgnoreOccupancy::Always).unwrap();
+        assert_eq!(
+            path,
+            vec![
+                a,
+                Location::from(((0, 0).into(), (0, 1).into())),
+                Location::from(((0, 0).into(), (0, 2).into())),
+                Location::from(((0, 1).into(), (0, 0).into())),
+                Location::from(((0, 1).into(), (0, 1).into())),
+                Location::from(((0, 1).into(), (0, 2).into())),
+                b,
+            ]
+        );
+        let token = board
+            .acquire_token(Location::from(((0, 0).into(), (0, 1).into())))
+            .unwrap();
+        let path = board
+            .find_path(a, b, BoardIgnoreOccupancy::ForTokens(&[token]))
+            .unwrap();
+        assert_eq!(
+            path,
+            vec![
+                a,
+                Location::from(((0, 0).into(), (0, 1).into())),
+                Location::from(((0, 0).into(), (0, 2).into())),
+                Location::from(((0, 1).into(), (0, 0).into())),
+                Location::from(((0, 1).into(), (0, 1).into())),
+                Location::from(((0, 1).into(), (0, 2).into())),
+                b,
+            ]
+        );
+        let path = board.find_path(a, b, BoardIgnoreOccupancy::Never);
+        assert!(matches!(
+            path,
+            Err(BoardError::LocationOccupied(ChunkLocation {
+                col: 0,
+                row: 1
+            }))
+        ));
     }
 }

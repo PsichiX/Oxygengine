@@ -28,12 +28,12 @@ where
     builder.install_system::<HaUserInterfaceSyncSystemResources>(
         "user-interface-sync",
         ha_user_interface_sync_system,
-        &["renderer"],
+        &[],
     )?;
     builder.install_system::<HaRenderUiStageSystemResources>(
         "render-ui-stage",
         ha_render_ui_stage_system,
-        &["renderer"],
+        &[],
     )?;
     Ok(())
 }

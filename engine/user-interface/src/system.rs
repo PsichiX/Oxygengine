@@ -7,7 +7,7 @@ use crate::{
 use core::{
     app::AppLifeCycle,
     assets::{asset::AssetId, database::AssetsDatabase},
-    ecs::{AccessType, Comp, ResQuery, Universe, UnsafeRef, UnsafeScope, WorldRef},
+    ecs::{AccessType, Comp, ResQuery, ResQueryItem, Universe, UnsafeRef, UnsafeScope, WorldRef},
 };
 use input::resource::{InputController, TriggerState};
 use raui_core::{
@@ -50,7 +50,7 @@ pub type UserInterfaceSystemResources<'a, Q> = (
 pub fn user_interface_system<Q>(universe: &mut Universe)
 where
     Q: AccessType + ResQuery + 'static,
-    <Q as ResQuery>::Fetch: FeedProcessContext,
+    ResQueryItem<Q>: FeedProcessContext,
 {
     let mut cache = universe.expect_resource_mut::<UserInterfaceSystemCache>();
     {

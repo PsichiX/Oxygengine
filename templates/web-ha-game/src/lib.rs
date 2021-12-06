@@ -1,18 +1,27 @@
 mod components;
-mod model;
+mod materials;
 mod resources;
 mod states;
 mod systems;
 mod ui;
 
 use crate::{
-    components::avatar_movement::AvatarMovement,
-    model::item::Item,
+    components::{
+        avatar_combat::AvatarCombat, avatar_movement::AvatarMovement, health::Health,
+        weapon::Weapon, Enemy, Player,
+    },
+    materials::avatar::avatar_material_graph,
     resources::game_state_info::*,
     states::loading::LoadingState,
-    systems::avatar_movement::{avatar_movement_system, AvatarMovementSystemResources},
+    systems::{
+        avatar_combat::{avatar_combat_system, AvatarCombatSystemResources},
+        death::{death_system, DeathSystemResources},
+        player_combat::{player_combat_system, PlayerCombatSystemResources},
+        player_movement::{player_movement_system, PlayerMovementSystemResources},
+    },
 };
 use oxygengine::prelude::*;
+use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
 pub const BOARD_TILE_SIZE: (u8, u8) = (8, 8);
@@ -62,11 +71,21 @@ pub fn main_js() -> Result<(), JsValue> {
             .unwrap()
             .with_resource(WebStorageEngine)
             .with_resource(GameStateInfo::default())
-            .with_system::<AvatarMovementSystemResources>(
-                "avatar-movement",
-                avatar_movement_system,
+            .with_system::<PlayerMovementSystemResources>(
+                "player-movement",
+                player_movement_system,
                 &[],
             )
+            .unwrap()
+            .with_system::<PlayerCombatSystemResources>("player-combat", player_combat_system, &[])
+            .unwrap()
+            .with_system::<AvatarCombatSystemResources>(
+                "avatar-combat",
+                avatar_combat_system,
+                &["player-combat"],
+            )
+            .unwrap()
+            .with_system::<DeathSystemResources>("death", death_system, &[])
             .unwrap()
             .build::<SequencePipelineEngine, _, _>(LoadingState::default(), WebAppTimer::default());
 
@@ -76,10 +95,27 @@ pub fn main_js() -> Result<(), JsValue> {
 }
 
 fn make_assets() -> (WebFetchEngine, impl FnMut(&mut AssetsDatabase)) {
-    (WebFetchEngine::default(), |assets| {
+    (WebFetchEngine::default(), |database| {
         #[cfg(debug_assertions)]
-        assets.register_error_reporter(LoggerAssetsDatabaseErrorReporter);
-        oxygengine::ha_renderer::protocols_installer(assets);
+        database.register_error_reporter(LoggerAssetsDatabaseErrorReporter);
+        oxygengine::ha_renderer::protocols_installer(database);
+
+        database.insert(Asset::new(
+            "material",
+            "@material/graph/surface/flat/avatar",
+            Box::new(MaterialAsset::Graph {
+                default_values: {
+                    let mut map = HashMap::with_capacity(1);
+                    map.insert(
+                        "blinkColor".to_owned(),
+                        Vec4::new(1.0, 1.0, 1.0, 0.0).into(),
+                    );
+                    map
+                },
+                draw_options: MaterialDrawOptions::transparent(),
+                content: avatar_material_graph(),
+            }),
+        ));
     })
 }
 
@@ -92,6 +128,11 @@ fn make_prefabs() -> impl FnMut(&mut PrefabManager) {
         oxygengine::integration_overworld_ha_renderer::prefabs_installer(prefabs);
 
         prefabs.register_component_factory::<AvatarMovement>("AvatarMovement");
+        prefabs.register_component_factory::<AvatarCombat>("AvatarCombat");
+        prefabs.register_component_factory::<Health>("Health");
+        prefabs.register_component_factory::<Weapon>("Weapon");
+        prefabs.register_component_factory::<Player>("Player");
+        prefabs.register_component_factory::<Enemy>("Enemy");
     }
 }
 
@@ -102,11 +143,11 @@ fn make_inputs() -> impl FnMut(&mut InputController) {
         input.map_axis("pointer-x", "mouse", "x");
         input.map_axis("pointer-y", "mouse", "y");
         input.map_trigger("pointer-action", "mouse", "left");
-        input.map_trigger("pointer-context", "mouse", "right");
         input.map_axis("move-up", "keyboard", "KeyW");
         input.map_axis("move-down", "keyboard", "KeyS");
         input.map_axis("move-left", "keyboard", "KeyA");
         input.map_axis("move-right", "keyboard", "KeyD");
+        input.map_trigger("attack", "keyboard", "Space");
     }
 }
 
@@ -152,13 +193,13 @@ fn make_renderer() -> Result<HaRendererBundleSetup, JsValue> {
 
 fn make_ui() -> UserInterface {
     UserInterface::new(ui::setup)
-        .with_pointer_axis("pointer-x", "pointer-y")
-        .with_pointer_trigger("pointer-action", "pointer-context")
+    // .with_pointer_axis("pointer-x", "pointer-y")
+    // .with_pointer_trigger("pointer-action", "pointer-context")
 }
 
 fn make_overworld() -> impl FnMut(
     &mut Bank<usize>,
-    &mut MarketDatabase<Item, usize>,
+    &mut MarketDatabase<(), usize>,
     &mut QuestsDatabase<(), (), usize>,
 ) -> Board {
     |_, _, _| {

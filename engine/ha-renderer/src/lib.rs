@@ -51,11 +51,12 @@ pub mod prelude {
         pipeline::{render_queue::*, stage::*, *},
         platform::*,
         render_target::*,
-        resources::{gizmos::*, material_library::*, resource_mapping::*, *},
+        resources::{camera_cache::*, gizmos::*, material_library::*, resource_mapping::*, *},
         systems::{
-            apply_sprite_animation_to_material::*, atlas::*, font::*, mesh_bounds_gizmo::*,
-            render_forward_stage::*, render_gizmo_stage::*, renderer::*, sprite_animation::*,
-            tilemap::*, transform::*, virtual_image_uniforms::*, volume_visibility::*, *,
+            apply_sprite_animation_to_material::*, atlas::*, camera_cache::*, font::*,
+            mesh_bounds_gizmo::*, render_forward_stage::*, render_gizmo_stage::*, renderer::*,
+            sprite_animation::*, tilemap::*, transform::*, virtual_image_uniforms::*,
+            volume_visibility::*, *,
         },
         Error, HaRendererBundleSetup, HasContextResources, ResourceInstanceReference, Resources,
         StringBuffer, TagFilters,
@@ -76,7 +77,7 @@ use crate::{
         tilemap::TileMapAssetProtocol,
     },
     components::{
-        camera::HaCamera,
+        camera::{HaCamera, HaDefaultCamera},
         gizmo::HaGizmo,
         material_instance::HaMaterialInstance,
         mesh_instance::HaMeshInstance,
@@ -111,12 +112,13 @@ use crate::{
     },
     mesh::{MeshError, MeshId, MeshResourceMapping},
     render_target::{RenderTargetError, RenderTargetId},
-    resources::{gizmos::Gizmos, material_library::MaterialLibrary},
+    resources::{camera_cache::CameraCache, gizmos::Gizmos, material_library::MaterialLibrary},
     systems::{
         apply_sprite_animation_to_material::{
             ha_apply_sprite_animation_to_material, HaApplySpriteAnimationToMaterialSystemResources,
         },
         atlas::{ha_atlas_system, HaAtlasSystemCache, HaAtlasSystemResources},
+        camera_cache::{ha_camera_cache_system, HaCameraCacheSystemResources},
         font::{ha_font_system, HaFontSystemCache, HaFontSystemResources},
         mesh_bounds_gizmo::{ha_mesh_bounds_gizmo_system, HaMeshBoundsGizmoSystemResources},
         render_forward_stage::{
@@ -126,7 +128,11 @@ use crate::{
             ha_render_gizmo_stage_system, HaRenderGizmoStageSystemCache,
             HaRenderGizmoStageSystemResources,
         },
-        renderer::{ha_renderer_system, HaRendererSystemCache, HaRendererSystemResources},
+        renderer::{
+            ha_renderer_execution_system, ha_renderer_maintenance_system,
+            HaRendererExecutionSystemResources, HaRendererMaintenanceSystemCache,
+            HaRendererMaintenanceSystemResources,
+        },
         sprite_animation::{
             ha_sprite_animation, HaSpriteAnimationSystemCache, HaSpriteAnimationSystemResources,
         },
@@ -144,7 +150,7 @@ use crate::{
 use core::{
     app::AppBuilder,
     assets::{asset::Asset, database::AssetsDatabase},
-    ecs::pipeline::{PipelineBuilder, PipelineBuilderError},
+    ecs::pipeline::{PipelineBuilder, PipelineBuilderError, PipelineLayer},
     id::ID,
     prefab::PrefabManager,
     Ignite,
@@ -494,7 +500,7 @@ where
     PB: PipelineBuilder,
 {
     builder.install_resource(setup.renderer);
-    builder.install_resource(HaRendererSystemCache::default());
+    builder.install_resource(HaRendererMaintenanceSystemCache::default());
     builder.install_resource(HaAtlasSystemCache::default());
     builder.install_resource(HaFontSystemCache::default());
     builder.install_resource(HaTileMapSystemCache::default());
@@ -505,28 +511,49 @@ where
     builder.install_resource(ImageResourceMapping::default());
     builder.install_resource(MeshResourceMapping::default());
     builder.install_resource(MaterialResourceMapping::default());
+    builder.install_resource(CameraCache::default());
     builder.install_resource(setup.gizmos);
 
     // NOTE: ORDER MATTERS! transform first, renderer second, then the others - dependencies always first.
-    builder.install_system::<HaTransformSystemResources>("transform", ha_transform_system, &[])?;
-    builder.install_system::<HaRendererSystemResources>("renderer", ha_renderer_system, &[])?;
+    builder.install_system_on_layer::<HaTransformSystemResources>(
+        "transform",
+        ha_transform_system,
+        &[],
+        PipelineLayer::Pre,
+        false,
+    )?;
+    builder.install_system_on_layer::<HaRendererMaintenanceSystemResources>(
+        "renderer-maintenance",
+        ha_renderer_maintenance_system,
+        &[],
+        PipelineLayer::Main,
+        true,
+    )?;
+    builder.install_system_on_layer::<HaRendererExecutionSystemResources>(
+        "renderer-execution",
+        ha_renderer_execution_system,
+        &[],
+        PipelineLayer::Post,
+        true,
+    )?;
+    builder.install_system::<HaCameraCacheSystemResources>(
+        "camera-cache",
+        ha_camera_cache_system,
+        &[],
+    )?;
     builder.install_system::<HaRenderForwardStageSystemResources>(
         "renderer-forward-stage",
         ha_render_forward_stage_system,
-        &["renderer"],
+        &[],
     )?;
     builder.install_system::<HaRenderGizmoStageSystemResources>(
         "renderer-gizmo-stage",
         ha_render_gizmo_stage_system,
-        &["renderer"],
+        &[],
     )?;
-    builder.install_system::<HaAtlasSystemResources>("atlas", ha_atlas_system, &["renderer"])?;
-    builder.install_system::<HaFontSystemResources>("font", ha_font_system, &["renderer"])?;
-    builder.install_system::<HaTileMapSystemResources>(
-        "tilemap",
-        ha_tilemap_system,
-        &["renderer"],
-    )?;
+    builder.install_system::<HaAtlasSystemResources>("atlas", ha_atlas_system, &[])?;
+    builder.install_system::<HaFontSystemResources>("font", ha_font_system, &[])?;
+    builder.install_system::<HaTileMapSystemResources>("tilemap", ha_tilemap_system, &[])?;
     builder.install_system::<HaSpriteAnimationSystemResources>(
         "sprite-animation",
         ha_sprite_animation,
@@ -738,6 +765,7 @@ pub fn protocols_installer(database: &mut AssetsDatabase) {
 
 pub fn prefabs_installer(prefabs: &mut PrefabManager) {
     prefabs.register_component_factory::<HaCamera>("HaCamera");
+    prefabs.register_component_factory::<HaDefaultCamera>("HaDefaultCamera");
     prefabs.register_component_factory::<HaMaterialInstance>("HaMaterialInstance");
     prefabs.register_component_factory::<HaMeshInstance>("HaMeshInstance");
     prefabs.register_component_factory::<HaSpriteAnimationInstance>("HaSpriteAnimationInstance");

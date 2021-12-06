@@ -1,6 +1,5 @@
+use navmesh::*;
 use std::collections::HashMap;
-
-pub use navmesh::*;
 
 /// ECS resource that holds and manages nav meshes.
 #[derive(Debug, Default)]

@@ -1,5 +1,6 @@
 pub mod apply_sprite_animation_to_material;
 pub mod atlas;
+pub mod camera_cache;
 pub mod font;
 pub mod mesh_bounds_gizmo;
 pub mod render_forward_stage;

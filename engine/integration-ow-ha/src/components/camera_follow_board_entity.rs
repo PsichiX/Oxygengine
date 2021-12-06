@@ -21,6 +21,8 @@ pub struct HaCameraFollowBoardEntity {
     pub strength_factor: Scalar,
     #[serde(default)]
     pub constraints: HaCameraFollowConstraints,
+    #[serde(default)]
+    pub nth: usize,
 }
 
 impl Default for HaCameraFollowBoardEntity {
@@ -29,6 +31,7 @@ impl Default for HaCameraFollowBoardEntity {
             name: None,
             strength_factor: Self::default_strength_factor(),
             constraints: Default::default(),
+            nth: 0,
         }
     }
 }

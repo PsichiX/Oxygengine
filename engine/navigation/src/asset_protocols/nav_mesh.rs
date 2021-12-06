@@ -1,4 +1,4 @@
-use crate::resource::{NavMesh, NavResult, NavTriangle, NavVec3};
+use crate::resources::{NavMesh, NavResult, NavTriangle, NavVec3};
 use bincode::deserialize;
 use core::{
     assets::protocol::{AssetLoadResult, AssetProtocol},
@@ -8,9 +8,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct NavMeshAsset {
-    #[serde(default)]
     vertices: Vec<NavVec3>,
-    #[serde(default)]
     triangles: Vec<NavTriangle>,
 }
 

@@ -102,7 +102,7 @@ pub mod editor_tools {
 
 pub mod prelude {
     #[cfg(feature = "oxygengine-ai")]
-    pub use oxygengine_ai::*;
+    pub use oxygengine_ai::prelude::*;
     #[cfg(feature = "oxygengine-animation")]
     pub use oxygengine_animation::prelude::*;
     #[cfg(feature = "oxygengine-audio")]

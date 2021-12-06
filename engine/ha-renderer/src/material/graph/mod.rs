@@ -223,11 +223,13 @@ impl MaterialGraph {
         }
         // is graph cyclic?
         {
-            let mut cache = HashSet::with_capacity(self.nodes.len());
+            let mut cache = Vec::with_capacity(self.nodes.len());
             for (id, node) in &self.nodes {
-                cache.clear();
-                if self.is_cyclic_until(node, *id, &mut cache) {
-                    return Err(MaterialError::GraphIsCyclic(*id));
+                if matches!(node, MaterialGraphNode::Output(_)) {
+                    cache.clear();
+                    if self.is_cyclic_until(node, *id, &mut cache) {
+                        return Err(MaterialError::GraphIsCyclic(cache.into_iter().collect()));
+                    }
                 }
             }
         }
@@ -476,7 +478,9 @@ impl MaterialGraph {
                 signature.to_owned(),
             ));
         }
-        graph.validate(library)?;
+        if let Err(error) = graph.validate(library) {
+            return Err(MaterialError::Baking(graph, Box::new(error)));
+        }
         let vertex = {
             let vertex = graph.compile(MaterialCompilationState::Main {
                 shader_type: MaterialShaderType::Vertex,
@@ -811,11 +815,12 @@ impl MaterialGraph {
         &self,
         node: &MaterialGraphNode,
         id: MaterialGraphNodeId,
-        cache: &mut HashSet<MaterialGraphNodeId>,
+        cache: &mut Vec<MaterialGraphNodeId>,
     ) -> bool {
-        cache.insert(id);
+        cache.push(id);
         let inputs = node.inputs();
         if inputs.is_empty() {
+            cache.pop();
             return false;
         }
         for from in &inputs {
@@ -831,6 +836,7 @@ impl MaterialGraph {
                 return true;
             }
         }
+        cache.pop();
         false
     }
 

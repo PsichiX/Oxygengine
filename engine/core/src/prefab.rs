@@ -4,8 +4,9 @@ use crate::{
     ecs::{
         components::{Name, NonPersistent, NonPersistentPrefabProxy, Tag},
         hierarchy::{Parent, ParentPrefabProxy},
+        life_cycle::EntityChanges,
         pipeline::{PipelineBuilder, PipelineBuilderError},
-        Universe, WorldMut,
+        Universe,
     },
     state::StateToken,
 };
@@ -98,8 +99,6 @@ pub trait PrefabComponent: Prefab + Component {}
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct PrefabScene {
-    #[serde(default)]
-    pub autoload: bool,
     #[serde(default)]
     pub template_name: Option<String>,
     #[serde(default)]
@@ -208,25 +207,26 @@ impl PrefabManager {
         name: &str,
         universe: &mut Universe,
     ) -> Result<Vec<Entity>, PrefabError> {
-        let state_token = match universe.resource::<AppLifeCycle>() {
-            Some(lifecycle) => lifecycle.current_state_token(),
-            None => {
-                return Err(PrefabError::Custom(
-                    "Universe does not have AppLifeCycle resource!".to_owned(),
-                ))
-            }
-        };
-        self.instantiate_direct(name, &mut universe.world_mut(), state_token)
+        let state_token = universe
+            .expect_resource::<AppLifeCycle>()
+            .current_state_token();
+        self.instantiate_direct(
+            name,
+            &mut universe.world_mut(),
+            &mut universe.expect_resource_mut::<EntityChanges>(),
+            state_token,
+        )
     }
 
     pub fn instantiate_direct(
         &mut self,
         name: &str,
         world: &mut World,
+        changes: &mut EntityChanges,
         state_token: StateToken,
     ) -> Result<Vec<Entity>, PrefabError> {
         Ok(self
-            .build_template(name, world, state_token, &Default::default())?
+            .build_template(name, world, changes, state_token, &Default::default())?
             .0)
     }
 
@@ -235,25 +235,26 @@ impl PrefabManager {
         prefab: &PrefabScene,
         universe: &mut Universe,
     ) -> Result<Vec<Entity>, PrefabError> {
-        let state_token = match universe.resource::<AppLifeCycle>() {
-            Some(lifecycle) => lifecycle.current_state_token(),
-            None => {
-                return Err(PrefabError::Custom(
-                    "Universe does not have AppLifeCycle resource!".to_owned(),
-                ))
-            }
-        };
-        self.load_scene_from_prefab_direct(prefab, &mut universe.world_mut(), state_token)
+        let state_token = universe
+            .expect_resource::<AppLifeCycle>()
+            .current_state_token();
+        self.load_scene_from_prefab_direct(
+            prefab,
+            &mut universe.world_mut(),
+            &mut universe.expect_resource_mut::<EntityChanges>(),
+            state_token,
+        )
     }
 
     pub fn load_scene_from_prefab_direct(
         &mut self,
         prefab: &PrefabScene,
         world: &mut World,
+        changes: &mut EntityChanges,
         state_token: StateToken,
     ) -> Result<Vec<Entity>, PrefabError> {
         Ok(self
-            .load_scene_from_prefab_inner(prefab, world, state_token, &Default::default())?
+            .load_scene_from_prefab_inner(prefab, world, changes, state_token, &Default::default())?
             .0)
     }
 
@@ -261,6 +262,7 @@ impl PrefabManager {
         &mut self,
         prefab: &PrefabScene,
         world: &mut World,
+        changes: &mut EntityChanges,
         state_token: StateToken,
         named_entities: &HashMap<String, Entity>,
     ) -> Result<(Vec<Entity>, HashMap<String, Entity>), PrefabError> {
@@ -269,8 +271,13 @@ impl PrefabManager {
         for entity_meta in &prefab.entities {
             match entity_meta {
                 PrefabSceneEntity::Data(data) => {
-                    let entity =
-                        self.build_entity(&data.components, world, state_token, &named_entities)?;
+                    let entity = self.build_entity(
+                        &data.components,
+                        world,
+                        changes,
+                        state_token,
+                        &named_entities,
+                    )?;
                     if let Some(uid) = &data.uid {
                         named_entities.insert(uid.to_owned(), entity);
                     }
@@ -278,7 +285,7 @@ impl PrefabManager {
                 }
                 PrefabSceneEntity::Template(name) => {
                     let (entities, uids) =
-                        self.build_template(name, world, state_token, &named_entities)?;
+                        self.build_template(name, world, changes, state_token, &named_entities)?;
                     for (uid, entity) in uids {
                         named_entities.insert(uid.to_owned(), entity);
                     }
@@ -293,6 +300,7 @@ impl PrefabManager {
         &mut self,
         components: &HashMap<String, PrefabValue>,
         world: &mut World,
+        changes: &mut EntityChanges,
         state_token: StateToken,
         named_entities: &HashMap<String, Entity>,
     ) -> Result<Entity, PrefabError> {
@@ -312,18 +320,25 @@ impl PrefabManager {
                 )));
             }
         }
-        Ok(world.spawn(entity_builder.build()))
+        let entity = world.reserve_entity();
+        let components = entity_builder.build();
+        world.spawn_at(entity, components);
+        changes.spawned.insert(entity);
+        let components = changes.added_components.entry(entity).or_default();
+        components.extend(entity_builder.component_types());
+        Ok(entity)
     }
 
     fn build_template(
         &mut self,
         name: &str,
         world: &mut World,
+        changes: &mut EntityChanges,
         state_token: StateToken,
         named_entities: &HashMap<String, Entity>,
     ) -> Result<(Vec<Entity>, HashMap<String, Entity>), PrefabError> {
         if let Some(prefab) = self.templates.get(name).cloned() {
-            self.load_scene_from_prefab_inner(&prefab, world, state_token, named_entities)
+            self.load_scene_from_prefab_inner(&prefab, world, changes, state_token, named_entities)
         } else {
             Err(PrefabError::Custom(format!(
                 "There is no template registered: {}",
@@ -338,16 +353,13 @@ pub struct PrefabSystemCache {
     templates_table: HashMap<AssetId, String>,
 }
 pub type PrefabSystemResources<'a> = (
-    WorldMut,
-    &'a AppLifeCycle,
     &'a AssetsDatabase,
     &'a mut PrefabManager,
     &'a mut PrefabSystemCache,
 );
 
 pub fn prefab_system(universe: &mut Universe) {
-    let (mut world, lifecycle, assets, mut prefabs, mut cache) =
-        universe.query_resources::<PrefabSystemResources>();
+    let (assets, mut prefabs, mut cache) = universe.query_resources::<PrefabSystemResources>();
 
     for id in assets.lately_loaded_protocol("prefab") {
         let id = *id;
@@ -361,13 +373,6 @@ pub fn prefab_system(universe: &mut Universe) {
             if prefabs.register_scene_template(asset.get().clone()).is_ok() {
                 cache.templates_table.insert(id, name.to_owned());
             }
-        }
-        if asset.get().autoload {
-            let _ = prefabs.load_scene_from_prefab_direct(
-                asset.get(),
-                &mut world,
-                lifecycle.current_state_token(),
-            );
         }
     }
     for id in assets.lately_unloaded_protocol("prefab") {

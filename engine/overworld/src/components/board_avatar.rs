@@ -46,6 +46,8 @@ impl BoardAvatarAction {
 pub struct BoardAvatar {
     pub(crate) location: Location,
     #[serde(default)]
+    pub(crate) direction: Option<BoardDirection>,
+    #[serde(default)]
     pub(crate) actions_queue: VecDeque<BoardAvatarAction>,
     /// (action, time, completed)?
     #[serde(skip)]
@@ -67,6 +69,10 @@ impl BoardAvatar {
 
     pub fn location(&self) -> Location {
         self.location
+    }
+
+    pub fn direction(&self) -> Option<BoardDirection> {
+        self.direction
     }
 
     pub fn actions_queue(&self) -> impl Iterator<Item = BoardAvatarAction> + '_ {
