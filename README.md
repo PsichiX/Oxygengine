@@ -23,7 +23,8 @@ possible. More about `hecs` and ECS here: https://github.com/Ralith/hecs
 
 ## Teaser
 ![Visual Novel](https://raw.githubusercontent.com/PsichiX/Oxygengine/master/media/oxygengine-visual-novel-teaser.gif)
-![RPG](https://raw.githubusercontent.com/PsichiX/Oxygengine/master/media/oxygengine-raui-navigation.gif)
+![RPG](https://raw.githubusercontent.com/PsichiX/Oxygengine/master/media/oxygengine-overworld.gif)
+![RAUI](https://raw.githubusercontent.com/PsichiX/Oxygengine/master/media/oxygengine-raui-navigation.gif)
 
 ## Roadmap
 Current milestone progress: https://github.com/PsichiX/Oxygengine/projects/1
