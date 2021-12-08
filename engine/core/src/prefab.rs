@@ -210,12 +210,9 @@ impl PrefabManager {
         let state_token = universe
             .expect_resource::<AppLifeCycle>()
             .current_state_token();
-        self.instantiate_direct(
-            name,
-            &mut universe.world_mut(),
-            &mut universe.expect_resource_mut::<EntityChanges>(),
-            state_token,
-        )
+        let mut world = universe.world_mut();
+        let mut changes = universe.expect_resource_mut::<EntityChanges>();
+        self.instantiate_direct(name, &mut world, &mut changes, state_token)
     }
 
     pub fn instantiate_direct(

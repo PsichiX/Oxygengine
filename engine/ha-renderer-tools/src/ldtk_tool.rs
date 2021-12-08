@@ -453,6 +453,9 @@ fn bake_project(
 
                     let mut entity_data = PrefabSceneEntityData::default();
                     for (name, content) in rules {
+                        if content.is_empty() {
+                            continue;
+                        }
                         if let Some(value) = entity_field_value(name, entity, entity_def) {
                             let lines = value.as_str().unwrap_or_else(|| {
                                 panic!(
@@ -481,7 +484,8 @@ fn bake_project(
                             let components = ComponentsPrefab::from_prefab_str(&components)
                                 .unwrap_or_else(|_| {
                                     panic!(
-                                    "Could not deserialize components map string for entity: {}",
+                                    "Could not deserialize {} macro components map string for entity: {}",
+                                    name,
                                     entity.identifier
                                 )
                                 });

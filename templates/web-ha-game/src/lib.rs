@@ -152,43 +152,59 @@ fn make_inputs() -> impl FnMut(&mut InputController) {
 }
 
 fn make_renderer() -> Result<HaRendererBundleSetup, JsValue> {
-    Ok(HaRendererBundleSetup::new(
-        HaRenderer::new(WebPlatformInterface::with_canvas_id(
-            "screen",
-            WebContextOptions::default(),
-        )?)
-        .with_stage::<RenderForwardStage>("forward")
-        .with_stage::<RenderGizmoStage>("gizmos")
-        .with_stage::<RenderUiStage>("ui")
-        .with_pipeline(
-            "default",
-            PipelineDescriptor::default()
-                .render_target("main", RenderTargetDescriptor::Main)
-                .stage(
-                    StageDescriptor::new("forward")
-                        .render_target("main")
-                        .domain("@material/domain/surface/flat")
-                        .clear_settings(ClearSettings {
-                            color: Some(Rgba::gray(0.2)),
-                            depth: false,
-                            stencil: false,
-                        }),
-                )
-                .stage(
-                    StageDescriptor::new("gizmos")
-                        .render_target("main")
-                        .domain("@material/domain/gizmo"),
-                )
-                .stage(
-                    StageDescriptor::new("ui")
-                        .render_target("main")
-                        .domain("@material/domain/surface/flat"),
-                ),
-        ),
+    let mut renderer = HaRenderer::new(WebPlatformInterface::with_canvas_id(
+        "screen",
+        WebContextOptions::default(),
+    )?)
+    .with_stage::<RenderForwardStage>("forward")
+    .with_stage::<RenderPostProcessStage>("postprocess")
+    .with_stage::<RenderGizmoStage>("gizmos")
+    .with_stage::<RenderUiStage>("ui")
+    .with_pipeline(
+        "default",
+        PipelineDescriptor::default()
+            .render_target("main", RenderTargetDescriptor::Main)
+            // .render_target(
+            //     "buffer",
+            //     RenderTargetDescriptor::simple("finalColor")
+            //         .map_err(|error| JsValue::from(format!("{:?}", error)))?,
+            // )
+            .stage(
+                StageDescriptor::new("forward")
+                    // .render_target("buffer")
+                    .render_target("main")
+                    .domain("@material/domain/surface/flat")
+                    .clear_settings(ClearSettings {
+                        color: Some(Rgba::gray(0.2)),
+                        depth: false,
+                        stencil: false,
+                    }),
+            )
+            // .stage(
+            //     StageDescriptor::new("postprocess")
+            //         .render_target("main")
+            //         .domain("@material/domain/screenspace"),
+            // )
+            .debug_stage(
+                StageDescriptor::new("gizmos")
+                    .render_target("main")
+                    .domain("@material/domain/gizmo"),
+            )
+            .stage(
+                StageDescriptor::new("ui")
+                    .render_target("main")
+                    .domain("@material/domain/surface/flat"),
+            ),
+    );
+
+    #[cfg(debug_assertions)]
+    renderer.set_error_reporter(LoggerHaRendererErrorReporter);
+
+    Ok(
+        HaRendererBundleSetup::new(renderer).with_gizmos(Gizmos::new(HaMaterialInstance::new(
+            MaterialInstanceReference::Asset("@material/graph/gizmo/color".to_owned()),
+        ))),
     )
-    .with_gizmos(Gizmos::new(HaMaterialInstance::new(
-        MaterialInstanceReference::Asset("@material/graph/gizmo/color".to_owned()),
-    ))))
 }
 
 fn make_ui() -> UserInterface {

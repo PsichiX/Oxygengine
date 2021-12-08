@@ -1,5 +1,6 @@
 pub mod circle;
 pub mod grid;
+pub mod immediate;
 pub mod quad;
 pub mod text;
 pub mod tilemap;

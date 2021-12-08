@@ -26,7 +26,7 @@ pub type HaRenderGizmoStageSystemResources<'a> = (
     &'a MaterialResourceMapping,
     &'a ImageResourceMapping,
     &'a mut HaRenderGizmoStageSystemCache,
-    Comp<&'a HaCamera>,
+    Comp<&'a mut HaCamera>,
     Comp<&'a HaVisibility>,
     Comp<&'a HaTransform>,
 );

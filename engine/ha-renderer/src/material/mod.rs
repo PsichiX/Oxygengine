@@ -8,6 +8,7 @@ use crate::{
         common::{BakedMaterialShaders, MaterialSignature, MaterialValue, MaterialValueType},
         graph::{node::MaterialGraphNodeId, MaterialGraph},
     },
+    render_target::RenderTargetError,
     resources::resource_mapping::ResourceMapping,
     HasContextResources, ResourceInstanceReference,
 };
@@ -76,6 +77,7 @@ pub enum MaterialError {
     CouldNotBuildSubgraphForSignature(MaterialSignature),
     SubgraphInputsDoesNotMatchSignature(HashSet<String>, MaterialSignature),
     Baking(MaterialGraph, Box<MaterialError>),
+    CouldNotCreateRenderTarget(RenderTargetError),
 }
 
 pub type MaterialInstanceReference = ResourceInstanceReference<MaterialId>;

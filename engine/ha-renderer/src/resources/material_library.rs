@@ -930,7 +930,10 @@ impl MaterialLibrary {
         graph: &MaterialGraph,
     ) -> Result<Option<BakedMaterialShaders>, MaterialError> {
         let render_target = match render_target {
-            RenderTargetDescriptor::Main => RenderTarget::main(),
+            RenderTargetDescriptor::Main => match RenderTarget::main() {
+                Ok(render_target) => render_target,
+                Err(error) => return Err(MaterialError::CouldNotCreateRenderTarget(error)),
+            },
             RenderTargetDescriptor::Custom {
                 buffers,
                 width,

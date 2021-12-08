@@ -26,7 +26,7 @@ pub mod prelude {
         builtin_material_function, builtin_material_functions, code_material_function,
         code_material_functions,
         components::{
-            camera::*, gizmo::*, material_instance::*, mesh_instance::*,
+            camera::*, gizmo::*, material_instance::*, mesh_instance::*, postprocess::*,
             sprite_animation_instance::*, text_instance::*, tilemap_instance::*, transform::*,
             virtual_image_uniforms::*, visibility::*, *,
         },
@@ -38,7 +38,10 @@ pub mod prelude {
             domains::{
                 gizmo::*,
                 screenspace::*,
-                surface::{circle::*, grid::*, quad::*, text::*, tilemap::*, triangles2d::*, *},
+                surface::{
+                    circle::*, grid::*, immediate::*, quad::*, text::*, tilemap::*, triangles2d::*,
+                    *,
+                },
                 *,
             },
             graph::{function::*, node::*, *},
@@ -54,9 +57,9 @@ pub mod prelude {
         resources::{camera_cache::*, gizmos::*, material_library::*, resource_mapping::*, *},
         systems::{
             apply_sprite_animation_to_material::*, atlas::*, camera_cache::*, font::*,
-            mesh_bounds_gizmo::*, render_forward_stage::*, render_gizmo_stage::*, renderer::*,
-            sprite_animation::*, tilemap::*, transform::*, virtual_image_uniforms::*,
-            volume_visibility::*, *,
+            mesh_bounds_gizmo::*, render_forward_stage::*, render_gizmo_stage::*,
+            render_postprocess_stage::*, renderer::*, sprite_animation::*, tilemap::*,
+            transform::*, virtual_image_uniforms::*, volume_visibility::*, *,
         },
         Error, HaRendererBundleSetup, HasContextResources, ResourceInstanceReference, Resources,
         StringBuffer, TagFilters,
@@ -81,6 +84,7 @@ use crate::{
         gizmo::HaGizmo,
         material_instance::HaMaterialInstance,
         mesh_instance::HaMeshInstance,
+        postprocess::HaPostProcess,
         sprite_animation_instance::HaSpriteAnimationInstance,
         text_instance::HaTextInstance,
         tilemap_instance::HaTileMapInstance,
@@ -127,6 +131,10 @@ use crate::{
         render_gizmo_stage::{
             ha_render_gizmo_stage_system, HaRenderGizmoStageSystemCache,
             HaRenderGizmoStageSystemResources,
+        },
+        render_postprocess_stage::{
+            ha_render_postprocess_stage_system, HaRenderPostProcessStageSystemCache,
+            HaRenderPostProcessStageSystemResources,
         },
         renderer::{
             ha_renderer_execution_system, ha_renderer_maintenance_system,
@@ -344,6 +352,7 @@ pub enum Error {
     Mesh(MeshId, MeshError),
     Image(ImageId, ImageError),
     Material(MaterialId, MaterialError),
+    Custom(String),
 }
 
 #[derive(Ignite, Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -393,18 +402,18 @@ impl TagFilters {
         self
     }
 
-    pub fn exclude_range(mut self, tags: impl Iterator<Item = impl ToString>) -> Self {
-        for tag in tags {
-            self = self.exclude(tag.to_string());
-        }
-        self
-    }
-
     pub fn exclude(mut self, tag: impl ToString) -> Self {
         if self.inclusive {
             self.tags.remove(&tag.to_string());
         } else {
             self.tags.insert(tag.to_string());
+        }
+        self
+    }
+
+    pub fn exclude_range(mut self, tags: impl Iterator<Item = impl ToString>) -> Self {
+        for tag in tags {
+            self = self.exclude(tag.to_string());
         }
         self
     }
@@ -507,6 +516,7 @@ where
     builder.install_resource(HaSpriteAnimationSystemCache::default());
     builder.install_resource(HaVolumeVisibilitySystemCache::default());
     builder.install_resource(HaRenderGizmoStageSystemCache::default());
+    builder.install_resource(HaRenderPostProcessStageSystemCache::default());
     builder.install_resource(MaterialLibrary::default());
     builder.install_resource(ImageResourceMapping::default());
     builder.install_resource(MeshResourceMapping::default());
@@ -544,6 +554,11 @@ where
     builder.install_system::<HaRenderForwardStageSystemResources>(
         "renderer-forward-stage",
         ha_render_forward_stage_system,
+        &[],
+    )?;
+    builder.install_system::<HaRenderPostProcessStageSystemResources>(
+        "renderer-postprocess-stage",
+        ha_render_postprocess_stage_system,
         &[],
     )?;
     builder.install_system::<HaRenderGizmoStageSystemResources>(
@@ -777,4 +792,5 @@ pub fn prefabs_installer(prefabs: &mut PrefabManager) {
     prefabs.register_component_factory::<HaVolume>("HaVolume");
     prefabs.register_component_factory::<HaVolumeVisibility>("HaVolumeVisibility");
     prefabs.register_component_factory::<HaGizmo>("HaGizmo");
+    prefabs.register_component_factory::<HaPostProcess>("HaPostProcess");
 }

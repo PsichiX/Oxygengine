@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-user-interface"
-version = "0.24.0"
+version = "0.25.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "User Interface module for Oxygengine"
@@ -27,8 +27,8 @@ scalar64 = [
 ]
 
 [dependencies]
-oxygengine-core = { version = "0.24", path = "../core" }
-oxygengine-input = { version = "0.24", path = "../input" }
+oxygengine-core = { version = "0.25", path = "../core" }
+oxygengine-input = { version = "0.25", path = "../input" }
 raui-core = "0.38"
 raui-material = "0.38"
 serde = { version = "1", features = ["derive"] }

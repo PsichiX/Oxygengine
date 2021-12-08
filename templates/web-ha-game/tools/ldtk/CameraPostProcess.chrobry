@@ -1,0 +1,11 @@
+inject
+```
+HaPostProcess:
+  stages:
+    - reference:
+        Asset: "@material/graph/screenspace/texture"
+      values:
+        mainImage:
+          Sampler2D:
+            VirtualAsset: "@render-target/%{ $NAME }%/buffer/finalColor"
+```

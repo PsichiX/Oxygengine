@@ -1045,6 +1045,9 @@ impl MaterialGraph {
         output: &mut StringBuffer,
         symbols: &mut HashMap<MaterialGraphNodeId, String>,
     ) -> std::io::Result<()> {
+        if symbols.contains_key(&id) {
+            return Ok(());
+        }
         match node {
             MaterialGraphNode::Value(node) => {
                 let count = symbols.len();

@@ -258,11 +258,15 @@ impl Universe {
     }
 
     pub fn world(&self) -> Ref<World> {
-        self.world.borrow()
+        self.world
+            .try_borrow()
+            .unwrap_or_else(|error| panic!("{}: {}", std::any::type_name::<World>(), error))
     }
 
     pub fn world_mut(&self) -> RefMut<World> {
-        self.world.borrow_mut()
+        self.world
+            .try_borrow_mut()
+            .unwrap_or_else(|error| panic!("{}: {}", std::any::type_name::<World>(), error))
     }
 
     pub fn try_world(&self) -> Option<Ref<World>> {
@@ -315,7 +319,11 @@ impl Universe {
     {
         if let Some(res) = self.resources.get(&TypeId::of::<T>()) {
             return Some(ResRead {
-                inner: unsafe { std::mem::transmute(res.borrow()) },
+                inner: unsafe {
+                    std::mem::transmute(res.try_borrow().unwrap_or_else(|error| {
+                        panic!("{}: {}", std::any::type_name::<T>(), error)
+                    }))
+                },
                 _phantom: PhantomData::default(),
             });
         }
@@ -328,7 +336,11 @@ impl Universe {
     {
         if let Some(res) = self.resources.get(&TypeId::of::<T>()) {
             return Some(ResWrite {
-                inner: unsafe { std::mem::transmute(res.borrow_mut()) },
+                inner: unsafe {
+                    std::mem::transmute(res.try_borrow_mut().unwrap_or_else(|error| {
+                        panic!("{}: {}", std::any::type_name::<T>(), error)
+                    }))
+                },
                 _phantom: PhantomData::default(),
             });
         }
@@ -429,6 +441,7 @@ impl Universe {
                 let mut lifecycle = self.expect_resource_mut::<AppLifeCycle>();
                 lifecycle.states_tokens.pop();
                 lifecycle.states_tokens.push(StateToken::new());
+                drop(lifecycle);
                 state.on_enter(self);
                 states.push(state);
             }

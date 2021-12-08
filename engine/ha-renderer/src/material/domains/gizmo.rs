@@ -79,7 +79,7 @@ vertex_type! {
     #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
     pub struct GizmoVertex {
         #[serde(default = "default_position")]
-        pub position: vec3 = position(0),
+        pub position: vec3 = position(0, bounds),
         #[serde(default)]
         pub phase: float = phase(0),
         #[serde(default = "default_color")]
@@ -89,16 +89,10 @@ vertex_type! {
 
 impl GizmoDomain for GizmoVertex {}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct GizmoFactory {
     vertices: Vec<GizmoVertex>,
     indices: Vec<u32>,
-}
-
-impl Default for GizmoFactory {
-    fn default() -> Self {
-        Self::with_capacity(0, 0)
-    }
 }
 
 impl GizmoFactory {

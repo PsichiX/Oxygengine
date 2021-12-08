@@ -16,7 +16,7 @@ const PROJECTION_MATRIX_NAME: &str = "projection";
 pub type HaRenderForwardStageSystemResources<'a> = (
     WorldRef,
     &'a HaRenderer,
-    Comp<&'a HaCamera>,
+    Comp<&'a mut HaCamera>,
     Comp<&'a Tag>,
     Comp<&'a HaVisibility>,
     Comp<&'a HaTransform>,

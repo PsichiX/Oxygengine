@@ -37,6 +37,19 @@ impl PipelineDescriptor {
         self
     }
 
+    #[allow(unused_mut)]
+    #[allow(unused_variables)]
+    pub fn debug_stage(mut self, data: StageDescriptor) -> Self {
+        #[cfg(debug_assertions)]
+        {
+            self.stage(data)
+        }
+        #[cfg(not(debug_assertions))]
+        {
+            self
+        }
+    }
+
     pub fn render_target(mut self, name: impl ToString, data: RenderTargetDescriptor) -> Self {
         self.render_targets.insert(name.to_string(), data);
         self

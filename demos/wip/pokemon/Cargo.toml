@@ -21,6 +21,6 @@ rand = "0.8"
 getrandom = { version = "0.2", features = ["js"] }
 
 [dependencies.oxygengine]
-version = "0.24"
+version = "0.25"
 features = ["web-composite-game"]
 path = "../../engine/_"

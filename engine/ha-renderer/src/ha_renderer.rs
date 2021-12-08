@@ -18,6 +18,23 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+pub trait HaRendererErrorReporter: Send + Sync {
+    fn on_report(&self, error: Error);
+}
+
+impl HaRendererErrorReporter for () {
+    fn on_report(&self, _: Error) {}
+}
+
+#[derive(Debug, Default, Copy, Clone)]
+pub struct LoggerHaRendererErrorReporter;
+
+impl HaRendererErrorReporter for LoggerHaRendererErrorReporter {
+    fn on_report(&self, error: Error) {
+        oxygengine_core::error!("HA Renderer error: {:#?}", error);
+    }
+}
+
 #[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub enum PipelineSource {
     Registry(String),
@@ -93,9 +110,14 @@ impl<'a> RenderStageResources<'a> {
                                 }
                             }
                         }
-                        VirtualImageSource::RenderTarget(id, name) => {
+                        VirtualImageSource::RenderTargetDepthStencil(id) => {
                             if let Some(render_target) = self.render_targets.get(*id) {
-                                return render_target.buffer_handle(name);
+                                return render_target.depth_stencil_texture_handle();
+                            }
+                        }
+                        VirtualImageSource::RenderTargetColor(id, name) => {
+                            if let Some(render_target) = self.render_targets.get(*id) {
+                                return render_target.color_texture_handle(name);
                             }
                         }
                     }
@@ -206,8 +228,8 @@ pub struct HaRenderer {
     cached_signatures: HashSet<MaterialSignature>,
     dirty_signatures: bool,
     added_materials: HashSet<MaterialId>,
-    pub(crate) errors_cache: Vec<Error>,
     pub(crate) stats_cache: RenderStats,
+    pub(crate) error_reporter: Box<dyn HaRendererErrorReporter>,
 }
 
 impl std::fmt::Debug for HaRenderer {
@@ -225,7 +247,6 @@ impl std::fmt::Debug for HaRenderer {
             .field("cached_signatures", &self.cached_signatures)
             .field("dirty_signatures", &self.dirty_signatures)
             .field("added_materials", &self.added_materials)
-            .field("errors_cache", &self.errors_cache)
             .field("stats_cache", &self.stats_cache)
             .finish()
     }
@@ -254,8 +275,8 @@ impl HaRenderer {
             cached_signatures: Default::default(),
             dirty_signatures: true,
             added_materials: Default::default(),
-            errors_cache: Vec::with_capacity(1024),
             stats_cache: Default::default(),
+            error_reporter: Box::new(()),
         }
     }
 
@@ -428,7 +449,10 @@ impl HaRenderer {
         let mut render_targets = HashMap::with_capacity(data.render_targets.len());
         for (key, data) in data.render_targets {
             let render_target = match &data {
-                RenderTargetDescriptor::Main => RenderTarget::main(),
+                RenderTargetDescriptor::Main => match RenderTarget::main() {
+                    Ok(render_target) => render_target,
+                    Err(error) => return Err(PipelineError::CouldNotCreateRenderTarget(error)),
+                },
                 RenderTargetDescriptor::Custom {
                     buffers,
                     width,
@@ -577,8 +601,22 @@ impl HaRenderer {
         Ok(())
     }
 
-    pub fn cached_errors(&self) -> &[Error] {
-        &self.errors_cache
+    #[inline]
+    pub fn error_reporter(&self) -> &dyn HaRendererErrorReporter {
+        &*self.error_reporter
+    }
+
+    #[inline]
+    pub fn set_error_reporter<R>(&mut self, error_reporter: R)
+    where
+        R: HaRendererErrorReporter + 'static,
+    {
+        self.error_reporter = Box::new(error_reporter);
+    }
+
+    #[inline]
+    pub fn report_error(&self, error: impl Into<Error>) {
+        self.error_reporter.on_report(error.into());
     }
 
     pub(crate) fn maintain_platform_interface(&mut self) {
@@ -586,44 +624,46 @@ impl HaRenderer {
         if let Some(ref context) = result.context_lost {
             for (id, render_target) in self.render_targets.iter_mut() {
                 if let Err(error) = render_target.context_release(context) {
-                    self.errors_cache.push(Error::RenderTarget(id, error));
+                    self.error_reporter
+                        .on_report(Error::RenderTarget(id, error));
                 }
             }
             for (id, mesh) in self.meshes.iter_mut() {
                 if let Err(error) = mesh.context_release(context) {
-                    self.errors_cache.push(Error::Mesh(id, error));
+                    self.error_reporter.on_report(Error::Mesh(id, error));
                 }
             }
             for (id, image) in self.images.iter_mut() {
                 if let Err(error) = image.context_release(context) {
-                    self.errors_cache.push(Error::Image(id, error));
+                    self.error_reporter.on_report(Error::Image(id, error));
                 }
             }
             for (id, material) in self.materials.iter_mut() {
                 if let Err(error) = material.context_release(context) {
-                    self.errors_cache.push(Error::Material(id, error));
+                    self.error_reporter.on_report(Error::Material(id, error));
                 }
             }
         }
         if let Some(context) = result.context_acquired {
             for (id, render_target) in self.render_targets.iter_mut() {
                 if let Err(error) = render_target.context_initialize(context) {
-                    self.errors_cache.push(Error::RenderTarget(id, error));
+                    self.error_reporter
+                        .on_report(Error::RenderTarget(id, error));
                 }
             }
             for (id, mesh) in self.meshes.iter_mut() {
                 if let Err(error) = mesh.context_initialize(context) {
-                    self.errors_cache.push(Error::Mesh(id, error));
+                    self.error_reporter.on_report(Error::Mesh(id, error));
                 }
             }
             for (id, image) in self.images.iter_mut() {
                 if let Err(error) = image.context_initialize(context) {
-                    self.errors_cache.push(Error::Image(id, error));
+                    self.error_reporter.on_report(Error::Image(id, error));
                 }
             }
             for (id, material) in self.materials.iter_mut() {
                 if let Err(error) = material.context_initialize(context) {
-                    self.errors_cache.push(Error::Material(id, error));
+                    self.error_reporter.on_report(Error::Material(id, error));
                 }
             }
         }
@@ -631,7 +671,8 @@ impl HaRenderer {
             if let Some(context) = self.platform_interface.context() {
                 for (id, render_target) in self.render_targets.iter_mut() {
                     if let Err(error) = render_target.screen_resize(context, width, height) {
-                        self.errors_cache.push(Error::RenderTarget(id, error));
+                        self.error_reporter
+                            .on_report(Error::RenderTarget(id, error));
                     }
                 }
             }
@@ -646,7 +687,8 @@ impl HaRenderer {
         let (width, height) = self.platform_interface.screen_size();
         for (id, render_target) in self.render_targets.iter_mut() {
             if let Err(error) = render_target.screen_resize(context, width, height) {
-                self.errors_cache.push(Error::RenderTarget(id, error));
+                self.error_reporter
+                    .on_report(Error::RenderTarget(id, error));
             }
         }
     }
@@ -658,7 +700,7 @@ impl HaRenderer {
         };
         for (id, mesh) in self.meshes.iter_mut() {
             if let Err(error) = mesh.maintain(context) {
-                self.errors_cache.push(Error::Mesh(id, error));
+                self.error_reporter.on_report(Error::Mesh(id, error));
             }
         }
     }
@@ -705,7 +747,7 @@ impl HaRenderer {
                     if material.graph().is_some() {
                         for signature in &removed {
                             if let Err(error) = material.remove_version(context, signature) {
-                                self.errors_cache.push(Error::Material(id, error));
+                                self.error_reporter.on_report(Error::Material(id, error));
                             }
                         }
                         for signature in &added {
@@ -719,7 +761,7 @@ impl HaRenderer {
                                 if let Err(error) =
                                     material.add_version(context, (*signature).to_owned(), baked)
                                 {
-                                    self.errors_cache.push(Error::Material(id, error));
+                                    self.error_reporter.on_report(Error::Material(id, error));
                                 }
                             }
                         }
@@ -729,7 +771,7 @@ impl HaRenderer {
                 for (id, material) in self.materials.iter_mut() {
                     for signature in &old {
                         if let Err(error) = material.remove_version(context, signature) {
-                            self.errors_cache.push(Error::Material(id, error));
+                            self.error_reporter.on_report(Error::Material(id, error));
                         }
                     }
                 }
@@ -749,7 +791,7 @@ impl HaRenderer {
                             if let Err(error) =
                                 material.add_version(context, (*signature).to_owned(), baked)
                             {
-                                self.errors_cache.push(Error::Material(id, error));
+                                self.error_reporter.on_report(Error::Material(id, error));
                             }
                         }
                     }

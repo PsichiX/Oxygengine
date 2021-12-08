@@ -39,9 +39,9 @@ pub struct TargetBuffer {
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TargetBuffers {
     #[serde(default)]
-    depth_stencil: Option<String>,
+    pub(crate) depth_stencil: Option<String>,
     #[serde(default)]
-    colors: Vec<TargetBuffer>,
+    pub(crate) colors: Vec<TargetBuffer>,
 }
 
 impl TargetBuffers {
@@ -220,6 +220,37 @@ impl Default for RenderTargetDescriptor {
     }
 }
 
+impl RenderTargetDescriptor {
+    pub fn simple(color_name: impl ToString) -> Result<Self, RenderTargetError> {
+        Ok(Self::Custom {
+            buffers: TargetBuffers::default().with_color(TargetBuffer {
+                id: color_name.to_string(),
+                value_type: TargetValueType::Color,
+                mipmap: false,
+            })?,
+            width: RenderTargetSizeValue::default(),
+            height: RenderTargetSizeValue::default(),
+        })
+    }
+
+    pub fn simple_with_depth_stencil(
+        color_name: impl ToString,
+        depth_stencil_name: impl ToString,
+    ) -> Result<Self, RenderTargetError> {
+        Ok(Self::Custom {
+            buffers: TargetBuffers::default()
+                .with_depth_stencil(depth_stencil_name.to_string())?
+                .with_color(TargetBuffer {
+                    id: color_name.to_string(),
+                    value_type: TargetValueType::Color,
+                    mipmap: false,
+                })?,
+            width: RenderTargetSizeValue::default(),
+            height: RenderTargetSizeValue::default(),
+        })
+    }
+}
+
 #[derive(Debug)]
 pub struct RenderTargetResources {
     pub buffer_handle: <Context as HasContext>::Framebuffer,
@@ -315,6 +346,7 @@ impl HasContextResources<Context> for RenderTarget {
                 context.tex_parameter_i32(TEXTURE_2D, TEXTURE_MAG_FILTER, NEAREST as _);
                 context.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_S, CLAMP_TO_EDGE as _);
                 context.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_T, CLAMP_TO_EDGE as _);
+                context.bind_texture(TEXTURE_2D, None);
             }
 
             for (handle, buffer) in color_handles.iter().zip(self.buffers.colors.iter()) {
@@ -351,6 +383,7 @@ impl HasContextResources<Context> for RenderTarget {
                 context.tex_parameter_i32(TEXTURE_2D, TEXTURE_MAG_FILTER, NEAREST as _);
                 context.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_S, CLAMP_TO_EDGE as _);
                 context.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_T, CLAMP_TO_EDGE as _);
+                context.bind_texture(TEXTURE_2D, None);
             }
 
             context.bind_framebuffer(FRAMEBUFFER, Some(buffer_handle));
@@ -417,24 +450,22 @@ impl RenderTarget {
         }
     }
 
-    pub fn main() -> Self {
-        Self {
+    pub fn main() -> Result<Self, RenderTargetError> {
+        Ok(Self {
             buffers: TargetBuffers::default()
-                .with_depth_stencil("finalDepthStencil".to_owned())
-                .unwrap()
+                .with_depth_stencil("finalDepthStencil".to_owned())?
                 .with_color(TargetBuffer {
                     id: "finalColor".to_owned(),
                     value_type: TargetValueType::Color,
                     mipmap: false,
-                })
-                .unwrap(),
+                })?,
             cached_width: 0,
             cached_height: 0,
             preferred_width: RenderTargetSizeValue::default(),
             preferred_height: RenderTargetSizeValue::default(),
             backbuffer: true,
             resources: None,
-        }
+        })
     }
 
     pub fn detailed_info(&self) -> RenderTargetDetailedInfo {
@@ -468,16 +499,23 @@ impl RenderTarget {
         self.buffers.colors.iter().map(|buffer| buffer.id.as_str())
     }
 
-    pub(crate) fn buffer_handle(&self, name: &str) -> Option<<Context as HasContext>::Texture> {
-        if let Some(resources) = &self.resources {
+    pub(crate) fn depth_stencil_texture_handle(&self) -> Option<<Context as HasContext>::Texture> {
+        self.resources
+            .as_ref()
+            .and_then(|resources| resources.depth_stencil_handle)
+    }
+
+    pub(crate) fn color_texture_handle(
+        &self,
+        name: &str,
+    ) -> Option<<Context as HasContext>::Texture> {
+        self.resources.as_ref().and_then(|resources| {
             self.buffers
                 .colors
                 .iter()
                 .position(|buffer| buffer.id == name)
                 .map(|i| resources.color_handles[i])
-        } else {
-            None
-        }
+        })
     }
 
     pub(crate) fn screen_resize(
@@ -543,6 +581,9 @@ impl RenderTarget {
                         context.generate_mipmap(TEXTURE_2D);
                     }
                 }
+            }
+            unsafe {
+                context.bind_texture(TEXTURE_2D, None);
             }
         }
         Ok(())

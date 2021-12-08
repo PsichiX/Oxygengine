@@ -333,6 +333,12 @@ async fn main() -> Result<()> {
                         .help("Binaries output directory relative to crate directory")
                         .takes_value(true)
                         .required(false),
+                )
+                .arg(
+                    Arg::with_name("extras")
+                        .last(true)
+                        .allow_hyphen_values(true)
+                        .multiple(true)
                 ),
         )
         .subcommand(
@@ -356,6 +362,12 @@ async fn main() -> Result<()> {
                         .help("Project crate directory")
                         .takes_value(true)
                         .required(false),
+                )
+                .arg(
+                    Arg::with_name("extras")
+                        .last(true)
+                        .allow_hyphen_values(true)
+                        .multiple(true)
                 ),
         )
         .subcommand(
@@ -453,8 +465,9 @@ async fn main() -> Result<()> {
                         .default_value("./pipeline.json")
                 )
                 .arg(
-                    Arg::with_name("serve")
-                        .help("Arguments passed to serve subcommand")
+                    Arg::with_name("extras")
+                        .last(true)
+                        .allow_hyphen_values(true)
                         .multiple(true)
                 )
         )
@@ -711,7 +724,11 @@ async fn main() -> Result<()> {
         };
         let crate_dir = matches.value_of("crate_dir").map(|v| v.to_owned());
         let out_dir = matches.value_of("out_dir").map(|v| v.to_owned());
-        build_project(profile, crate_dir, out_dir, vec![])?;
+        let extras = matches
+            .values_of("extras")
+            .map(|iter| iter.map(|arg| arg.to_owned()).collect::<Vec<_>>())
+            .unwrap_or_default();
+        build_project(profile, crate_dir, out_dir, extras)?;
     } else if let Some(matches) = matches.subcommand_matches("test") {
         let profile = match matches.value_of("profile").unwrap() {
             "debug" => TestProfile::Debug,
@@ -724,7 +741,11 @@ async fn main() -> Result<()> {
             }
         };
         let crate_dir = matches.value_of("crate_dir").map(|v| v.to_owned());
-        test_project(profile, crate_dir, vec![])?;
+        let extras = matches
+            .values_of("extras")
+            .map(|iter| iter.map(|arg| arg.to_owned()).collect::<Vec<_>>())
+            .unwrap_or_default();
+        test_project(profile, crate_dir, extras)?;
     } else if let Some(matches) = matches.subcommand_matches("serve") {
         let port = matches
             .value_of("port")
@@ -750,7 +771,9 @@ async fn main() -> Result<()> {
             .unwrap_or_else(|| vec!["./assets"]);
         let crate_dir = matches.value_of("crate_dir").unwrap().to_owned();
         let pipeline = matches.value_of("pipeline").unwrap().to_owned();
-        let serve = matches.values_of("serve");
+        let extras = matches
+            .values_of("extras")
+            .map(|iter| iter.map(|arg| arg.to_owned()).collect::<Vec<_>>());
         let mut watcher = Hotwatch::new().expect("Could not start files watcher");
         let (build_sender, build_receiver) = channel();
         let (pipeline_sender, pipeline_receiver) = channel();
@@ -821,10 +844,10 @@ async fn main() -> Result<()> {
             }
         });
         let exe = current_exe().expect("Could not get path to the running executable");
-        if let Some(serve) = serve {
+        if let Some(extras) = extras {
             Command::new(exe)
                 .arg("serve")
-                .args(serve)
+                .args(extras)
                 .status()
                 .expect("Could not run HTTP server");
         }

@@ -24,9 +24,9 @@ pub struct HaTransform {
 impl Default for HaTransform {
     fn default() -> Self {
         Self {
-            translation: Vec3::zero(),
-            rotation: Quat::identity(),
-            scale: Vec3::one(),
+            translation: Self::default_translation(),
+            rotation: Self::default_rotation(),
+            scale: Self::default_scale(),
             cached_local_matrix: Mat4::identity(),
             cached_world_matrix: Mat4::identity(),
         }

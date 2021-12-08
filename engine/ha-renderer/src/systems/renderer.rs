@@ -5,24 +5,26 @@ use crate::{
         transform::HaTransform,
     },
     ha_renderer::{HaRenderer, RenderStats},
-    image::{Image, ImageResourceMapping},
+    image::{Image, ImageResourceMapping, VirtualImage, VirtualImageSource},
     material::{Material, MaterialResourceMapping},
+    math::rect,
     mesh::{Mesh, MeshResourceMapping},
     pipeline::{stage::StageQueueSorting, PipelineId},
+    render_target::RenderTargetDescriptor,
     resources::material_library::MaterialLibrary,
 };
 use core::{
     assets::{asset::AssetId, database::AssetsDatabase},
-    ecs::{life_cycle::EntityChanges, Comp, Entity, Universe, World, WorldRef},
+    ecs::{components::Name, life_cycle::EntityChanges, Comp, Entity, Universe, World, WorldRef},
 };
 use glow::*;
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{hash_map::Entry, HashMap, HashSet};
 
 #[derive(Debug, Default)]
 pub struct HaRendererMaintenanceSystemCache {
     material_function_map: HashMap<AssetId, String>,
     material_domain_map: HashMap<AssetId, String>,
-    pipeline_map: HashMap<Entity, PipelineId>,
+    pipeline_map: HashMap<Entity, (PipelineId, HashSet<String>)>,
 }
 
 pub type HaRendererMaintenanceSystemResources<'a> = (
@@ -35,6 +37,7 @@ pub type HaRendererMaintenanceSystemResources<'a> = (
     &'a mut ImageResourceMapping,
     &'a mut MeshResourceMapping,
     &'a mut MaterialResourceMapping,
+    Comp<&'a Name>,
     Comp<&'a mut HaCamera>,
     Comp<&'a mut HaTransform>,
     Comp<&'a mut HaMeshInstance>,
@@ -55,7 +58,6 @@ pub fn ha_renderer_maintenance_system(universe: &mut Universe) {
         ..,
     ) = universe.query_resources::<HaRendererMaintenanceSystemResources>();
 
-    renderer.errors_cache.clear();
     renderer.maintain_platform_interface();
     image_mapping.maintain();
     mesh_mapping.maintain();
@@ -241,14 +243,61 @@ fn sync_cache(
     sync_material_assets(renderer, assets, material_library, cache, material_mapping);
 
     for entity in changes.despawned() {
-        if let Some(id) = cache.pipeline_map.remove(&entity) {
+        if let Some((id, virtual_images)) = cache.pipeline_map.remove(&entity) {
             let _ = renderer.remove_pipeline(id);
+            for name in virtual_images {
+                renderer.virtual_images.remove_named(&name);
+                image_mapping.unmap_name(&name);
+            }
         }
     }
-    for (entity, camera) in world.query::<&mut HaCamera>().iter() {
+    for (entity, (camera, name)) in world.query::<(&mut HaCamera, Option<&Name>)>().iter() {
         if let Entry::Vacant(entry) = cache.pipeline_map.entry(entity) {
             if let Ok(id) = renderer.add_pipeline(camera.pipeline.to_owned()) {
-                entry.insert(id);
+                let mut virtual_images = HashSet::default();
+                if let Some(name) = name {
+                    let pipeline = renderer.pipelines.get(&id).unwrap();
+                    for (rt_name, (descriptor, id)) in &pipeline.render_targets {
+                        if let RenderTargetDescriptor::Custom { buffers, .. } = descriptor {
+                            if let Some(n) = &buffers.depth_stencil {
+                                let path = format!("@render-target/{}/{}/{}", name.0, rt_name, n);
+                                let mut virtual_image = VirtualImage::new(
+                                    VirtualImageSource::RenderTargetDepthStencil(*id),
+                                );
+                                let image_id = virtual_image
+                                    .register_named_image_uvs("", rect(0.0, 0.0, 1.0, 1.0));
+                                let virtual_image_id = renderer
+                                    .virtual_images
+                                    .add_named(path.to_owned(), virtual_image);
+                                image_mapping.map_virtual_resource(
+                                    path.to_owned(),
+                                    virtual_image_id,
+                                    image_id,
+                                );
+                                virtual_images.insert(path);
+                            }
+                            for color in &buffers.colors {
+                                let path =
+                                    format!("@render-target/{}/{}/{}", name.0, rt_name, color.id);
+                                let mut virtual_image = VirtualImage::new(
+                                    VirtualImageSource::RenderTargetColor(*id, color.id.to_owned()),
+                                );
+                                let image_id = virtual_image
+                                    .register_named_image_uvs("", rect(0.0, 0.0, 1.0, 1.0));
+                                let virtual_image_id = renderer
+                                    .virtual_images
+                                    .add_named(path.to_owned(), virtual_image);
+                                image_mapping.map_virtual_resource(
+                                    path.to_owned(),
+                                    virtual_image_id,
+                                    image_id,
+                                );
+                                virtual_images.insert(path);
+                            }
+                        }
+                    }
+                }
+                entry.insert((id, virtual_images));
                 camera.cached_pipeline = Some(id);
             }
         }

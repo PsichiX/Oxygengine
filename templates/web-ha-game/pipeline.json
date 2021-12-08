@@ -79,6 +79,10 @@
                     "macro_file": "./tools/ldtk/BoardChunk.chrobry"
                   },
                   {
+                    "name": "CameraPostProcess",
+                    "macro_file": "./tools/ldtk/CameraPostProcess.chrobry"
+                  },
+                  {
                     "name": "Enemy",
                     "macro_file": "./tools/ldtk/Enemy.chrobry"
                   },

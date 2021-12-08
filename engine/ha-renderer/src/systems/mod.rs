@@ -5,6 +5,7 @@ pub mod font;
 pub mod mesh_bounds_gizmo;
 pub mod render_forward_stage;
 pub mod render_gizmo_stage;
+pub mod render_postprocess_stage;
 pub mod renderer;
 pub mod sprite_animation;
 pub mod tilemap;

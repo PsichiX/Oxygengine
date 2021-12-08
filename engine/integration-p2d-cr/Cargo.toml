@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-integration-p2d-cr"
-version = "0.24.0"
+version = "0.25.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Integration module of 2D physics and composite rendering for Oxygengine"
@@ -28,7 +28,7 @@ scalar64 = [
 ]
 
 [dependencies]
-oxygengine-core = { version = "0.24", path = "../core" }
-oxygengine-physics-2d = { version = "0.24", path = "../physics-2d" }
-oxygengine-composite-renderer = { version = "0.24", path = "../composite-renderer" }
+oxygengine-core = { version = "0.25", path = "../core" }
+oxygengine-physics-2d = { version = "0.25", path = "../physics-2d" }
+oxygengine-composite-renderer = { version = "0.25", path = "../composite-renderer" }
 serde = { version = "1", features = ["derive"] }

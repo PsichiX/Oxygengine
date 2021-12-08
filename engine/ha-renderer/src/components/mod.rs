@@ -2,6 +2,7 @@ pub mod camera;
 pub mod gizmo;
 pub mod material_instance;
 pub mod mesh_instance;
+pub mod postprocess;
 pub mod sprite_animation_instance;
 pub mod text_instance;
 pub mod tilemap_instance;

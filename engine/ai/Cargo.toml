@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-ai"
-version = "0.24.0"
+version = "0.25.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "AI module for Oxygengine"
@@ -16,6 +16,6 @@ parallel = ["oxygengine-core/parallel"]
 scalar64 = ["oxygengine-core/scalar64", "emergent/scalar64"]
 
 [dependencies]
-oxygengine-core = { version = "0.24", path = "../core" }
+oxygengine-core = { version = "0.25", path = "../core" }
 emergent = "1.5"
 serde = { version = "1", features = ["derive"] }

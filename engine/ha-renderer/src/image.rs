@@ -145,6 +145,7 @@ impl HasContextResources<Context> for Image {
             context.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_S, CLAMP_TO_EDGE as _);
             context.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_T, CLAMP_TO_EDGE as _);
             context.generate_mipmap(TEXTURE_2D);
+            context.bind_texture(TEXTURE_2D, None);
         }
 
         self.resources = Some(ImageResources { handle });
@@ -235,8 +236,9 @@ pub struct VirtualImageDetailedInfo {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VirtualImageSource {
     Image(ImageId),
+    RenderTargetDepthStencil(RenderTargetId),
     /// (render target id, output name)
-    RenderTarget(RenderTargetId, String),
+    RenderTargetColor(RenderTargetId, String),
 }
 
 impl VirtualImageSource {
@@ -247,9 +249,16 @@ impl VirtualImageSource {
         }
     }
 
-    pub fn render_target(&self) -> Option<(RenderTargetId, &str)> {
+    pub fn render_target_depth_stencil(&self) -> Option<RenderTargetId> {
         match self {
-            Self::RenderTarget(id, name) => Some((*id, name.as_str())),
+            Self::RenderTargetDepthStencil(id) => Some(*id),
+            _ => None,
+        }
+    }
+
+    pub fn render_target_color(&self) -> Option<(RenderTargetId, &str)> {
+        match self {
+            Self::RenderTargetColor(id, name) => Some((*id, name.as_str())),
             _ => None,
         }
     }

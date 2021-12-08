@@ -9,7 +9,7 @@
 		"url": "https://ldtk.io"
 	},
 	"jsonVersion": "0.9.3",
-	"nextUid": 235,
+	"nextUid": 237,
 	"worldLayout": "Free",
 	"worldGridWidth": 256,
 	"worldGridHeight": 256,
@@ -2496,6 +2496,26 @@
 			"pivotY": 0,
 			"fieldDefs": [
 				{
+					"identifier": "Name",
+					"__type": "String",
+					"uid": 236,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": true,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "NameAndValue",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": null,
+					"textLanguageMode": null
+				},
+				{
 					"identifier": "Camera",
 					"__type": "String",
 					"uid": 61,
@@ -2516,6 +2536,26 @@
 						"id": "V_String",
 						"params": ["default"]
 					},
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "CameraPostProcess",
+					"__type": "String",
+					"uid": 235,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": null,
 					"textLanguageMode": null
 				},
 				{
@@ -3147,6 +3187,26 @@
 									"realEditorValues": [{
 										"id": "V_Bool",
 										"params": [ true ]
+									}]
+								},
+								{
+									"__identifier": "CameraPostProcess",
+									"__value": "NAME: main-camera",
+									"__type": "String",
+									"defUid": 235,
+									"realEditorValues": [{
+										"id": "V_String",
+										"params": ["NAME: main-camera"]
+									}]
+								},
+								{
+									"__identifier": "Name",
+									"__value": "main-camera",
+									"__type": "String",
+									"defUid": 236,
+									"realEditorValues": [{
+										"id": "V_String",
+										"params": ["main-camera"]
 									}]
 								}
 							]
