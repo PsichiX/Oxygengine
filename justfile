@@ -108,7 +108,7 @@ publish:
   cargo publish --no-verify --manifest-path ./engine/composite-renderer-tools/Cargo.toml
   sleep 15
   cargo publish --no-verify --manifest-path ./engine/ha-renderer/Cargo.toml
-  sleep 15
+  sleep 20
   cargo publish --no-verify --manifest-path ./engine/ha-renderer-tools/Cargo.toml
   sleep 15
   cargo publish --no-verify --manifest-path ./engine/editor-tools/Cargo.toml
