@@ -16,6 +16,7 @@ use std::{
 pub struct TileSetPage {
     pub cols: usize,
     pub rows: usize,
+    pub layers: usize,
     pub cell_size: Vec2,
     #[serde(default)]
     pub padding: Vec2,
@@ -25,10 +26,16 @@ pub struct TileSetPage {
     pub tile_margin: Vec2,
 }
 
+#[derive(Ignite, Debug, Copy, Clone, Serialize, Deserialize)]
+pub struct AtlasRegion {
+    pub rect: Rect,
+    pub layer: usize,
+}
+
 #[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub enum AtlasAssetSource {
-    /// { page image asset: { image name: image rect } }
-    Raw(HashMap<String, HashMap<String, Rect>>),
+    /// { page image asset: { region name: region data } }
+    Raw(HashMap<String, HashMap<String, AtlasRegion>>),
     TileSet(HashMap<String, TileSetPage>),
 }
 
@@ -42,7 +49,7 @@ impl AtlasAssetSource {
 }
 
 pub enum AtlasAssetSourcePageNameIter<'a> {
-    Raw(Keys<'a, String, HashMap<String, Rect>>),
+    Raw(Keys<'a, String, HashMap<String, AtlasRegion>>),
     TileSet(Keys<'a, String, TileSetPage>),
 }
 
@@ -59,8 +66,8 @@ impl<'a> Iterator for AtlasAssetSourcePageNameIter<'a> {
 
 #[derive(Debug, Clone)]
 pub struct AtlasAsset {
-    /// { page image asset: { image name: image rect } }
-    pub page_mappings: HashMap<String, HashMap<String, Rect>>,
+    /// { page image asset: { image name: region data } }
+    pub page_mappings: HashMap<String, HashMap<String, AtlasRegion>>,
     /// { page image asset: (page image size, asset id) }
     pub pages_image_assets: HashMap<String, (Vec2, AssetId)>,
 }
@@ -93,11 +100,13 @@ impl AssetProtocol for AtlasAssetProtocol {
                 .map(|(k, page)| {
                     let cols = page.cols.max(1);
                     let rows = page.rows.max(1);
-                    let count = cols * rows;
+                    let layers = page.layers.max(1);
+                    let count = cols * rows * layers;
                     let mappings = (0..count)
                         .map(|i| {
+                            let layer = i / (cols * rows);
+                            let row = (i / cols) % rows;
                             let col = i % cols;
-                            let row = i / cols;
                             let m = page.tile_margin;
                             let x = page.padding.x
                                 + col as Scalar * page.cell_size.x
@@ -113,7 +122,7 @@ impl AssetProtocol for AtlasAssetProtocol {
                                 page.cell_size.x - m.x - m.x,
                                 page.cell_size.y - m.y - m.y,
                             );
-                            (format!("{}x{}", col, row), rect)
+                            (format!("{}x{}", col, row), AtlasRegion { rect, layer })
                         })
                         .collect::<HashMap<_, _>>();
                     (k, mappings)
@@ -131,7 +140,7 @@ impl AssetProtocol for AtlasAssetProtocol {
     fn on_resume(&mut self, meta: Meta, list: &[(&str, &Asset)]) -> AssetLoadResult {
         let source = *meta
             .unwrap()
-            .downcast::<HashMap<String, HashMap<String, Rect>>>()
+            .downcast::<HashMap<String, HashMap<String, AtlasRegion>>>()
             .unwrap();
         let mut ids = HashSet::<&str>::default();
         for mappings in source.values() {

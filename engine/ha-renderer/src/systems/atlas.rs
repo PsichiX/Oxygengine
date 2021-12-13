@@ -41,14 +41,18 @@ pub fn ha_atlas_system(universe: &mut Universe) {
                             let virtual_image =
                                 renderer.virtual_images.get_mut(virtual_image_id).unwrap();
                             let mut subimages = Vec::with_capacity(mappings.len());
-                            for (image, image_rect) in mappings {
+                            for (image, region) in mappings {
                                 let uvs = rect(
-                                    image_rect.x / page_size.x,
-                                    image_rect.y / page_size.y,
-                                    image_rect.w / page_size.x,
-                                    image_rect.h / page_size.y,
+                                    region.rect.x / page_size.x,
+                                    region.rect.y / page_size.y,
+                                    region.rect.w / page_size.x,
+                                    region.rect.h / page_size.y,
                                 );
-                                let image_id = virtual_image.register_named_image_uvs(image, uvs);
+                                let image_id = virtual_image.register_named_image_uvs(
+                                    image,
+                                    uvs,
+                                    region.layer,
+                                );
                                 let name = format!("{}@{}", path, image);
                                 subimages.push(name.to_owned());
                                 image_mapping.map_virtual_resource(
@@ -57,7 +61,6 @@ pub fn ha_atlas_system(universe: &mut Universe) {
                                     image_id,
                                 );
                             }
-                            virtual_image.register_named_image_uvs("", rect(0.0, 0.0, 1.0, 1.0));
                             virtual_images.insert(virtual_image_id, subimages);
                         }
                     }

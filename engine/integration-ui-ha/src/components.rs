@@ -10,6 +10,10 @@ pub struct HaUserInterfaceSync {
     pub colored_material: HaMaterialInstance,
     pub image_material: HaMaterialInstance,
     pub text_material: HaMaterialInstance,
+    #[serde(default)]
+    pub image_filtering: ImageFiltering,
+    #[serde(default)]
+    pub text_filtering: ImageFiltering,
 }
 
 impl HaUserInterfaceSync {

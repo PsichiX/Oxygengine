@@ -1983,7 +1983,10 @@
 					"max": null,
 					"regex": null,
 					"acceptFileTypes": null,
-					"defaultOverride": null,
+					"defaultOverride": {
+						"id": "V_String",
+						"params": ["LEVEL: 0"]
+					},
 					"textLanguageMode": null
 				}
 			]
@@ -2644,7 +2647,7 @@
 					"defaultOverride": {
 						"id": "V_String",
 						"params": [
-							"SIZE: 144 | COLORED_MATERIAL: @material/graph/surface/flat/color | IMAGE_MATERIAL: @material/graph/surface/flat/texture | TEXT_MATERIAL: @material/graph/surface/flat/text"
+							"SIZE: 144 | COLORED_MATERIAL: @material/graph/surface/flat/color | IMAGE_MATERIAL: @material/graph/surface/flat/texture-2d | TEXT_MATERIAL: @material/graph/surface/flat/text"
 						]
 					},
 					"textLanguageMode": null
@@ -3073,7 +3076,7 @@
 								{ "__identifier": "Name", "__value": "player", "__type": "String", "defUid": 78, "realEditorValues": [] },
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 208, "realEditorValues": [] },
 								{ "__identifier": "AvatarMovement", "__value": "STEP_DURATION: 0.5", "__type": "String", "defUid": 211, "realEditorValues": [] },
-								{ "__identifier": "Player", "__value": "", "__type": "String", "defUid": 218, "realEditorValues": [] },
+								{ "__identifier": "Player", "__value": "LEVEL: 0", "__type": "String", "defUid": 218, "realEditorValues": [] },
 								{ "__identifier": "Health", "__value": "VALUE: 1", "__type": "String", "defUid": 221, "realEditorValues": [] },
 								{
 									"__identifier": "Weapon",
@@ -3172,7 +3175,7 @@
 								{ "__identifier": "UiView", "__value": "NAME: gui", "__type": "String", "defUid": 81, "realEditorValues": [] },
 								{
 									"__identifier": "UiSync",
-									"__value": "SIZE: 144 | COLORED_MATERIAL: @material/graph/surface/flat/color | IMAGE_MATERIAL: @material/graph/surface/flat/texture | TEXT_MATERIAL: @material/graph/surface/flat/text",
+									"__value": "SIZE: 144 | COLORED_MATERIAL: @material/graph/surface/flat/color | IMAGE_MATERIAL: @material/graph/surface/flat/texture-2d | TEXT_MATERIAL: @material/graph/surface/flat/text",
 									"__type": "String",
 									"defUid": 82,
 									"realEditorValues": []

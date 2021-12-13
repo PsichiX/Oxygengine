@@ -10,6 +10,7 @@ pub use vek;
 pub use vek::*;
 
 pub type Rect = vek::Rect<Scalar, Scalar>;
+pub type Rect3 = vek::Rect3<Scalar, Scalar>;
 pub type Vec2 = vek::Vec2<Scalar>;
 pub type Vec3 = vek::Vec3<Scalar>;
 pub type Vec4 = vek::Vec4<Scalar>;
@@ -20,8 +21,12 @@ pub type Mat3 = vek::Mat3<Scalar>;
 pub type Mat4 = vek::Mat4<Scalar>;
 pub type Transform = vek::Transform<Scalar, Scalar, Scalar>;
 
-pub fn rect<T>(x: T, y: T, w: T, h: T) -> vek::Rect<T, T> {
-    vek::Rect::new(x, y, w, h)
+pub fn rect<T>(x: T, y: T, width: T, height: T) -> vek::Rect<T, T> {
+    vek::Rect::new(x, y, width, height)
+}
+
+pub fn rect3<T>(x: T, y: T, z: T, width: T, height: T, depth: T) -> vek::Rect3<T, T> {
+    vek::Rect3::new(x, y, z, width, height, depth)
 }
 
 pub fn vec2<T>(x: T, y: T) -> vek::Vec2<T> {

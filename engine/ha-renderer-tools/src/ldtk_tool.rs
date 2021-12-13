@@ -26,9 +26,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-const DEFAULT_SPRITE_MATERIAL_ASSET: &str = "@material/graph/surface/flat/texture";
+const DEFAULT_SPRITE_MATERIAL_ASSET: &str = "@material/graph/surface/flat/texture-2d";
 const DEFAULT_SPRITE_UNIFORMS_MATERIAL_ASSET: &str =
-    "@material/graph/surface/flat/virtual-uniform-texture";
+    "@material/graph/surface/flat/virtual-uniform-texture-2d";
 const DEFAULT_SPRITE_MESH_ASSET: &str = "@mesh/surface/quad/pt";
 const DEFAULT_SPRITE_IMAGE: &str = "Uniforms";
 
@@ -40,9 +40,9 @@ struct Params {
     #[serde(default)]
     pub assets_path_prefix: String,
     #[serde(default)]
-    pub image_filtering: ImageFiltering,
-    #[serde(default)]
     pub tile_margin: Vec2,
+    #[serde(default)]
+    pub image_filtering: ImageFiltering,
     #[serde(default)]
     pub material_name: Option<String>,
     #[serde(default)]
@@ -79,8 +79,8 @@ fn main() -> Result<(), Error> {
             project,
             &dirname,
             &output,
-            params.image_filtering,
             params.tile_margin,
+            params.image_filtering,
             match &params.material_name {
                 Some(name) => name.as_str(),
                 None => DEFAULT_SPRITE_MATERIAL_ASSET,
@@ -101,8 +101,8 @@ fn bake_project(
     project: Project,
     input: &Path,
     output: &Path,
-    filtering: ImageFiltering,
     tile_margin: Vec2,
+    image_filtering: ImageFiltering,
     material_name: &str,
     assets_path_prefix: &str,
     image_folder_name: &str,
@@ -135,11 +135,8 @@ fn bake_project(
             assets_path_prefix, image_folder_name, tileset.identifier
         );
         let asset = ImageAssetSource::Png {
-            bytes_path: image_bytes_name,
-            descriptor: ImageDescriptor {
-                filtering,
-                ..Default::default()
-            },
+            descriptor: ImageDescriptor::default(),
+            bytes_paths: vec![image_bytes_name],
         };
         let image_path = output
             .join(image_folder_name)
@@ -169,6 +166,7 @@ fn bake_project(
                 TileSetPage {
                     cols: tileset.c_wid as _,
                     rows: tileset.c_hei as _,
+                    layers: 1,
                     cell_size: Vec2::new(tileset.tile_grid_size as _, tileset.tile_grid_size as _),
                     padding: Vec2::new(tileset.padding as _, tileset.padding as _),
                     spacing: Vec2::new(tileset.spacing as _, tileset.spacing as _),
@@ -339,6 +337,7 @@ fn bake_project(
                         .unwrap_or_else(|_| panic!("Could not serialize HaTransform to prefab")),
                 );
                 let mut instance = HaTileMapInstance::default();
+                instance.filtering = image_filtering;
                 instance.set_atlas(atlas);
                 instance.set_cols(layer.c_wid as _);
                 instance.set_rows(layer.c_hei as _);
@@ -702,7 +701,13 @@ fn bake_project(
                     }
                     if let (Some("Uniforms"), Some(name)) = (sprite_image, &sprite_image_name) {
                         let mut data = HaVirtualImageUniforms::default();
-                        data.set("mainImage", name);
+                        data.set(
+                            "mainImage",
+                            HaVirtualImageUniform {
+                                virtual_asset_name: name.to_owned(),
+                                filtering: image_filtering,
+                            },
+                        );
                         entity_data.components.insert(
                             "HaVirtualImageUniforms".to_owned(),
                             data.to_prefab().unwrap_or_else(|_| {
@@ -718,6 +723,7 @@ fn bake_project(
                             )
                         });
                         let mut data = HaSpriteAnimationInstance::default();
+                        data.filtering = image_filtering;
                         data.playing = true;
                         data.set_animation(name);
                         entity_data.components.insert(

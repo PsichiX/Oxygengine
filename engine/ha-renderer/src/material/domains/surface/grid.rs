@@ -73,10 +73,14 @@ impl SurfaceGridFactory {
             let mut texture_coord = Vec::with_capacity(vertex_count);
             for row in 0..rows {
                 for col in 0..cols {
-                    texture_coord.push(vec2(col as f32 / cols as f32, row as f32 / rows as f32));
+                    texture_coord.push(vec3(
+                        col as f32 / cols as f32,
+                        row as f32 / rows as f32,
+                        0.0,
+                    ));
                 }
             }
-            result.vertices_vec2f("textureCoord", &texture_coord, None)?;
+            result.vertices_vec3f("textureCoord", &texture_coord, None)?;
         }
         if T::has_attribute("color") {
             result.vertices_vec4f(

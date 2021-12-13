@@ -25,6 +25,7 @@ pub struct HaRendererMaintenanceSystemCache {
     material_function_map: HashMap<AssetId, String>,
     material_domain_map: HashMap<AssetId, String>,
     pipeline_map: HashMap<Entity, (PipelineId, HashSet<String>)>,
+    fragment_high_precision_support: Option<bool>,
 }
 
 pub type HaRendererMaintenanceSystemResources<'a> = (
@@ -58,6 +59,12 @@ pub fn ha_renderer_maintenance_system(universe: &mut Universe) {
         ..,
     ) = universe.query_resources::<HaRendererMaintenanceSystemResources>();
 
+    if cache.fragment_high_precision_support.is_none() {
+        if let Some(context) = renderer.platform_interface.context() {
+            cache.fragment_high_precision_support =
+                Some(Material::query_is_high_precision_supported_in_fragment_shader(context));
+        }
+    }
     renderer.maintain_platform_interface();
     image_mapping.maintain();
     mesh_mapping.maintain();
@@ -75,7 +82,10 @@ pub fn ha_renderer_maintenance_system(universe: &mut Universe) {
     );
     renderer.maintain_render_targets();
     renderer.maintain_meshes();
-    renderer.maintain_materials(&material_library);
+    renderer.maintain_materials(
+        &material_library,
+        cache.fragment_high_precision_support.unwrap_or_default(),
+    );
     update_resource_references(&world, &image_mapping, &mesh_mapping, &material_mapping);
 }
 
@@ -114,6 +124,7 @@ fn sync_image_assets(
                     asset.descriptor.to_owned(),
                     asset.width,
                     asset.height,
+                    asset.depth,
                     asset.bytes.to_owned(),
                 );
                 if let Ok(image) = image {
@@ -264,8 +275,11 @@ fn sync_cache(
                                 let mut virtual_image = VirtualImage::new(
                                     VirtualImageSource::RenderTargetDepthStencil(*id),
                                 );
-                                let image_id = virtual_image
-                                    .register_named_image_uvs("", rect(0.0, 0.0, 1.0, 1.0));
+                                let image_id = virtual_image.register_named_image_uvs(
+                                    "",
+                                    rect(0.0, 0.0, 1.0, 1.0),
+                                    0,
+                                );
                                 let virtual_image_id = renderer
                                     .virtual_images
                                     .add_named(path.to_owned(), virtual_image);
@@ -282,8 +296,11 @@ fn sync_cache(
                                 let mut virtual_image = VirtualImage::new(
                                     VirtualImageSource::RenderTargetColor(*id, color.id.to_owned()),
                                 );
-                                let image_id = virtual_image
-                                    .register_named_image_uvs("", rect(0.0, 0.0, 1.0, 1.0));
+                                let image_id = virtual_image.register_named_image_uvs(
+                                    "",
+                                    rect(0.0, 0.0, 1.0, 1.0),
+                                    0,
+                                );
                                 let virtual_image_id = renderer
                                     .virtual_images
                                     .add_named(path.to_owned(), virtual_image);

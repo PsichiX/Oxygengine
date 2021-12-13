@@ -1,5 +1,5 @@
 use crate::{
-    image::{ImageInstanceReference, ImageResourceMapping},
+    image::{ImageFiltering, ImageInstanceReference, ImageResourceMapping},
     math::vek::*,
     mesh::VertexLayout,
     render_target::RenderTarget,
@@ -156,6 +156,7 @@ pub enum MaterialCompilationState<'a> {
         shader_type: MaterialShaderType,
         signature: &'a MaterialSignature,
         library: &'a MaterialLibrary,
+        fragment_high_precision_support: bool,
     },
     GraphBody {
         shader_type: MaterialShaderType,
@@ -169,6 +170,41 @@ pub struct BakedMaterialShaders {
     pub fragment: String,
     pub uniforms: HashMap<String, MaterialValueType>,
     pub samplers: Vec<String>,
+}
+
+#[derive(Ignite, Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+pub enum MaterialDataPrecision {
+    Default,
+    Low,
+    Medium,
+    High,
+}
+
+impl Default for MaterialDataPrecision {
+    fn default() -> Self {
+        Self::Default
+    }
+}
+
+impl ToString for MaterialDataPrecision {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Default => "".to_owned(),
+            Self::Low => "lowp".to_owned(),
+            Self::Medium => "mediump".to_owned(),
+            Self::High => "highp".to_owned(),
+        }
+    }
+}
+
+impl MaterialDataPrecision {
+    pub fn ensure(self, fragment_high_precision_support: bool) -> Self {
+        if self == Self::High && !fragment_high_precision_support {
+            Self::Medium
+        } else {
+            self
+        }
+    }
 }
 
 #[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -210,7 +246,9 @@ pub enum MaterialValueType {
     Mat2I,
     Mat3I,
     Mat4I,
-    Sampler2D,
+    Sampler2d,
+    Sampler2dArray,
+    Sampler3d,
     Array(Box<MaterialValueType>, Option<usize>),
 }
 
@@ -244,7 +282,9 @@ impl ToString for MaterialValueType {
             Self::Mat2I => "imat2".to_owned(),
             Self::Mat3I => "imat3".to_owned(),
             Self::Mat4I => "imat4".to_owned(),
-            Self::Sampler2D => "sampler2D".to_owned(),
+            Self::Sampler2d => "sampler2D".to_owned(),
+            Self::Sampler2dArray => "sampler2DArray".to_owned(),
+            Self::Sampler3d => "sampler3D".to_owned(),
             Self::Array(t, c) => match c {
                 Some(c) => format!("{}[{}]", t.to_string(), c.to_string()),
                 None => format!("{}[]", t.to_string()),
@@ -276,7 +316,21 @@ pub enum MaterialValue {
     Mat2I(Mat2<i32>),
     Mat3I(Mat3<i32>),
     Mat4I(Mat4<i32>),
-    Sampler2D(ImageInstanceReference),
+    Sampler2d {
+        reference: ImageInstanceReference,
+        #[serde(default)]
+        filtering: ImageFiltering,
+    },
+    Sampler2dArray {
+        reference: ImageInstanceReference,
+        #[serde(default)]
+        filtering: ImageFiltering,
+    },
+    Sampler3d {
+        reference: ImageInstanceReference,
+        #[serde(default)]
+        filtering: ImageFiltering,
+    },
     Array(Vec<MaterialValue>),
 }
 
@@ -350,7 +404,9 @@ impl ToString for MaterialValue {
                     a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p
                 )
             }
-            Self::Sampler2D(v) => v.to_string(),
+            Self::Sampler2d { reference, .. }
+            | Self::Sampler2dArray { reference, .. }
+            | Self::Sampler3d { reference, .. } => reference.to_string(),
             Self::Array(v) => {
                 let t = if let Some(item) = v.first() {
                     item.value_type()
@@ -394,7 +450,9 @@ impl MaterialValue {
             Self::Mat2I(_) => MaterialValueType::Mat2I,
             Self::Mat3I(_) => MaterialValueType::Mat3I,
             Self::Mat4I(_) => MaterialValueType::Mat4I,
-            Self::Sampler2D(_) => MaterialValueType::Sampler2D,
+            Self::Sampler2d { .. } => MaterialValueType::Sampler2d,
+            Self::Sampler2dArray { .. } => MaterialValueType::Sampler2dArray,
+            Self::Sampler3d { .. } => MaterialValueType::Sampler3d,
             Self::Array(data) => MaterialValueType::Array(
                 Box::new(if let Some(item) = data.first() {
                     item.value_type()
@@ -408,7 +466,9 @@ impl MaterialValue {
 
     pub fn update_references(&mut self, image_mapping: &ImageResourceMapping) {
         match self {
-            Self::Sampler2D(reference) => match reference {
+            Self::Sampler2d { reference, .. }
+            | Self::Sampler2dArray { reference, .. }
+            | Self::Sampler3d { reference, .. } => match reference {
                 ImageInstanceReference::Asset(path) => {
                     if let Some(id) = image_mapping.resource_by_name(path) {
                         *reference = ImageInstanceReference::Id(id);
@@ -465,7 +525,6 @@ impl_value_from! {
     Mat2I(Mat2<i32>),
     Mat3I(Mat3<i32>),
     Mat4I(Mat4<i32>),
-    Sampler2D(ImageInstanceReference),
     Array(Vec<MaterialValue>),
 }
 

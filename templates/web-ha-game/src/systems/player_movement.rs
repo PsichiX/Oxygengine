@@ -22,7 +22,7 @@ pub fn player_movement_system(universe: &mut Universe) {
     let pointer_action = input.trigger_or_default("pointer-action").is_pressed();
     let target_location = if pointer_action {
         camera_cache
-            .default_get_first::<RenderForwardStage>()
+            .default_get_first::<RenderPostProcessStage>()
             .map(|info| {
                 let point = info.render_target_to_screen(Vec2::new(pointer_x, pointer_y));
                 let point = info.screen_to_world_point(point.into());

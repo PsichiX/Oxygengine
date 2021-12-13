@@ -5,7 +5,7 @@ use crate::{
 use core::{id::ID, Ignite};
 use glow::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash};
 
 #[derive(Debug, Clone)]
 pub enum ImageError {
@@ -16,6 +16,29 @@ pub enum ImageError {
 
 pub type ImageInstanceReference = ResourceInstanceReference<ImageId, VirtualImageId>;
 pub type ImageResourceMapping = ResourceMapping<Image, VirtualImage>;
+
+#[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ImageMode {
+    Image2d,
+    Image2dArray,
+    Image3d,
+}
+
+impl Default for ImageMode {
+    fn default() -> Self {
+        Self::Image2d
+    }
+}
+
+impl ImageMode {
+    pub fn as_gl(&self) -> u32 {
+        match self {
+            Self::Image2d => TEXTURE_2D,
+            Self::Image2dArray => TEXTURE_2D_ARRAY,
+            Self::Image3d => TEXTURE_3D,
+        }
+    }
+}
 
 #[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ImageFormat {
@@ -31,6 +54,22 @@ impl Default for ImageFormat {
 }
 
 impl ImageFormat {
+    pub fn as_gl(&self) -> u32 {
+        match self {
+            Self::RGBA => RGBA,
+            Self::RGB => RGB,
+            Self::Luminance => LUMINANCE,
+        }
+    }
+
+    pub fn alignment(&self) -> usize {
+        let size = match self {
+            Self::RGBA => 4,
+            _ => 1,
+        };
+        std::mem::size_of::<u8>() * size
+    }
+
     pub fn bytesize(self) -> usize {
         let size = match self {
             Self::RGBA => 4,
@@ -54,14 +93,37 @@ impl Default for ImageFiltering {
     }
 }
 
+impl ImageFiltering {
+    pub fn as_gl(&self) -> (u32, u32) {
+        match self {
+            ImageFiltering::Nearest => (NEAREST, NEAREST),
+            ImageFiltering::Linear => (LINEAR, LINEAR),
+            ImageFiltering::Bilinear => (LINEAR_MIPMAP_LINEAR, LINEAR),
+        }
+    }
+}
+
+#[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ImageMipmap {
+    None,
+    /// (maximum levels?)
+    Generate(Option<usize>),
+}
+
+impl Default for ImageMipmap {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ImageDescriptor {
     #[serde(default)]
+    pub mode: ImageMode,
+    #[serde(default)]
     pub format: ImageFormat,
     #[serde(default)]
-    pub filtering: ImageFiltering,
-    #[serde(default)]
-    pub mipmap: bool,
+    pub mipmap: ImageMipmap,
 }
 
 #[derive(Debug)]
@@ -73,20 +135,22 @@ pub type ImageId = ID<Image>;
 
 #[derive(Debug)]
 pub struct ImageDetailedInfo {
+    pub mode: ImageMode,
     pub format: ImageFormat,
-    pub filtering: ImageFiltering,
-    pub mipmap: bool,
+    pub mipmap: ImageMipmap,
     pub width: usize,
     pub height: usize,
+    pub depth: usize,
 }
 
 #[derive(Debug)]
 pub struct Image {
+    mode: ImageMode,
     format: ImageFormat,
-    filtering: ImageFiltering,
-    mipmap: bool,
+    mipmap: ImageMipmap,
     width: usize,
     height: usize,
+    depth: usize,
     data: Vec<u8>,
     resources: Option<ImageResources>,
 }
@@ -118,34 +182,61 @@ impl HasContextResources<Context> for Image {
         };
 
         unsafe {
-            context.bind_texture(TEXTURE_2D, Some(handle));
-            let format = match self.format {
-                ImageFormat::RGBA => (RGBA),
-                ImageFormat::RGB => (RGB),
-                ImageFormat::Luminance => (LUMINANCE),
-            };
-            context.tex_image_2d(
-                TEXTURE_2D,
-                0,
-                format as _,
-                self.width as _,
-                self.height as _,
-                0,
-                format,
-                UNSIGNED_BYTE,
-                Some(&self.data),
-            );
-            let (min, mag) = match self.filtering {
-                ImageFiltering::Nearest => (NEAREST, NEAREST),
-                ImageFiltering::Linear => (LINEAR, LINEAR),
-                ImageFiltering::Bilinear => (LINEAR_MIPMAP_LINEAR, LINEAR),
-            };
-            context.tex_parameter_i32(TEXTURE_2D, TEXTURE_MIN_FILTER, min as _);
-            context.tex_parameter_i32(TEXTURE_2D, TEXTURE_MAG_FILTER, mag as _);
-            context.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_S, CLAMP_TO_EDGE as _);
-            context.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_T, CLAMP_TO_EDGE as _);
-            context.generate_mipmap(TEXTURE_2D);
-            context.bind_texture(TEXTURE_2D, None);
+            let format = self.format.as_gl();
+            let alignment = self.format.alignment();
+            let gl_mode = self.mode.as_gl();
+            context.bind_texture(gl_mode, Some(handle));
+            context.pixel_store_i32(UNPACK_ALIGNMENT, alignment as _);
+            match self.mode {
+                ImageMode::Image2d => {
+                    context.tex_image_2d(
+                        gl_mode,
+                        0,
+                        format as _,
+                        self.width as _,
+                        self.height as _,
+                        0,
+                        format,
+                        UNSIGNED_BYTE,
+                        Some(&self.data),
+                    );
+                }
+                ImageMode::Image2dArray => {
+                    context.tex_image_3d(
+                        gl_mode,
+                        0,
+                        format as _,
+                        self.width as _,
+                        self.height as _,
+                        self.depth as _,
+                        0,
+                        format,
+                        UNSIGNED_BYTE,
+                        Some(&self.data),
+                    );
+                }
+                ImageMode::Image3d => {
+                    context.tex_image_3d(
+                        gl_mode,
+                        0,
+                        format as _,
+                        self.width as _,
+                        self.height as _,
+                        self.depth as _,
+                        0,
+                        format,
+                        UNSIGNED_BYTE,
+                        Some(&self.data),
+                    );
+                }
+            }
+            if let ImageMipmap::Generate(limit) = self.mipmap {
+                if let Some(limit) = limit {
+                    context.tex_parameter_i32(gl_mode, TEXTURE_MAX_LEVEL, limit as i32);
+                }
+                context.generate_mipmap(gl_mode);
+            }
+            context.bind_texture(gl_mode, None);
         }
 
         self.resources = Some(ImageResources { handle });
@@ -167,21 +258,23 @@ impl Image {
         descriptor: ImageDescriptor,
         width: usize,
         height: usize,
+        depth: usize,
         data: Vec<u8>,
     ) -> Result<Self, ImageError> {
         let ImageDescriptor {
+            mode,
             format,
-            filtering,
             mipmap,
         } = descriptor;
-        let size = format.bytesize() * width * height;
+        let size = format.bytesize() * width * height * depth;
         if size == data.len() {
             Ok(Self {
+                mode,
                 format,
-                filtering,
                 mipmap,
                 width,
                 height,
+                depth,
                 data,
                 resources: None,
             })
@@ -192,23 +285,24 @@ impl Image {
 
     pub fn detailed_info(&self) -> ImageDetailedInfo {
         ImageDetailedInfo {
+            mode: self.mode,
             format: self.format,
-            filtering: self.filtering,
             mipmap: self.mipmap,
             width: self.width,
             height: self.height,
+            depth: self.depth,
         }
+    }
+
+    pub fn mode(&self) -> ImageMode {
+        self.mode
     }
 
     pub fn format(&self) -> ImageFormat {
         self.format
     }
 
-    pub fn filtering(&self) -> ImageFiltering {
-        self.filtering
-    }
-
-    pub fn mipmap(&self) -> bool {
+    pub fn mipmap(&self) -> ImageMipmap {
         self.mipmap
     }
 
@@ -218,6 +312,10 @@ impl Image {
 
     pub fn height(&self) -> usize {
         self.height
+    }
+
+    pub fn depth(&self) -> usize {
+        self.depth
     }
 
     pub fn resources<'a>(&self, _: &RenderStageResources<'a>) -> Option<&ImageResources> {
@@ -230,7 +328,7 @@ pub type VirtualImageId = ID<VirtualImage>;
 #[derive(Debug)]
 pub struct VirtualImageDetailedInfo {
     pub source: VirtualImageSource,
-    pub uvs: HashMap<ImageId, Rect>,
+    pub uvs: HashMap<ImageId, (Rect, usize)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -267,7 +365,7 @@ impl VirtualImageSource {
 #[derive(Debug)]
 pub struct VirtualImage {
     source: VirtualImageSource,
-    uvs: HashMap<ImageId, Rect>,
+    uvs: HashMap<ImageId, (Rect, usize)>,
     map: HashMap<String, ImageId>,
     table: HashMap<ImageId, String>,
 }
@@ -286,27 +384,32 @@ impl VirtualImage {
         &self.source
     }
 
-    pub fn register_image_uvs(&mut self, uvs: Rect) -> ImageId {
+    pub fn register_image_uvs(&mut self, uvs: Rect, page: usize) -> ImageId {
         let id = ImageId::new();
-        self.uvs.insert(id, uvs);
+        self.uvs.insert(id, (uvs, page));
         id
     }
 
-    pub fn register_named_image_uvs(&mut self, name: impl ToString, uvs: Rect) -> ImageId {
-        let id = self.register_image_uvs(uvs);
+    pub fn register_named_image_uvs(
+        &mut self,
+        name: impl ToString,
+        uvs: Rect,
+        page: usize,
+    ) -> ImageId {
+        let id = self.register_image_uvs(uvs, page);
         self.map.insert(name.to_string(), id);
         self.table.insert(id, name.to_string());
         id
     }
 
-    pub fn unregister_image_uvs(&mut self, id: ImageId) -> Option<Rect> {
+    pub fn unregister_image_uvs(&mut self, id: ImageId) -> Option<(Rect, usize)> {
         if let Some(name) = self.table.remove(&id) {
             self.map.remove(&name);
         }
         self.uvs.remove(&id)
     }
 
-    pub fn unregister_named_image_uvs(&mut self, name: &str) -> Option<Rect> {
+    pub fn unregister_named_image_uvs(&mut self, name: &str) -> Option<(Rect, usize)> {
         if let Some(id) = self.map.remove(name) {
             self.table.remove(&id);
             return self.uvs.remove(&id);
@@ -314,11 +417,11 @@ impl VirtualImage {
         None
     }
 
-    pub fn image_uvs(&self, id: ImageId) -> Option<Rect> {
+    pub fn image_uvs(&self, id: ImageId) -> Option<(Rect, usize)> {
         self.uvs.get(&id).copied()
     }
 
-    pub fn named_image_uvs(&self, name: &str) -> Option<Rect> {
+    pub fn named_image_uvs(&self, name: &str) -> Option<(Rect, usize)> {
         if let Some(id) = self.map.get(name) {
             return self.uvs.get(id).copied();
         }

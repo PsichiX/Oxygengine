@@ -28,8 +28,13 @@ checks:
 make-presets-pack:
   cargo run --manifest-path ./engine/Cargo.toml --package oxygengine-ignite -- pipeline
 
+install-tools:
+  cargo install --force --path ./engine/ignite
+  cargo install --force --path ./engine/composite-renderer-tools
+  cargo install --force --path ./engine/ha-renderer-tools
+
 list-outdated:
-  cargo outdated -R -w -m ./engine/Cargo.toml
+  cd ./engine/ && cargo outdated -R -w
 
 book:
   mdbook build book

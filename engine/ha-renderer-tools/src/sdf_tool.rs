@@ -81,7 +81,7 @@ fn main() -> Result<(), Error> {
             .unwrap_or_else(|_| panic!("Could not save image: {:?}", path));
 
         let asset = ImageAssetSource::Png {
-            bytes_path: format!("{}{}.png", params.assets_path_prefix, image_name),
+            bytes_paths: vec![format!("{}{}.png", params.assets_path_prefix, image_name)],
             descriptor: Default::default(),
         };
         let path = output.join(format!("{}.yaml", image_name));

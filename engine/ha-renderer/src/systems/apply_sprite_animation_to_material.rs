@@ -15,7 +15,13 @@ pub fn ha_apply_sprite_animation_to_material(universe: &mut Universe) {
         .iter()
     {
         if let (true, Some(name)) = (sprite.frame_lately_changed(), sprite.active_frame()) {
-            uniforms.set("mainImage", name);
+            uniforms.set(
+                "mainImage",
+                HaVirtualImageUniform {
+                    virtual_asset_name: name.to_owned(),
+                    filtering: sprite.filtering,
+                },
+            );
         }
     }
 }

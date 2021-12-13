@@ -36,7 +36,7 @@ pub fn default_screenspace_texture_material_graph() -> MaterialGraph {
             [fragment] domain BaseColor: vec4;
         }
 
-        [color = (texture, sampler: mainImage, coord: [TextureCoord => vTexCoord])]
+        [color = (texture2d, sampler: mainImage, coord: [TextureCoord => vTexCoord])]
         [color -> BaseColor]
     }
 }

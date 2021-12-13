@@ -117,7 +117,10 @@ fn set_material_sampler(
         if let Some(id) = image_mapping.resource_by_asset(*id) {
             material.values.insert(
                 "mainImage".to_owned(),
-                MaterialValue::Sampler2D(ImageInstanceReference::Id(id)),
+                MaterialValue::Sampler2dArray {
+                    reference: ImageInstanceReference::Id(id),
+                    filtering: font.filtering,
+                },
             );
         }
     }

@@ -1,5 +1,8 @@
 use crate::{
-    material::common::{MaterialDataType, MaterialShaderType, MaterialValue, MaterialValueType},
+    material::common::{
+        MaterialDataPrecision, MaterialDataType, MaterialShaderType, MaterialValue,
+        MaterialValueType,
+    },
     math::vek::*,
 };
 use core::{id::ID, Ignite};
@@ -12,6 +15,8 @@ pub type MaterialGraphNodeId = ID<MaterialGraphNode>;
 pub struct MaterialGraphInput {
     #[serde(default)]
     pub name: String,
+    #[serde(default)]
+    pub data_precision: MaterialDataPrecision,
     #[serde(default)]
     pub data_type: MaterialDataType,
     #[serde(default)]
@@ -26,6 +31,7 @@ impl MaterialGraphInput {
     pub fn vs_vertex_id() -> Self {
         Self {
             name: "gl_VertexID".to_owned(),
+            data_precision: MaterialDataPrecision::Default,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Integer,
             shader_type: MaterialShaderType::Vertex,
@@ -36,6 +42,7 @@ impl MaterialGraphInput {
     pub fn vs_instance_id() -> Self {
         Self {
             name: "gl_InstanceID".to_owned(),
+            data_precision: MaterialDataPrecision::Default,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Integer,
             shader_type: MaterialShaderType::Vertex,
@@ -46,6 +53,7 @@ impl MaterialGraphInput {
     pub fn fs_frag_coord() -> Self {
         Self {
             name: "gl_FragCoord".to_owned(),
+            data_precision: MaterialDataPrecision::Default,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Vec4F,
             shader_type: MaterialShaderType::Fragment,
@@ -56,6 +64,7 @@ impl MaterialGraphInput {
     pub fn fs_front_facing() -> Self {
         Self {
             name: "gl_FrontFacing".to_owned(),
+            data_precision: MaterialDataPrecision::Default,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Bool,
             shader_type: MaterialShaderType::Fragment,
@@ -66,6 +75,7 @@ impl MaterialGraphInput {
     pub fn fs_point_coord() -> Self {
         Self {
             name: "gl_PointCoord".to_owned(),
+            data_precision: MaterialDataPrecision::Default,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Vec2F,
             shader_type: MaterialShaderType::Fragment,
@@ -76,6 +86,7 @@ impl MaterialGraphInput {
     pub fn fs_clip_distance() -> Self {
         Self {
             name: "gl_ClipDistance".to_owned(),
+            data_precision: MaterialDataPrecision::Default,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Array(Box::new(MaterialValueType::Scalar), None),
             shader_type: MaterialShaderType::Fragment,
@@ -86,6 +97,7 @@ impl MaterialGraphInput {
     pub fn fs_primitive_id() -> Self {
         Self {
             name: "gl_PrimitiveID".to_owned(),
+            data_precision: MaterialDataPrecision::Default,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Integer,
             shader_type: MaterialShaderType::Fragment,

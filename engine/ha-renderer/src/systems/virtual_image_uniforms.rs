@@ -25,20 +25,29 @@ pub fn ha_virtual_image_uniforms(universe: &mut Universe) {
     {
         if uniforms.dirty {
             let mut changed = 0;
-            for (key, name) in uniforms.iter() {
-                if let Some((owner, image)) = image_mapping.virtual_resource_by_name(name) {
+            for (key, data) in uniforms.iter() {
+                if let Some((owner, image)) =
+                    image_mapping.virtual_resource_by_name(&data.virtual_asset_name)
+                {
                     if let Some(virtual_image) = renderer.virtual_images.get(owner) {
-                        if let Some(rect) = virtual_image.image_uvs(image) {
+                        if let Some((rect, _)) = virtual_image.image_uvs(image) {
                             material.values.insert(
                                 key.to_owned(),
-                                MaterialValue::Sampler2D(ImageInstanceReference::VirtualId {
-                                    owner,
-                                    id: image,
-                                }),
+                                MaterialValue::Sampler2d {
+                                    reference: ImageInstanceReference::VirtualId {
+                                        owner,
+                                        id: image,
+                                    },
+                                    filtering: data.filtering,
+                                },
                             );
                             material.values.insert(
-                                format!("{}Region", key),
-                                MaterialValue::Vec4F(vec4(rect.x, rect.y, rect.w, rect.h)),
+                                format!("{}Offset", key),
+                                MaterialValue::Vec2F(vec2(rect.x, rect.y)),
+                            );
+                            material.values.insert(
+                                format!("{}Size", key),
+                                MaterialValue::Vec2F(vec2(rect.w, rect.h)),
                             );
                             changed += 1;
                         }

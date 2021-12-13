@@ -17,8 +17,8 @@ impl Default for HaCameraFollowConstraints {
 #[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub struct HaCameraFollowBoardEntity {
     pub name: Option<String>,
-    #[serde(default = "HaCameraFollowBoardEntity::default_strength_factor")]
-    pub strength_factor: Scalar,
+    #[serde(default)]
+    pub strength_factor: Option<Scalar>,
     #[serde(default)]
     pub constraints: HaCameraFollowConstraints,
     #[serde(default)]
@@ -29,16 +29,10 @@ impl Default for HaCameraFollowBoardEntity {
     fn default() -> Self {
         Self {
             name: None,
-            strength_factor: Self::default_strength_factor(),
+            strength_factor: None,
             constraints: Default::default(),
             nth: 0,
         }
-    }
-}
-
-impl HaCameraFollowBoardEntity {
-    fn default_strength_factor() -> Scalar {
-        1.0
     }
 }
 

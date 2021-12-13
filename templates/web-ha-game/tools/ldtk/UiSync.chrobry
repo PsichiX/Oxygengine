@@ -15,4 +15,6 @@ HaUserInterfaceSync:
   text_material:
     reference:
       Asset: "%{ $TEXT_MATERIAL }%"
+  image_filtering: Nearest
+  text_filtering: Nearest
 ```

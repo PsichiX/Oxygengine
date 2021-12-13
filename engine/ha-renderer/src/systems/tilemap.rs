@@ -4,7 +4,7 @@ use crate::{
         tilemap_instance::HaTileMapInstance,
     },
     ha_renderer::HaRenderer,
-    image::{ImageId, ImageInstanceReference, VirtualImageSource},
+    image::{ImageFiltering, ImageId, ImageInstanceReference, VirtualImageSource},
     material::{
         common::MaterialValue,
         domains::surface::{tilemap::SurfaceTileMapFactory, SurfaceVertexPT},
@@ -69,7 +69,7 @@ pub fn ha_tilemap_system(universe: &mut Universe) {
                             if factory.write_into(m).is_ok() {
                                 tilemap.dirty = false;
                                 mesh.reference = MeshInstanceReference::Id(*id);
-                                set_material_sampler(material, image_id);
+                                set_material_sampler(material, image_id, tilemap.filtering);
                             }
                         }
                     } else {
@@ -80,7 +80,7 @@ pub fn ha_tilemap_system(universe: &mut Universe) {
                             if let Ok(id) = renderer.add_mesh(m) {
                                 tilemap.dirty = false;
                                 mesh.reference = MeshInstanceReference::Id(id);
-                                set_material_sampler(material, image_id);
+                                set_material_sampler(material, image_id, tilemap.filtering);
                                 cache.meshes.insert(entity, id);
                             }
                         }
@@ -91,9 +91,12 @@ pub fn ha_tilemap_system(universe: &mut Universe) {
     }
 }
 
-fn set_material_sampler(material: &mut HaMaterialInstance, id: ImageId) {
+fn set_material_sampler(material: &mut HaMaterialInstance, id: ImageId, filtering: ImageFiltering) {
     material.values.insert(
         "mainImage".to_owned(),
-        MaterialValue::Sampler2D(ImageInstanceReference::Id(id)),
+        MaterialValue::Sampler2d {
+            reference: ImageInstanceReference::Id(id),
+            filtering,
+        },
     );
 }

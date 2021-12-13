@@ -51,11 +51,11 @@ impl SurfaceTriangles2dFactory {
         if T::has_attribute("textureCoord") {
             let mut texture_coords = Vec::with_capacity(self.triangles.len() * 3);
             for [a, b, c] in &self.triangles {
-                texture_coords.push(a.texture_coord);
-                texture_coords.push(b.texture_coord);
-                texture_coords.push(c.texture_coord);
+                texture_coords.push(a.texture_coord.with_z(0.0));
+                texture_coords.push(b.texture_coord.with_z(0.0));
+                texture_coords.push(c.texture_coord.with_z(0.0));
             }
-            result.vertices_vec2f("textureCoord", &texture_coords, None)?;
+            result.vertices_vec3f("textureCoord", &texture_coords, None)?;
         }
         if T::has_attribute("color") {
             let mut colors = Vec::with_capacity(self.triangles.len() * 3);

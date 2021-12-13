@@ -441,6 +441,7 @@ impl MaterialGraph {
         signature: &MaterialSignature,
         domain: Option<&Self>,
         library: &MaterialLibrary,
+        fragment_high_precision_support: bool,
     ) -> Result<Option<BakedMaterialShaders>, MaterialError> {
         self.prevalidate()?;
         let graph = if let Some(domain) = domain {
@@ -486,6 +487,7 @@ impl MaterialGraph {
                 shader_type: MaterialShaderType::Vertex,
                 signature,
                 library,
+                fragment_high_precision_support,
             });
             match vertex {
                 Ok(vertex) => vertex,
@@ -501,6 +503,7 @@ impl MaterialGraph {
                 shader_type: MaterialShaderType::Fragment,
                 signature,
                 library,
+                fragment_high_precision_support,
             });
             match fragment {
                 Ok(fragment) => fragment,
@@ -525,7 +528,12 @@ impl MaterialGraph {
             .inputs()
             .filter_map(|(_, input)| {
                 if input.data_type == MaterialDataType::Uniform
-                    && input.value_type == MaterialValueType::Sampler2D
+                    && matches!(
+                        input.value_type,
+                        MaterialValueType::Sampler2d
+                            | MaterialValueType::Sampler2dArray
+                            | MaterialValueType::Sampler3d
+                    )
                 {
                     Some(input.name.to_owned())
                 } else {
@@ -846,6 +854,7 @@ impl MaterialGraph {
         shader_type: MaterialShaderType,
         signature: &MaterialSignature,
         library: &MaterialLibrary,
+        fragment_high_precision_support: bool,
     ) -> std::io::Result<()> {
         let mut transfers = HashMap::new();
         for node in self.nodes.values() {
@@ -865,6 +874,12 @@ impl MaterialGraph {
                                     output.write_str(&n.name)?;
                                 } else if let Some(default_value) = &n.default_value {
                                     output.write_str("const ")?;
+                                    output.write_str(
+                                        n.data_precision
+                                            .ensure(fragment_high_precision_support)
+                                            .to_string(),
+                                    )?;
+                                    output.write_space()?;
                                     output.write_str(n.value_type.to_string())?;
                                     output.write_space()?;
                                     output.write_str(&n.name)?;
@@ -872,6 +887,12 @@ impl MaterialGraph {
                                     output.write_str(default_value.to_string())?;
                                 } else {
                                     output.write_str("in ")?;
+                                    output.write_str(
+                                        n.data_precision
+                                            .ensure(fragment_high_precision_support)
+                                            .to_string(),
+                                    )?;
+                                    output.write_space()?;
                                     output.write_str(n.value_type.to_string())?;
                                     output.write_space()?;
                                     output.write_str(&n.name)?;
@@ -881,6 +902,12 @@ impl MaterialGraph {
                             MaterialDataType::Uniform => {
                                 if let Some(default_value) = &n.default_value {
                                     output.write_str("const ")?;
+                                    output.write_str(
+                                        n.data_precision
+                                            .ensure(fragment_high_precision_support)
+                                            .to_string(),
+                                    )?;
+                                    output.write_space()?;
                                     output.write_str(n.value_type.to_string())?;
                                     output.write_space()?;
                                     output.write_str(&n.name)?;
@@ -888,6 +915,12 @@ impl MaterialGraph {
                                     output.write_str(default_value.to_string())?;
                                 } else {
                                     output.write_str("uniform ")?;
+                                    output.write_str(
+                                        n.data_precision
+                                            .ensure(fragment_high_precision_support)
+                                            .to_string(),
+                                    )?;
+                                    output.write_space()?;
                                     output.write_str(n.value_type.to_string())?;
                                     output.write_space()?;
                                     output.write_str(&n.name)?;
@@ -1127,20 +1160,31 @@ impl MaterialCompile<StringBuffer, String, MaterialCompilationState<'_>> for Mat
                 shader_type,
                 signature,
                 library,
+                fragment_high_precision_support,
             } => {
                 output.write_str("#version 300 es\n")?;
                 match shader_type {
-                    MaterialShaderType::Vertex => output.write_str("precision highp float;\n")?,
-                    MaterialShaderType::Fragment => {
-                        output.write_str("#ifdef GL_FRAGMENT_PRECISION_HIGH\n")?;
+                    MaterialShaderType::Vertex => {
                         output.write_str("precision highp float;\n")?;
-                        output.write_str("#else\n")?;
-                        output.write_str("precision mediump float;\n")?;
-                        output.write_str("#endif\n")?;
+                    }
+                    MaterialShaderType::Fragment => {
+                        if fragment_high_precision_support {
+                            output.write_str("precision highp float;\n")?;
+                        } else {
+                            output.write_str("precision mediump float;\n")?;
+                        }
                     }
                     _ => unreachable!(),
                 }
-                self.compile_inputs_outputs(output, shader_type, signature, library)?;
+                output.write_str("precision lowp sampler2DArray;\n")?;
+                output.write_str("precision lowp sampler3D;\n")?;
+                self.compile_inputs_outputs(
+                    output,
+                    shader_type,
+                    signature,
+                    library,
+                    fragment_high_precision_support,
+                )?;
                 output.write_new_line()?;
                 self.compile_functions(output, shader_type, library)?;
                 output.write_new_line()?;

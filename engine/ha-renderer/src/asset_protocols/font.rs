@@ -1,4 +1,4 @@
-use crate::{asset_protocols::image::ImageAsset, math::*};
+use crate::{asset_protocols::image::ImageAsset, image::ImageFiltering, math::*};
 use core::{
     assets::{
         asset::{Asset, AssetId},
@@ -18,6 +18,8 @@ pub struct FontAssetSource {
     pub line_base: usize,
     pub sdf_resolution: usize,
     pub pages: Vec<FontAssetSourcePage>,
+    #[serde(default)]
+    pub filtering: ImageFiltering,
 }
 
 #[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
@@ -45,6 +47,7 @@ pub struct FontAsset {
     pub characters: HashMap<char, FontAssetCharacter>,
     /// [ (page image size, asset id) ]
     pub pages_image_assets: Vec<(Vec2, AssetId)>,
+    pub filtering: ImageFiltering,
 }
 
 #[derive(Debug, Clone)]
@@ -149,6 +152,7 @@ impl AssetProtocol for FontAssetProtocol {
             sdf_resolution: source.sdf_resolution,
             characters,
             pages_image_assets,
+            filtering: source.filtering,
         }))
     }
 

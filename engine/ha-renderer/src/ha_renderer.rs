@@ -705,7 +705,11 @@ impl HaRenderer {
         }
     }
 
-    pub(crate) fn maintain_materials(&mut self, library: &MaterialLibrary) {
+    pub(crate) fn maintain_materials(
+        &mut self,
+        library: &MaterialLibrary,
+        fragment_high_precision_support: bool,
+    ) {
         let context = match self.platform_interface.context() {
             Some(context) => context,
             None => return,
@@ -756,7 +760,12 @@ impl HaRenderer {
                             } else {
                                 None
                             };
-                            let baked = material.graph().unwrap().bake(signature, domain, library);
+                            let baked = material.graph().unwrap().bake(
+                                signature,
+                                domain,
+                                library,
+                                fragment_high_precision_support,
+                            );
                             if let Ok(Some(baked)) = baked {
                                 if let Err(error) =
                                     material.add_version(context, (*signature).to_owned(), baked)
@@ -786,7 +795,12 @@ impl HaRenderer {
                         } else {
                             None
                         };
-                        let baked = material.graph().unwrap().bake(signature, domain, library);
+                        let baked = material.graph().unwrap().bake(
+                            signature,
+                            domain,
+                            library,
+                            fragment_high_precision_support,
+                        );
                         if let Ok(Some(baked)) = baked {
                             if let Err(error) =
                                 material.add_version(context, (*signature).to_owned(), baked)

@@ -1,4 +1,4 @@
-use crate::{asset_protocols::sprite_animation::*, math::*};
+use crate::{asset_protocols::sprite_animation::*, image::ImageFiltering, math::*};
 use core::{
     prefab::{Prefab, PrefabComponent},
     Ignite, Scalar,
@@ -23,6 +23,8 @@ pub struct HaSpriteAnimationInstance {
     #[serde(default)]
     pub values: HashMap<String, SpriteAnimationValue>,
     #[serde(default)]
+    pub filtering: ImageFiltering,
+    #[serde(default)]
     pub(crate) animation: String,
     #[serde(skip)]
     #[ignite(ignore)]
@@ -38,6 +40,7 @@ impl Default for HaSpriteAnimationInstance {
             playing: false,
             speed: Self::default_speed(),
             values: Default::default(),
+            filtering: Default::default(),
             animation: Default::default(),
             active: None,
             frame_changed: false,

@@ -1,4 +1,4 @@
-use crate::{components::HaChangeFrequency, math::*};
+use crate::{components::HaChangeFrequency, image::ImageFiltering, math::*};
 use core::{
     prefab::{Prefab, PrefabComponent},
     Ignite,
@@ -14,6 +14,8 @@ pub struct HaTileMapTile {
 
 #[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
 pub struct HaTileMapInstance {
+    #[serde(default)]
+    pub filtering: ImageFiltering,
     atlas: String,
     cols: usize,
     rows: usize,
@@ -32,6 +34,7 @@ pub struct HaTileMapInstance {
 impl Default for HaTileMapInstance {
     fn default() -> Self {
         Self {
+            filtering: ImageFiltering::default(),
             atlas: Default::default(),
             cols: 0,
             rows: 0,

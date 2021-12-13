@@ -1,8 +1,17 @@
-use crate::ui::components::items::*;
-use oxygengine::user_interface::raui::core::prelude::*;
+use crate::{resources::game_state_info::GameStateInfo, ui::components::items::*};
+use oxygengine::{core::ecs::ResRead, user_interface::raui::core::prelude::*};
 
 pub fn gui(context: WidgetContext) -> WidgetNode {
-    let WidgetContext { key, .. } = context;
+    let WidgetContext {
+        key,
+        process_context,
+        ..
+    } = context;
+
+    let info = match process_context.owned_ref::<ResRead<GameStateInfo>>() {
+        Some(info) => info,
+        None => return Default::default(),
+    };
 
     make_widget!(content_box)
         .key(key)
@@ -10,8 +19,8 @@ pub fn gui(context: WidgetContext) -> WidgetNode {
             make_widget!(heart_items)
                 .key("health")
                 .with_props(ItemsProps {
-                    capacity: 3,
-                    count: 2,
+                    capacity: info.player.health_capacity,
+                    count: info.player.health,
                 })
                 .with_props(ContentBoxItemLayout {
                     anchors: Rect {
@@ -31,10 +40,10 @@ pub fn gui(context: WidgetContext) -> WidgetNode {
         )
         .listed_slot(
             make_widget!(sword_items)
-                .key("strength")
+                .key("weapons")
                 .with_props(ItemsProps {
-                    capacity: 3,
-                    count: 1,
+                    capacity: info.player.weapons_capacity,
+                    count: info.player.weapons,
                 })
                 .with_props(ContentBoxItemLayout {
                     anchors: Rect {

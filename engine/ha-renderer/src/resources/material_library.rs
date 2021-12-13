@@ -1,6 +1,5 @@
 use crate::{
-    builtin_material_function, builtin_material_functions, code_material_function,
-    code_material_functions,
+    builtin_material_functions, code_material_function, code_material_functions,
     material::{
         common::{BakedMaterialShaders, MaterialSignature},
         graph::{function::MaterialFunction, MaterialGraph},
@@ -525,34 +524,44 @@ impl MaterialLibrary {
     }
 
     fn with_texture_functions(mut self) -> Self {
-        self.add_function(builtin_material_function! {
-            fn textureSize(sampler: sampler2D, lod: int) -> ivec2
+        self.add_functions(builtin_material_functions! {
+            {fn textureSize2d(sampler: sampler2D, lod: int) -> ivec2}
+            {fn textureSize2dArray(sampler: sampler2DArray, lod: int) -> ivec3}
+            {fn textureSize3d(sampler: sampler3D, lod: int) -> ivec3}
             { "textureSize" }
         });
-        self.add_function(builtin_material_function! {
-            fn texture(sampler: sampler2D, coord: vec2) -> vec4
+        self.add_functions(builtin_material_functions! {
+            {fn texture2d(sampler: sampler2D, coord: vec2) -> vec4}
+            {fn texture2dArray(sampler: sampler2DArray, coord: vec3) -> vec4}
+            {fn texture3d(sampler: sampler3D, coord: vec3) -> vec4}
             { "texture" }
         });
         self.add_functions(builtin_material_functions! {
-            {fn textureProj_vec3(sampler: sampler2D, coord: vec3) -> vec4}
-            {fn textureProj_vec4(sampler: sampler2D, coord: vec4) -> vec4}
+            {fn textureProj2d_vec3(sampler: sampler2D, coord: vec3) -> vec4}
+            {fn textureProj2d_vec4(sampler: sampler2D, coord: vec4) -> vec4}
+            {fn textureProj3d(sampler: sampler3D, coord: vec4) -> vec4}
             { "textureProj" }
         });
-        self.add_function(builtin_material_function! {
-            fn texelFetch(sampler: sampler2D, coord: ivec2, lod: int) -> vec4
+        self.add_functions(builtin_material_functions! {
+            {fn texelFetch2d(sampler: sampler2D, coord: ivec2, lod: int) -> vec4}
+            {fn texelFetch2dArray(sampler: sampler2DArray, coord: ivec3, lod: int) -> vec4}
+            {fn texelFetch3d(sampler: sampler3D, coord: ivec3, lod: int) -> vec4}
             { "texelFetch" }
         });
         self
     }
 
     fn with_virtual_texture_function(mut self) -> Self {
-        self.add_function(code_material_function! {
-            fn virtual_texture_coord(coord: vec2, region: vec4) -> vec2
-            { "return mix(region.xy, region.xy + region.zw, coord);" }
+        self.add_functions(code_material_functions! {
+            {fn virtualTextureCoord2d(coord: vec2, offset: vec2, size: vec2) -> vec2}
+            {fn virtualTextureCoord3d(coord: vec3, offset: vec3, size: vec3) -> vec3}
+            { "return mix(offset, offset + size, coord);" }
         });
-        self.add_function(code_material_function! {
-            fn virtual_texture(sampler: sampler2D, coord: vec2, region: vec4) -> vec4
-            { "return texture(sampler, mix(region.xy, region.xy + region.zw, coord));" }
+        self.add_functions(code_material_functions! {
+            {fn virtualTexture2d(sampler: sampler2D, coord: vec2, offset: vec2, size: vec2) -> vec4}
+            {fn virtualTexture2dArray(sampler: sampler2DArray, coord: vec3, offset: vec3, size: vec3) -> vec4}
+            {fn virtualTexture3d(sampler: sampler3D, coord: vec3, offset: vec3, size: vec3) -> vec4}
+            { "return texture(sampler, mix(offset, offset + size, coord));" }
         });
         self
     }
@@ -632,6 +641,51 @@ impl MaterialLibrary {
             {fn cast_bool_int(v: bool) -> int}
             {fn cast_float_int(v: float) -> int}
             { "return int(v);" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn cast_vec2_bvec2(v: vec2) -> bvec2}
+            {fn cast_ivec2_bvec2(v: ivec2) -> bvec2}
+            { "return bvec2(v);" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn cast_bvec2_vec2(v: bvec2) -> vec2}
+            {fn cast_ivec2_vec2(v: ivec2) -> vec2}
+            { "return vec2(v);" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn cast_bvec2_ivec2(v: bvec2) -> ivec2}
+            {fn cast_vec2_ivec2(v: vec2) -> ivec2}
+            { "return ivec2(v);" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn cast_vec3_bvec3(v: vec3) -> bvec3}
+            {fn cast_ivec3_bvec3(v: ivec3) -> bvec3}
+            { "return bvec3(v);" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn cast_bvec3_vec3(v: bvec3) -> vec3}
+            {fn cast_ivec3_vec3(v: ivec3) -> vec3}
+            { "return vec3(v);" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn cast_bvec3_ivec3(v: bvec3) -> ivec3}
+            {fn cast_vec3_ivec3(v: vec3) -> ivec3}
+            { "return ivec3(v);" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn cast_vec4_bvec4(v: vec4) -> bvec4}
+            {fn cast_ivec4_bvec4(v: ivec4) -> bvec4}
+            { "return bvec4(v);" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn cast_bvec4_vec4(v: bvec4) -> vec4}
+            {fn cast_ivec4_vec4(v: ivec4) -> vec4}
+            { "return vec4(v);" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn cast_bvec4_ivec4(v: bvec4) -> ivec4}
+            {fn cast_vec4_ivec4(v: vec4) -> ivec4}
+            { "return ivec4(v);" }
         });
         self.add_functions(code_material_functions! {
             {fn cast_mat3_mat2(v: mat3) -> mat2}
@@ -942,7 +996,7 @@ impl MaterialLibrary {
         };
         let signature =
             MaterialSignature::from_objects(vertex_layout, &render_target, Some("test".to_owned()));
-        graph.bake(&signature, Some(domain), &Self::default())
+        graph.bake(&signature, Some(domain), &Self::default(), true)
     }
 
     pub fn assert_validate_material_compilation(
@@ -1094,7 +1148,7 @@ mod tests {
             };
             println!("* material graph text signature: {:#?}", signature);
             let baked = graph
-                .bake(&signature, Some(&domain), &library)
+                .bake(&signature, Some(&domain), &library, true)
                 .unwrap()
                 .unwrap();
             println!("* compiled vertex material graph text:\n{}", baked.vertex);
@@ -1127,7 +1181,10 @@ mod tests {
                 mesh()
                 render_target("outputA")
             };
-            let baked = graph.bake(&signature, None, &library).unwrap().unwrap();
+            let baked = graph
+                .bake(&signature, None, &library, true)
+                .unwrap()
+                .unwrap();
             println!("* VS variant A:\n{}", baked.vertex);
             println!("* FS variant A:\n{}", baked.fragment);
         }
@@ -1136,7 +1193,10 @@ mod tests {
                 mesh()
                 render_target("outputB")
             };
-            let baked = graph.bake(&signature, None, &library).unwrap().unwrap();
+            let baked = graph
+                .bake(&signature, None, &library, true)
+                .unwrap()
+                .unwrap();
             println!("* VS variant B:\n{}", baked.vertex);
             println!("* FS variant B:\n{}", baked.fragment);
         }

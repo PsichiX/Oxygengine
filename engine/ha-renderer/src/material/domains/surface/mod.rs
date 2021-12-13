@@ -26,10 +26,10 @@ pub fn default_surface_flat_color_material_graph() -> MaterialGraph {
     }
 }
 
-pub fn default_surface_flat_texture_material_graph() -> MaterialGraph {
+pub fn default_surface_flat_texture_2d_material_graph() -> MaterialGraph {
     material_graph! {
         inputs {
-            [vertex] domain TextureCoord: vec2 = {vec2(0.0, 0.0)};
+            [vertex] domain TextureCoord: vec3 = {vec3(0.0, 0.0, 0.0)};
             [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
 
             [fragment] uniform mainImage: sampler2D;
@@ -39,15 +39,52 @@ pub fn default_surface_flat_texture_material_graph() -> MaterialGraph {
             [fragment] domain BaseColor: vec4;
         }
 
-        [color = (texture, sampler: mainImage, coord: [TextureCoord => vTexCoord])]
+        [coord = (truncate_vec3, v: [TextureCoord => vTexCoord])]
+        [color = (texture2d, sampler: mainImage, coord: coord)]
         [(mul_vec4, a: color, b: [TintColor => vColor]) -> BaseColor]
     }
 }
 
-pub fn default_surface_flat_sdf_texture_material_graph() -> MaterialGraph {
+pub fn default_surface_flat_texture_2d_array_material_graph() -> MaterialGraph {
     material_graph! {
         inputs {
-            [vertex] domain TextureCoord: vec2 = {vec2(0.0, 0.0)};
+            [vertex] domain TextureCoord: vec3 = {vec3(0.0, 0.0, 0.0)};
+            [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+
+            [fragment] uniform mainImage: sampler2DArray;
+        }
+
+        outputs {
+            [fragment] domain BaseColor: vec4;
+        }
+
+        [color = (texture2dArray, sampler: mainImage, coord: [TextureCoord => vTexCoord])]
+        [(mul_vec4, a: color, b: [TintColor => vColor]) -> BaseColor]
+    }
+}
+
+pub fn default_surface_flat_texture_3d_material_graph() -> MaterialGraph {
+    material_graph! {
+        inputs {
+            [vertex] domain TextureCoord: vec3 = {vec3(0.0, 0.0, 0.0)};
+            [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+
+            [fragment] uniform mainImage: sampler3D;
+        }
+
+        outputs {
+            [fragment] domain BaseColor: vec4;
+        }
+
+        [color = (texture3d, sampler: mainImage, coord: [TextureCoord => vTexCoord])]
+        [(mul_vec4, a: color, b: [TintColor => vColor]) -> BaseColor]
+    }
+}
+
+pub fn default_surface_flat_sdf_texture_2d_material_graph() -> MaterialGraph {
+    material_graph! {
+        inputs {
+            [vertex] domain TextureCoord: vec3 = {vec3(0.0, 0.0, 0.0)};
             [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
 
             // [vertex] in thickness: float = {0.0};
@@ -59,7 +96,8 @@ pub fn default_surface_flat_sdf_texture_material_graph() -> MaterialGraph {
             [fragment] domain BaseColor: vec4;
         }
 
-        [sdf = (texture, sampler: mainImage, coord: [TextureCoord => vTexCoord])]
+        [coord = (truncate_vec3, v: [TextureCoord => vTexCoord])]
+        [sdf = (texture2d, sampler: mainImage, coord: coord)]
         [distance = (maskX_vec4, v: sdf)]
         // [density = (maskY_vec4, v: sdf)]
         // [sharpness = (maskZ_vec4, v: sdf)]
@@ -70,58 +108,38 @@ pub fn default_surface_flat_sdf_texture_material_graph() -> MaterialGraph {
     }
 }
 
-pub fn default_surface_flat_virtual_uniform_texture_material_graph() -> MaterialGraph {
+pub fn default_surface_flat_sdf_texture_2d_array_material_graph() -> MaterialGraph {
     material_graph! {
         inputs {
-            [vertex] domain TextureCoord: vec2 = {vec2(0.0, 0.0)};
+            [vertex] domain TextureCoord: vec3 = {vec3(0.0, 0.0, 0.0)};
             [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
 
-            [fragment] uniform mainImage: sampler2D;
-            [fragment] uniform mainImageRegion: vec4;
+            // [vertex] in thickness: float = {0.0};
+
+            [fragment] uniform mainImage: sampler2DArray;
         }
 
         outputs {
             [fragment] domain BaseColor: vec4;
         }
 
-        [color = (virtual_texture,
-            sampler: mainImage,
-            coord: [TextureCoord => vTexCoord],
-            region: mainImageRegion
-        )]
-        [(mul_vec4, a: color, b: [TintColor => vColor]) -> BaseColor]
-    }
-}
-
-pub fn default_surface_flat_text_material_graph() -> MaterialGraph {
-    material_graph! {
-        inputs {
-            [vertex] domain TextureCoord: vec2 = {vec2(0.0, 0.0)};
-            [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
-
-            [fragment] uniform mainImage: sampler2D;
-        }
-
-        outputs {
-            [fragment] domain BaseColor: vec4;
-        }
-
-        [col = (texture, sampler: mainImage, coord: [TextureCoord => vTexCoord])]
-        [value = (maskW_vec4, v: col)]
+        [sdf = (texture2dArray, sampler: mainImage, coord: [TextureCoord => vTexCoord])]
+        [distance = (maskX_vec4, v: sdf)]
+        // [density = (maskY_vec4, v: sdf)]
+        // [sharpness = (maskZ_vec4, v: sdf)]
+        // [alpha = (maskW_vec4, v: sdf)]
+        [value = (roundEven_float, v: distance)]
         [color = (make_vec4, x: {1.0}, y: {1.0}, z: {1.0}, w: value)]
         [(mul_vec4, a: color, b: [TintColor => vColor]) -> BaseColor]
     }
 }
 
-pub fn default_surface_flat_sdf_text_material_graph() -> MaterialGraph {
+pub fn default_surface_flat_sdf_texture_3d_material_graph() -> MaterialGraph {
     material_graph! {
         inputs {
-            [vertex] domain TextureCoord: vec2 = {vec2(0.0, 0.0)};
+            [vertex] domain TextureCoord: vec3 = {vec3(0.0, 0.0, 0.0)};
             [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
 
-            // (red, green, blue, thickness)
-            // [vertex] in outline: vec4 = {vec4(0.0, 0.0, 0.0, 0.0)};
-            // [vertex] in page: int;
             // [vertex] in thickness: float = {0.0};
 
             [fragment] uniform mainImage: sampler2D;
@@ -131,7 +149,131 @@ pub fn default_surface_flat_sdf_text_material_graph() -> MaterialGraph {
             [fragment] domain BaseColor: vec4;
         }
 
-        [sdf = (texture, sampler: mainImage, coord: [TextureCoord => vTexCoord])]
+        [sdf = (texture3d, sampler: mainImage, coord: [TextureCoord => vTexCoord])]
+        [distance = (maskX_vec4, v: sdf)]
+        // [density = (maskY_vec4, v: sdf)]
+        // [sharpness = (maskZ_vec4, v: sdf)]
+        // [alpha = (maskW_vec4, v: sdf)]
+        [value = (roundEven_float, v: distance)]
+        [color = (make_vec4, x: {1.0}, y: {1.0}, z: {1.0}, w: value)]
+        [(mul_vec4, a: color, b: [TintColor => vColor]) -> BaseColor]
+    }
+}
+
+pub fn default_surface_flat_virtual_uniform_texture_2d_material_graph() -> MaterialGraph {
+    material_graph! {
+        inputs {
+            [vertex] domain TextureCoord: vec3 = {vec3(0.0, 0.0, 0.0)};
+            [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+
+            [fragment] uniform mainImage: sampler2D;
+            [fragment] uniform mainImageOffset: vec2;
+            [fragment] uniform mainImageSize: vec2;
+        }
+
+        outputs {
+            [fragment] domain BaseColor: vec4;
+        }
+
+        [coord = (truncate_vec3, v: [TextureCoord => vTexCoord])]
+        [color = (virtualTexture2d,
+            sampler: mainImage,
+            coord: coord,
+            offset: mainImageOffset,
+            size: mainImageSize
+        )]
+        [(mul_vec4, a: color, b: [TintColor => vColor]) -> BaseColor]
+    }
+}
+
+pub fn default_surface_flat_virtual_uniform_texture_2d_array_material_graph() -> MaterialGraph {
+    material_graph! {
+        inputs {
+            [vertex] domain TextureCoord: vec3 = {vec3(0.0, 0.0, 0.0)};
+            [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+
+            [fragment] uniform mainImage: sampler2DArray;
+            [fragment] uniform mainImageOffset: vec3;
+            [fragment] uniform mainImageSize: vec3;
+        }
+
+        outputs {
+            [fragment] domain BaseColor: vec4;
+        }
+
+        [color = (virtualTexture2dArray,
+            sampler: mainImage,
+            coord: [TextureCoord => vTexCoord],
+            offset: mainImageOffset,
+            size: mainImageSize
+        )]
+        [(mul_vec4, a: color, b: [TintColor => vColor]) -> BaseColor]
+    }
+}
+
+pub fn default_surface_flat_virtual_uniform_texture_3d_material_graph() -> MaterialGraph {
+    material_graph! {
+        inputs {
+            [vertex] domain TextureCoord: vec3 = {vec3(0.0, 0.0, 0.0)};
+            [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+
+            [fragment] uniform mainImage: sampler3D;
+            [fragment] uniform mainImageOffset: vec3;
+            [fragment] uniform mainImageSize: vec3;
+        }
+
+        outputs {
+            [fragment] domain BaseColor: vec4;
+        }
+
+        [color = (virtualTexture3d,
+            sampler: mainImage,
+            coord: [TextureCoord => vTexCoord],
+            offset: mainImageOffset,
+            size: mainImageSize
+        )]
+        [(mul_vec4, a: color, b: [TintColor => vColor]) -> BaseColor]
+    }
+}
+
+pub fn default_surface_flat_text_material_graph() -> MaterialGraph {
+    material_graph! {
+        inputs {
+            [vertex] domain TextureCoord: vec3 = {vec3(0.0, 0.0, 0.0)};
+            [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+
+            [fragment] uniform mainImage: sampler2DArray;
+        }
+
+        outputs {
+            [fragment] domain BaseColor: vec4;
+        }
+
+        [col = (texture2dArray, sampler: mainImage, coord: [TextureCoord => vTexCoord])]
+        [value = (maskW_vec4, v: col)]
+        [color = (make_vec4, x: {1.0}, y: {1.0}, z: {1.0}, w: value)]
+        [(mul_vec4, a: color, b: [TintColor => vColor]) -> BaseColor]
+    }
+}
+
+pub fn default_surface_flat_sdf_text_material_graph() -> MaterialGraph {
+    material_graph! {
+        inputs {
+            [vertex] domain TextureCoord: vec3 = {vec3(0.0, 0.0, 0.0)};
+            [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+
+            // (red, green, blue, thickness)
+            // [vertex] in outline: vec4 = {vec4(0.0, 0.0, 0.0, 0.0)};
+            // [vertex] in thickness: float = {0.0};
+
+            [fragment] uniform mainImage: sampler2DArray;
+        }
+
+        outputs {
+            [fragment] domain BaseColor: vec4;
+        }
+
+        [sdf = (texture2dArray, sampler: mainImage, coord: [TextureCoord => vTexCoord])]
         [distance = (maskX_vec4, v: sdf)]
         // [density = (maskY_vec4, v: sdf)]
         // [sharpness = (maskZ_vec4, v: sdf)]
@@ -155,7 +297,7 @@ pub fn surface_flat_domain_graph() -> MaterialGraph {
 
             [vertex] in position: vec3 = vec3(0.0, 0.0, 0.0);
             [vertex] in normal: vec3 = vec3(0.0, 0.0, 1.0);
-            [vertex] in textureCoord: vec2 = vec2(0.0, 0.0);
+            [vertex] in textureCoord: vec3 = vec3(0.0, 0.0, 0.0);
             [vertex] in color: vec4 = vec4(1.0, 1.0, 1.0, 1.0);
         }
 
@@ -171,7 +313,7 @@ pub fn surface_flat_domain_graph() -> MaterialGraph {
             [vertex] domain LocalNormal: vec3;
             [vertex] domain WorldNormal: vec3;
             [vertex] domain ScreenNormal: vec3;
-            [vertex] domain TextureCoord: vec2;
+            [vertex] domain TextureCoord: vec3;
             [vertex] domain TintColor: vec4;
 
             [vertex] builtin gl_Position: vec4;
@@ -218,24 +360,20 @@ fn default_normal() -> vek::Vec3<f32> {
     vec3(0.0, 0.0, 1.0)
 }
 
-fn default_texture_coord() -> vek::Vec2<f32> {
-    vec2(0.0, 0.0)
+fn default_texture_coord() -> vek::Vec3<f32> {
+    vec3(0.0, 0.0, 0.0)
 }
 
 fn default_color() -> vek::Vec4<f32> {
     vec4(1.0, 1.0, 1.0, 1.0)
 }
 
-fn default_page() -> i32 {
-    0
+fn default_outline() -> vek::Vec4<f32> {
+    vec4(0.0, 0.0, 0.0, 0.0)
 }
 
 fn default_thickness() -> f32 {
     0.0
-}
-
-fn default_outline() -> vek::Vec4<f32> {
-    vec4(0.0, 0.0, 0.0, 0.0)
 }
 
 pub trait SurfaceDomain: VertexType {}
@@ -272,7 +410,7 @@ vertex_type! {
         #[serde(default = "default_position")]
         pub position: vec3 = position(0, bounds),
         #[serde(default = "default_texture_coord")]
-        pub texture_coord: vec2 = textureCoord(0),
+        pub texture_coord: vec3 = textureCoord(0),
     }
 }
 
@@ -287,7 +425,7 @@ vertex_type! {
         #[serde(default = "default_normal")]
         pub normal: vec3 = normal(0, normalized),
         #[serde(default = "default_texture_coord")]
-        pub texture_coord: vec2 = textureCoord(0),
+        pub texture_coord: vec3 = textureCoord(0),
     }
 }
 
@@ -328,7 +466,7 @@ vertex_type! {
         #[serde(default = "default_position")]
         pub position: vec3 = position(0, bounds),
         #[serde(default = "default_texture_coord")]
-        pub texture_coord: vec2 = textureCoord(0),
+        pub texture_coord: vec3 = textureCoord(0),
         #[serde(default = "default_color")]
         pub color: vec4 = color(0),
     }
@@ -347,7 +485,7 @@ vertex_type! {
         #[serde(default = "default_normal")]
         pub normal: vec3 = normal(0, normalized),
         #[serde(default = "default_texture_coord")]
-        pub texture_coord: vec2 = textureCoord(0),
+        pub texture_coord: vec3 = textureCoord(0),
         #[serde(default = "default_color")]
         pub color: vec4 = color(0),
     }
@@ -364,14 +502,12 @@ vertex_type! {
         #[serde(default = "default_position")]
         pub position: vec3 = position(0, bounds),
         #[serde(default = "default_texture_coord")]
-        pub texture_coord: vec2 = textureCoord(0),
+        pub texture_coord: vec3 = textureCoord(0),
         #[serde(default = "default_color")]
         pub color: vec4 = color(0),
         /// (red, green, blue, outline thickness)
         #[serde(default = "default_outline")]
         pub outline: vec4 = outline(0),
-        #[serde(default = "default_page")]
-        pub page: int = page(0),
         #[serde(default = "default_thickness")]
         pub thickness: float = thickness(0),
     }

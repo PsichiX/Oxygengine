@@ -105,10 +105,16 @@ use crate::{
             surface::{
                 default_surface_flat_color_material_graph,
                 default_surface_flat_sdf_text_material_graph,
-                default_surface_flat_sdf_texture_material_graph,
+                default_surface_flat_sdf_texture_2d_array_material_graph,
+                default_surface_flat_sdf_texture_2d_material_graph,
+                default_surface_flat_sdf_texture_3d_material_graph,
                 default_surface_flat_text_material_graph,
-                default_surface_flat_texture_material_graph,
-                default_surface_flat_virtual_uniform_texture_material_graph,
+                default_surface_flat_texture_2d_array_material_graph,
+                default_surface_flat_texture_2d_material_graph,
+                default_surface_flat_texture_3d_material_graph,
+                default_surface_flat_virtual_uniform_texture_2d_array_material_graph,
+                default_surface_flat_virtual_uniform_texture_2d_material_graph,
+                default_surface_flat_virtual_uniform_texture_3d_material_graph,
                 quad::SurfaceQuadFactory, surface_flat_domain_graph,
             },
         },
@@ -706,29 +712,83 @@ pub fn protocols_installer(database: &mut AssetsDatabase) {
     ));
     database.insert(Asset::new(
         "material",
-        "@material/graph/surface/flat/texture",
+        "@material/graph/surface/flat/texture-2d",
         Box::new(MaterialAsset::Graph {
             default_values: Default::default(),
             draw_options: MaterialDrawOptions::transparent(),
-            content: default_surface_flat_texture_material_graph(),
+            content: default_surface_flat_texture_2d_material_graph(),
         }),
     ));
     database.insert(Asset::new(
         "material",
-        "@material/graph/surface/flat/sdf-texture",
+        "@material/graph/surface/flat/texture-2d-array",
         Box::new(MaterialAsset::Graph {
             default_values: Default::default(),
             draw_options: MaterialDrawOptions::transparent(),
-            content: default_surface_flat_sdf_texture_material_graph(),
+            content: default_surface_flat_texture_2d_array_material_graph(),
         }),
     ));
     database.insert(Asset::new(
         "material",
-        "@material/graph/surface/flat/virtual-uniform-texture",
+        "@material/graph/surface/flat/texture-3d",
         Box::new(MaterialAsset::Graph {
             default_values: Default::default(),
             draw_options: MaterialDrawOptions::transparent(),
-            content: default_surface_flat_virtual_uniform_texture_material_graph(),
+            content: default_surface_flat_texture_3d_material_graph(),
+        }),
+    ));
+    database.insert(Asset::new(
+        "material",
+        "@material/graph/surface/flat/sdf-texture-2d",
+        Box::new(MaterialAsset::Graph {
+            default_values: Default::default(),
+            draw_options: MaterialDrawOptions::transparent(),
+            content: default_surface_flat_sdf_texture_2d_material_graph(),
+        }),
+    ));
+    database.insert(Asset::new(
+        "material",
+        "@material/graph/surface/flat/sdf-texture-2d-array",
+        Box::new(MaterialAsset::Graph {
+            default_values: Default::default(),
+            draw_options: MaterialDrawOptions::transparent(),
+            content: default_surface_flat_sdf_texture_2d_array_material_graph(),
+        }),
+    ));
+    database.insert(Asset::new(
+        "material",
+        "@material/graph/surface/flat/sdf-texture-3d",
+        Box::new(MaterialAsset::Graph {
+            default_values: Default::default(),
+            draw_options: MaterialDrawOptions::transparent(),
+            content: default_surface_flat_sdf_texture_3d_material_graph(),
+        }),
+    ));
+    database.insert(Asset::new(
+        "material",
+        "@material/graph/surface/flat/virtual-uniform-texture-2d",
+        Box::new(MaterialAsset::Graph {
+            default_values: Default::default(),
+            draw_options: MaterialDrawOptions::transparent(),
+            content: default_surface_flat_virtual_uniform_texture_2d_material_graph(),
+        }),
+    ));
+    database.insert(Asset::new(
+        "material",
+        "@material/graph/surface/flat/virtual-uniform-texture-2d-array",
+        Box::new(MaterialAsset::Graph {
+            default_values: Default::default(),
+            draw_options: MaterialDrawOptions::transparent(),
+            content: default_surface_flat_virtual_uniform_texture_2d_array_material_graph(),
+        }),
+    ));
+    database.insert(Asset::new(
+        "material",
+        "@material/graph/surface/flat/virtual-uniform-texture-3d",
+        Box::new(MaterialAsset::Graph {
+            default_values: Default::default(),
+            draw_options: MaterialDrawOptions::transparent(),
+            content: default_surface_flat_virtual_uniform_texture_3d_material_graph(),
         }),
     ));
     database.insert(Asset::new(

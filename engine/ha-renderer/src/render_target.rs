@@ -1,5 +1,6 @@
 use crate::{
-    ha_renderer::RenderStageResources, pipeline::stage::ClearSettings, HasContextResources,
+    ha_renderer::RenderStageResources, image::ImageMipmap, pipeline::stage::ClearSettings,
+    HasContextResources,
 };
 use core::{id::ID, Ignite, Scalar};
 use glow::*;
@@ -14,7 +15,7 @@ pub enum RenderTargetError {
     Internal(String),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TargetValueType {
     Color,
     FloatColor,
@@ -33,7 +34,30 @@ pub struct TargetBuffer {
     #[serde(default)]
     pub value_type: TargetValueType,
     #[serde(default)]
-    pub mipmap: bool,
+    pub mipmap: ImageMipmap,
+}
+
+impl TargetBuffer {
+    pub fn color(id: impl ToString) -> Self {
+        Self {
+            id: id.to_string(),
+            value_type: TargetValueType::Color,
+            mipmap: Default::default(),
+        }
+    }
+
+    pub fn float_color(id: impl ToString) -> Self {
+        Self {
+            id: id.to_string(),
+            value_type: TargetValueType::FloatColor,
+            mipmap: Default::default(),
+        }
+    }
+
+    pub fn mipmap(mut self, mipmap: ImageMipmap) -> Self {
+        self.mipmap = mipmap;
+        self
+    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -226,7 +250,7 @@ impl RenderTargetDescriptor {
             buffers: TargetBuffers::default().with_color(TargetBuffer {
                 id: color_name.to_string(),
                 value_type: TargetValueType::Color,
-                mipmap: false,
+                mipmap: Default::default(),
             })?,
             width: RenderTargetSizeValue::default(),
             height: RenderTargetSizeValue::default(),
@@ -243,7 +267,7 @@ impl RenderTargetDescriptor {
                 .with_color(TargetBuffer {
                     id: color_name.to_string(),
                     value_type: TargetValueType::Color,
-                    mipmap: false,
+                    mipmap: Default::default(),
                 })?,
             width: RenderTargetSizeValue::default(),
             height: RenderTargetSizeValue::default(),
@@ -364,6 +388,9 @@ impl HasContextResources<Context> for RenderTarget {
                             UNSIGNED_BYTE,
                             None,
                         );
+                        if let ImageMipmap::Generate(Some(limit)) = buffer.mipmap {
+                            context.tex_parameter_i32(TEXTURE_2D, TEXTURE_MAX_LEVEL, limit as i32);
+                        }
                     }
                     TargetValueType::FloatColor => {
                         context.tex_image_2d(
@@ -383,8 +410,8 @@ impl HasContextResources<Context> for RenderTarget {
                 context.tex_parameter_i32(TEXTURE_2D, TEXTURE_MAG_FILTER, NEAREST as _);
                 context.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_S, CLAMP_TO_EDGE as _);
                 context.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_T, CLAMP_TO_EDGE as _);
-                context.bind_texture(TEXTURE_2D, None);
             }
+            context.bind_texture(TEXTURE_2D, None);
 
             context.bind_framebuffer(FRAMEBUFFER, Some(buffer_handle));
             context.framebuffer_texture_2d(
@@ -457,7 +484,7 @@ impl RenderTarget {
                 .with_color(TargetBuffer {
                     id: "finalColor".to_owned(),
                     value_type: TargetValueType::Color,
-                    mipmap: false,
+                    mipmap: Default::default(),
                 })?,
             cached_width: 0,
             cached_height: 0,
@@ -537,7 +564,6 @@ impl RenderTarget {
     pub(crate) fn render<F>(
         &self,
         context: &Context,
-        // viewport: &HaCameraViewport,
         clear_settings: ClearSettings,
         f: F,
     ) -> Result<(), RenderTargetError>
@@ -553,6 +579,8 @@ impl RenderTarget {
         }
         unsafe {
             context.viewport(0, 0, self.cached_width as _, self.cached_height as _);
+            context.color_mask(true, true, true, true);
+            context.depth_mask(true);
             let mut mask = 0;
             if let Some(color) = clear_settings.color {
                 context.clear_color(color.r as _, color.g as _, color.b as _, color.a as _);
@@ -575,7 +603,9 @@ impl RenderTarget {
                 .iter()
                 .zip(self.buffers.colors.iter())
             {
-                if buffer.mipmap {
+                if let (TargetValueType::Color, ImageMipmap::Generate(_)) =
+                    (buffer.value_type, buffer.mipmap)
+                {
                     unsafe {
                         context.bind_texture(TEXTURE_2D, Some(*handle));
                         context.generate_mipmap(TEXTURE_2D);

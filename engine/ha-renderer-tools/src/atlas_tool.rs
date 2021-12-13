@@ -1,7 +1,6 @@
 use oxygengine_build_tools::AssetPipelineInput;
 use oxygengine_ha_renderer::{
     asset_protocols::{atlas::*, image::*},
-    image::*,
     math::*,
 };
 use serde::Deserialize;
@@ -20,8 +19,6 @@ struct Params {
     pub output: PathBuf,
     #[serde(default)]
     pub assets_path_prefix: String,
-    #[serde(default)]
-    pub image_filtering: ImageFiltering,
     #[serde(default = "Params::default_max_width")]
     pub max_width: u32,
     #[serde(default = "Params::default_max_height")]
@@ -108,11 +105,8 @@ fn main() -> Result<(), Error> {
                         )
                     });
                 let asset = ImageAssetSource::Png {
-                    bytes_path: format!("{}{}.{}.png", params.assets_path_prefix, name, i),
-                    descriptor: ImageDescriptor {
-                        filtering: params.image_filtering,
-                        ..Default::default()
-                    },
+                    bytes_paths: vec![format!("{}{}.{}.png", params.assets_path_prefix, name, i)],
+                    descriptor: Default::default(),
                 };
                 let path = output.join(&name).with_extension(&format!("{}.yaml", i));
                 write(
@@ -136,11 +130,14 @@ fn main() -> Result<(), Error> {
                     .map(|(id, frame)| {
                         (
                             id.to_owned(),
-                            Rect {
-                                x: frame.frame.x as _,
-                                y: frame.frame.y as _,
-                                w: frame.frame.w as _,
-                                h: frame.frame.h as _,
+                            AtlasRegion {
+                                rect: Rect {
+                                    x: frame.frame.x as _,
+                                    y: frame.frame.y as _,
+                                    w: frame.frame.w as _,
+                                    h: frame.frame.h as _,
+                                },
+                                layer: 0,
                             },
                         )
                     })

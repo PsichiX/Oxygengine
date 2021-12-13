@@ -18,6 +18,7 @@ use crate::{
         death::{death_system, DeathSystemResources},
         player_combat::{player_combat_system, PlayerCombatSystemResources},
         player_movement::{player_movement_system, PlayerMovementSystemResources},
+        sync_game_state_info::{sync_game_state_info_system, SyncGameStateInfoSystemResources},
     },
 };
 use oxygengine::prelude::*;
@@ -69,8 +70,6 @@ pub fn main_js() -> Result<(), JsValue> {
                 make_board_settings(),
             )
             .unwrap()
-            .with_resource(WebStorageEngine)
-            .with_resource(GameStateInfo::default())
             .with_system::<PlayerMovementSystemResources>(
                 "player-movement",
                 player_movement_system,
@@ -87,6 +86,14 @@ pub fn main_js() -> Result<(), JsValue> {
             .unwrap()
             .with_system::<DeathSystemResources>("death", death_system, &[])
             .unwrap()
+            .with_system::<SyncGameStateInfoSystemResources>(
+                "sync-game-state-info",
+                sync_game_state_info_system,
+                &[],
+            )
+            .unwrap()
+            .with_resource(WebStorageEngine)
+            .with_resource(GameStateInfo::default())
             .build::<SequencePipelineEngine, _, _>(LoadingState::default(), WebAppTimer::default());
 
     AppRunner::new(app).run(WebAppRunner)?;
@@ -164,15 +171,25 @@ fn make_renderer() -> Result<HaRendererBundleSetup, JsValue> {
         "default",
         PipelineDescriptor::default()
             .render_target("main", RenderTargetDescriptor::Main)
-            // .render_target(
-            //     "buffer",
-            //     RenderTargetDescriptor::simple("finalColor")
-            //         .map_err(|error| JsValue::from(format!("{:?}", error)))?,
-            // )
+            .render_target(
+                "buffer",
+                RenderTargetDescriptor::Custom {
+                    buffers: TargetBuffers::default()
+                        .with_color(TargetBuffer::color("finalColor"))
+                        .map_err(|error| JsValue::from(format!("{:?}", error)))?,
+                    width: RenderTargetSizeValue::ScreenAspectHeight {
+                        value: 144,
+                        round_up: true,
+                    },
+                    height: RenderTargetSizeValue::ScreenAspectHeight {
+                        value: 144,
+                        round_up: true,
+                    },
+                },
+            )
             .stage(
                 StageDescriptor::new("forward")
-                    // .render_target("buffer")
-                    .render_target("main")
+                    .render_target("buffer")
                     .domain("@material/domain/surface/flat")
                     .clear_settings(ClearSettings {
                         color: Some(Rgba::gray(0.2)),
@@ -180,11 +197,11 @@ fn make_renderer() -> Result<HaRendererBundleSetup, JsValue> {
                         stencil: false,
                     }),
             )
-            // .stage(
-            //     StageDescriptor::new("postprocess")
-            //         .render_target("main")
-            //         .domain("@material/domain/screenspace"),
-            // )
+            .stage(
+                StageDescriptor::new("postprocess")
+                    .render_target("main")
+                    .domain("@material/domain/screenspace"),
+            )
             .debug_stage(
                 StageDescriptor::new("gizmos")
                     .render_target("main")

@@ -58,8 +58,8 @@ pub fn dialogue(context: WidgetContext) -> WidgetNode {
                         b: 1.0,
                         a: 1.0,
                     },
-                    horizontal_align: TextBoxHorizontalAlign::Center,
-                    vertical_align: TextBoxVerticalAlign::Middle,
+                    // horizontal_align: TextBoxHorizontalAlign::Center,
+                    // vertical_align: TextBoxVerticalAlign::Middle,
                     ..Default::default()
                 })
                 .with_props(ContentBoxItemLayout {

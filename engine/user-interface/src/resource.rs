@@ -133,6 +133,16 @@ impl UserInterface {
     }
 
     #[inline]
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &ApplicationData)> {
+        self.data.iter().map(|(n, d)| (n.as_str(), d))
+    }
+
+    #[inline]
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&str, &mut ApplicationData)> {
+        self.data.iter_mut().map(|(n, d)| (n.as_str(), d))
+    }
+
+    #[inline]
     pub fn get(&self, app_id: &str) -> Option<&ApplicationData> {
         self.data.get(app_id)
     }

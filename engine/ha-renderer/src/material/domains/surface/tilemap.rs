@@ -79,13 +79,13 @@ impl SurfaceTileMapFactory {
         }
         result.vertices_vec3f("position", &position, None)?;
         let mut texture_coord = Vec::with_capacity(vertex_count);
-        for (_, uvs) in &tiles {
-            texture_coord.push(vec2(uvs.x, uvs.y));
-            texture_coord.push(vec2(uvs.x + uvs.w, uvs.y));
-            texture_coord.push(vec2(uvs.x + uvs.w, uvs.y + uvs.h));
-            texture_coord.push(vec2(uvs.x, uvs.y + uvs.h));
+        for (_, (uvs, layer)) in &tiles {
+            texture_coord.push(vec3(uvs.x, uvs.y, *layer as _));
+            texture_coord.push(vec3(uvs.x + uvs.w, uvs.y, *layer as _));
+            texture_coord.push(vec3(uvs.x + uvs.w, uvs.y + uvs.h, *layer as _));
+            texture_coord.push(vec3(uvs.x, uvs.y + uvs.h, *layer as _));
         }
-        result.vertices_vec2f("textureCoord", &texture_coord, None)?;
+        result.vertices_vec3f("textureCoord", &texture_coord, None)?;
         let mut triangles = Vec::with_capacity(triangles_count);
         for i in 0..count {
             let i = i * 4;

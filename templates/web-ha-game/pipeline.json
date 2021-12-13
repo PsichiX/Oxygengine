@@ -20,7 +20,6 @@
                 "input_directories": ["atlases/ui"],
                 "output": "atlases/",
                 "assets_path_prefix": "atlases/",
-                "image_filtering": "Nearest",
                 "max_width": 64,
                 "max_height": 64
               }

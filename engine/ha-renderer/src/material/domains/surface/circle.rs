@@ -63,11 +63,11 @@ impl SurfaceCircleFactory {
             )?;
         }
         if T::has_attribute("textureCoord") {
-            result.vertices_vec2f(
+            result.vertices_vec3f(
                 "textureCoord",
                 &tangents
                     .into_iter()
-                    .map(|(x, y)| vec2((x + 1.0) * 0.5, (y + 1.0) * 0.5))
+                    .map(|(x, y)| vec3((x + 1.0) * 0.5, (y + 1.0) * 0.5, 0.0))
                     .collect::<Vec<_>>(),
                 None,
             )?;

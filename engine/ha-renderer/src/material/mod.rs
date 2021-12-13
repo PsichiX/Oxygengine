@@ -85,13 +85,14 @@ pub type MaterialResourceMapping = ResourceMapping<Material>;
 type CompilationResultValue = (
     <Context as HasContext>::Program,
     HashMap<String, (<Context as HasContext>::UniformLocation, MaterialValueType)>,
+    HashMap<String, <Context as HasContext>::Sampler>,
 );
 
 #[derive(Debug)]
 pub struct MaterialResourceHandles {
     pub program: <Context as HasContext>::Program,
     pub uniforms: HashMap<String, (<Context as HasContext>::UniformLocation, MaterialValueType)>,
-    pub samplers: Vec<String>,
+    pub samplers: HashMap<String, <Context as HasContext>::Sampler>,
 }
 
 #[cfg(feature = "web")]
@@ -218,14 +219,18 @@ impl HasContextResources<Context> for Material {
         self.context_release(context)?;
         let mut handles = HashMap::with_capacity(self.versions.len());
         for (signature, baked) in &self.versions {
-            let (program, uniforms) = Self::compile_program(context, baked)?;
+            let (program, uniforms, samplers) = Self::compile_program(context, baked)?;
             for (i, name) in baked.samplers.iter().enumerate() {
                 if let Some((location, value_type)) = uniforms.get(name) {
-                    if value_type == &MaterialValueType::Sampler2D {
+                    if matches!(
+                        value_type,
+                        MaterialValueType::Sampler2d
+                            | MaterialValueType::Sampler2dArray
+                            | MaterialValueType::Sampler3d
+                    ) {
                         unsafe {
                             context.uniform_1_i32(Some(location), i as i32);
                             context.active_texture(TEXTURE0 + i as u32);
-                            context.bind_texture(TEXTURE_2D, None);
                         }
                     }
                 }
@@ -235,7 +240,7 @@ impl HasContextResources<Context> for Material {
                 MaterialResourceHandles {
                     program,
                     uniforms,
-                    samplers: baked.samplers.to_owned(),
+                    samplers,
                 },
             );
         }
@@ -248,6 +253,9 @@ impl HasContextResources<Context> for Material {
             unsafe {
                 for handles in resources.0.values() {
                     context.delete_program(handles.program);
+                    for handle in handles.samplers.values() {
+                        context.delete_sampler(*handle);
+                    }
                 }
             }
         }
@@ -463,12 +471,38 @@ impl Material {
                 }
                 Ok(())
             }
-            MaterialValue::Sampler2D(reference) => {
+            MaterialValue::Sampler2d {
+                reference,
+                filtering,
+            }
+            | MaterialValue::Sampler2dArray {
+                reference,
+                filtering,
+            }
+            | MaterialValue::Sampler3d {
+                reference,
+                filtering,
+            } => {
                 if let Some(handle) = render_stage_resources.image_handle_by_ref(reference) {
-                    if let Some(index) = handles.samplers.iter().position(|n| n == name) {
+                    if let Some((index, sampler)) = handles
+                        .samplers
+                        .iter()
+                        .enumerate()
+                        .find_map(|(i, (n, h))| if n == name { Some((i, h)) } else { None })
+                    {
                         unsafe {
+                            let (min, mag) = filtering.as_gl();
+                            let gl_mode = match value {
+                                MaterialValue::Sampler2d { .. } => TEXTURE_2D,
+                                MaterialValue::Sampler2dArray { .. } => TEXTURE_2D_ARRAY,
+                                MaterialValue::Sampler3d { .. } => TEXTURE_3D,
+                                _ => unreachable!(),
+                            };
+                            context.sampler_parameter_i32(*sampler, TEXTURE_MIN_FILTER, min as _);
+                            context.sampler_parameter_i32(*sampler, TEXTURE_MAG_FILTER, mag as _);
                             context.active_texture(TEXTURE0 + index as u32);
-                            context.bind_texture(TEXTURE_2D, Some(handle));
+                            context.bind_texture(gl_mode, Some(handle));
+                            context.bind_sampler(index as u32, Some(*sampler));
                             render_stats.sampler_changes += 1;
                         }
                     }
@@ -485,20 +519,27 @@ impl Material {
         context: &Context,
         baked: &BakedMaterialShaders,
     ) -> Result<CompilationResultValue, MaterialError> {
-        let vertex_shader_handle = match unsafe { context.create_shader(VERTEX_SHADER) } {
-            Ok(handle) => handle,
-            Err(error) => return Err(MaterialError::Internal(error)),
-        };
-        let fragment_shader_handle = match unsafe { context.create_shader(FRAGMENT_SHADER) } {
-            Ok(handle) => handle,
-            Err(error) => return Err(MaterialError::Internal(error)),
-        };
-        let program_handle = match unsafe { context.create_program() } {
-            Ok(handle) => handle,
-            Err(error) => return Err(MaterialError::Internal(error)),
-        };
-
         unsafe {
+            let vertex_shader_handle = match context.create_shader(VERTEX_SHADER) {
+                Ok(handle) => handle,
+                Err(error) => return Err(MaterialError::Internal(error)),
+            };
+            let fragment_shader_handle = match context.create_shader(FRAGMENT_SHADER) {
+                Ok(handle) => handle,
+                Err(error) => {
+                    context.delete_shader(vertex_shader_handle);
+                    return Err(MaterialError::Internal(error));
+                }
+            };
+            let program_handle = match context.create_program() {
+                Ok(handle) => handle,
+                Err(error) => {
+                    context.delete_shader(vertex_shader_handle);
+                    context.delete_shader(fragment_shader_handle);
+                    return Err(MaterialError::Internal(error));
+                }
+            };
+
             context.shader_source(vertex_shader_handle, &baked.vertex);
             context.shader_source(fragment_shader_handle, &baked.fragment);
             context.compile_shader(vertex_shader_handle);
@@ -524,6 +565,7 @@ impl Material {
             context.delete_shader(vertex_shader_handle);
             context.delete_shader(fragment_shader_handle);
             if vertex_errors.is_some() || fragment_errors.is_some() || link_errors.is_some() {
+                context.delete_program(program_handle);
                 return Err(MaterialError::ShaderCompilation {
                     vertex_errors,
                     fragment_errors,
@@ -538,7 +580,16 @@ impl Material {
                     uniforms.insert(name.to_owned(), (location, value_type.to_owned()));
                 }
             }
-            Ok((program_handle, uniforms))
+            let mut samplers = HashMap::with_capacity(baked.samplers.len());
+            for name in &baked.samplers {
+                if let Ok(handle) = context.create_sampler() {
+                    context.sampler_parameter_i32(handle, TEXTURE_WRAP_S, CLAMP_TO_EDGE as _);
+                    context.sampler_parameter_i32(handle, TEXTURE_WRAP_T, CLAMP_TO_EDGE as _);
+                    context.sampler_parameter_i32(handle, TEXTURE_WRAP_R, CLAMP_TO_EDGE as _);
+                    samplers.insert(name.to_owned(), handle);
+                }
+            }
+            Ok((program_handle, uniforms, samplers))
         }
     }
 
@@ -557,13 +608,13 @@ impl Material {
             Some(resources) => resources,
             None => return Err(MaterialError::NoResources),
         };
-        let (program, uniforms) = Self::compile_program(context, &baked)?;
+        let (program, uniforms, samplers) = Self::compile_program(context, &baked)?;
         resources.0.insert(
             signature,
             MaterialResourceHandles {
                 program,
                 uniforms,
-                samplers: baked.samplers,
+                samplers,
             },
         );
         Ok(())
@@ -586,6 +637,23 @@ impl Material {
             unsafe { context.delete_program(handles.program) };
         }
         Ok(())
+    }
+
+    pub(crate) fn query_is_high_precision_supported_in_fragment_shader(context: &Context) -> bool {
+        unsafe {
+            let fragment_shader_handle = match context.create_shader(FRAGMENT_SHADER) {
+                Ok(shader) => shader,
+                Err(_) => return false,
+            };
+            context.shader_source(
+                fragment_shader_handle,
+                "#version 300 es\nprecision highp float;\nvoid main() {}\n",
+            );
+            context.compile_shader(fragment_shader_handle);
+            let status = context.get_shader_compile_status(fragment_shader_handle);
+            context.delete_shader(fragment_shader_handle);
+            status
+        }
     }
 }
 
@@ -655,7 +723,13 @@ macro_rules! material_value_type {
         $crate::material::common::MaterialValueType::Mat4I
     };
     (sampler2D) => {
-        $crate::material::common::MaterialValueType::Sampler2D
+        $crate::material::common::MaterialValueType::Sampler2d
+    };
+    (sampler2DArray) => {
+        $crate::material::common::MaterialValueType::Sampler2dArray
+    };
+    (sampler3D) => {
+        $crate::material::common::MaterialValueType::Sampler3d
     };
     ([ $ty:ident ; $count:literal ]) => {
         $crate::material::common::MaterialValueType::Array(
@@ -669,6 +743,9 @@ macro_rules! material_value_type {
             None,
         )
     };
+    ({ $ty:expr }) => {{
+        $ty
+    }};
 }
 
 #[macro_export]
@@ -819,11 +896,28 @@ macro_rules! material_graph_input {
     (domain) => {
         $crate::material::common::MaterialDataType::Domain
     };
+    (defaultp) => {
+        $crate::material::common::MaterialDataPrecision::Default
+    };
+    (lowp) => {
+        $crate::material::common::MaterialDataPrecision::Low
+    };
+    (mediump) => {
+        $crate::material::common::MaterialDataPrecision::Medium
+    };
+    (highp) => {
+        $crate::material::common::MaterialDataPrecision::High
+    };
     (
         $( [ $shader_type:ident ] )?
-        $data_type:ident $name:ident : $value_type:tt $( = $default_value:expr )?
+        $data_type:ident $name:ident : $value_type:tt $( @ $data_precision:ident )? $( = $default_value:expr )?
     ) => {
         {
+            #[allow(unused_assignments, unused_mut)]
+            let mut data_precision = $crate::material::common::MaterialDataPrecision::Default;
+            $(
+                data_precision = $crate::material_graph_input!($data_precision);
+            )?
             #[allow(unused_assignments, unused_mut)]
             let mut shader_type = $crate::material::common::MaterialShaderType::Undefined;
             $(
@@ -836,6 +930,7 @@ macro_rules! material_graph_input {
             )?
             $crate::material::graph::node::MaterialGraphInput {
                 name: stringify!($name).to_owned(),
+                data_precision,
                 data_type: $crate::material_graph_input!($data_type),
                 value_type: $crate::material_value_type!($value_type),
                 shader_type,
@@ -886,6 +981,7 @@ macro_rules! material_graph {
             $(
                 $( [ $in_shader_type:ident ] )?
                 $in_data_type:ident $in_name:ident : $in_value_type:tt
+                $( @ $in_data_precision:ident )?
                 $( = $in_default_value:expr )?;
             )*
         }
@@ -907,6 +1003,7 @@ macro_rules! material_graph {
                 let $in_name = ___graph.add_node($crate::material_graph_input! {
                     $( [ $in_shader_type ] )?
                     $in_data_type $in_name : $in_value_type
+                    $( @ $in_data_precision )?
                     $( = $in_default_value )?
                 });
             )*
@@ -955,7 +1052,7 @@ macro_rules! material_graph {
             )
         }
     };
-    ( @expression ( $name:ident $( , $param_name:ident : $param_value:tt )* ), $graph:expr ) => {
+    ( @expression ( $name:tt $( , $param_name:ident : $param_value:tt )* ), $graph:expr ) => {
         {
             let mut ___connections = std::collections::HashMap::<
                 String,
@@ -969,7 +1066,7 @@ macro_rules! material_graph {
             )*
             $graph.add_node(
                 $crate::material::graph::node::MaterialGraphOperation::new_connected(
-                    stringify!($name).to_owned(),
+                    $crate::material_graph!(@name $name),
                     ___connections,
                 ).into()
             )
@@ -977,5 +1074,11 @@ macro_rules! material_graph {
     };
     (@expression $node:ident, $graph:expr) => {
         $node
+    };
+    (@name $name:ident) => {
+        stringify!($name).to_owned()
+    };
+    (@name {$name:expr}) => {
+        {$name.to_string()}
     };
 }

@@ -56,12 +56,6 @@ impl SurfaceTextFactory {
                 "outline".to_owned(),
             ));
         }
-        if !T::has_attribute("page") {
-            return Err(MeshError::MissingRequiredLayoutAttribute(
-                vertex_layout,
-                "page".to_owned(),
-            ));
-        }
         if !T::has_attribute("thickness") {
             return Err(MeshError::MissingRequiredLayoutAttribute(
                 vertex_layout,
@@ -216,15 +210,24 @@ impl SurfaceTextFactory {
         result.vertices_vec3f("position", &positions, None)?;
         let mut texture_coords = Vec::with_capacity(vertex_count);
         for glyph in lines.iter().flat_map(|(_, glyphs)| glyphs) {
-            texture_coords.push(Vec2::new(glyph.uvs.x, glyph.uvs.y));
-            texture_coords.push(Vec2::new(glyph.uvs.x + glyph.uvs.w, glyph.uvs.y));
-            texture_coords.push(Vec2::new(
+            texture_coords.push(Vec3::new(glyph.uvs.x, glyph.uvs.y, glyph.page as _));
+            texture_coords.push(Vec3::new(
+                glyph.uvs.x + glyph.uvs.w,
+                glyph.uvs.y,
+                glyph.page as _,
+            ));
+            texture_coords.push(Vec3::new(
                 glyph.uvs.x + glyph.uvs.w,
                 glyph.uvs.y + glyph.uvs.h,
+                glyph.page as _,
             ));
-            texture_coords.push(Vec2::new(glyph.uvs.x, glyph.uvs.y + glyph.uvs.h));
+            texture_coords.push(Vec3::new(
+                glyph.uvs.x,
+                glyph.uvs.y + glyph.uvs.h,
+                glyph.page as _,
+            ));
         }
-        result.vertices_vec2f("textureCoord", &texture_coords, None)?;
+        result.vertices_vec3f("textureCoord", &texture_coords, None)?;
         let mut colors = Vec::with_capacity(vertex_count);
         for glyph in lines.iter().flat_map(|(_, glyphs)| glyphs) {
             colors.push(glyph.color.into());
@@ -241,14 +244,6 @@ impl SurfaceTextFactory {
             outlines.push(glyph.outline.into());
         }
         result.vertices_vec4f("outline", &outlines, None)?;
-        let mut pages = Vec::with_capacity(vertex_count);
-        for glyph in lines.iter().flat_map(|(_, glyphs)| glyphs) {
-            pages.push(glyph.page as _);
-            pages.push(glyph.page as _);
-            pages.push(glyph.page as _);
-            pages.push(glyph.page as _);
-        }
-        result.vertices_integer("page", &pages, None)?;
         let indices = (0..triangle_count)
             .map(|index| {
                 let i = 4 * (index / 2) as u32;

@@ -15,7 +15,7 @@ pub fn avatar_material_graph() -> MaterialGraph {
             [fragment] domain BaseColor: vec4;
         }
 
-        [textureColor = (texture, sampler: mainImage, coord: [TextureCoord => vTexCoord])]
+        [textureColor = (texture2d, sampler: mainImage, coord: [TextureCoord => vTexCoord])]
         [originalColor = (mul_vec4, a: textureColor, b: [TintColor => vColor])]
         [originalRgb = (truncate_vec4, v: originalColor)]
         [alpha = (maskW_vec4, v: originalColor)]

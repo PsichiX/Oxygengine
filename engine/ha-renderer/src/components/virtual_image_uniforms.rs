@@ -1,4 +1,4 @@
-use crate::math::*;
+use crate::{image::ImageFiltering, math::*};
 use core::{
     prefab::{Prefab, PrefabComponent},
     Ignite,
@@ -7,23 +7,29 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+pub struct HaVirtualImageUniform {
+    pub virtual_asset_name: String,
+    #[serde(default)]
+    pub filtering: ImageFiltering,
+}
+
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct HaVirtualImageUniforms {
-    /// { uniform name: virtual asset name }
+    /// { uniform name: uniform data }
     #[serde(flatten)]
-    data: HashMap<String, String>,
+    data: HashMap<String, HaVirtualImageUniform>,
     #[serde(skip)]
     #[ignite(ignore)]
     pub(crate) dirty: bool,
 }
 
 impl HaVirtualImageUniforms {
-    pub fn get(&self, uniform: &str) -> Option<&str> {
-        self.data.get(uniform).map(|name| name.as_str())
+    pub fn get(&self, uniform: &str) -> Option<&HaVirtualImageUniform> {
+        self.data.get(uniform)
     }
 
-    pub fn set(&mut self, uniform: impl ToString, asset_name: impl ToString) {
-        self.data
-            .insert(uniform.to_string(), asset_name.to_string());
+    pub fn set(&mut self, uniform_name: impl ToString, uniform_data: HaVirtualImageUniform) {
+        self.data.insert(uniform_name.to_string(), uniform_data);
         self.dirty = true;
     }
 
@@ -45,8 +51,8 @@ impl HaVirtualImageUniforms {
         self.data.len()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&str, &str)> {
-        self.data.iter().map(|(k, v)| (k.as_str(), v.as_str()))
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &HaVirtualImageUniform)> {
+        self.data.iter().map(|(k, v)| (k.as_str(), v))
     }
 
     pub fn mark_dirty(&mut self) {

@@ -105,7 +105,8 @@ impl<'a> Renderer<StreamingVertexFactory, Error> for RauiRenderer<'a> {
             ) {
                 let to = to.as_mut_ptr() as *mut V;
                 (*to).position = vec3(from.position.x, from.position.y, 0.0);
-                (*to).texture_coord = vec2(from.tex_coord.x, from.tex_coord.y);
+                // TODO: page index should be put here.
+                (*to).texture_coord = vec3(from.tex_coord.x, from.tex_coord.y, 0.0);
                 (*to).color = vec4(from.color.r, from.color.g, from.color.b, from.color.a);
             }
             factory.access_raw_indices().copy_from_slice(&indices);
@@ -131,6 +132,7 @@ impl<'a> Renderer<StreamingVertexFactory, Error> for RauiRenderer<'a> {
                         .get(&text.font)
                         .and_then(|id| self.assets.asset_by_id(*id))
                         .and_then(|asset| asset.get::<FontAsset>())
+                        // TODO: add support for multiple font pages, generating render batch per page.
                         .and_then(|font| Some((font.pages_image_assets.get(0)?, font)))
                     {
                         Some(((_, asset_id), font)) => (*asset_id, font),

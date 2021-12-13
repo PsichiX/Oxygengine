@@ -60,13 +60,13 @@ impl SurfaceQuadFactory {
             )?;
         }
         if T::has_attribute("textureCoord") {
-            result.vertices_vec2f(
+            result.vertices_vec3f(
                 "textureCoord",
                 &[
-                    vec2(0.0, 0.0),
-                    vec2(1.0, 0.0),
-                    vec2(1.0, 1.0),
-                    vec2(0.0, 1.0),
+                    vec3(0.0, 0.0, 0.0),
+                    vec3(1.0, 0.0, 0.0),
+                    vec3(1.0, 1.0, 0.0),
+                    vec3(0.0, 1.0, 0.0),
                 ],
                 None,
             )?;

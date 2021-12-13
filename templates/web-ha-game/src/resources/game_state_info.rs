@@ -1,17 +1,19 @@
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct GameStatePlayerInfo {
     pub health: usize,
-    pub strength: usize,
+    pub health_capacity: usize,
+    pub weapons: usize,
+    pub weapons_capacity: usize,
     pub level: usize,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct GameStateCombatInfo {
     pub health: usize,
-    pub level: usize,
+    pub weapons: usize,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct GameStateInfo {
     pub player: GameStatePlayerInfo,
     pub combat: Option<GameStateCombatInfo>,

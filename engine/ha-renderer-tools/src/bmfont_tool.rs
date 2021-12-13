@@ -202,11 +202,11 @@ fn generate_sdf_font(
 
             let image_name = filename.to_str().unwrap();
             let asset = ImageAssetSource::Png {
-                bytes_path: format!("{}{}.{}.png", assets_path_prefix, image_name, i),
                 descriptor: ImageDescriptor {
-                    filtering: image_filtering,
+                    mode: ImageMode::Image2dArray,
                     ..Default::default()
                 },
+                bytes_paths: vec![format!("{}{}.{}.png", assets_path_prefix, image_name, i)],
             };
             let path = output
                 .join(&filename)
@@ -270,6 +270,7 @@ fn generate_sdf_font(
         line_base: font.common.0.base,
         sdf_resolution: generator.resolution,
         pages,
+        filtering: image_filtering,
     };
     let path = output.join(&filename).with_extension("yaml");
     write(

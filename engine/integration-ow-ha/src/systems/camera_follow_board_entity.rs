@@ -50,10 +50,14 @@ pub fn ha_camera_follow_board_entity<T: 'static>(universe: &mut Universe) {
                 if let Ok(other_transform) = world.get::<HaTransform>(other) {
                     let from = my_transform.get_translation();
                     let mut to = other_transform.get_translation();
-                    let f = (follow.strength_factor * dt).max(0.0).min(1.0);
+                    let f = follow.strength_factor.map(|f| (f * dt).max(0.0).min(1.0));
                     match follow.constraints {
                         HaCameraFollowConstraints::None => {
-                            my_transform.set_translation(Vec3::lerp(from, to, f));
+                            let position = match f {
+                                Some(f) => Vec3::lerp(from, to, f),
+                                None => to,
+                            };
+                            my_transform.set_translation(position);
                         }
                         HaCameraFollowConstraints::Chunk => {
                             let (min, max) = match cache
@@ -68,7 +72,11 @@ pub fn ha_camera_follow_board_entity<T: 'static>(universe: &mut Universe) {
                             let width = max.x - min.x;
                             let height = max.y - min.y;
                             to = fit_position_in_box(to, rect, width, height);
-                            my_transform.set_translation(Vec3::lerp(from, to, f));
+                            let position = match f {
+                                Some(f) => Vec3::lerp(from, to, f),
+                                None => to,
+                            };
+                            my_transform.set_translation(position);
                         }
                         HaCameraFollowConstraints::Region => {
                             let (min, max) = match cache
@@ -88,7 +96,11 @@ pub fn ha_camera_follow_board_entity<T: 'static>(universe: &mut Universe) {
                             let width = max.x - min.x;
                             let height = max.y - min.y;
                             to = fit_position_in_box(to, rect, width, height);
-                            my_transform.set_translation(Vec3::lerp(from, to, f));
+                            let position = match f {
+                                Some(f) => Vec3::lerp(from, to, f),
+                                None => to,
+                            };
+                            my_transform.set_translation(position);
                         }
                     }
                 }

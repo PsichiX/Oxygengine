@@ -117,7 +117,7 @@ fn sync_cache(
                     let virtual_image = renderer.virtual_images.get(vid)?;
                     let image_id = virtual_image.source().image()?;
                     let name = image_mapping.resources().find(|(_, id)| image_id == *id)?.0;
-                    let uvs = virtual_image.image_uvs(id)?;
+                    let (uvs, _) = virtual_image.image_uvs(id)?;
                     let uvs = RauiRect {
                         left: uvs.x,
                         right: uvs.x + uvs.w,
@@ -306,7 +306,10 @@ fn render(
                         let _ = recorder.record(RenderCommand::SubmitUniform {
                             signature: signature.to_owned(),
                             name: MAIN_IMAGE_NAME.into(),
-                            value: MaterialValue::Sampler2D(ImageInstanceReference::Id(image_id)),
+                            value: MaterialValue::Sampler2d {
+                                reference: ImageInstanceReference::Id(image_id),
+                                filtering: sync.image_filtering,
+                            },
                         });
                     }
                     current_mode = mode;
@@ -334,7 +337,10 @@ fn render(
                         let _ = recorder.record(RenderCommand::SubmitUniform {
                             signature: signature.to_owned(),
                             name: MAIN_IMAGE_NAME.into(),
-                            value: MaterialValue::Sampler2D(ImageInstanceReference::Id(image_id)),
+                            value: MaterialValue::Sampler2dArray {
+                                reference: ImageInstanceReference::Id(image_id),
+                                filtering: sync.text_filtering,
+                            },
                         });
                     }
                     current_mode = mode;
