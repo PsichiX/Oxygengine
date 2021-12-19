@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-integration-ui-cr"
-version = "0.26.0"
+version = "0.27.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Integration module of user interface and composite rendering for Oxygengine"
@@ -28,7 +28,7 @@ scalar64 = [
 ]
 
 [dependencies]
-oxygengine-core = { version = "0.26", path = "../core" }
-oxygengine-user-interface = { version = "0.26", path = "../user-interface" }
-oxygengine-composite-renderer = { version = "0.26", path = "../composite-renderer" }
+oxygengine-core = { version = "0.27", path = "../core" }
+oxygengine-user-interface = { version = "0.27", path = "../user-interface" }
+oxygengine-composite-renderer = { version = "0.27", path = "../composite-renderer" }
 serde = { version = "1", features = ["derive"] }
