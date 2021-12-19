@@ -44,6 +44,7 @@ pub fn ha_render_postprocess_stage_system(universe: &mut Universe) {
         Some(mesh_id) => mesh_id,
         None => {
             let mut m = Mesh::new(layout.to_owned());
+            m.set_regenerate_bounds(false);
             match ScreenSpaceQuadFactory.factory() {
                 Ok(factory) => {
                     if factory.write_into(&mut m).is_err() {
@@ -95,21 +96,21 @@ pub fn ha_render_postprocess_stage_system(universe: &mut Universe) {
 
             let _ = recorder.record(RenderCommand::ActivateMesh(mesh_id));
             let signature = info.make_material_signature(&layout);
-            let _ = recorder.record(RenderCommand::ActivateMaterial {
-                id: material_id,
-                signature: signature.to_owned(),
-            });
+            let _ = recorder.record(RenderCommand::ActivateMaterial(
+                material_id,
+                signature.to_owned(),
+            ));
+            for (key, value) in &material.values {
+                let _ = recorder.record(RenderCommand::OverrideUniform(
+                    key.to_owned().into(),
+                    value.to_owned(),
+                ));
+            }
             if let Some(draw_options) = &material.override_draw_options {
                 let _ = recorder.record(RenderCommand::ApplyDrawOptions(draw_options.to_owned()));
             }
-            for (name, value) in &material.values {
-                let _ = recorder.record(RenderCommand::SubmitUniform {
-                    signature: signature.to_owned(),
-                    name: name.to_owned().into(),
-                    value: value.to_owned(),
-                });
-            }
             let _ = recorder.record(RenderCommand::DrawMesh(MeshDrawRange::All));
+            let _ = recorder.record(RenderCommand::ResetUniforms);
             let _ = recorder.record(RenderCommand::SortingBarrier);
         }
     }

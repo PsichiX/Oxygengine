@@ -47,7 +47,7 @@ where
     Ok(())
 }
 
-pub fn prefabs_installer<C>(postfix: &str, prefabs: &mut PrefabManager)
+pub fn ai_prefab_installer<C>(postfix: &str, prefabs: &mut PrefabManager)
 where
     C: Component + Default,
 {

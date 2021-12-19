@@ -1,9 +1,7 @@
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct GameStatePlayerInfo {
     pub health: usize,
-    pub health_capacity: usize,
     pub weapons: usize,
-    pub weapons_capacity: usize,
     pub level: usize,
 }
 

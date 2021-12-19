@@ -1,42 +1,22 @@
 pub mod avatar_combat;
 pub mod avatar_movement;
+pub mod blink;
+pub mod enemy;
 pub mod health;
+pub mod player;
 pub mod weapon;
 
 use oxygengine::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Player {
-    pub level: usize,
-}
+#[derive(Ignite, Debug, Default, Copy, Clone, Serialize, Deserialize)]
+pub struct BatchedSecretsTag;
 
-impl Player {
-    pub fn health_capacity(&self) -> usize {
-        1 << self.level
-    }
+impl Prefab for BatchedSecretsTag {}
+impl PrefabComponent for BatchedSecretsTag {}
 
-    pub fn weapons_capacity(&self) -> usize {
-        1 << self.level
-    }
-}
+#[derive(Ignite, Debug, Default, Copy, Clone, Serialize, Deserialize)]
+pub struct BatchedAttacksTag;
 
-impl Prefab for Player {}
-
-impl PrefabComponent for Player {}
-
-#[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Enemy {
-    Regular,
-    Boss,
-}
-
-impl Default for Enemy {
-    fn default() -> Self {
-        Self::Regular
-    }
-}
-
-impl Prefab for Enemy {}
-
-impl PrefabComponent for Enemy {}
+impl Prefab for BatchedAttacksTag {}
+impl PrefabComponent for BatchedAttacksTag {}

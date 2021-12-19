@@ -1,0 +1,10 @@
+default_state: default
+speed: 8
+states:
+  default:
+    frames:
+      - levels/atlases/Characters.yaml@5x0
+      - levels/atlases/Characters.yaml@5x2
+      - levels/atlases/Characters.yaml@5x1
+      - levels/atlases/Characters.yaml@5x2
+    looping: true

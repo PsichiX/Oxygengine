@@ -1,5 +1,5 @@
 use crate::{
-    components::{camera::*, mesh_instance::*, transform::*, visibility::*},
+    components::{camera::*, mesh_instance::*, transform::*, visibility::*, volume::*},
     ha_renderer::HaRenderer,
     math::*,
 };

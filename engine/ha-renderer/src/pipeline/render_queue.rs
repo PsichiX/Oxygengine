@@ -18,23 +18,20 @@ pub enum RenderQueueError {
     MeshDoesNotExist(MeshId),
     Mesh(MeshId, MeshError),
     Material(MaterialId, MaterialError),
+    NoMeshActive,
+    NoMaterialActive,
 }
 
 #[derive(Debug, Clone)]
 pub enum RenderCommand {
     SortingBarrier,
     Viewport(usize, usize, usize, usize),
-    ActivateMaterial {
-        id: MaterialId,
-        signature: MaterialSignature,
-    },
-    ActivateMesh(MeshId),
+    ActivateMaterial(MaterialId, MaterialSignature),
+    OverrideUniform(Cow<'static, str>, MaterialValue),
+    ResetUniform(Cow<'static, str>),
+    ResetUniforms,
     ApplyDrawOptions(MaterialDrawOptions),
-    SubmitUniform {
-        signature: MaterialSignature,
-        name: Cow<'static, str>,
-        value: MaterialValue,
-    },
+    ActivateMesh(MeshId),
     DrawMesh(MeshDrawRange),
     Scissor(Option<(usize, usize, usize, usize)>),
 }
@@ -177,7 +174,8 @@ impl RenderQueue {
     ) -> Result<(), RenderQueueError> {
         let mut current_material = None;
         let mut current_mesh = None;
-        let mut current_uniforms = HashMap::<&Cow<'_, str>, &MaterialValue>::with_capacity(256);
+        let mut current_uniforms = HashMap::<&str, &MaterialValue>::with_capacity(32);
+        let mut last_uniforms = HashMap::<&str, &MaterialValue>::with_capacity(32);
         let mut current_scissor = None;
         for (_, command) in &self.commands {
             match command {
@@ -185,64 +183,104 @@ impl RenderQueue {
                 RenderCommand::Viewport(x, y, w, h) => unsafe {
                     context.viewport(*x as _, *y as _, *w as _, *h as _);
                 },
-                RenderCommand::ActivateMaterial { id, signature } => {
+                RenderCommand::ActivateMaterial(id, signature) => {
                     if current_material
-                        .map(|(cid, _)| cid == id)
+                        .map(|(cid, _, _)| cid == id)
                         .unwrap_or_default()
                     {
                         continue;
                     }
-                    current_material = match resources.materials.get(*id) {
+                    match resources.materials.get(*id) {
                         Some(material) => {
                             match material.activate(signature, context, resources, stats) {
                                 Ok(_) => {
                                     current_uniforms.clear();
-                                    Some((id, material))
+                                    current_uniforms.reserve(material.default_values.len());
+                                    last_uniforms.clear();
+                                    last_uniforms.reserve(material.default_values.len());
+                                    current_material = Some((id, signature, material));
                                 }
                                 Err(error) => return Err(RenderQueueError::Material(*id, error)),
                             }
                         }
                         None => return Err(RenderQueueError::MaterialDoesNotExist(*id)),
-                    };
+                    }
+                }
+                RenderCommand::OverrideUniform(name, value) => {
+                    current_uniforms.insert(name.as_ref(), value);
+                }
+                RenderCommand::ResetUniform(name) => {
+                    current_uniforms.remove(name.as_ref());
+                }
+                RenderCommand::ResetUniforms => {
+                    current_uniforms.clear();
+                }
+                RenderCommand::ApplyDrawOptions(draw_options) => {
+                    draw_options.apply(context, stats);
                 }
                 RenderCommand::ActivateMesh(id) => {
                     if current_mesh.map(|(cid, _)| cid == id).unwrap_or_default() {
                         continue;
                     }
-                    current_mesh = match resources.meshes.get(*id) {
+                    match resources.meshes.get(*id) {
                         Some(mesh) => match mesh.activate(context, stats) {
-                            Ok(_) => Some((id, mesh)),
+                            Ok(_) => current_mesh = Some((id, mesh)),
                             Err(error) => return Err(RenderQueueError::Mesh(*id, error)),
                         },
                         None => return Err(RenderQueueError::MeshDoesNotExist(*id)),
-                    };
-                }
-                RenderCommand::ApplyDrawOptions(draw_options) => {
-                    draw_options.apply(context, stats);
-                }
-                RenderCommand::SubmitUniform {
-                    signature,
-                    name,
-                    value,
-                } => {
-                    if let Some(v) = current_uniforms.get(&name) {
-                        if v == &value {
-                            continue;
-                        }
-                    }
-                    if let Some((id, material)) = current_material {
-                        if let Err(error) = material
-                            .submit_uniform(signature, name, value, context, resources, stats)
-                        {
-                            return Err(RenderQueueError::Material(*id, error));
-                        }
                     }
                 }
                 RenderCommand::DrawMesh(draw_range) => {
-                    if let Some((id, mesh)) = current_mesh {
-                        if let Err(error) = mesh.draw(draw_range.clone(), context, stats) {
-                            return Err(RenderQueueError::Mesh(*id, error));
-                        };
+                    let (mesh_id, mesh) = match current_mesh {
+                        Some((id, mesh)) => (id, mesh),
+                        None => return Err(RenderQueueError::NoMeshActive),
+                    };
+                    let (material_id, signature, material) = match current_material {
+                        Some((id, signature, material)) => (id, signature, material),
+                        None => return Err(RenderQueueError::NoMaterialActive),
+                    };
+                    for (name, current_value) in &current_uniforms {
+                        if last_uniforms
+                            .get(name)
+                            .map(|last_value| current_value != last_value)
+                            .unwrap_or(true)
+                        {
+                            if let Err(error) = material.submit_uniform(
+                                signature,
+                                name,
+                                current_value,
+                                context,
+                                resources,
+                                stats,
+                            ) {
+                                return Err(RenderQueueError::Material(*material_id, error));
+                            }
+                        }
+                    }
+                    for name in last_uniforms.keys() {
+                        let name: &str = name;
+                        if !current_uniforms.contains_key(name) {
+                            if let Some(default_value) = material.default_values.get(name) {
+                                if let Err(error) = material.submit_uniform(
+                                    signature,
+                                    name,
+                                    default_value,
+                                    context,
+                                    resources,
+                                    stats,
+                                ) {
+                                    return Err(RenderQueueError::Material(*material_id, error));
+                                }
+                            }
+                        }
+                    }
+                    if let Err(error) = mesh.draw(draw_range.clone(), context, stats) {
+                        return Err(RenderQueueError::Mesh(*mesh_id, error));
+                    }
+                    last_uniforms.clear();
+                    last_uniforms.reserve(current_uniforms.len());
+                    for (key, value) in &current_uniforms {
+                        last_uniforms.insert(key, value);
                     }
                 }
                 RenderCommand::Scissor(rect) => {

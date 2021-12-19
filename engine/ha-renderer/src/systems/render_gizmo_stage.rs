@@ -52,6 +52,7 @@ pub fn ha_render_gizmo_stage_system(universe: &mut Universe) {
         Some(mesh_id) => mesh_id,
         None => {
             let mut m = Mesh::new(layout.to_owned());
+            m.set_regenerate_bounds(false);
             m.set_vertex_storage_all(BufferStorage::Dynamic);
             m.set_index_storage(BufferStorage::Dynamic);
             match renderer.add_mesh(m) {
@@ -104,36 +105,33 @@ pub fn ha_render_gizmo_stage_system(universe: &mut Universe) {
 
             let _ = recorder.record(RenderCommand::ActivateMesh(mesh_id));
             let signature = info.make_material_signature(&layout);
-            let _ = recorder.record(RenderCommand::ActivateMaterial {
-                id: material_id,
-                signature: signature.to_owned(),
-            });
-            let _ = recorder.record(RenderCommand::SubmitUniform {
-                signature: signature.to_owned(),
-                name: MODEL_MATRIX_NAME.into(),
-                value: Mat4::identity().into(),
-            });
-            let _ = recorder.record(RenderCommand::SubmitUniform {
-                signature: signature.to_owned(),
-                name: VIEW_MATRIX_NAME.into(),
-                value: info.view_matrix.into(),
-            });
-            let _ = recorder.record(RenderCommand::SubmitUniform {
-                signature: signature.to_owned(),
-                name: PROJECTION_MATRIX_NAME.into(),
-                value: info.projection_matrix.into(),
-            });
+            let _ = recorder.record(RenderCommand::ActivateMaterial(
+                material_id,
+                signature.to_owned(),
+            ));
+            let _ = recorder.record(RenderCommand::OverrideUniform(
+                MODEL_MATRIX_NAME.into(),
+                Mat4::identity().into(),
+            ));
+            let _ = recorder.record(RenderCommand::OverrideUniform(
+                VIEW_MATRIX_NAME.into(),
+                info.view_matrix.into(),
+            ));
+            let _ = recorder.record(RenderCommand::OverrideUniform(
+                PROJECTION_MATRIX_NAME.into(),
+                info.projection_matrix.into(),
+            ));
+            for (key, value) in &gizmos.material.values {
+                let _ = recorder.record(RenderCommand::OverrideUniform(
+                    key.to_owned().into(),
+                    value.to_owned(),
+                ));
+            }
             if let Some(draw_options) = &gizmos.material.override_draw_options {
                 let _ = recorder.record(RenderCommand::ApplyDrawOptions(draw_options.to_owned()));
             }
-            for (name, value) in &gizmos.material.values {
-                let _ = recorder.record(RenderCommand::SubmitUniform {
-                    signature: signature.to_owned(),
-                    name: name.to_owned().into(),
-                    value: value.to_owned(),
-                });
-            }
             let _ = recorder.record(RenderCommand::DrawMesh(MeshDrawRange::All));
+            let _ = recorder.record(RenderCommand::ResetUniforms);
             let _ = recorder.record(RenderCommand::SortingBarrier);
         }
     }

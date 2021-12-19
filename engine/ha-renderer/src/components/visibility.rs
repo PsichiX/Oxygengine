@@ -1,7 +1,7 @@
-use crate::{math::Vec3, TagFilters};
+use crate::TagFilters;
 use core::{
     prefab::{Prefab, PrefabComponent},
-    Ignite, Scalar,
+    Ignite,
 };
 use serde::{Deserialize, Serialize};
 
@@ -16,17 +16,6 @@ impl Default for HaVisibility {
 
 impl Prefab for HaVisibility {}
 impl PrefabComponent for HaVisibility {}
-
-#[derive(Ignite, Debug, Copy, Clone, Serialize, Deserialize)]
-pub enum HaVolume {
-    /// (radius)
-    Sphere(Scalar),
-    /// (half extents)
-    Box(Vec3),
-}
-
-impl Prefab for HaVolume {}
-impl PrefabComponent for HaVolume {}
 
 /// (tag name, overlap test as box)
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]

@@ -265,10 +265,14 @@ impl HasContextResources<Context> for Material {
 
 impl Material {
     pub fn new_graph(graph: MaterialGraph) -> Self {
+        let default_values = graph
+            .default_uniform_values()
+            .map(|(k, v)| (k.to_owned(), v.to_owned()))
+            .collect();
         Self {
             content: MaterialContent::Graph(graph),
             versions: Default::default(),
-            default_values: Default::default(),
+            default_values,
             draw_options: Default::default(),
             resources: None,
         }
@@ -317,7 +321,7 @@ impl Material {
         &self,
         signature: &MaterialSignature,
         context: &Context,
-        render_stage_resources: &RenderStageResources<'a>,
+        _: &RenderStageResources<'a>,
         render_stats: &mut RenderStats,
     ) -> Result<(), MaterialError> {
         let resources = match &self.resources {
@@ -332,16 +336,6 @@ impl Material {
         unsafe {
             context.use_program(Some(handles.program));
             render_stats.material_changes += 1;
-        }
-        for (name, value) in &self.default_values {
-            self.submit_uniform(
-                signature,
-                name,
-                value,
-                context,
-                render_stage_resources,
-                render_stats,
-            )?;
         }
         Ok(())
     }

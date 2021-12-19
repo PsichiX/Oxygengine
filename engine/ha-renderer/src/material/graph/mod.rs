@@ -73,6 +73,22 @@ impl MaterialGraph {
         })
     }
 
+    pub fn default_uniform_values(&self) -> impl Iterator<Item = (&str, &MaterialValue)> {
+        self.nodes.values().filter_map(|v| {
+            if let MaterialGraphNode::Input(node) = v {
+                if node.data_type == MaterialDataType::Uniform {
+                    node.default_value
+                        .as_ref()
+                        .map(|value| (node.name.as_str(), value))
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn connect(
         &mut self,
         from: MaterialGraphNodeId,

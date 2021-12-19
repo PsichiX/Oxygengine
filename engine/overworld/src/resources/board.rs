@@ -147,7 +147,7 @@ impl From<[usize; 2]> for ChunkLocation {
     }
 }
 
-#[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Location {
     pub world: BoardLocation,
     pub chunk: ChunkLocation,

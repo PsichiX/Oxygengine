@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Copy, Clone)]
 pub enum AvatarCombatMode {
     /// (points)
-    Attack(usize),
+    Attack(Entity, usize),
     /// (seconds left)
     Cooldown(Scalar),
 }
@@ -45,9 +45,9 @@ impl AvatarCombat {
         }
     }
 
-    pub fn try_attack(&mut self, points: usize) -> bool {
+    pub fn try_attack(&mut self, entity: Entity, points: usize) -> bool {
         if self.is_ready() {
-            self.mode = AvatarCombatMode::Attack(points);
+            self.mode = AvatarCombatMode::Attack(entity, points);
             true
         } else {
             false
@@ -55,11 +55,11 @@ impl AvatarCombat {
     }
 
     #[must_use]
-    pub fn process(&mut self, delta_time: Scalar) -> Option<usize> {
+    pub fn process(&mut self, delta_time: Scalar) -> Option<(Entity, usize)> {
         match self.mode {
-            AvatarCombatMode::Attack(points) => {
+            AvatarCombatMode::Attack(entity, points) => {
                 self.mode = AvatarCombatMode::Cooldown(self.cooldown);
-                Some(points)
+                Some((entity, points))
             }
             AvatarCombatMode::Cooldown(v) => {
                 self.mode = AvatarCombatMode::Cooldown((v - delta_time).max(0.0));
@@ -70,5 +70,4 @@ impl AvatarCombat {
 }
 
 impl Prefab for AvatarCombat {}
-
 impl PrefabComponent for AvatarCombat {}

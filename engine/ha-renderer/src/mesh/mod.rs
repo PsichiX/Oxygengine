@@ -441,6 +441,7 @@ pub struct Mesh {
     draw_mode: MeshDrawMode,
     resources: Option<MeshResources>,
     bounds: Option<BoundsVolume>,
+    regenerate_bounds: bool,
 }
 
 impl Drop for Mesh {
@@ -559,6 +560,7 @@ impl Mesh {
             draw_mode: MeshDrawMode::default(),
             resources: None,
             bounds: None,
+            regenerate_bounds: true,
         }
     }
 
@@ -602,6 +604,17 @@ impl Mesh {
 
     pub fn mark_indices_dirty(&mut self) {
         self.index_data.2 = true;
+    }
+
+    pub fn regenerate_bounds(&self) -> bool {
+        self.regenerate_bounds
+    }
+
+    pub fn set_regenerate_bounds(&mut self, mode: bool) {
+        self.regenerate_bounds = mode;
+        if !mode {
+            self.bounds = None;
+        }
     }
 
     pub fn layout(&self) -> &VertexLayout {
@@ -810,6 +823,9 @@ impl Mesh {
         render_stats: &mut RenderStats,
     ) -> Result<(), MeshError> {
         let count = range.end - range.start;
+        if count == 0 || range.end > self.index_data.0.len() {
+            return Ok(());
+        }
         let offset = range.start;
         unsafe {
             context.draw_elements(
@@ -831,11 +847,15 @@ impl Mesh {
         if self.index_data.2 {
             unsafe {
                 context.bind_buffer(ELEMENT_ARRAY_BUFFER, Some(resources.indices_handle));
-                context.buffer_data_u8_slice(
-                    ELEMENT_ARRAY_BUFFER,
-                    self.index_data.0.align_to().1,
-                    self.index_data.1.as_gl(),
-                );
+                if self.index_data.0.is_empty() {
+                    context.buffer_data_size(ELEMENT_ARRAY_BUFFER, 0, self.index_data.1.as_gl());
+                } else {
+                    context.buffer_data_u8_slice(
+                        ELEMENT_ARRAY_BUFFER,
+                        self.index_data.0.align_to().1,
+                        self.index_data.1.as_gl(),
+                    );
+                }
             }
             self.index_data.2 = false;
         }
@@ -843,12 +863,16 @@ impl Mesh {
             if *dirty {
                 unsafe {
                     context.bind_buffer(ARRAY_BUFFER, Some(resources.vertices_handles[index]));
-                    context.buffer_data_u8_slice(ARRAY_BUFFER, vertex_data, storage.as_gl());
+                    if vertex_data.is_empty() {
+                        context.buffer_data_size(ARRAY_BUFFER, 0, storage.as_gl());
+                    } else {
+                        context.buffer_data_u8_slice(ARRAY_BUFFER, vertex_data, storage.as_gl());
+                    }
                 }
                 *dirty = false;
             }
         }
-        if self.bounds.is_none() {
+        if self.regenerate_bounds && self.bounds.is_none() {
             if let Some((buffer, channels, offset, stride)) = self.layout().bounds_vertex_attrib() {
                 if let Some((buffer, _, _)) = self.vertex_data.get(buffer) {
                     self.bounds = BoundsVolume::from_points_cloud(

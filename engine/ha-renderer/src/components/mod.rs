@@ -1,5 +1,6 @@
 pub mod camera;
 pub mod gizmo;
+pub mod immediate_batch;
 pub mod material_instance;
 pub mod mesh_instance;
 pub mod postprocess;
@@ -9,6 +10,7 @@ pub mod tilemap_instance;
 pub mod transform;
 pub mod virtual_image_uniforms;
 pub mod visibility;
+pub mod volume;
 
 use crate::mesh::BufferStorage;
 use core::Ignite;

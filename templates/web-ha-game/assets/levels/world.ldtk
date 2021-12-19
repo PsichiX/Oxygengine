@@ -9,7 +9,7 @@
 		"url": "https://ldtk.io"
 	},
 	"jsonVersion": "0.9.3",
-	"nextUid": 237,
+	"nextUid": 272,
 	"worldLayout": "Free",
 	"worldGridWidth": 256,
 	"worldGridHeight": 256,
@@ -1787,24 +1787,24 @@
 				},
 				{
 					"identifier": "MaterialAsset",
-					"__type": "Bool",
-					"uid": 57,
-					"type": "F_Bool",
+					"__type": "String",
+					"uid": 237,
+					"type": "F_String",
 					"isArray": false,
-					"canBeNull": false,
+					"canBeNull": true,
 					"arrayMinLength": null,
 					"arrayMaxLength": null,
 					"editorDisplayMode": "Hidden",
 					"editorDisplayPos": "Above",
-					"editorAlwaysShow": true,
+					"editorAlwaysShow": false,
 					"editorCutLongValues": true,
 					"min": null,
 					"max": null,
 					"regex": null,
 					"acceptFileTypes": null,
 					"defaultOverride": {
-						"id": "V_Bool",
-						"params": [ true ]
+						"id": "V_String",
+						"params": ["@material/graph/surface/flat/virtual-uniform-avatar"]
 					},
 					"textLanguageMode": null
 				},
@@ -1855,6 +1855,26 @@
 					"textLanguageMode": null
 				},
 				{
+					"identifier": "BoardAvatar",
+					"__type": "String",
+					"uid": 208,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": null,
+					"textLanguageMode": null
+				},
+				{
 					"identifier": "Health",
 					"__type": "String",
 					"uid": 221,
@@ -1898,26 +1918,6 @@
 						"id": "V_String",
 						"params": ["VALUE: 0"]
 					},
-					"textLanguageMode": null
-				},
-				{
-					"identifier": "BoardAvatar",
-					"__type": "String",
-					"uid": 208,
-					"type": "F_String",
-					"isArray": false,
-					"canBeNull": false,
-					"arrayMinLength": null,
-					"arrayMaxLength": null,
-					"editorDisplayMode": "Hidden",
-					"editorDisplayPos": "Above",
-					"editorAlwaysShow": false,
-					"editorCutLongValues": true,
-					"min": null,
-					"max": null,
-					"regex": null,
-					"acceptFileTypes": null,
-					"defaultOverride": null,
 					"textLanguageMode": null
 				},
 				{
@@ -1988,6 +1988,26 @@
 						"params": ["LEVEL: 0"]
 					},
 					"textLanguageMode": null
+				},
+				{
+					"identifier": "Blink",
+					"__type": "String",
+					"uid": 268,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": null,
+					"textLanguageMode": null
 				}
 			]
 		},
@@ -2040,11 +2060,11 @@
 				},
 				{
 					"identifier": "MaterialAsset",
-					"__type": "Bool",
-					"uid": 67,
-					"type": "F_Bool",
+					"__type": "String",
+					"uid": 241,
+					"type": "F_String",
 					"isArray": false,
-					"canBeNull": false,
+					"canBeNull": true,
 					"arrayMinLength": null,
 					"arrayMaxLength": null,
 					"editorDisplayMode": "Hidden",
@@ -2056,8 +2076,8 @@
 					"regex": null,
 					"acceptFileTypes": null,
 					"defaultOverride": {
-						"id": "V_Bool",
-						"params": [ true ]
+						"id": "V_String",
+						"params": ["@material/graph/surface/flat/virtual-uniform-avatar"]
 					},
 					"textLanguageMode": null
 				},
@@ -2085,6 +2105,26 @@
 					"textLanguageMode": null
 				},
 				{
+					"identifier": "BoardAvatar",
+					"__type": "String",
+					"uid": 216,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": null,
+					"textLanguageMode": null
+				},
+				{
 					"identifier": "Health",
 					"__type": "String",
 					"uid": 195,
@@ -2108,26 +2148,6 @@
 					"textLanguageMode": null
 				},
 				{
-					"identifier": "BoardAvatar",
-					"__type": "String",
-					"uid": 216,
-					"type": "F_String",
-					"isArray": false,
-					"canBeNull": false,
-					"arrayMinLength": null,
-					"arrayMaxLength": null,
-					"editorDisplayMode": "Hidden",
-					"editorDisplayPos": "Above",
-					"editorAlwaysShow": false,
-					"editorCutLongValues": true,
-					"min": null,
-					"max": null,
-					"regex": null,
-					"acceptFileTypes": null,
-					"defaultOverride": null,
-					"textLanguageMode": null
-				},
-				{
 					"identifier": "Enemy",
 					"__type": "String",
 					"uid": 219,
@@ -2148,6 +2168,26 @@
 						"id": "V_String",
 						"params": ["TYPE: Regular"]
 					},
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "Blink",
+					"__type": "String",
+					"uid": 271,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": null,
 					"textLanguageMode": null
 				}
 			]
@@ -2201,11 +2241,11 @@
 				},
 				{
 					"identifier": "MaterialAsset",
-					"__type": "Bool",
-					"uid": 226,
-					"type": "F_Bool",
+					"__type": "String",
+					"uid": 240,
+					"type": "F_String",
 					"isArray": false,
-					"canBeNull": false,
+					"canBeNull": true,
 					"arrayMinLength": null,
 					"arrayMaxLength": null,
 					"editorDisplayMode": "Hidden",
@@ -2217,8 +2257,8 @@
 					"regex": null,
 					"acceptFileTypes": null,
 					"defaultOverride": {
-						"id": "V_Bool",
-						"params": [ true ]
+						"id": "V_String",
+						"params": ["@material/graph/surface/flat/virtual-uniform-avatar"]
 					},
 					"textLanguageMode": null
 				},
@@ -2246,6 +2286,26 @@
 					"textLanguageMode": null
 				},
 				{
+					"identifier": "BoardAvatar",
+					"__type": "String",
+					"uid": 229,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": null,
+					"textLanguageMode": null
+				},
+				{
 					"identifier": "Health",
 					"__type": "String",
 					"uid": 228,
@@ -2269,26 +2329,6 @@
 					"textLanguageMode": null
 				},
 				{
-					"identifier": "BoardAvatar",
-					"__type": "String",
-					"uid": 229,
-					"type": "F_String",
-					"isArray": false,
-					"canBeNull": false,
-					"arrayMinLength": null,
-					"arrayMaxLength": null,
-					"editorDisplayMode": "Hidden",
-					"editorDisplayPos": "Above",
-					"editorAlwaysShow": false,
-					"editorCutLongValues": true,
-					"min": null,
-					"max": null,
-					"regex": null,
-					"acceptFileTypes": null,
-					"defaultOverride": null,
-					"textLanguageMode": null
-				},
-				{
 					"identifier": "Enemy",
 					"__type": "String",
 					"uid": 230,
@@ -2309,6 +2349,26 @@
 						"id": "V_String",
 						"params": ["TYPE: Regular"]
 					},
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "Blink",
+					"__type": "String",
+					"uid": 270,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": null,
 					"textLanguageMode": null
 				}
 			]
@@ -2340,7 +2400,7 @@
 				{
 					"identifier": "MeshAsset",
 					"__type": "Bool",
-					"uid": 202,
+					"uid": 239,
 					"type": "F_Bool",
 					"isArray": false,
 					"canBeNull": false,
@@ -2362,11 +2422,11 @@
 				},
 				{
 					"identifier": "MaterialAsset",
-					"__type": "Bool",
-					"uid": 203,
-					"type": "F_Bool",
+					"__type": "String",
+					"uid": 238,
+					"type": "F_String",
 					"isArray": false,
-					"canBeNull": false,
+					"canBeNull": true,
 					"arrayMinLength": null,
 					"arrayMaxLength": null,
 					"editorDisplayMode": "Hidden",
@@ -2378,8 +2438,8 @@
 					"regex": null,
 					"acceptFileTypes": null,
 					"defaultOverride": {
-						"id": "V_Bool",
-						"params": [ true ]
+						"id": "V_String",
+						"params": ["@material/graph/surface/flat/virtual-uniform-avatar"]
 					},
 					"textLanguageMode": null
 				},
@@ -2407,6 +2467,26 @@
 					"textLanguageMode": null
 				},
 				{
+					"identifier": "BoardAvatar",
+					"__type": "String",
+					"uid": 215,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": null,
+					"textLanguageMode": null
+				},
+				{
 					"identifier": "Health",
 					"__type": "String",
 					"uid": 206,
@@ -2430,26 +2510,6 @@
 					"textLanguageMode": null
 				},
 				{
-					"identifier": "BoardAvatar",
-					"__type": "String",
-					"uid": 215,
-					"type": "F_String",
-					"isArray": false,
-					"canBeNull": false,
-					"arrayMinLength": null,
-					"arrayMaxLength": null,
-					"editorDisplayMode": "Hidden",
-					"editorDisplayPos": "Above",
-					"editorAlwaysShow": false,
-					"editorCutLongValues": true,
-					"min": null,
-					"max": null,
-					"regex": null,
-					"acceptFileTypes": null,
-					"defaultOverride": null,
-					"textLanguageMode": null
-				},
-				{
 					"identifier": "Enemy",
 					"__type": "String",
 					"uid": 220,
@@ -2470,6 +2530,26 @@
 						"id": "V_String",
 						"params": ["TYPE: Boss"]
 					},
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "Blink",
+					"__type": "String",
+					"uid": 269,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": null,
 					"textLanguageMode": null
 				}
 			]
@@ -2730,7 +2810,7 @@
 					"uid": 187,
 					"type": "F_String",
 					"isArray": false,
-					"canBeNull": false,
+					"canBeNull": true,
 					"arrayMinLength": null,
 					"arrayMaxLength": null,
 					"editorDisplayMode": "ValueOnly",
@@ -2745,9 +2825,337 @@
 					"textLanguageMode": null
 				},
 				{
-					"identifier": "Size",
+					"identifier": "BoxVolume",
 					"__type": "Bool",
-					"uid": 200,
+					"uid": 266,
+					"type": "F_Bool",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_Bool",
+						"params": [ true ]
+					},
+					"textLanguageMode": null
+				}
+			]
+		},
+		{
+			"identifier": "BatchedSecrets",
+			"uid": 245,
+			"tags": [],
+			"width": 16,
+			"height": 16,
+			"resizableX": false,
+			"resizableY": false,
+			"keepAspectRatio": false,
+			"fillOpacity": 1,
+			"lineOpacity": 1,
+			"hollow": false,
+			"color": "#FFFFFF",
+			"renderMode": "Tile",
+			"showName": true,
+			"tilesetId": 43,
+			"tileId": 4,
+			"tileRenderMode": "Stretch",
+			"maxCount": 0,
+			"limitScope": "PerLevel",
+			"limitBehavior": "MoveLastOne",
+			"pivotX": 0,
+			"pivotY": 0,
+			"fieldDefs": [
+				{
+					"identifier": "NoTransform",
+					"__type": "Bool",
+					"uid": 250,
+					"type": "F_Bool",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_Bool",
+						"params": [ true ]
+					},
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "MaterialAsset",
+					"__type": "String",
+					"uid": 253,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": true,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_String",
+						"params": ["@material/graph/surface/flat/virtual-uniform-texture-2d"]
+					},
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "BatchedIcons",
+					"__type": "String",
+					"uid": 249,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_String",
+						"params": ["COMPONENT: BatchedSecretsTag"]
+					},
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "SpriteImage",
+					"__type": "Bool",
+					"uid": 254,
+					"type": "F_Bool",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_Bool",
+						"params": [ true ]
+					},
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "SpriteAnimation",
+					"__type": "String",
+					"uid": 255,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": true,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_String",
+						"params": ["animations/secret.yaml"]
+					},
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "Singleton",
+					"__type": "Bool",
+					"uid": 262,
+					"type": "F_Bool",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_Bool",
+						"params": [ true ]
+					},
+					"textLanguageMode": null
+				}
+			]
+		},
+		{
+			"identifier": "BatchedAttacks",
+			"uid": 256,
+			"tags": [],
+			"width": 16,
+			"height": 16,
+			"resizableX": false,
+			"resizableY": false,
+			"keepAspectRatio": false,
+			"fillOpacity": 1,
+			"lineOpacity": 1,
+			"hollow": false,
+			"color": "#FFFFFF",
+			"renderMode": "Tile",
+			"showName": true,
+			"tilesetId": 43,
+			"tileId": 5,
+			"tileRenderMode": "Stretch",
+			"maxCount": 0,
+			"limitScope": "PerLevel",
+			"limitBehavior": "MoveLastOne",
+			"pivotX": 0,
+			"pivotY": 0,
+			"fieldDefs": [
+				{
+					"identifier": "NoTransform",
+					"__type": "Bool",
+					"uid": 257,
+					"type": "F_Bool",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_Bool",
+						"params": [ true ]
+					},
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "MaterialAsset",
+					"__type": "String",
+					"uid": 258,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": true,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_String",
+						"params": ["@material/graph/surface/flat/virtual-uniform-texture-2d"]
+					},
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "BatchedIcons",
+					"__type": "String",
+					"uid": 259,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_String",
+						"params": ["COMPONENT: BatchedAttacksTag"]
+					},
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "SpriteImage",
+					"__type": "Bool",
+					"uid": 260,
+					"type": "F_Bool",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_Bool",
+						"params": [ true ]
+					},
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "SpriteAnimation",
+					"__type": "String",
+					"uid": 261,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": true,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_String",
+						"params": ["animations/attack.yaml"]
+					},
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "Singleton",
+					"__type": "Bool",
+					"uid": 263,
 					"type": "F_Bool",
 					"isArray": false,
 					"canBeNull": false,
@@ -2807,7 +3215,7 @@
 			"savedSelections": [],
 			"cachedPixelData": {
 				"opaqueTiles": "000000000000000000000000000000",
-				"averageColors": "a6559655a655965500005fff865596448655754400000000a4349444a434944400000000865596448655754400000000777778779677888973367723"
+				"averageColors": "a6559655a65596552ff44fff86559644865575443ff34fffa4349444a43494443ff30000865596448655754400000000777778779677888973367723"
 			}
 		},
 		{
@@ -2962,11 +3370,12 @@
 							"px": [92,172],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{ "__identifier": "Health", "__value": "VALUE: 1", "__type": "String", "defUid": 195, "realEditorValues": [] },
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -2980,11 +3389,12 @@
 							"px": [28,236],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{ "__identifier": "Health", "__value": "VALUE: 1", "__type": "String", "defUid": 195, "realEditorValues": [] },
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -2998,7 +3408,6 @@
 							"px": [180,52],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -3011,7 +3420,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -3025,7 +3436,6 @@
 							"px": [204,100],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -3038,7 +3448,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -3052,25 +3464,25 @@
 							"px": [196,156],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{ "__identifier": "Health", "__value": "VALUE: 1", "__type": "String", "defUid": 195, "realEditorValues": [] },
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
 							"__identifier": "Player",
-							"__grid": [6,14],
+							"__grid": [3,7],
 							"__pivot": [0.5,0.5],
 							"__tile": { "tilesetUid": 43, "srcRect": [0,0,8,8] },
 							"width": 8,
 							"height": 8,
 							"defUid": 39,
-							"px": [52,116],
+							"px": [28,60],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 56, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 57, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 69, "realEditorValues": [] },
 								{ "__identifier": "SpriteAnimation", "__value": "animations/player.yaml", "__type": "String", "defUid": 75, "realEditorValues": [] },
 								{ "__identifier": "Name", "__value": "player", "__type": "String", "defUid": 78, "realEditorValues": [] },
@@ -3080,12 +3492,90 @@
 								{ "__identifier": "Health", "__value": "VALUE: 1", "__type": "String", "defUid": 221, "realEditorValues": [] },
 								{
 									"__identifier": "Weapon",
-									"__value": "VALUE: 0",
+									"__value": "VALUE: 100",
 									"__type": "String",
 									"defUid": 222,
+									"realEditorValues": [{
+										"id": "V_String",
+										"params": ["VALUE: 100"]
+									}]
+								},
+								{ "__identifier": "AvatarCombat", "__value": "COOLDOWN: 0.5", "__type": "String", "defUid": 223, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 237, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 268, "realEditorValues": [] }
+							]
+						},
+						{
+							"__identifier": "EnemyLand",
+							"__grid": [11,4],
+							"__pivot": [0.5,0.5],
+							"__tile": { "tilesetUid": 43, "srcRect": [8,32,8,8] },
+							"width": 8,
+							"height": 8,
+							"defUid": 42,
+							"px": [92,36],
+							"fieldInstances": [
+								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
+								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
+								{
+									"__identifier": "Health",
+									"__value": "VALUE: 1",
+									"__type": "String",
+									"defUid": 195,
 									"realEditorValues": [null]
 								},
-								{ "__identifier": "AvatarCombat", "__value": "COOLDOWN: 0.5", "__type": "String", "defUid": 223, "realEditorValues": [] }
+								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+							]
+						},
+						{
+							"__identifier": "BatchedSecrets",
+							"__grid": [25,28],
+							"__pivot": [0,0],
+							"__tile": { "tilesetUid": 43, "srcRect": [32,0,8,8] },
+							"width": 16,
+							"height": 16,
+							"defUid": 245,
+							"px": [200,224],
+							"fieldInstances": [
+								{ "__identifier": "BatchedIcons", "__value": "COMPONENT: BatchedSecretsTag", "__type": "String", "defUid": 249, "realEditorValues": [] },
+								{ "__identifier": "NoTransform", "__value": true, "__type": "Bool", "defUid": 250, "realEditorValues": [] },
+								{
+									"__identifier": "MaterialAsset",
+									"__value": "@material/graph/surface/flat/virtual-uniform-texture-2d",
+									"__type": "String",
+									"defUid": 253,
+									"realEditorValues": []
+								},
+								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 254, "realEditorValues": [] },
+								{ "__identifier": "SpriteAnimation", "__value": "animations/secret.yaml", "__type": "String", "defUid": 255, "realEditorValues": [] },
+								{ "__identifier": "Singleton", "__value": true, "__type": "Bool", "defUid": 262, "realEditorValues": [] }
+							]
+						},
+						{
+							"__identifier": "BatchedAttacks",
+							"__grid": [25,25],
+							"__pivot": [0,0],
+							"__tile": { "tilesetUid": 43, "srcRect": [40,0,8,8] },
+							"width": 16,
+							"height": 16,
+							"defUid": 256,
+							"px": [200,200],
+							"fieldInstances": [
+								{ "__identifier": "NoTransform", "__value": true, "__type": "Bool", "defUid": 257, "realEditorValues": [] },
+								{
+									"__identifier": "MaterialAsset",
+									"__value": "@material/graph/surface/flat/virtual-uniform-texture-2d",
+									"__type": "String",
+									"defUid": 258,
+									"realEditorValues": []
+								},
+								{ "__identifier": "BatchedIcons", "__value": "COMPONENT: BatchedAttacksTag", "__type": "String", "defUid": 259, "realEditorValues": [] },
+								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 260, "realEditorValues": [] },
+								{ "__identifier": "SpriteAnimation", "__value": "animations/attack.yaml", "__type": "String", "defUid": 261, "realEditorValues": [] },
+								{ "__identifier": "Singleton", "__value": true, "__type": "Bool", "defUid": 263, "realEditorValues": [] }
 							]
 						}
 					]
@@ -3134,7 +3624,7 @@
 										"params": ["Forest City"]
 									}]
 								},
-								{ "__identifier": "Size", "__value": true, "__type": "Bool", "defUid": 200, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
 							]
 						},
 						{
@@ -3157,18 +3647,18 @@
 										"params": ["Grey Mountains"]
 									}]
 								},
-								{ "__identifier": "Size", "__value": true, "__type": "Bool", "defUid": 200, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
 							]
 						},
 						{
 							"__identifier": "Camera",
-							"__grid": [3,7],
+							"__grid": [0,0],
 							"__pivot": [0,0],
 							"__tile": null,
 							"width": 144,
 							"height": 144,
 							"defUid": 60,
-							"px": [24,56],
+							"px": [0,0],
 							"fieldInstances": [
 								{ "__identifier": "Camera", "__value": "default", "__type": "String", "defUid": 61, "realEditorValues": [] },
 								{ "__identifier": "CameraInsideView", "__value": false, "__type": "Bool", "defUid": 63, "realEditorValues": [] },
@@ -5543,7 +6033,6 @@
 							"px": [60,212],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -5556,7 +6045,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -5570,7 +6061,6 @@
 							"px": [4,164],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -5583,7 +6073,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -5597,7 +6089,6 @@
 							"px": [92,172],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -5610,7 +6101,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -5624,7 +6117,6 @@
 							"px": [252,164],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -5637,7 +6129,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -5651,7 +6145,6 @@
 							"px": [252,100],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -5664,7 +6157,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -5678,7 +6173,6 @@
 							"px": [204,12],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -5691,7 +6185,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -5705,7 +6201,6 @@
 							"px": [76,148],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -5718,7 +6213,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -5732,7 +6229,6 @@
 							"px": [108,156],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -5745,7 +6241,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -5759,7 +6257,6 @@
 							"px": [116,68],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -5772,7 +6269,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -5786,7 +6285,6 @@
 							"px": [68,44],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -5799,7 +6297,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -5813,7 +6313,6 @@
 							"px": [20,12],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -5826,7 +6325,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -5839,8 +6340,6 @@
 							"defUid": 201,
 							"px": [92,244],
 							"fieldInstances": [
-								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 202, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 203, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 204, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -5853,7 +6352,10 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 215, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Boss", "__type": "String", "defUid": 220, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Boss", "__type": "String", "defUid": 220, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 238, "realEditorValues": [] },
+								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 239, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 269, "realEditorValues": [] }
 							]
 						},
 						{
@@ -5866,8 +6368,6 @@
 							"defUid": 201,
 							"px": [252,236],
 							"fieldInstances": [
-								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 202, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 203, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 204, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -5880,7 +6380,10 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 215, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Boss", "__type": "String", "defUid": 220, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Boss", "__type": "String", "defUid": 220, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 238, "realEditorValues": [] },
+								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 239, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 269, "realEditorValues": [] }
 							]
 						}
 					]
@@ -5929,7 +6432,7 @@
 										"params": ["Lone Town Minor"]
 									}]
 								},
-								{ "__identifier": "Size", "__value": true, "__type": "Bool", "defUid": 200, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
 							]
 						},
 						{
@@ -5952,7 +6455,7 @@
 										"params": ["Lone Town Major"]
 									}]
 								},
-								{ "__identifier": "Size", "__value": true, "__type": "Bool", "defUid": 200, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
 							]
 						},
 						{
@@ -5975,7 +6478,7 @@
 										"params": ["Weird Lake"]
 									}]
 								},
-								{ "__identifier": "Size", "__value": true, "__type": "Bool", "defUid": 200, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
 							]
 						}
 					]
@@ -8319,7 +8822,6 @@
 							"px": [172,100],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -8332,7 +8834,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8346,7 +8850,6 @@
 							"px": [196,116],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -8359,7 +8862,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8373,7 +8878,6 @@
 							"px": [204,148],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -8386,7 +8890,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8400,7 +8906,6 @@
 							"px": [148,140],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -8413,7 +8918,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8427,7 +8934,6 @@
 							"px": [140,180],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -8440,7 +8946,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8454,7 +8962,6 @@
 							"px": [92,84],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -8467,7 +8974,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8481,7 +8990,6 @@
 							"px": [236,164],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -8494,7 +9002,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8508,7 +9018,6 @@
 							"px": [244,180],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -8521,7 +9030,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8535,7 +9046,6 @@
 							"px": [244,52],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -8548,7 +9058,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8562,7 +9074,6 @@
 							"px": [124,44],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -8575,7 +9086,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8589,7 +9102,6 @@
 							"px": [108,20],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -8602,7 +9114,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8615,8 +9129,6 @@
 							"defUid": 201,
 							"px": [20,76],
 							"fieldInstances": [
-								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 202, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 203, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 204, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -8629,7 +9141,10 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 215, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Boss", "__type": "String", "defUid": 220, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Boss", "__type": "String", "defUid": 220, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 238, "realEditorValues": [] },
+								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 239, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 269, "realEditorValues": [] }
 							]
 						}
 					]
@@ -8678,7 +9193,7 @@
 										"params": ["Desert Town"]
 									}]
 								},
-								{ "__identifier": "Size", "__value": true, "__type": "Bool", "defUid": 200, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8701,7 +9216,7 @@
 										"params": ["Desert"]
 									}]
 								},
-								{ "__identifier": "Size", "__value": true, "__type": "Bool", "defUid": 200, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
 							]
 						}
 					]
@@ -10983,7 +11498,6 @@
 							"px": [236,220],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -10996,7 +11510,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -11010,7 +11526,6 @@
 							"px": [20,180],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -11023,7 +11538,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -11037,7 +11554,6 @@
 							"px": [204,196],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 67, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -11050,7 +11566,9 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
 							]
 						},
 						{
@@ -11063,8 +11581,6 @@
 							"defUid": 201,
 							"px": [28,236],
 							"fieldInstances": [
-								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 202, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 203, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 204, "realEditorValues": [] },
 								{
 									"__identifier": "Health",
@@ -11077,7 +11593,10 @@
 									}]
 								},
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 215, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Boss", "__type": "String", "defUid": 220, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Boss", "__type": "String", "defUid": 220, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 238, "realEditorValues": [] },
+								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 239, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 269, "realEditorValues": [] }
 							]
 						}
 					]
@@ -11126,7 +11645,7 @@
 										"params": ["Grand City"]
 									}]
 								},
-								{ "__identifier": "Size", "__value": true, "__type": "Bool", "defUid": 200, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
 							]
 						},
 						{
@@ -11149,7 +11668,7 @@
 										"params": ["Maze Forest"]
 									}]
 								},
-								{ "__identifier": "Size", "__value": true, "__type": "Bool", "defUid": 200, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
 							]
 						}
 					]
@@ -13707,11 +14226,12 @@
 							"px": [92,196],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 225, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 226, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 227, "realEditorValues": [] },
 								{ "__identifier": "Health", "__value": "VALUE: 1", "__type": "String", "defUid": 228, "realEditorValues": [] },
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
 							]
 						},
 						{
@@ -13725,11 +14245,12 @@
 							"px": [188,180],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 225, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 226, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 227, "realEditorValues": [] },
 								{ "__identifier": "Health", "__value": "VALUE: 1", "__type": "String", "defUid": 228, "realEditorValues": [] },
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
 							]
 						},
 						{
@@ -13743,11 +14264,12 @@
 							"px": [116,148],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 225, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 226, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 227, "realEditorValues": [] },
 								{ "__identifier": "Health", "__value": "VALUE: 1", "__type": "String", "defUid": 228, "realEditorValues": [] },
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
 							]
 						},
 						{
@@ -13761,11 +14283,12 @@
 							"px": [52,132],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 225, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 226, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 227, "realEditorValues": [] },
 								{ "__identifier": "Health", "__value": "VALUE: 1", "__type": "String", "defUid": 228, "realEditorValues": [] },
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
 							]
 						},
 						{
@@ -13779,11 +14302,12 @@
 							"px": [44,60],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 225, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 226, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 227, "realEditorValues": [] },
 								{ "__identifier": "Health", "__value": "VALUE: 1", "__type": "String", "defUid": 228, "realEditorValues": [] },
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
 							]
 						},
 						{
@@ -13797,11 +14321,12 @@
 							"px": [116,28],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 225, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 226, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 227, "realEditorValues": [] },
 								{ "__identifier": "Health", "__value": "VALUE: 1", "__type": "String", "defUid": 228, "realEditorValues": [] },
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
 							]
 						},
 						{
@@ -13815,11 +14340,12 @@
 							"px": [196,52],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 225, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 226, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 227, "realEditorValues": [] },
 								{ "__identifier": "Health", "__value": "VALUE: 1", "__type": "String", "defUid": 228, "realEditorValues": [] },
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
 							]
 						},
 						{
@@ -13833,11 +14359,12 @@
 							"px": [236,124],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 225, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 226, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 227, "realEditorValues": [] },
 								{ "__identifier": "Health", "__value": "VALUE: 1", "__type": "String", "defUid": 228, "realEditorValues": [] },
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
 							]
 						},
 						{
@@ -13851,11 +14378,12 @@
 							"px": [148,212],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 225, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 226, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 227, "realEditorValues": [] },
 								{ "__identifier": "Health", "__value": "VALUE: 1", "__type": "String", "defUid": 228, "realEditorValues": [] },
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
 							]
 						},
 						{
@@ -13869,11 +14397,12 @@
 							"px": [132,180],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 225, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": true, "__type": "Bool", "defUid": 226, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 227, "realEditorValues": [] },
 								{ "__identifier": "Health", "__value": "VALUE: 1", "__type": "String", "defUid": 228, "realEditorValues": [] },
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] }
+								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
 							]
 						}
 					]
@@ -13922,7 +14451,7 @@
 										"params": ["Divided Town"]
 									}]
 								},
-								{ "__identifier": "Size", "__value": true, "__type": "Bool", "defUid": 200, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
 							]
 						}
 					]

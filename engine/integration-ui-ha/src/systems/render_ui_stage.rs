@@ -209,6 +209,7 @@ fn render(
             Some((mesh_id, batches)) => (*mesh_id, std::mem::take(batches)),
             None => {
                 let mut m = Mesh::new(layout.to_owned());
+                m.set_regenerate_bounds(false);
                 m.set_vertex_storage_all(BufferStorage::Dynamic);
                 m.set_index_storage(BufferStorage::Dynamic);
                 match renderer.add_mesh(m) {
@@ -303,14 +304,13 @@ fn render(
                             Some(image_id) => image_id,
                             None => continue,
                         };
-                        let _ = recorder.record(RenderCommand::SubmitUniform {
-                            signature: signature.to_owned(),
-                            name: MAIN_IMAGE_NAME.into(),
-                            value: MaterialValue::Sampler2d {
+                        let _ = recorder.record(RenderCommand::OverrideUniform(
+                            MAIN_IMAGE_NAME.into(),
+                            MaterialValue::Sampler2d {
                                 reference: ImageInstanceReference::Id(image_id),
-                                filtering: sync.image_filtering,
+                                filtering: sync.text_filtering,
                             },
-                        });
+                        ));
                     }
                     current_mode = mode;
                     let _ = recorder.record(RenderCommand::DrawMesh(MeshDrawRange::Range(
@@ -334,14 +334,13 @@ fn render(
                             Some(image_id) => image_id,
                             None => continue,
                         };
-                        let _ = recorder.record(RenderCommand::SubmitUniform {
-                            signature: signature.to_owned(),
-                            name: MAIN_IMAGE_NAME.into(),
-                            value: MaterialValue::Sampler2dArray {
+                        let _ = recorder.record(RenderCommand::OverrideUniform(
+                            MAIN_IMAGE_NAME.into(),
+                            MaterialValue::Sampler2dArray {
                                 reference: ImageInstanceReference::Id(image_id),
                                 filtering: sync.text_filtering,
                             },
-                        });
+                        ));
                     }
                     current_mode = mode;
                     let _ = recorder.record(RenderCommand::DrawMesh(MeshDrawRange::Range(
@@ -364,34 +363,27 @@ fn apply_material(
     projection_matrix: Mat4,
     recorder: &mut RenderQueueAutoRecorder,
 ) {
-    let _ = recorder.record(RenderCommand::ActivateMaterial {
-        id,
-        signature: signature.to_owned(),
-    });
-    let _ = recorder.record(RenderCommand::SubmitUniform {
-        signature: signature.to_owned(),
-        name: MODEL_MATRIX_NAME.into(),
-        value: transform_matrix.into(),
-    });
-    let _ = recorder.record(RenderCommand::SubmitUniform {
-        signature: signature.to_owned(),
-        name: VIEW_MATRIX_NAME.into(),
-        value: Mat4::identity().into(),
-    });
-    let _ = recorder.record(RenderCommand::SubmitUniform {
-        signature: signature.to_owned(),
-        name: PROJECTION_MATRIX_NAME.into(),
-        value: projection_matrix.into(),
-    });
+    let _ = recorder.record(RenderCommand::ActivateMaterial(id, signature.to_owned()));
+    let _ = recorder.record(RenderCommand::OverrideUniform(
+        MODEL_MATRIX_NAME.into(),
+        transform_matrix.into(),
+    ));
+    let _ = recorder.record(RenderCommand::OverrideUniform(
+        VIEW_MATRIX_NAME.into(),
+        Mat4::identity().into(),
+    ));
+    let _ = recorder.record(RenderCommand::OverrideUniform(
+        PROJECTION_MATRIX_NAME.into(),
+        projection_matrix.into(),
+    ));
+    for (key, value) in &instance.values {
+        let _ = recorder.record(RenderCommand::OverrideUniform(
+            key.to_owned().into(),
+            value.to_owned(),
+        ));
+    }
     if let Some(draw_options) = &instance.override_draw_options {
         let _ = recorder.record(RenderCommand::ApplyDrawOptions(draw_options.to_owned()));
-    }
-    for (name, value) in &instance.values {
-        let _ = recorder.record(RenderCommand::SubmitUniform {
-            signature: signature.to_owned(),
-            name: name.to_owned().into(),
-            value: value.to_owned(),
-        });
     }
 }
 

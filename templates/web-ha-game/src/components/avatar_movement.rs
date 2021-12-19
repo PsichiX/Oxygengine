@@ -22,5 +22,4 @@ impl AvatarMovement {
 }
 
 impl Prefab for AvatarMovement {}
-
 impl PrefabComponent for AvatarMovement {}

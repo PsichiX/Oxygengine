@@ -70,6 +70,14 @@
                     "macro_file": "./tools/ldtk/AvatarMovement.chrobry"
                   },
                   {
+                    "name": "BatchedIcons",
+                    "macro_file": "./tools/ldtk/BatchedIcons.chrobry"
+                  },
+                  {
+                    "name": "Blink",
+                    "macro_file": "./tools/ldtk/Blink.chrobry"
+                  },
+                  {
                     "name": "BoardAvatar",
                     "macro_file": "./tools/ldtk/BoardAvatar.chrobry"
                   },

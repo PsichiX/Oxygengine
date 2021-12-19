@@ -50,7 +50,7 @@ pub fn dialogue(context: WidgetContext) -> WidgetNode {
                     text: message,
                     font: TextBoxFont {
                         name: "fonts/pixel.yaml".to_owned(),
-                        size: 12.0,
+                        size: 8.0,
                     },
                     color: Color {
                         r: 1.0,
@@ -58,8 +58,8 @@ pub fn dialogue(context: WidgetContext) -> WidgetNode {
                         b: 1.0,
                         a: 1.0,
                     },
-                    // horizontal_align: TextBoxHorizontalAlign::Center,
-                    // vertical_align: TextBoxVerticalAlign::Middle,
+                    horizontal_align: TextBoxHorizontalAlign::Center,
+                    vertical_align: TextBoxVerticalAlign::Middle,
                     ..Default::default()
                 })
                 .with_props(ContentBoxItemLayout {

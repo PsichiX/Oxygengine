@@ -3,8 +3,9 @@ extern crate oxygengine_input as input;
 
 pub mod keyboard;
 pub mod mouse;
+pub mod touch;
 pub mod utils;
 
 pub mod prelude {
-    pub use crate::{keyboard::*, mouse::*, utils::*};
+    pub use crate::{keyboard::*, mouse::*, touch::*, utils::*};
 }

@@ -45,11 +45,22 @@ where
         self.triangles.clear();
     }
 
+    pub fn reserve(&mut self, vertex_count: usize, triangle_count: usize) {
+        self.vertices.reserve(vertex_count);
+        self.triangles.reserve(triangle_count);
+    }
+
     pub fn triangles(&mut self, vertices: &[V], triangles: &[(u32, u32, u32)]) {
+        let offset = self.vertices.len() as u32;
         self.vertices.reserve(vertices.len());
         self.vertices.extend(vertices.iter().copied());
         self.triangles.reserve(triangles.len());
-        self.triangles.extend(triangles.iter().copied());
+        self.triangles.extend(
+            triangles
+                .iter()
+                .copied()
+                .map(|(a, b, c)| (a + offset, b + offset, c + offset)),
+        );
     }
 
     pub fn triangle(&mut self, vertices: [V; 3]) {
@@ -64,12 +75,14 @@ where
         if vertices.len() < 3 {
             return false;
         }
+        let offset = self.vertices.len() as u32;
         let triangles = vertices.len() - 2;
         self.vertices.reserve(vertices.len());
         self.vertices.extend(vertices.iter().copied());
         self.triangles.reserve(triangles);
         for i in 0..(triangles as u32) {
-            self.triangles.push((0, i + 1, i + 2));
+            self.triangles
+                .push((offset, offset + i + 1, offset + i + 2));
         }
         true
     }

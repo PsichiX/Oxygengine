@@ -26,9 +26,9 @@ pub mod prelude {
         builtin_material_function, builtin_material_functions, code_material_function,
         code_material_functions,
         components::{
-            camera::*, gizmo::*, material_instance::*, mesh_instance::*, postprocess::*,
-            sprite_animation_instance::*, text_instance::*, tilemap_instance::*, transform::*,
-            virtual_image_uniforms::*, visibility::*, *,
+            camera::*, gizmo::*, immediate_batch::*, material_instance::*, mesh_instance::*,
+            postprocess::*, sprite_animation_instance::*, text_instance::*, tilemap_instance::*,
+            transform::*, virtual_image_uniforms::*, visibility::*, volume::*, *,
         },
         graph_material_function,
         ha_renderer::*,
@@ -57,9 +57,9 @@ pub mod prelude {
         resources::{camera_cache::*, gizmos::*, material_library::*, resource_mapping::*, *},
         systems::{
             apply_sprite_animation_to_material::*, atlas::*, camera_cache::*, font::*,
-            mesh_bounds_gizmo::*, render_forward_stage::*, render_gizmo_stage::*,
-            render_postprocess_stage::*, renderer::*, sprite_animation::*, tilemap::*,
-            transform::*, virtual_image_uniforms::*, volume_visibility::*, *,
+            immediate_batch::*, mesh_bounds_gizmo::*, render_forward_stage::*,
+            render_gizmo_stage::*, render_postprocess_stage::*, renderer::*, sprite_animation::*,
+            tilemap::*, transform::*, virtual_image_uniforms::*, volume_visibility::*, *,
         },
         Error, HaRendererBundleSetup, HasContextResources, ResourceInstanceReference, Resources,
         StringBuffer, TagFilters,
@@ -82,6 +82,7 @@ use crate::{
     components::{
         camera::{HaCamera, HaDefaultCamera},
         gizmo::HaGizmo,
+        immediate_batch::HaImmediateBatch,
         material_instance::HaMaterialInstance,
         mesh_instance::HaMeshInstance,
         postprocess::HaPostProcess,
@@ -90,7 +91,8 @@ use crate::{
         tilemap_instance::HaTileMapInstance,
         transform::HaTransform,
         virtual_image_uniforms::HaVirtualImageUniforms,
-        visibility::{HaVisibility, HaVolume, HaVolumeVisibility},
+        visibility::{HaVisibility, HaVolumeVisibility},
+        volume::HaVolume,
     },
     ha_renderer::HaRenderer,
     image::{ImageError, ImageId, ImageResourceMapping},
@@ -115,7 +117,7 @@ use crate::{
                 default_surface_flat_virtual_uniform_texture_2d_array_material_graph,
                 default_surface_flat_virtual_uniform_texture_2d_material_graph,
                 default_surface_flat_virtual_uniform_texture_3d_material_graph,
-                quad::SurfaceQuadFactory, surface_flat_domain_graph,
+                quad::SurfaceQuadFactory, surface_flat_domain_graph, SurfaceDomain,
             },
         },
         MaterialDrawOptions, MaterialError, MaterialId, MaterialResourceMapping,
@@ -130,6 +132,9 @@ use crate::{
         atlas::{ha_atlas_system, HaAtlasSystemCache, HaAtlasSystemResources},
         camera_cache::{ha_camera_cache_system, HaCameraCacheSystemResources},
         font::{ha_font_system, HaFontSystemCache, HaFontSystemResources},
+        immediate_batch::{
+            ha_immediate_batch_system, HaImmediateBatchSystemCache, HaImmediateBatchSystemResources,
+        },
         mesh_bounds_gizmo::{ha_mesh_bounds_gizmo_system, HaMeshBoundsGizmoSystemResources},
         render_forward_stage::{
             ha_render_forward_stage_system, HaRenderForwardStageSystemResources,
@@ -164,7 +169,10 @@ use crate::{
 use core::{
     app::AppBuilder,
     assets::{asset::Asset, database::AssetsDatabase},
-    ecs::pipeline::{PipelineBuilder, PipelineBuilderError, PipelineLayer},
+    ecs::{
+        pipeline::{PipelineBuilder, PipelineBuilderError, PipelineLayer},
+        Component,
+    },
     id::ID,
     prefab::PrefabManager,
     Ignite,
@@ -523,6 +531,7 @@ where
     builder.install_resource(HaVolumeVisibilitySystemCache::default());
     builder.install_resource(HaRenderGizmoStageSystemCache::default());
     builder.install_resource(HaRenderPostProcessStageSystemCache::default());
+    builder.install_resource(HaImmediateBatchSystemCache::default());
     builder.install_resource(MaterialLibrary::default());
     builder.install_resource(ImageResourceMapping::default());
     builder.install_resource(MeshResourceMapping::default());
@@ -601,6 +610,22 @@ where
         &[],
     )?;
 
+    Ok(())
+}
+
+pub fn immediate_batch_system_installer<PB, C>(
+    builder: &mut AppBuilder<PB>,
+    postfix: &str,
+) -> Result<(), PipelineBuilderError>
+where
+    PB: PipelineBuilder,
+    C: Component + SurfaceDomain + Default + Copy + Send + Sync,
+{
+    builder.install_system::<HaImmediateBatchSystemResources<C>>(
+        &format!("immediate-batch-system-{}", postfix),
+        ha_immediate_batch_system::<C>,
+        &[],
+    )?;
     Ok(())
 }
 
@@ -853,4 +878,14 @@ pub fn prefabs_installer(prefabs: &mut PrefabManager) {
     prefabs.register_component_factory::<HaVolumeVisibility>("HaVolumeVisibility");
     prefabs.register_component_factory::<HaGizmo>("HaGizmo");
     prefabs.register_component_factory::<HaPostProcess>("HaPostProcess");
+}
+
+pub fn immediate_batch_prefab_installer<C>(postfix: &str, prefabs: &mut PrefabManager)
+where
+    C: Component + SurfaceDomain + Default + Copy + Send + Sync,
+{
+    prefabs.register_component_factory::<HaImmediateBatch<C>>(&format!(
+        "HaImmediateBatch-{}",
+        postfix
+    ));
 }

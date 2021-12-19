@@ -378,6 +378,7 @@ impl Universe {
         if self.states.is_empty() {
             return;
         }
+        self.expect_resource_mut::<EntityChanges>().clear();
         self.expect_resource_mut::<UniverseCommands>().execute(self);
         self.expect_resource_mut::<EntityChanges>()
             .entities
@@ -456,7 +457,6 @@ impl Universe {
             _ => {}
         }
         self.expect_resource_mut::<AppLifeCycle>().timer.tick();
-        self.expect_resource_mut::<EntityChanges>().clear();
 
         let _ = std::mem::replace(&mut self.states, states);
     }

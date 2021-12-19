@@ -4,18 +4,21 @@ mod resources;
 mod states;
 mod systems;
 mod ui;
+mod utils;
 
 use crate::{
     components::{
-        avatar_combat::AvatarCombat, avatar_movement::AvatarMovement, health::Health,
-        weapon::Weapon, Enemy, Player,
+        avatar_combat::AvatarCombat, avatar_movement::AvatarMovement, blink::Blink, enemy::Enemy,
+        health::Health, player::Player, weapon::Weapon, BatchedAttacksTag, BatchedSecretsTag,
     },
-    materials::avatar::avatar_material_graph,
-    resources::game_state_info::*,
+    materials::avatar::{avatar_material_graph, virtual_uniform_avatar_material_graph},
+    resources::{effects::*, game_state_info::*},
     states::loading::LoadingState,
     systems::{
         avatar_combat::{avatar_combat_system, AvatarCombatSystemResources},
+        blink::{blink_system, BlinkSystemResources},
         death::{death_system, DeathSystemResources},
+        effects::{effects_system, EffectsSystemResources},
         player_combat::{player_combat_system, PlayerCombatSystemResources},
         player_movement::{player_movement_system, PlayerMovementSystemResources},
         sync_game_state_info::{sync_game_state_info_system, SyncGameStateInfoSystemResources},
@@ -49,6 +52,11 @@ pub fn main_js() -> Result<(), JsValue> {
             .with_bundle(oxygengine::input::bundle_installer, make_inputs())
             .unwrap()
             .with_bundle(oxygengine::ha_renderer::bundle_installer, make_renderer()?)
+            .unwrap()
+            .with_bundle(
+                oxygengine::ha_renderer::immediate_batch_system_installer::<_, SurfaceVertexPT>,
+                "pt",
+            )
             .unwrap()
             .with_bundle(oxygengine::overworld::bundle_installer, make_overworld())
             .unwrap()
@@ -86,6 +94,10 @@ pub fn main_js() -> Result<(), JsValue> {
             .unwrap()
             .with_system::<DeathSystemResources>("death", death_system, &[])
             .unwrap()
+            .with_system::<BlinkSystemResources>("blink", blink_system, &[])
+            .unwrap()
+            .with_system::<EffectsSystemResources>("effects", effects_system, &[])
+            .unwrap()
             .with_system::<SyncGameStateInfoSystemResources>(
                 "sync-game-state-info",
                 sync_game_state_info_system,
@@ -94,6 +106,7 @@ pub fn main_js() -> Result<(), JsValue> {
             .unwrap()
             .with_resource(WebStorageEngine)
             .with_resource(GameStateInfo::default())
+            .with_resource(Effects::with_capacity(10, 10))
             .build::<SequencePipelineEngine, _, _>(LoadingState::default(), WebAppTimer::default());
 
     AppRunner::new(app).run(WebAppRunner)?;
@@ -123,12 +136,30 @@ fn make_assets() -> (WebFetchEngine, impl FnMut(&mut AssetsDatabase)) {
                 content: avatar_material_graph(),
             }),
         ));
+
+        database.insert(Asset::new(
+            "material",
+            "@material/graph/surface/flat/virtual-uniform-avatar",
+            Box::new(MaterialAsset::Graph {
+                default_values: {
+                    let mut map = HashMap::with_capacity(1);
+                    map.insert(
+                        "blinkColor".to_owned(),
+                        Vec4::new(1.0, 1.0, 1.0, 0.0).into(),
+                    );
+                    map
+                },
+                draw_options: MaterialDrawOptions::transparent(),
+                content: virtual_uniform_avatar_material_graph(),
+            }),
+        ));
     })
 }
 
 fn make_prefabs() -> impl FnMut(&mut PrefabManager) {
     |prefabs| {
         oxygengine::ha_renderer::prefabs_installer(prefabs);
+        oxygengine::ha_renderer::immediate_batch_prefab_installer::<SurfaceVertexPT>("PT", prefabs);
         oxygengine::user_interface::prefabs_installer(prefabs);
         oxygengine::overworld::prefabs_installer(prefabs);
         oxygengine::integration_user_interface_ha_renderer::prefabs_installer(prefabs);
@@ -136,10 +167,13 @@ fn make_prefabs() -> impl FnMut(&mut PrefabManager) {
 
         prefabs.register_component_factory::<AvatarMovement>("AvatarMovement");
         prefabs.register_component_factory::<AvatarCombat>("AvatarCombat");
-        prefabs.register_component_factory::<Health>("Health");
-        prefabs.register_component_factory::<Weapon>("Weapon");
-        prefabs.register_component_factory::<Player>("Player");
+        prefabs.register_component_factory::<Blink>("Blink");
         prefabs.register_component_factory::<Enemy>("Enemy");
+        prefabs.register_component_factory::<Health>("Health");
+        prefabs.register_component_factory::<Player>("Player");
+        prefabs.register_component_factory::<Weapon>("Weapon");
+        prefabs.register_component_factory::<BatchedSecretsTag>("BatchedSecretsTag");
+        prefabs.register_component_factory::<BatchedAttacksTag>("BatchedAttacksTag");
     }
 }
 
@@ -147,14 +181,17 @@ fn make_inputs() -> impl FnMut(&mut InputController) {
     |input| {
         input.register(WebKeyboardInputDevice::new(get_event_target_document()));
         input.register(WebMouseInputDevice::new(get_event_target_by_id("screen")));
+        input.register(WebTouchInputDevice::new(get_event_target_by_id("screen")));
         input.map_axis("pointer-x", "mouse", "x");
         input.map_axis("pointer-y", "mouse", "y");
         input.map_trigger("pointer-action", "mouse", "left");
-        input.map_axis("move-up", "keyboard", "KeyW");
-        input.map_axis("move-down", "keyboard", "KeyS");
-        input.map_axis("move-left", "keyboard", "KeyA");
-        input.map_axis("move-right", "keyboard", "KeyD");
-        input.map_trigger("attack", "keyboard", "Space");
+        input.map_axis("touch-x", "touch", "x");
+        input.map_axis("touch-y", "touch", "y");
+        input.map_trigger("touch-action", "touch", "touch");
+        // input.map_axis("move-up", "keyboard", "KeyW");
+        // input.map_axis("move-down", "keyboard", "KeyS");
+        // input.map_axis("move-left", "keyboard", "KeyA");
+        // input.map_axis("move-right", "keyboard", "KeyD");
     }
 }
 

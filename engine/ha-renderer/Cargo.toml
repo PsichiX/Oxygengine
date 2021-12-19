@@ -34,12 +34,12 @@ pest_derive = "2.1"
 version = "0.3"
 optional = true
 features = [
-  'WebGl2RenderingContext',
-  'Document',
-  'HtmlCanvasElement',
-  'Window',
-  'Element',
-  'Event',
+  "WebGl2RenderingContext",
+  "Document",
+  "HtmlCanvasElement",
+  "Window",
+  "Element",
+  "Event",
 ]
 
 [profile.dev.package.png]

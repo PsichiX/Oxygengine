@@ -80,20 +80,25 @@ pub fn ha_renderer_maintenance_system(universe: &mut Universe) {
         &mut mesh_mapping,
         &mut material_mapping,
     );
+    update_resource_references(&world, &image_mapping, &mesh_mapping, &material_mapping);
+}
+
+pub type HaRendererExecutionSystemResources<'a> = (
+    &'a mut HaRenderer,
+    &'a HaRendererMaintenanceSystemCache,
+    &'a MaterialLibrary,
+);
+
+pub fn ha_renderer_execution_system(universe: &mut Universe) {
+    let (mut renderer, cache, material_library) =
+        universe.query_resources::<HaRendererExecutionSystemResources>();
+
     renderer.maintain_render_targets();
     renderer.maintain_meshes();
     renderer.maintain_materials(
         &material_library,
         cache.fragment_high_precision_support.unwrap_or_default(),
     );
-    update_resource_references(&world, &image_mapping, &mesh_mapping, &material_mapping);
-}
-
-pub type HaRendererExecutionSystemResources<'a> = &'a mut HaRenderer;
-
-pub fn ha_renderer_execution_system(universe: &mut Universe) {
-    let mut renderer = universe.query_resources::<HaRendererExecutionSystemResources>();
-
     execute_pipelines(&mut renderer);
 }
 

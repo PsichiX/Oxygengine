@@ -9,7 +9,7 @@ use oxygengine_ha_renderer::{
     asset_protocols::{atlas::*, image::*, tilemap::*},
     components::{
         camera::*, gizmo::*, material_instance::*, mesh_instance::*, sprite_animation_instance::*,
-        tilemap_instance::*, transform::*, virtual_image_uniforms::*, visibility::*,
+        tilemap_instance::*, transform::*, virtual_image_uniforms::*, visibility::*, volume::*,
     },
     ha_renderer::*,
     image::*,
@@ -356,7 +356,7 @@ fn bake_project(
                     "HaMeshInstance".to_owned(),
                     HaMeshInstance::default()
                         .to_prefab()
-                        .unwrap_or_else(|_| panic!("Could not serialize HaTransform to prefab")),
+                        .unwrap_or_else(|_| panic!("Could not serialize HaMeshInstance to prefab")),
                 );
                 entity_data.components.insert(
                     "HaMaterialInstance".to_owned(),
@@ -365,7 +365,7 @@ fn bake_project(
                         ..Default::default()
                     }
                     .to_prefab()
-                    .unwrap_or_else(|_| panic!("Could not serialize HaTransform to prefab")),
+                    .unwrap_or_else(|_| panic!("Could not serialize HaMaterialInstance to prefab")),
                 );
                 asset.entities.push(PrefabSceneEntity::Data(entity_data));
             }
@@ -521,9 +521,11 @@ fn bake_project(
                                 _ => DEFAULT_SPRITE_MATERIAL_ASSET,
                             })
                         });
-                    let sprite_image_name = if let (Some(_), Some(tileset_id), Some(tile_id)) =
-                        (sprite_image, entity_def.tileset_id, entity_def.tile_id)
-                    {
+                    let sprite_image_name = if let (true, Some(tileset_id), Some(tile_id)) = (
+                        sprite_image.is_some(),
+                        entity_def.tileset_id,
+                        entity_def.tile_id,
+                    ) {
                         let tileset = project
                             .defs
                             .tilesets
@@ -651,8 +653,10 @@ fn bake_project(
                     if !no_transform {
                         let position = if has_camera {
                             Vec3::new(
-                                entity.px[0] as Scalar + entity.width as Scalar * 0.5,
-                                entity.px[1] as Scalar + entity.height as Scalar * 0.5,
+                                entity.px[0] as Scalar
+                                    + entity.width as Scalar * (0.5 - entity.pivot[0] as Scalar),
+                                entity.px[1] as Scalar
+                                    + entity.height as Scalar * (0.5 - entity.pivot[1] as Scalar),
                                 0.0,
                             )
                         } else {
@@ -673,6 +677,32 @@ fn bake_project(
                                     panic!("Could not serialize HaTransform to prefab")
                                 }),
                         );
+                        if entity_field_value("BoxVolume", entity, entity_def)
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or_default()
+                        {
+                            let size =
+                                Vec3::new(entity.width as Scalar, entity.height as Scalar, 0.0);
+                            let data = HaVolume::Box(size);
+                            entity_data.components.insert(
+                                "HaVolume".to_owned(),
+                                data.to_prefab().unwrap_or_else(|_| {
+                                    panic!("Could not serialize HaVolume::Box to prefab")
+                                }),
+                            );
+                        } else if entity_field_value("SphereVolume", entity, entity_def)
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or_default()
+                        {
+                            let radius = entity.width.max(entity.height) as Scalar;
+                            let data = HaVolume::Sphere(radius);
+                            entity_data.components.insert(
+                                "HaVolume".to_owned(),
+                                data.to_prefab().unwrap_or_else(|_| {
+                                    panic!("Could not serialize HaVolume::Box to prefab")
+                                }),
+                            );
+                        }
                     }
                     if let Some(name) = mesh_asset {
                         entity_data.components.insert(
@@ -682,7 +712,7 @@ fn bake_project(
                             }
                             .to_prefab()
                             .unwrap_or_else(|_| {
-                                panic!("Could not serialize HaTransform to prefab")
+                                panic!("Could not serialize HaMeshInstance to prefab")
                             }),
                         );
                     }
@@ -695,7 +725,7 @@ fn bake_project(
                             }
                             .to_prefab()
                             .unwrap_or_else(|_| {
-                                panic!("Could not serialize HaTransform to prefab")
+                                panic!("Could not serialize HaMaterialInstance to prefab")
                             }),
                         );
                     }
@@ -711,7 +741,7 @@ fn bake_project(
                         entity_data.components.insert(
                             "HaVirtualImageUniforms".to_owned(),
                             data.to_prefab().unwrap_or_else(|_| {
-                                panic!("Could not serialize HaTransform to prefab")
+                                panic!("Could not serialize HaVirtualImageUniforms to prefab")
                             }),
                         );
                     }

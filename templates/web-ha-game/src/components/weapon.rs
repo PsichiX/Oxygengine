@@ -5,5 +5,4 @@ use serde::{Deserialize, Serialize};
 pub struct Weapon(pub usize);
 
 impl Prefab for Weapon {}
-
 impl PrefabComponent for Weapon {}

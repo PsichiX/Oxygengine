@@ -77,6 +77,7 @@ impl HaSpriteAnimationInstance {
             bounced: false,
             cached_frame: None,
         });
+        self.frame_changed = true;
     }
 
     pub fn stop(&mut self) {

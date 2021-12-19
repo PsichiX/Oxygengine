@@ -19,21 +19,22 @@ pub fn gui(context: WidgetContext) -> WidgetNode {
             make_widget!(heart_items)
                 .key("health")
                 .with_props(ItemsProps {
-                    capacity: info.player.health_capacity,
                     count: info.player.health,
+                    danger_threshold: 1,
+                    reversed: false,
                 })
                 .with_props(ContentBoxItemLayout {
                     anchors: Rect {
                         left: 0.0,
-                        right: 0.5,
+                        right: 0.25,
                         top: 0.0,
                         bottom: 1.0,
                     },
                     margin: Rect {
-                        left: 6.0,
-                        right: 6.0,
-                        top: 6.0,
-                        bottom: 6.0,
+                        left: 2.0,
+                        right: 2.0,
+                        top: 2.0,
+                        bottom: 2.0,
                     },
                     ..Default::default()
                 }),
@@ -42,21 +43,22 @@ pub fn gui(context: WidgetContext) -> WidgetNode {
             make_widget!(sword_items)
                 .key("weapons")
                 .with_props(ItemsProps {
-                    capacity: info.player.weapons_capacity,
                     count: info.player.weapons,
+                    danger_threshold: 1,
+                    reversed: true,
                 })
                 .with_props(ContentBoxItemLayout {
                     anchors: Rect {
-                        left: 0.5,
+                        left: 0.75,
                         right: 1.0,
                         top: 0.0,
                         bottom: 1.0,
                     },
                     margin: Rect {
-                        left: 6.0,
-                        right: 6.0,
-                        top: 6.0,
-                        bottom: 6.0,
+                        left: 2.0,
+                        right: 2.0,
+                        top: 2.0,
+                        bottom: 2.0,
                     },
                     align: Vec2 { x: 1.0, y: 0.0 },
                     ..Default::default()
