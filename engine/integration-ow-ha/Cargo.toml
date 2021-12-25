@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-integration-ow-ha"
-version = "0.27.0"
+version = "0.28.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Integration module of RPG overworld and Hardware Accelerated rendering for Oxygengine"
@@ -28,7 +28,7 @@ scalar64 = [
 ]
 
 [dependencies]
-oxygengine-core = { version = "0.27", path = "../core" }
-oxygengine-overworld = { version = "0.27", path = "../overworld" }
-oxygengine-ha-renderer = { version = "0.27", path = "../ha-renderer" }
+oxygengine-core = { version = "0.28", path = "../core" }
+oxygengine-overworld = { version = "0.28", path = "../overworld" }
+oxygengine-ha-renderer = { version = "0.28", path = "../ha-renderer" }
 serde = { version = "1", features = ["derive"] }

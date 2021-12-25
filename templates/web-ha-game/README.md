@@ -11,12 +11,12 @@ This game template provides essential framework to allow making 2D RPG games.
 - [x] Levels created with LDtk level editor
 - [x] Player and its movement on game board
 - [x] Enemy avatars on game board
-- [x] User interface mockup
+- [x] User interface
+- [X] Items spawned randomly on buildings
 
 **TODO features:**
 - [ ] Integration of inventory into the game
 - [ ] Integration of quests into the game
-- [ ] Items spawned randomly on buildings
 - [ ] Combat system for player and enemies
 
 **3rd-party assets:**

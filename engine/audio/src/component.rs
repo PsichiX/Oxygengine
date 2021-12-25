@@ -115,25 +115,17 @@ impl AudioSourceConfig {
 
 impl Prefab for AudioSourceConfig {}
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Clone)]
 pub struct AudioSource {
     audio: Cow<'static, str>,
-    #[serde(default)]
     streaming: bool,
-    #[serde(default)]
     looped: bool,
-    #[serde(default)]
     playback_rate: Scalar,
-    #[serde(default)]
     volume: Scalar,
-    #[serde(default)]
     play: bool,
-    #[serde(default)]
     pub(crate) current_time: Option<Scalar>,
-    #[serde(skip)]
     #[ignite(ignore)]
     pub(crate) ready: Arc<AtomicBool>,
-    #[serde(skip)]
     #[ignite(ignore)]
     pub(crate) dirty: AudioSourceDirtyMode,
 }

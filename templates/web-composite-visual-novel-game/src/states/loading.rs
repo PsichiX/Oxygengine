@@ -11,7 +11,7 @@ impl State for LoadingState {
         let mut assets = universe.expect_resource_mut::<AssetsDatabase>();
         if let Some(preloader) = &mut self.preloader {
             if preloader.process(&mut assets).unwrap() {
-                // // NOTE: web browsers require user input to be triggered before playing any audio.
+                // NOTE: web browsers require user input to be triggered before playing any audio.
                 // let input = universe.expect_resource::<InputController>();
                 // if input.trigger_or_default("mouse-left") == TriggerState::Pressed {
                 //     return StateChange::Swap(Box::new(GameState::default()));

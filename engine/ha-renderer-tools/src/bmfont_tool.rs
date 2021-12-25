@@ -89,6 +89,8 @@ struct Params {
     pub max_height: u32,
     #[serde(default)]
     pub padding: u32,
+    #[serde(default)]
+    pub force_line_height: Option<usize>,
 }
 
 impl Params {
@@ -117,6 +119,7 @@ fn main() -> Result<(), Error> {
             params.max_width,
             params.max_height,
             params.padding,
+            params.force_line_height,
         )?;
     }
     Ok(())
@@ -132,6 +135,7 @@ fn generate_sdf_font(
     max_width: u32,
     max_height: u32,
     padding: u32,
+    force_line_height: Option<usize>,
 ) -> Result<(), Error> {
     let dirname = descriptor
         .parent()
@@ -184,6 +188,10 @@ fn generate_sdf_font(
             .pack_own(id, image)
             .unwrap_or_else(|_| panic!("Could not pack font glyph: {}", id));
     }
+    let diff_y = force_line_height
+        .filter(|value| *value > 0)
+        .map(|value| value as isize - font.common.0.line_height as isize)
+        .unwrap_or_default();
     let pages = packer
         .get_pages()
         .iter()
@@ -249,7 +257,7 @@ fn generate_sdf_font(
                         width: frame.frame.w as _,
                         height: frame.frame.h as _,
                         xoffset: character.xoffset,
-                        yoffset: character.yoffset,
+                        yoffset: character.yoffset + diff_y,
                         xadvance: character.xadvance,
                     };
                     let c = std::char::from_u32(*id as _).unwrap_or_else(|| {
@@ -266,8 +274,8 @@ fn generate_sdf_font(
         .collect();
 
     let asset = FontAssetSource {
-        line_height: font.common.0.line_height,
-        line_base: font.common.0.base,
+        line_height: (font.common.0.line_height as isize + diff_y).max(0) as usize,
+        line_base: (font.common.0.base as isize + diff_y).max(0) as usize,
         sdf_resolution: generator.resolution,
         pages,
         filtering: image_filtering,

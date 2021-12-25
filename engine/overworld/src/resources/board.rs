@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     cmp::Ordering,
     collections::{HashMap, HashSet},
+    ops::Range,
 };
 
 pub type BoardToken = ID<Location>;
@@ -669,6 +670,28 @@ impl Board {
             Some(chunk) => chunk.tile_value(location.chunk),
             None => Err(BoardError::ChunkDoesNotExists(location.world)),
         }
+    }
+
+    pub fn tile_values(
+        &self,
+        range: Range<Location>,
+    ) -> impl Iterator<Item = (Location, usize)> + '_ {
+        let (dx, dy) = self.location_relative(range.start, range.end);
+        let count = if dx > 0 && dy > 0 {
+            dx as usize * dy as usize
+        } else {
+            0
+        };
+        (0..count).filter_map(move |index| {
+            let cols = dx as usize;
+            let x = index % cols;
+            let y = index / cols;
+            let location = self.location_move(range.start, x as isize, y as isize);
+            self.tile_value(location)
+                .ok()
+                .and_then(|v| v)
+                .map(|value| (location, value))
+        })
     }
 
     pub fn occupancy(&self, location: Location) -> Result<Option<BoardToken>, BoardError> {

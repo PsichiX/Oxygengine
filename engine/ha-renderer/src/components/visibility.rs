@@ -1,4 +1,3 @@
-use crate::TagFilters;
 use core::{
     prefab::{Prefab, PrefabComponent},
     Ignite,
@@ -16,10 +15,3 @@ impl Default for HaVisibility {
 
 impl Prefab for HaVisibility {}
 impl PrefabComponent for HaVisibility {}
-
-/// (tag name, overlap test as box)
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
-pub struct HaVolumeVisibility(pub TagFilters, pub bool);
-
-impl Prefab for HaVolumeVisibility {}
-impl PrefabComponent for HaVolumeVisibility {}

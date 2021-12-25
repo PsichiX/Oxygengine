@@ -1,5 +1,7 @@
 use crate::{
-    components::{camera::*, mesh_instance::*, transform::*, visibility::*, volume::*},
+    components::{
+        camera::*, mesh_instance::*, transform::*, visibility::*, volume::*, volume_visibility::*,
+    },
     ha_renderer::HaRenderer,
     math::*,
 };
@@ -73,11 +75,10 @@ pub fn ha_volume_visibility_system(universe: &mut Universe) {
             None => continue,
         };
         visibility.0 = cache.temp_tag_volumes.iter().any(|(t, b)| {
-            if volume.0.validate_tag(t) {
-                if volume.1 {
-                    return bounds.overlap_boxes(b);
-                } else {
-                    return bounds.overlap_spheres(b);
+            if volume.filters.validate_tag(t) {
+                match volume.mode {
+                    HaVolumeVisibilityMode::Sphere => return bounds.overlap_spheres(b),
+                    HaVolumeVisibilityMode::Box => return bounds.overlap_boxes(b),
                 }
             }
             false

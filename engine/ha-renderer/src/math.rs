@@ -165,11 +165,32 @@ impl BoundsVolume {
         self.half_extents
     }
 
-    pub fn overlap_point(&self, position: Vec3) -> bool {
+    pub fn closest_point_with_box(&self, position: Vec3) -> Vec3 {
+        Vec3::partial_max(
+            self.origin - self.half_extents,
+            Vec3::partial_min(self.origin + self.half_extents, position),
+        )
+    }
+
+    pub fn closest_point_with_sphere(&self, position: Vec3) -> Vec3 {
+        let diff = position - self.origin;
+        if diff.magnitude() > self.radius {
+            self.origin + diff.normalized() * self.radius
+        } else {
+            position
+        }
+    }
+
+    pub fn overlap_point_with_box(&self, position: Vec3) -> bool {
         let diff = position - self.origin;
         diff.x.abs() <= self.half_extents.x
             && diff.y.abs() <= self.half_extents.y
             && diff.z.abs() <= self.half_extents.z
+    }
+
+    pub fn overlap_point_with_sphere(&self, position: Vec3) -> bool {
+        let distance = Vec3::distance(position, self.origin);
+        distance <= self.radius
     }
 
     pub fn overlap_spheres(&self, other: &Self) -> bool {
@@ -227,7 +248,7 @@ impl BoundsVolume {
 
     pub fn distance_box_single(&self, position: Vec3) -> Scalar {
         let dist = self.distance_box(position).magnitude();
-        if self.overlap_point(position) {
+        if self.overlap_point_with_box(position) {
             -dist
         } else {
             dist

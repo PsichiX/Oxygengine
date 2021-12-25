@@ -213,11 +213,23 @@ fn bake_project(
             };
 
             let mut data_asset = Option::<TileMapAsset>::None;
+            let mut value_offset = 0;
 
             for layer in layer_instances.iter().rev() {
                 if !layer.visible {
                     continue;
                 }
+                let layer_def = project
+                    .defs
+                    .layers
+                    .iter()
+                    .find(|l| l.uid == layer.layer_def_uid)
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Layer definition not found: {} for layer: {}",
+                            layer.layer_def_uid, layer.identifier
+                        )
+                    });
                 let tileset_id = match layer.tileset_def_uid {
                     Some(id) => id,
                     None => continue,
@@ -269,7 +281,7 @@ fn bake_project(
                     if data_asset.values.len() == layer.int_grid_csv.len() {
                         for (a, b) in data_asset.values.iter_mut().zip(layer.int_grid_csv.iter()) {
                             if *b > 0 {
-                                *a = *b as _;
+                                *a = value_offset + *b as usize;
                             }
                         }
                     }
@@ -283,6 +295,12 @@ fn bake_project(
                         values: layer.int_grid_csv.iter().map(|v| *v as _).collect(),
                     });
                 }
+                value_offset += layer_def
+                    .int_grid_values
+                    .iter()
+                    .map(|v| v.value)
+                    .max()
+                    .unwrap_or_default() as usize;
 
                 let mut entity_data = PrefabSceneEntityData::default();
                 for (name, content) in rules {
@@ -448,7 +466,7 @@ fn bake_project(
                     }
 
                     let mut variables = variables.to_owned();
-                    variables.extend(entity_variables(entity));
+                    variables.extend(entity_variables(entity, level.world_x, level.world_y));
 
                     let mut entity_data = PrefabSceneEntityData::default();
                     for (name, content) in rules {
@@ -603,9 +621,7 @@ fn bake_project(
                             }),
                         );
                     }
-                    let has_camera = if let Some(pipeline) =
-                        entity_field_value("Camera", entity, entity_def)
-                    {
+                    if let Some(pipeline) = entity_field_value("Camera", entity, entity_def) {
                         let pipeline = pipeline
                             .as_str()
                             .unwrap_or_else(|| {
@@ -646,22 +662,17 @@ fn bake_project(
                                 }),
                             );
                         }
-                        true
-                    } else {
-                        false
-                    };
+                    }
                     if !no_transform {
-                        let position = if has_camera {
-                            Vec3::new(
-                                entity.px[0] as Scalar
-                                    + entity.width as Scalar * (0.5 - entity.pivot[0] as Scalar),
-                                entity.px[1] as Scalar
-                                    + entity.height as Scalar * (0.5 - entity.pivot[1] as Scalar),
-                                0.0,
-                            )
-                        } else {
-                            Vec3::new(entity.px[0] as _, entity.px[1] as _, 0.0)
-                        };
+                        let position = Vec3::new(
+                            level.world_x as Scalar
+                                + entity.px[0] as Scalar
+                                + entity.width as Scalar * (0.5 - entity.pivot[0] as Scalar),
+                            level.world_y as Scalar
+                                + entity.px[1] as Scalar
+                                + entity.height as Scalar * (0.5 - entity.pivot[1] as Scalar),
+                            0.0,
+                        );
                         let scale = if sprite_image_name.is_some() {
                             Vec3::new(entity.width as _, entity.height as Scalar, 1.0)
                         } else {
@@ -683,7 +694,7 @@ fn bake_project(
                         {
                             let size =
                                 Vec3::new(entity.width as Scalar, entity.height as Scalar, 0.0);
-                            let data = HaVolume::Box(size);
+                            let data = HaVolume::Box(size * 0.5);
                             entity_data.components.insert(
                                 "HaVolume".to_owned(),
                                 data.to_prefab().unwrap_or_else(|_| {
@@ -694,7 +705,7 @@ fn bake_project(
                             .and_then(|v| v.as_bool())
                             .unwrap_or_default()
                         {
-                            let radius = entity.width.max(entity.height) as Scalar;
+                            let radius = entity.width.max(entity.height) as Scalar * 0.5;
                             let data = HaVolume::Sphere(radius);
                             entity_data.components.insert(
                                 "HaVolume".to_owned(),
@@ -869,8 +880,14 @@ fn ensure_path(path: &Path) {
 }
 
 fn process_macro(content: &str, variables: HashMap<String, String>, name: &str) -> String {
-    chrobry_core::generate(content, "\n", variables, |_| Ok(Default::default()))
-        .unwrap_or_else(|_| panic!("Could not process macro for component: {}", name))
+    chrobry_core::generate(content, "\n", variables, |_| Ok(Default::default())).unwrap_or_else(
+        |error| {
+            panic!(
+                "Could not process macro for component: {} | Error: {:?}",
+                name, error
+            )
+        },
+    )
 }
 
 fn is_separator(c: char) -> bool {
@@ -930,7 +947,11 @@ fn layer_variables(layer: &LayerInstance) -> HashMap<String, String> {
     result
 }
 
-fn entity_variables(entity: &EntityInstance) -> HashMap<String, String> {
+fn entity_variables(
+    entity: &EntityInstance,
+    world_x: i64,
+    world_y: i64,
+) -> HashMap<String, String> {
     let mut result = HashMap::with_capacity(9);
     result.insert(
         "entity_identifier".to_owned(),
@@ -950,6 +971,14 @@ fn entity_variables(entity: &EntityInstance) -> HashMap<String, String> {
     );
     result.insert("entity_px_x".to_owned(), entity.px[0].to_string());
     result.insert("entity_px_y".to_owned(), entity.px[1].to_string());
+    result.insert(
+        "entity_world_x".to_owned(),
+        (world_x + entity.px[0]).to_string(),
+    );
+    result.insert(
+        "entity_world_y".to_owned(),
+        (world_y + entity.px[1]).to_string(),
+    );
     result.insert("entity_width".to_owned(), entity.width.to_string());
     result.insert("entity_height".to_owned(), entity.height.to_string());
     result

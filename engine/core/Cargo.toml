@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-core"
-version = "0.27.0"
+version = "0.28.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Core module for Oxygengine"
@@ -16,8 +16,8 @@ parallel = ["rayon"]
 scalar64 = []
 
 [dependencies]
-oxygengine-ignite-types = { version = "0.27", path = "../ignite-types" }
-oxygengine-ignite-derive = { version = "0.27", path = "../ignite-derive" }
+oxygengine-ignite-types = { version = "0.28", path = "../ignite-types" }
+oxygengine-ignite-derive = { version = "0.28", path = "../ignite-derive" }
 typid = "1"
 serde = { version = "1", features = ["derive"] }
 bincode = "1"

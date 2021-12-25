@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(PropsData, Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct ItemsProps {
     pub count: usize,
+    pub capacity: usize,
     pub danger_threshold: usize,
     pub reversed: bool,
 }
@@ -20,6 +21,7 @@ fn items(context: WidgetContext, image: &str) -> WidgetNode {
     let WidgetContext { key, props, .. } = context;
     let ItemsProps {
         count,
+        capacity,
         reversed,
         danger_threshold,
     } = props.read_cloned_or_default();
@@ -124,7 +126,7 @@ fn items(context: WidgetContext, image: &str) -> WidgetNode {
                         )
                         .listed_slot(make_widget!(text_box).key("value").with_props(
                             TextBoxProps {
-                                text: count.to_string(),
+                                text: format!("{}/{}", count, capacity),
                                 font: TextBoxFont {
                                     name: "fonts/pixel.yaml".to_owned(),
                                     size: 8.0,
@@ -134,6 +136,7 @@ fn items(context: WidgetContext, image: &str) -> WidgetNode {
                                 } else {
                                     TextBoxHorizontalAlign::Left
                                 },
+                                vertical_align: TextBoxVerticalAlign::Bottom,
                                 color: if count > danger_threshold {
                                     Color::default()
                                 } else {
@@ -143,10 +146,6 @@ fn items(context: WidgetContext, image: &str) -> WidgetNode {
                                         b: 0.1,
                                         a: 1.0,
                                     }
-                                },
-                                transform: Transform {
-                                    translation: Vec2 { x: 0.0, y: -20.0 },
-                                    ..Default::default()
                                 },
                                 ..Default::default()
                             },

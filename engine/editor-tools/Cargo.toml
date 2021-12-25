@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-editor-tools"
-version = "0.27.0"
+version = "0.28.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Editor tools for Oxygengine"

@@ -18,22 +18,24 @@ pub fn effects_system(universe: &mut Universe) {
     let (world, lifecycle, mut effects, board, settings, ..) =
         universe.query_resources::<EffectsSystemResources>();
 
-    for (_, batch) in world
+    if let Some((_, batch)) = world
         .query::<&mut HaImmediateBatch<V>>()
         .with::<BatchedAttacksTag>()
         .iter()
+        .next()
     {
         for location in effects.attacks() {
             batch_effect(batch, location, &board, &settings);
         }
     }
 
-    for (_, batch) in world
+    if let Some((_, batch)) = world
         .query::<&mut HaImmediateBatch<V>>()
         .with::<BatchedSecretsTag>()
         .iter()
+        .next()
     {
-        for location in effects.secrets() {
+        for (location, _) in effects.secrets() {
             batch_effect(batch, location, &board, &settings);
         }
     }

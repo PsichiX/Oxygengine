@@ -9,7 +9,7 @@
 		"url": "https://ldtk.io"
 	},
 	"jsonVersion": "0.9.3",
-	"nextUid": 272,
+	"nextUid": 279,
 	"worldLayout": "Free",
 	"worldGridWidth": 256,
 	"worldGridHeight": 256,
@@ -2008,6 +2008,29 @@
 					"acceptFileTypes": null,
 					"defaultOverride": null,
 					"textLanguageMode": null
+				},
+				{
+					"identifier": "VolumeOverlap",
+					"__type": "String",
+					"uid": 273,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_String",
+						"params": ["TAG: area"]
+					},
+					"textLanguageMode": null
 				}
 			]
 		},
@@ -2188,6 +2211,29 @@
 					"regex": null,
 					"acceptFileTypes": null,
 					"defaultOverride": null,
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "LevelUp",
+					"__type": "String",
+					"uid": 278,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_String",
+						"params": ["VALUE: 0"]
+					},
 					"textLanguageMode": null
 				}
 			]
@@ -2370,6 +2416,29 @@
 					"acceptFileTypes": null,
 					"defaultOverride": null,
 					"textLanguageMode": null
+				},
+				{
+					"identifier": "LevelUp",
+					"__type": "String",
+					"uid": 277,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_String",
+						"params": ["VALUE: 0"]
+					},
+					"textLanguageMode": null
 				}
 			]
 		},
@@ -2550,6 +2619,29 @@
 					"regex": null,
 					"acceptFileTypes": null,
 					"defaultOverride": null,
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "LevelUp",
+					"__type": "String",
+					"uid": 276,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_String",
+						"params": ["VALUE: 1"]
+					},
 					"textLanguageMode": null
 				}
 			]
@@ -2822,6 +2914,29 @@
 					"regex": null,
 					"acceptFileTypes": null,
 					"defaultOverride": null,
+					"textLanguageMode": null
+				},
+				{
+					"identifier": "Tag",
+					"__type": "String",
+					"uid": 274,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_String",
+						"params": ["area"]
+					},
 					"textLanguageMode": null
 				},
 				{
@@ -3183,7 +3298,7 @@
 			"__cHei": 24,
 			"identifier": "GrassLand",
 			"uid": 1,
-			"relPath": "../tilesets/MAS-Tileset-DB.png",
+			"relPath": "MAS-Tileset-DB.png",
 			"pxWid": 128,
 			"pxHei": 192,
 			"tileGridSize": 8,
@@ -3203,7 +3318,7 @@
 			"__cHei": 5,
 			"identifier": "Characters",
 			"uid": 43,
-			"relPath": "../tilesets/MAS-Characters-DB.png",
+			"relPath": "MAS-Characters-DB.png",
 			"pxWid": 48,
 			"pxHei": 40,
 			"tileGridSize": 8,
@@ -3223,7 +3338,7 @@
 			"__cHei": 6,
 			"identifier": "Objects",
 			"uid": 165,
-			"relPath": "../tilesets/MAS-Objects-DB.png",
+			"relPath": "MAS-Objects-DB.png",
 			"pxWid": 64,
 			"pxHei": 48,
 			"tileGridSize": 8,
@@ -3259,29 +3374,6 @@
 			"defaultOverride": {
 				"id": "V_Bool",
 				"params": [ false ]
-			},
-			"textLanguageMode": null
-		},
-		{
-			"identifier": "VolumeVisibility",
-			"__type": "String",
-			"uid": 193,
-			"type": "F_String",
-			"isArray": false,
-			"canBeNull": true,
-			"arrayMinLength": null,
-			"arrayMaxLength": null,
-			"editorDisplayMode": "Hidden",
-			"editorDisplayPos": "Above",
-			"editorAlwaysShow": false,
-			"editorCutLongValues": true,
-			"min": null,
-			"max": null,
-			"regex": null,
-			"acceptFileTypes": null,
-			"defaultOverride": {
-				"id": "V_String",
-				"params": ["camera"]
 			},
 			"textLanguageMode": null
 		},
@@ -3331,7 +3423,6 @@
 					"defUid": 183,
 					"realEditorValues": [null]
 				},
-				{ "__identifier": "VolumeVisibility", "__value": "camera", "__type": "String", "defUid": 193, "realEditorValues": [] },
 				{ "__identifier": "BoardChunk", "__value": "", "__type": "String", "defUid": 207, "realEditorValues": [] }
 			],
 			"layerInstances": [
@@ -3361,13 +3452,13 @@
 					"entityInstances": [
 						{
 							"__identifier": "EnemyLand",
-							"__grid": [11,21],
+							"__grid": [11,22],
 							"__pivot": [0.5,0.5],
 							"__tile": { "tilesetUid": 43, "srcRect": [8,32,8,8] },
 							"width": 8,
 							"height": 8,
 							"defUid": 42,
-							"px": [92,172],
+							"px": [92,180],
 							"fieldInstances": [
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
 								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
@@ -3375,7 +3466,17 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{
+									"__identifier": "LevelUp",
+									"__value": "VALUE: 1",
+									"__type": "String",
+									"defUid": 278,
+									"realEditorValues": [{
+										"id": "V_String",
+										"params": ["VALUE: 1"]
+									}]
+								}
 							]
 						},
 						{
@@ -3394,7 +3495,17 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{
+									"__identifier": "LevelUp",
+									"__value": "VALUE: 1",
+									"__type": "String",
+									"defUid": 278,
+									"realEditorValues": [{
+										"id": "V_String",
+										"params": ["VALUE: 1"]
+									}]
+								}
 							]
 						},
 						{
@@ -3422,7 +3533,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -3450,7 +3562,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -3469,7 +3582,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -3492,17 +3606,15 @@
 								{ "__identifier": "Health", "__value": "VALUE: 1", "__type": "String", "defUid": 221, "realEditorValues": [] },
 								{
 									"__identifier": "Weapon",
-									"__value": "VALUE: 100",
+									"__value": "VALUE: 0",
 									"__type": "String",
 									"defUid": 222,
-									"realEditorValues": [{
-										"id": "V_String",
-										"params": ["VALUE: 100"]
-									}]
+									"realEditorValues": [null]
 								},
 								{ "__identifier": "AvatarCombat", "__value": "COOLDOWN: 0.5", "__type": "String", "defUid": 223, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 237, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 268, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 268, "realEditorValues": [] },
+								{ "__identifier": "VolumeOverlap", "__value": "TAG: area", "__type": "String", "defUid": 273, "realEditorValues": [] }
 							]
 						},
 						{
@@ -3527,7 +3639,17 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{
+									"__identifier": "LevelUp",
+									"__value": "VALUE: 1",
+									"__type": "String",
+									"defUid": 278,
+									"realEditorValues": [{
+										"id": "V_String",
+										"params": ["VALUE: 1"]
+									}]
+								}
 							]
 						},
 						{
@@ -3624,7 +3746,8 @@
 										"params": ["Forest City"]
 									}]
 								},
-								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] },
+								{ "__identifier": "Tag", "__value": "area", "__type": "String", "defUid": 274, "realEditorValues": [] }
 							]
 						},
 						{
@@ -3647,7 +3770,8 @@
 										"params": ["Grey Mountains"]
 									}]
 								},
-								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] },
+								{ "__identifier": "Tag", "__value": "area", "__type": "String", "defUid": 274, "realEditorValues": [] }
 							]
 						},
 						{
@@ -3716,7 +3840,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 165,
-					"__tilesetRelPath": "../tilesets/MAS-Objects-DB.png",
+					"__tilesetRelPath": "MAS-Objects-DB.png",
 					"levelId": 161,
 					"layerDefUid": 168,
 					"pxOffsetX": 0,
@@ -3868,7 +3992,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../tilesets/MAS-Tileset-DB.png",
+					"__tilesetRelPath": "MAS-Tileset-DB.png",
 					"levelId": 161,
 					"layerDefUid": 6,
 					"pxOffsetX": 0,
@@ -5994,7 +6118,6 @@
 						"params": [ false ]
 					}]
 				},
-				{ "__identifier": "VolumeVisibility", "__value": "camera", "__type": "String", "defUid": 193, "realEditorValues": [] },
 				{ "__identifier": "BoardChunk", "__value": "", "__type": "String", "defUid": 207, "realEditorValues": [] }
 			],
 			"layerInstances": [
@@ -6047,7 +6170,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -6075,7 +6199,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -6103,7 +6228,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -6131,7 +6257,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -6159,7 +6286,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -6187,7 +6315,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -6215,7 +6344,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -6243,7 +6373,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -6271,7 +6402,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -6299,7 +6431,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -6327,7 +6460,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -6355,7 +6489,14 @@
 								{ "__identifier": "Enemy", "__value": "TYPE: Boss", "__type": "String", "defUid": 220, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 238, "realEditorValues": [] },
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 239, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 269, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 269, "realEditorValues": [] },
+								{
+									"__identifier": "LevelUp",
+									"__value": "VALUE: 1",
+									"__type": "String",
+									"defUid": 276,
+									"realEditorValues": [null]
+								}
 							]
 						},
 						{
@@ -6383,7 +6524,14 @@
 								{ "__identifier": "Enemy", "__value": "TYPE: Boss", "__type": "String", "defUid": 220, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 238, "realEditorValues": [] },
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 239, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 269, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 269, "realEditorValues": [] },
+								{
+									"__identifier": "LevelUp",
+									"__value": "VALUE: 1",
+									"__type": "String",
+									"defUid": 276,
+									"realEditorValues": [null]
+								}
 							]
 						}
 					]
@@ -6432,7 +6580,8 @@
 										"params": ["Lone Town Minor"]
 									}]
 								},
-								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] },
+								{ "__identifier": "Tag", "__value": "area", "__type": "String", "defUid": 274, "realEditorValues": [] }
 							]
 						},
 						{
@@ -6455,7 +6604,8 @@
 										"params": ["Lone Town Major"]
 									}]
 								},
-								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] },
+								{ "__identifier": "Tag", "__value": "area", "__type": "String", "defUid": 274, "realEditorValues": [] }
 							]
 						},
 						{
@@ -6478,7 +6628,8 @@
 										"params": ["Weird Lake"]
 									}]
 								},
-								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] },
+								{ "__identifier": "Tag", "__value": "area", "__type": "String", "defUid": 274, "realEditorValues": [] }
 							]
 						}
 					]
@@ -6493,7 +6644,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 165,
-					"__tilesetRelPath": "../tilesets/MAS-Objects-DB.png",
+					"__tilesetRelPath": "MAS-Objects-DB.png",
 					"levelId": 164,
 					"layerDefUid": 168,
 					"pxOffsetX": 0,
@@ -6657,7 +6808,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../tilesets/MAS-Tileset-DB.png",
+					"__tilesetRelPath": "MAS-Tileset-DB.png",
 					"levelId": 164,
 					"layerDefUid": 6,
 					"pxOffsetX": 0,
@@ -8783,7 +8934,6 @@
 						"params": [ false ]
 					}]
 				},
-				{ "__identifier": "VolumeVisibility", "__value": "camera", "__type": "String", "defUid": 193, "realEditorValues": [] },
 				{ "__identifier": "BoardChunk", "__value": "", "__type": "String", "defUid": 207, "realEditorValues": [] }
 			],
 			"layerInstances": [
@@ -8836,7 +8986,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8864,7 +9015,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8892,7 +9044,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8920,7 +9073,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8948,7 +9102,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -8976,7 +9131,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -9004,7 +9160,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -9032,7 +9189,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -9060,7 +9218,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -9088,7 +9247,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -9116,7 +9276,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -9144,7 +9305,14 @@
 								{ "__identifier": "Enemy", "__value": "TYPE: Boss", "__type": "String", "defUid": 220, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 238, "realEditorValues": [] },
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 239, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 269, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 269, "realEditorValues": [] },
+								{
+									"__identifier": "LevelUp",
+									"__value": "VALUE: 1",
+									"__type": "String",
+									"defUid": 276,
+									"realEditorValues": [null]
+								}
 							]
 						}
 					]
@@ -9193,7 +9361,8 @@
 										"params": ["Desert Town"]
 									}]
 								},
-								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] },
+								{ "__identifier": "Tag", "__value": "area", "__type": "String", "defUid": 274, "realEditorValues": [] }
 							]
 						},
 						{
@@ -9216,7 +9385,8 @@
 										"params": ["Desert"]
 									}]
 								},
-								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] },
+								{ "__identifier": "Tag", "__value": "area", "__type": "String", "defUid": 274, "realEditorValues": [] }
 							]
 						}
 					]
@@ -9231,7 +9401,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 165,
-					"__tilesetRelPath": "../tilesets/MAS-Objects-DB.png",
+					"__tilesetRelPath": "MAS-Objects-DB.png",
 					"levelId": 163,
 					"layerDefUid": 168,
 					"pxOffsetX": 0,
@@ -9333,7 +9503,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../tilesets/MAS-Tileset-DB.png",
+					"__tilesetRelPath": "MAS-Tileset-DB.png",
 					"levelId": 163,
 					"layerDefUid": 6,
 					"pxOffsetX": 0,
@@ -11459,7 +11629,6 @@
 						"params": [ false ]
 					}]
 				},
-				{ "__identifier": "VolumeVisibility", "__value": "camera", "__type": "String", "defUid": 193, "realEditorValues": [] },
 				{ "__identifier": "BoardChunk", "__value": "", "__type": "String", "defUid": 207, "realEditorValues": [] }
 			],
 			"layerInstances": [
@@ -11512,7 +11681,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -11540,35 +11710,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
-							]
-						},
-						{
-							"__identifier": "EnemyLand",
-							"__grid": [25,24],
-							"__pivot": [0.5,0.5],
-							"__tile": { "tilesetUid": 43, "srcRect": [8,32,8,8] },
-							"width": 8,
-							"height": 8,
-							"defUid": 42,
-							"px": [204,196],
-							"fieldInstances": [
-								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 66, "realEditorValues": [] },
-								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 70, "realEditorValues": [] },
-								{
-									"__identifier": "Health",
-									"__value": "VALUE: 16",
-									"__type": "String",
-									"defUid": 195,
-									"realEditorValues": [{
-										"id": "V_String",
-										"params": ["VALUE: 16"]
-									}]
-								},
-								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 216, "realEditorValues": [] },
-								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 219, "realEditorValues": [] },
-								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 241, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 271, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 278, "realEditorValues": [] }
 							]
 						},
 						{
@@ -11596,7 +11739,43 @@
 								{ "__identifier": "Enemy", "__value": "TYPE: Boss", "__type": "String", "defUid": 220, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 238, "realEditorValues": [] },
 								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 239, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 269, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 269, "realEditorValues": [] },
+								{
+									"__identifier": "LevelUp",
+									"__value": "VALUE: 1",
+									"__type": "String",
+									"defUid": 276,
+									"realEditorValues": [null]
+								}
+							]
+						},
+						{
+							"__identifier": "Boss",
+							"__grid": [25,24],
+							"__pivot": [0.5,0.5],
+							"__tile": { "tilesetUid": 43, "srcRect": [40,32,8,8] },
+							"width": 8,
+							"height": 8,
+							"defUid": 201,
+							"px": [204,196],
+							"fieldInstances": [
+								{ "__identifier": "SpriteImage", "__value": true, "__type": "Bool", "defUid": 204, "realEditorValues": [] },
+								{
+									"__identifier": "Health",
+									"__value": "VALUE: 32",
+									"__type": "String",
+									"defUid": 206,
+									"realEditorValues": [{
+										"id": "V_String",
+										"params": ["VALUE: 32"]
+									}]
+								},
+								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 215, "realEditorValues": [] },
+								{ "__identifier": "Enemy", "__value": "TYPE: Boss", "__type": "String", "defUid": 220, "realEditorValues": [] },
+								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 238, "realEditorValues": [] },
+								{ "__identifier": "MeshAsset", "__value": true, "__type": "Bool", "defUid": 239, "realEditorValues": [] },
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 269, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 1", "__type": "String", "defUid": 276, "realEditorValues": [] }
 							]
 						}
 					]
@@ -11616,7 +11795,7 @@
 					"layerDefUid": 62,
 					"pxOffsetX": 0,
 					"pxOffsetY": 0,
-					"visible": true,
+					"visible": false,
 					"optionalRules": [],
 					"intGrid": [],
 					"intGridCsv": [],
@@ -11627,13 +11806,13 @@
 					"entityInstances": [
 						{
 							"__identifier": "Area",
-							"__grid": [0,3],
+							"__grid": [2,3],
 							"__pivot": [0,0],
 							"__tile": null,
-							"width": 256,
-							"height": 152,
+							"width": 232,
+							"height": 144,
 							"defUid": 186,
-							"px": [0,24],
+							"px": [16,24],
 							"fieldInstances": [
 								{
 									"__identifier": "Name",
@@ -11645,7 +11824,8 @@
 										"params": ["Grand City"]
 									}]
 								},
-								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] },
+								{ "__identifier": "Tag", "__value": "area", "__type": "String", "defUid": 274, "realEditorValues": [] }
 							]
 						},
 						{
@@ -11668,7 +11848,8 @@
 										"params": ["Maze Forest"]
 									}]
 								},
-								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] },
+								{ "__identifier": "Tag", "__value": "area", "__type": "String", "defUid": 274, "realEditorValues": [] }
 							]
 						}
 					]
@@ -11683,7 +11864,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 165,
-					"__tilesetRelPath": "../tilesets/MAS-Objects-DB.png",
+					"__tilesetRelPath": "MAS-Objects-DB.png",
 					"levelId": 162,
 					"layerDefUid": 168,
 					"pxOffsetX": 0,
@@ -12061,7 +12242,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../tilesets/MAS-Tileset-DB.png",
+					"__tilesetRelPath": "MAS-Tileset-DB.png",
 					"levelId": 162,
 					"layerDefUid": 6,
 					"pxOffsetX": 0,
@@ -14187,7 +14368,6 @@
 						"params": [ true ]
 					}]
 				},
-				{ "__identifier": "VolumeVisibility", "__value": "camera", "__type": "String", "defUid": 193, "realEditorValues": [] },
 				{ "__identifier": "BoardChunk", "__value": "", "__type": "String", "defUid": 207, "realEditorValues": [] }
 			],
 			"layerInstances": [
@@ -14231,7 +14411,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 277, "realEditorValues": [] }
 							]
 						},
 						{
@@ -14250,7 +14431,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 277, "realEditorValues": [] }
 							]
 						},
 						{
@@ -14269,7 +14451,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 277, "realEditorValues": [] }
 							]
 						},
 						{
@@ -14288,7 +14471,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 277, "realEditorValues": [] }
 							]
 						},
 						{
@@ -14307,7 +14491,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 277, "realEditorValues": [] }
 							]
 						},
 						{
@@ -14326,7 +14511,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 277, "realEditorValues": [] }
 							]
 						},
 						{
@@ -14345,7 +14531,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 277, "realEditorValues": [] }
 							]
 						},
 						{
@@ -14364,7 +14551,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 277, "realEditorValues": [] }
 							]
 						},
 						{
@@ -14383,7 +14571,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 277, "realEditorValues": [] }
 							]
 						},
 						{
@@ -14402,7 +14591,8 @@
 								{ "__identifier": "BoardAvatar", "__value": "", "__type": "String", "defUid": 229, "realEditorValues": [] },
 								{ "__identifier": "Enemy", "__value": "TYPE: Regular", "__type": "String", "defUid": 230, "realEditorValues": [] },
 								{ "__identifier": "MaterialAsset", "__value": "@material/graph/surface/flat/virtual-uniform-avatar", "__type": "String", "defUid": 240, "realEditorValues": [] },
-								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] }
+								{ "__identifier": "Blink", "__value": "", "__type": "String", "defUid": 270, "realEditorValues": [] },
+								{ "__identifier": "LevelUp", "__value": "VALUE: 0", "__type": "String", "defUid": 277, "realEditorValues": [] }
 							]
 						}
 					]
@@ -14451,7 +14641,8 @@
 										"params": ["Divided Town"]
 									}]
 								},
-								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] }
+								{ "__identifier": "BoxVolume", "__value": true, "__type": "Bool", "defUid": 266, "realEditorValues": [] },
+								{ "__identifier": "Tag", "__value": "area", "__type": "String", "defUid": 274, "realEditorValues": [] }
 							]
 						}
 					]
@@ -14466,7 +14657,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 165,
-					"__tilesetRelPath": "../tilesets/MAS-Objects-DB.png",
+					"__tilesetRelPath": "MAS-Objects-DB.png",
 					"levelId": 194,
 					"layerDefUid": 168,
 					"pxOffsetX": 0,
@@ -14600,7 +14791,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../tilesets/MAS-Tileset-DB.png",
+					"__tilesetRelPath": "MAS-Tileset-DB.png",
 					"levelId": 194,
 					"layerDefUid": 6,
 					"pxOffsetX": 0,

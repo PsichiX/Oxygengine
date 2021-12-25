@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine"
-version = "0.27.0"
+version = "0.28.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Oxygengine"
@@ -81,140 +81,140 @@ desktop-native-headless-game = [
 ]
 
 [dependencies]
-oxygengine-core = { version = "0.27", path = "../core" }
-oxygengine-utils = { version = "0.27", path = "../utils" }
+oxygengine-core = { version = "0.28", path = "../core" }
+oxygengine-utils = { version = "0.28", path = "../utils" }
 
 [dependencies.oxygengine-backend-web]
-version = "0.27"
+version = "0.28"
 path = "../backend-web"
 optional = true
 
 [dependencies.oxygengine-input]
-version = "0.27"
+version = "0.28"
 path = "../input"
 optional = true
 
 [dependencies.oxygengine-input-device-web]
-version = "0.27"
+version = "0.28"
 path = "../input-device-web"
 optional = true
 
 [dependencies.oxygengine-composite-renderer]
-version = "0.27"
+version = "0.28"
 path = "../composite-renderer"
 optional = true
 
 [dependencies.oxygengine-composite-renderer-backend-web]
-version = "0.27"
+version = "0.28"
 path = "../composite-renderer-backend-web"
 optional = true
 
 [dependencies.oxygengine-network]
-version = "0.27"
+version = "0.28"
 path = "../network"
 optional = true
 
 [dependencies.oxygengine-network-backend-web]
-version = "0.27"
+version = "0.28"
 path = "../network-backend-web"
 optional = true
 
 [dependencies.oxygengine-network-backend-desktop]
-version = "0.27"
+version = "0.28"
 path = "../network-backend-desktop"
 optional = true
 
 [dependencies.oxygengine-network-backend-native]
-version = "0.27"
+version = "0.28"
 path = "../network-backend-native"
 optional = true
 
 [dependencies.oxygengine-procedural]
-version = "0.27"
+version = "0.28"
 path = "../procedural"
 optional = true
 
 [dependencies.oxygengine-navigation]
-version = "0.27"
+version = "0.28"
 path = "../navigation"
 optional = true
 
 [dependencies.oxygengine-audio]
-version = "0.27"
+version = "0.28"
 path = "../audio"
 optional = true
 
 [dependencies.oxygengine-audio-backend-web]
-version = "0.27"
+version = "0.28"
 path = "../audio-backend-web"
 optional = true
 
 [dependencies.oxygengine-physics-2d]
-version = "0.27"
+version = "0.28"
 path = "../physics-2d"
 optional = true
 
 [dependencies.oxygengine-integration-ow-ha]
-version = "0.27"
+version = "0.28"
 path = "../integration-ow-ha"
 optional = true
 
 [dependencies.oxygengine-integration-p2d-cr]
-version = "0.27"
+version = "0.28"
 path = "../integration-p2d-cr"
 optional = true
 
 [dependencies.oxygengine-integration-ui-cr]
-version = "0.27"
+version = "0.28"
 path = "../integration-ui-cr"
 optional = true
 
 [dependencies.oxygengine-integration-ui-ha]
-version = "0.27"
+version = "0.28"
 path = "../integration-ui-ha"
 optional = true
 
 [dependencies.oxygengine-integration-vn-ui]
-version = "0.27"
+version = "0.28"
 path = "../integration-vn-ui"
 optional = true
 
 [dependencies.oxygengine-script-flow]
-version = "0.27"
+version = "0.28"
 path = "../script-flow"
 optional = true
 
 [dependencies.oxygengine-visual-novel]
-version = "0.27"
+version = "0.28"
 path = "../visual-novel"
 optional = true
 
 [dependencies.oxygengine-ai]
-version = "0.27"
+version = "0.28"
 path = "../ai"
 optional = true
 
 [dependencies.oxygengine-animation]
-version = "0.27"
+version = "0.28"
 path = "../animation"
 optional = true
 
 [dependencies.oxygengine-user-interface]
-version = "0.27"
+version = "0.28"
 path = "../user-interface"
 optional = true
 
 [dependencies.oxygengine-editor-tools]
-version = "0.27"
+version = "0.28"
 path = "../editor-tools"
 optional = true
 
 [dependencies.oxygengine-ha-renderer]
-version = "0.27"
+version = "0.28"
 path = "../ha-renderer"
 optional = true
 
 [dependencies.oxygengine-overworld]
-version = "0.27"
+version = "0.28"
 path = "../overworld"
 optional = true

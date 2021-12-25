@@ -27,7 +27,7 @@
           },
           {
             "Plugin": {
-              "name": "oxygengine-ha-renderer-bmfont",
+              "name": "debug/oxygengine-ha-renderer-bmfont",
               "params": {
                 "descriptors": ["fonts/pixel.fnt"],
                 "output": "fonts/",
@@ -36,6 +36,7 @@
                 "padding": 1,
                 "max_width": 64,
                 "max_height": 64,
+                "force_line_height": 8,
                 "generator": {
                   "resolution": 0,
                   "write_channels": {
@@ -57,8 +58,8 @@
                 "assets_path_prefix": "levels/",
                 "image_filtering": "Nearest",
                 "tile_margin": {
-                  "x": 0.1,
-                  "y": 0.1
+                  "x": 0.01,
+                  "y": 0.01
                 },
                 "rules": [
                   {
@@ -102,6 +103,10 @@
                     "macro_file": "./tools/ldtk/Health.chrobry"
                   },
                   {
+                    "name": "LevelUp",
+                    "macro_file": "./tools/ldtk/LevelUp.chrobry"
+                  },
+                  {
                     "name": "Player",
                     "macro_file": "./tools/ldtk/Player.chrobry"
                   },
@@ -112,6 +117,10 @@
                   {
                     "name": "UiView",
                     "macro_file": "./tools/ldtk/UiView.chrobry"
+                  },
+                  {
+                    "name": "VolumeOverlap",
+                    "macro_file": "./tools/ldtk/VolumeOverlap.chrobry"
                   },
                   {
                     "name": "Weapon",

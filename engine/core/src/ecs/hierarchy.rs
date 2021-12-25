@@ -156,6 +156,24 @@ pub fn hierarchy_system(universe: &mut Universe) {
             hierarchy.name_entities_map.insert(name, child);
         }
     }
+
+    for (child, parent) in world.query::<&Parent>().iter() {
+        hierarchy.child_parent_relations.insert(child, parent.0);
+        let list = hierarchy
+            .parent_children_relations
+            .entry(parent.0)
+            .or_default();
+        list.insert(child);
+    }
+
+    for (child, name) in world.query::<&Name>().iter() {
+        hierarchy
+            .entity_names_map
+            .insert(child, name.0.as_ref().to_owned());
+        hierarchy
+            .name_entities_map
+            .insert(name.0.as_ref().to_owned(), child);
+    }
 }
 
 fn despawn(commands: &mut UniverseCommands, changes: &EntityChanges, hierarchy: &Hierarchy) {

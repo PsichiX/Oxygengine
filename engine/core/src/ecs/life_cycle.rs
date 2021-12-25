@@ -1,4 +1,12 @@
-use crate::ecs::Entity;
+use crate::{
+    app::AppBuilder,
+    ecs::{
+        components::{Events, EventsPrefabProxy},
+        pipeline::{PipelineBuilder, PipelineBuilderError, PipelineLayer},
+        Comp, Entity, Universe, WorldRef,
+    },
+    prefab::PrefabManager,
+};
 use std::{
     any::TypeId,
     collections::{HashMap, HashSet},
@@ -70,4 +78,47 @@ impl EntityChanges {
         self.added_components.clear();
         self.removed_components.clear();
     }
+}
+
+pub type EventsSystemResources<'a, T> = (WorldRef, Comp<&'a mut Events<T>>);
+
+pub fn events_system<T>(universe: &mut Universe)
+where
+    T: Send + Sync + 'static,
+{
+    let (world, ..) = universe.query_resources::<EventsSystemResources<T>>();
+
+    for (_, events) in world.query::<&mut Events<T>>().iter() {
+        if events.auto_clear {
+            events.clear();
+        }
+    }
+}
+
+pub fn events_system_installer<PB, T>(
+    builder: &mut AppBuilder<PB>,
+    postfix: &str,
+) -> Result<(), PipelineBuilderError>
+where
+    PB: PipelineBuilder,
+    T: Send + Sync + 'static,
+{
+    builder.install_system_on_layer::<EventsSystemResources<T>>(
+        &format!("events-system-{}", postfix),
+        events_system::<T>,
+        &[],
+        PipelineLayer::Post,
+        false,
+    )?;
+    Ok(())
+}
+
+pub fn events_prefab_installer<T>(postfix: &str, prefabs: &mut PrefabManager)
+where
+    T: Send + Sync + 'static,
+{
+    prefabs.register_component_factory_proxy::<Events<T>, EventsPrefabProxy<T>>(&format!(
+        "Events-{}",
+        postfix
+    ));
 }

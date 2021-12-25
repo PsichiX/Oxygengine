@@ -11,6 +11,8 @@ pub mod transform;
 pub mod virtual_image_uniforms;
 pub mod visibility;
 pub mod volume;
+pub mod volume_overlap;
+pub mod volume_visibility;
 
 use crate::mesh::BufferStorage;
 use core::Ignite;

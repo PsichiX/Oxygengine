@@ -9,16 +9,22 @@ mod utils;
 use crate::{
     components::{
         avatar_combat::AvatarCombat, avatar_movement::AvatarMovement, blink::Blink, enemy::Enemy,
-        health::Health, player::Player, weapon::Weapon, BatchedAttacksTag, BatchedSecretsTag,
+        health::Health, level_up::LevelUp, player::Player, weapon::Weapon, BatchedAttacksTag,
+        BatchedSecretsTag,
     },
     materials::avatar::{avatar_material_graph, virtual_uniform_avatar_material_graph},
-    resources::{effects::*, game_state_info::*},
+    resources::{effects::*, game_state_info::*, GlobalEvent},
     states::loading::LoadingState,
     systems::{
+        area::{area_system, AreaSystemResources},
         avatar_combat::{avatar_combat_system, AvatarCombatSystemResources},
         blink::{blink_system, BlinkSystemResources},
         death::{death_system, DeathSystemResources},
         effects::{effects_system, EffectsSystemResources},
+        global_events::{global_events_system, GlobalEventsSystemResources},
+        player_collect_secrets::{
+            player_collect_secrets_system, PlayerCollectSecretsSystemResources,
+        },
         player_combat::{player_combat_system, PlayerCombatSystemResources},
         player_movement::{player_movement_system, PlayerMovementSystemResources},
         sync_game_state_info::{sync_game_state_info_system, SyncGameStateInfoSystemResources},
@@ -33,6 +39,7 @@ pub const BOARD_CHUNK_SIZE: (usize, usize) = (32, 32);
 pub const TILE_VALUE_GRASS: usize = 4;
 pub const TILE_VALUE_ROAD: usize = 6;
 pub const TILE_VALUE_SAND: usize = 7;
+pub const TILE_VALUE_BUILDING: usize = 8;
 
 #[wasm_bindgen(start)]
 pub fn main_js() -> Result<(), JsValue> {
@@ -48,6 +55,8 @@ pub fn main_js() -> Result<(), JsValue> {
             .with_bundle(oxygengine::core::assets::bundle_installer, make_assets())
             .unwrap()
             .with_bundle(oxygengine::core::prefab::bundle_installer, make_prefabs())
+            .unwrap()
+            .with_bundle(oxygengine::core::ecs::life_cycle::events_system_installer::<_, HaVolumeOverlapEvent>, "volume-overlap")
             .unwrap()
             .with_bundle(oxygengine::input::bundle_installer, make_inputs())
             .unwrap()
@@ -86,6 +95,12 @@ pub fn main_js() -> Result<(), JsValue> {
             .unwrap()
             .with_system::<PlayerCombatSystemResources>("player-combat", player_combat_system, &[])
             .unwrap()
+            .with_system::<PlayerCollectSecretsSystemResources>(
+                "player-collect-secrets",
+                player_collect_secrets_system,
+                &[],
+            )
+            .unwrap()
             .with_system::<AvatarCombatSystemResources>(
                 "avatar-combat",
                 avatar_combat_system,
@@ -96,7 +111,11 @@ pub fn main_js() -> Result<(), JsValue> {
             .unwrap()
             .with_system::<BlinkSystemResources>("blink", blink_system, &[])
             .unwrap()
+            .with_system::<AreaSystemResources>("area", area_system, &[])
+            .unwrap()
             .with_system::<EffectsSystemResources>("effects", effects_system, &[])
+            .unwrap()
+            .with_system::<GlobalEventsSystemResources>("global-events", global_events_system, &[])
             .unwrap()
             .with_system::<SyncGameStateInfoSystemResources>(
                 "sync-game-state-info",
@@ -107,6 +126,7 @@ pub fn main_js() -> Result<(), JsValue> {
             .with_resource(WebStorageEngine)
             .with_resource(GameStateInfo::default())
             .with_resource(Effects::with_capacity(10, 10))
+            .with_resource(Events::<GlobalEvent>::default())
             .build::<SequencePipelineEngine, _, _>(LoadingState::default(), WebAppTimer::default());
 
     AppRunner::new(app).run(WebAppRunner)?;
@@ -158,6 +178,10 @@ fn make_assets() -> (WebFetchEngine, impl FnMut(&mut AssetsDatabase)) {
 
 fn make_prefabs() -> impl FnMut(&mut PrefabManager) {
     |prefabs| {
+        oxygengine::core::ecs::life_cycle::events_prefab_installer::<HaVolumeOverlapEvent>(
+            "HaVolumeOverlapEvent",
+            prefabs,
+        );
         oxygengine::ha_renderer::prefabs_installer(prefabs);
         oxygengine::ha_renderer::immediate_batch_prefab_installer::<SurfaceVertexPT>("PT", prefabs);
         oxygengine::user_interface::prefabs_installer(prefabs);
@@ -174,6 +198,7 @@ fn make_prefabs() -> impl FnMut(&mut PrefabManager) {
         prefabs.register_component_factory::<Weapon>("Weapon");
         prefabs.register_component_factory::<BatchedSecretsTag>("BatchedSecretsTag");
         prefabs.register_component_factory::<BatchedAttacksTag>("BatchedAttacksTag");
+        prefabs.register_component_factory::<LevelUp>("LevelUp");
     }
 }
 
@@ -287,7 +312,15 @@ fn make_overworld() -> impl FnMut(
 
 fn make_board_settings() -> HaBoardSettings {
     HaBoardSettings::new(Vec2::new(BOARD_TILE_SIZE.0 as _, BOARD_TILE_SIZE.1 as _))
-        .with_valid_tile_values([TILE_VALUE_GRASS, TILE_VALUE_ROAD, TILE_VALUE_SAND].into_iter())
+        .with_valid_tile_values(
+            [
+                TILE_VALUE_GRASS,
+                TILE_VALUE_ROAD,
+                TILE_VALUE_SAND,
+                TILE_VALUE_BUILDING,
+            ]
+            .into_iter(),
+        )
         .with_region((0, 0).into(), (1, 1).into())
         .with_region((1, -1).into(), (1, -1).into())
 }

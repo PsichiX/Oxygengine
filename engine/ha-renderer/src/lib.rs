@@ -28,7 +28,8 @@ pub mod prelude {
         components::{
             camera::*, gizmo::*, immediate_batch::*, material_instance::*, mesh_instance::*,
             postprocess::*, sprite_animation_instance::*, text_instance::*, tilemap_instance::*,
-            transform::*, virtual_image_uniforms::*, visibility::*, volume::*, *,
+            transform::*, virtual_image_uniforms::*, visibility::*, volume::*, volume_overlap::*,
+            volume_visibility::*, *,
         },
         graph_material_function,
         ha_renderer::*,
@@ -59,7 +60,8 @@ pub mod prelude {
             apply_sprite_animation_to_material::*, atlas::*, camera_cache::*, font::*,
             immediate_batch::*, mesh_bounds_gizmo::*, render_forward_stage::*,
             render_gizmo_stage::*, render_postprocess_stage::*, renderer::*, sprite_animation::*,
-            tilemap::*, transform::*, virtual_image_uniforms::*, volume_visibility::*, *,
+            tilemap::*, transform::*, virtual_image_uniforms::*, volume_overlap::*,
+            volume_visibility::*, *,
         },
         Error, HaRendererBundleSetup, HasContextResources, ResourceInstanceReference, Resources,
         StringBuffer, TagFilters,
@@ -91,8 +93,10 @@ use crate::{
         tilemap_instance::HaTileMapInstance,
         transform::HaTransform,
         virtual_image_uniforms::HaVirtualImageUniforms,
-        visibility::{HaVisibility, HaVolumeVisibility},
+        visibility::HaVisibility,
         volume::HaVolume,
+        volume_overlap::HaVolumeOverlap,
+        volume_visibility::HaVolumeVisibility,
     },
     ha_renderer::HaRenderer,
     image::{ImageError, ImageId, ImageResourceMapping},
@@ -159,6 +163,9 @@ use crate::{
         transform::{ha_transform_system, HaTransformSystemResources},
         virtual_image_uniforms::{
             ha_virtual_image_uniforms, HaVirtualImageUniformsSystemResources,
+        },
+        volume_overlap::{
+            ha_volume_overlap_system, HaVolumeOverlapSystemCache, HaVolumeOverlapSystemResources,
         },
         volume_visibility::{
             ha_volume_visibility_system, HaVolumeVisibilitySystemCache,
@@ -529,6 +536,7 @@ where
     builder.install_resource(HaTileMapSystemCache::default());
     builder.install_resource(HaSpriteAnimationSystemCache::default());
     builder.install_resource(HaVolumeVisibilitySystemCache::default());
+    builder.install_resource(HaVolumeOverlapSystemCache::default());
     builder.install_resource(HaRenderGizmoStageSystemCache::default());
     builder.install_resource(HaRenderPostProcessStageSystemCache::default());
     builder.install_resource(HaImmediateBatchSystemCache::default());
@@ -602,6 +610,11 @@ where
     builder.install_system::<HaVolumeVisibilitySystemResources>(
         "volume-visibility",
         ha_volume_visibility_system,
+        &[],
+    )?;
+    builder.install_system::<HaVolumeOverlapSystemResources>(
+        "volume-overlap",
+        ha_volume_overlap_system,
         &[],
     )?;
     builder.install_system::<HaMeshBoundsGizmoSystemResources>(
@@ -876,6 +889,7 @@ pub fn prefabs_installer(prefabs: &mut PrefabManager) {
     prefabs.register_component_factory::<HaVisibility>("HaVisibility");
     prefabs.register_component_factory::<HaVolume>("HaVolume");
     prefabs.register_component_factory::<HaVolumeVisibility>("HaVolumeVisibility");
+    prefabs.register_component_factory::<HaVolumeOverlap>("HaVolumeOverlap");
     prefabs.register_component_factory::<HaGizmo>("HaGizmo");
     prefabs.register_component_factory::<HaPostProcess>("HaPostProcess");
 }
