@@ -29,7 +29,7 @@ HaRenderer::new(WebPlatformInterface::with_canvas_id(
                     stencil: false,
                 }),
         )
-        .stage(
+        .debug_stage(
             StageDescriptor::new("gizmos")
                 .render_target("main")
                 .domain("@material/domain/gizmo"),
@@ -38,7 +38,7 @@ HaRenderer::new(WebPlatformInterface::with_canvas_id(
             StageDescriptor::new("ui")
                 .render_target("main")
                 .domain("@material/domain/surface/flat"),
-        )
+        ),
 )
 ```
 
@@ -63,8 +63,16 @@ with stage type given system provides, here is a brief snippet example:
 pub fn ha_render_gizmo_stage_system(universe: &mut Universe) {
 #    type V = GizmoVertex;
 #
-    let (world, mut renderer, mut gizmos, material_mapping, image_mapping, mut cache, ..) =
-        universe.query_resources::<HaRenderGizmoStageSystemResources>();
+    let (
+        world,
+        mut renderer,
+        lifecycle,
+        mut gizmos,
+        material_mapping,
+        image_mapping,
+        mut cache,
+        ..,
+    ) = universe.query_resources::<HaRenderGizmoStageSystemResources>();
 
 #    if gizmos.factory.is_empty() {
 #        return;
@@ -79,6 +87,7 @@ pub fn ha_render_gizmo_stage_system(universe: &mut Universe) {
 #        Some(mesh_id) => mesh_id,
 #        None => {
 #            let mut m = Mesh::new(layout.to_owned());
+#            m.set_regenerate_bounds(false);
 #            m.set_vertex_storage_all(BufferStorage::Dynamic);
 #            m.set_index_storage(BufferStorage::Dynamic);
 #            match renderer.add_mesh(m) {
@@ -109,6 +118,12 @@ pub fn ha_render_gizmo_stage_system(universe: &mut Universe) {
 #        Some(material_id) => material_id,
 #        None => return,
 #    };
+#    let time = vec4(
+#        lifecycle.time_seconds(),
+#        lifecycle.delta_time_seconds(),
+#        lifecycle.time_seconds().fract(),
+#        0.0,
+#    );
 #
     for (_, (visibility, camera, transform)) in world
         .query::<(Option<&HaVisibility>, &HaCamera, &HaTransform)>()
@@ -129,39 +144,40 @@ pub fn ha_render_gizmo_stage_system(universe: &mut Universe) {
             render_queue.clear();
             let mut recorder = render_queue.auto_recorder(None);
 #
-#            let _ = recorder.record(RenderCommand::ActivateMesh(mesh_id));
+            let _ = recorder.record(RenderCommand::ActivateMesh(mesh_id));
 #            let signature = info.make_material_signature(&layout);
-#            let _ = recorder.record(RenderCommand::ActivateMaterial {
-#                id: material_id,
-#                signature: signature.to_owned(),
-#            });
-#            let _ = recorder.record(RenderCommand::SubmitUniform {
-#                signature: signature.to_owned(),
-#                name: MODEL_MATRIX_NAME.into(),
-#                value: Mat4::identity().into(),
-#            });
-#            let _ = recorder.record(RenderCommand::SubmitUniform {
-#                signature: signature.to_owned(),
-#                name: VIEW_MATRIX_NAME.into(),
-#                value: info.view_matrix.into(),
-#            });
-#            let _ = recorder.record(RenderCommand::SubmitUniform {
-#                signature: signature.to_owned(),
-#                name: PROJECTION_MATRIX_NAME.into(),
-#                value: info.projection_matrix.into(),
-#            });
+            let _ = recorder.record(RenderCommand::ActivateMaterial(
+                material_id,
+                signature.to_owned(),
+            ));
+#            let _ = recorder.record(RenderCommand::OverrideUniform(
+#                MODEL_MATRIX_NAME.into(),
+#                Mat4::identity().into(),
+#            ));
+#            let _ = recorder.record(RenderCommand::OverrideUniform(
+#                VIEW_MATRIX_NAME.into(),
+#                info.view_matrix.into(),
+#            ));
+            let _ = recorder.record(RenderCommand::OverrideUniform(
+                PROJECTION_MATRIX_NAME.into(),
+                info.projection_matrix.into(),
+            ));
+#            let _ = recorder.record(RenderCommand::OverrideUniform(
+#                TIME_NAME.into(),
+#                time.into(),
+#            ));
+#            for (key, value) in &gizmos.material.values {
+#                let _ = recorder.record(RenderCommand::OverrideUniform(
+#                    key.to_owned().into(),
+#                    value.to_owned(),
+#                ));
+#            }
 #            if let Some(draw_options) = &gizmos.material.override_draw_options {
 #                let _ = recorder.record(RenderCommand::ApplyDrawOptions(draw_options.to_owned()));
 #            }
-#            for (name, value) in &gizmos.material.values {
-#                let _ = recorder.record(RenderCommand::SubmitUniform {
-#                    signature: signature.to_owned(),
-#                    name: name.to_owned().into(),
-#                    value: value.to_owned(),
-#                });
-#            }
-#            let _ = recorder.record(RenderCommand::DrawMesh(MeshDrawRange::All));
-#            let _ = recorder.record(RenderCommand::SortingBarrier);
+            let _ = recorder.record(RenderCommand::DrawMesh(MeshDrawRange::All));
+#            let _ = recorder.record(RenderCommand::ResetUniforms);
+            let _ = recorder.record(RenderCommand::SortingBarrier);
         }
     }
 #
@@ -200,4 +216,14 @@ has its own cost so it's just an optional step and you should definitely
 benchmark to decide which of either render commands sorting or manual entity
 sorting approach will benefit more your stage rendering.
 
-Another thing worth mentioning about render queues is that they are only data containers so you can for example create your own render queues separately from what render pipeline provides, for example as a way of caching queues and reusing them with multiple pipelines by flushing your custom render queue into one provided by the render pipeline. Yet another use of render queues is to instead of recording them in your application, you can send them via network socket to render it on client application that will reflect your camera setup, but instead of recording world itself, it will render what server sends - similar use case could be for making both game and editor worlds embeded in one application host and game world sending its recorded queues to editor world which then renders game view in its rendering context.
+Another thing worth mentioning about render queues is that they are only data
+containers so you can for example create your own render queues separately from
+what render pipeline provides, for example as a way of caching queues and reusing
+them with multiple pipelines by flushing your custom render queue into one provided
+by the render pipeline. Yet another use of render queues is to instead of recording
+them in your application, you can send them via network socket to render it on
+client application that will reflect your camera setup, but instead of recording
+world itself, it will render what server sends - similar use case could be for
+making both game and editor worlds embeded in one application host and game world
+sending its recorded queues to editor world which then renders game view in its
+rendering context.
