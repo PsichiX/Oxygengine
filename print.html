@@ -312,7 +312,8 @@ These are:</p>
 <p>In general, if some engine module requires asset pipeline tools to work, there
 is a companion crate named: <code>&lt;some-engine-module&gt;-tools</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="hardware-accelerated-rendering"><a class="header" href="#hardware-accelerated-rendering">Hardware Accelerated rendering</a></h1>
-<p>Here we will take a deeper look at how Oxygengine's hardware Accelerated rendering model works.</p>
+<p>Here we will take a deeper look at how Oxygengine's hardware Accelerated
+rendering model works.</p>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
 <p>HA renderer uses completely data-driven, material-graph based rendering approach.
 The most important unit in HA renderer is Render Pipeline.</p>
@@ -337,7 +338,10 @@ forced to write on their own. More than that, shaders gets baked at runtime (or
 build-time, both material graphs and baked materials are assets) only when engine
 finds that certain pair of material domain (backend) and material graph (frontend)
 are gonna be used in rendering.</p>
-<p>Material domain and material graphs always work in tandem, material domain job is to preprocess vertex and uniform data and send it to material graph (via specific interface that given domain defines) for it to post process that data and send it back for material domain to store it properly in target outputs.</p>
+<p>Material domain and material graphs always work in tandem, material domain job is
+to preprocess vertex and uniform data and send it to material graph (via specific
+interface that given domain defines) for it to post process that data and send it
+back for material domain to store it properly in target outputs.</p>
 <p>The reason for them being separate units is because HA renderer aims for in case
 of user wanting to do some different visuals than default ones provided by the
 engine, to focus only on the effect and don't bother writing additional logic just
@@ -355,7 +359,7 @@ outline material uses.</p>
 long as they have different Material Signatures:</p>
 <ul>
 <li>Material Signature is defined by Material Mesh Signature + Material Render
-Target Signature + Domain name</li>
+Target Signature + Domain name + Vertex Middlewares used</li>
 <li>Material Mesh Signature is defined by unique Vertex Layout (vertex layouts are
 defined by meshes, to be more precise by the vertex format given mesh data uses)</li>
 <li>Material Render Target Signature is defined by set of render target output
@@ -366,7 +370,7 @@ names.</li>
 representation of the material domain/graph):</p>
 <pre><code class="language-rust ignore">material_graph! {
     inputs {
-        [fragment] domain BaseColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+        [fragment] inout BaseColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
 
         [vertex] uniform model: mat4;
         [vertex] uniform view: mat4;
@@ -377,8 +381,8 @@ representation of the material domain/graph):</p>
     }
 
     outputs {
-        [vertex] domain TintColor: vec4;
-        [vertex] domain ScreenPosition: vec4;
+        [vertex] inout TintColor: vec4;
+        [vertex] inout ScreenPosition: vec4;
 
         [vertex] builtin gl_Position: vec4;
         [fragment] out finalColor: vec4;
@@ -409,33 +413,39 @@ shader variants for any material graph that <strong>might read</strong> TintColo
 ScreenPosition domain input, and <strong>might write</strong> BaseColor domain output.</p>
 <p>Consider domain input/outputs to be purely an optional interface between material
 domain and material graph. You might ask now: &quot;why domain interface is
-optional?&quot; - well, this is where this approach shines too: you see, when material
-domain  gets combined with material graph, it will bake shader only from nodes
-that leads  directly from target outputs to vertex inputs, with all required
-nodes along the way.</p>
+optional?&quot; - well, this is where this approach shines: you see, when material
+domain gets combined with material graph, it will bake shader only from nodes
+that leads directly from target outputs to vertex inputs, with all required
+nodes along the way, every nod not used in that path won't get compiled into GLSL
+shader variant.</p>
 <p>Now let's take a look at the simplest material graph:</p>
 <pre><code class="language-rust ignore">material_graph! {
     inputs {
-        [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+        [vertex] input TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
     }
 
     outputs {
-        [fragment] domain BaseColor: vec4;
+        [fragment] input BaseColor: vec4;
     }
 
     [[TintColor =&gt; vColor] -&gt; BaseColor]
 }
 </code></pre>
-<p>Here in this material graph we can see we only use domain interface and just move input color from vertex shader stage to fragment shader stage and send it back to material domain to let it store properly for its render target outputs - when user is making material graph, he doesn't have to care about how to write to targets, he can only care how to process domain inputs into domain outputs and domain takes care of properly storing data into target outputs.</p>
+<p>Here in this material graph we can see we only use domain interface and just move
+input color from vertex shader stage to fragment shader stage and send it back to
+material domain to let it store properly for its render target outputs - when user
+is making material graph, he doesn't have to care about how to write to targets,
+he can only care how to process domain inputs into domain outputs and domain takes
+care of properly storing data into target outputs.</p>
 <p>Now imagine user wants to create material graph that do not use TintColor at all,
 rather converts ScreenPosition into BaseColor:</p>
 <pre><code class="language-rust ignore">material_graph! {
     inputs {
-        [vertex] domain ScreenPosition: vec4 = {vec4(0.0, 0.0, 0.0, 0.0)};
+        [vertex] input ScreenPosition: vec4 = {vec4(0.0, 0.0, 0.0, 0.0)};
     }
 
     outputs {
-        [fragment] domain BaseColor: vec4;
+        [fragment] input BaseColor: vec4;
     }
 
     [[ScreenPosition =&gt; vColor] -&gt; BaseColor]
@@ -446,11 +456,139 @@ will bake shader with nodes that only use screen position calculated in domain
 graph and not include color vertex data in the shader at all since this shader
 variant does not use it. Now, do you also see the benefits of this over usual
 <code>#ifdef</code>-ed raw shaders?</p>
+<h2 id="material-middlewares"><a class="header" href="#material-middlewares">Material middlewares</a></h2>
+<p>Another concept used with material graphs is material middlewares - an ergonomic
+way to &quot;inject&quot; other material graphs as material input preprocessor.</p>
+<p>Consider you have a vertex format such as:</p>
+<pre><code class="language-rust ignore">vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceTexturedDomain)
+    pub struct SurfaceVertexPT {
+        #[serde(default = &quot;default_position&quot;)]
+        pub position: vec3 = position(0, bounds),
+        #[serde(default = &quot;default_texture_coord&quot;)]
+        pub texture_coord: vec3 = textureCoord(0),
+    }
+}
+</code></pre>
+<p>It is used to render for example regular entity sprites. Now you want to make
+these sprites animated with skinning. Normally you would need to duplicate all
+material domains that has to work with skinning which makes future changes and
+general material maintanance subjective to being out of sync for starters - we
+can avoid that problem entirely using material middlewares!</p>
+<p>You start with defining skinned vertex format with skinning data only:</p>
+<pre><code class="language-rust ignore">vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @middlewares(skinning)
+    pub struct SurfaceSkinningFragment {
+        #[serde(default = &quot;default_bone_indices&quot;)]
+        pub bone_indices: int = boneIndices(0),
+        #[serde(default = &quot;default_bone_weights&quot;)]
+        pub bone_weights: vec4 = boneWeights(0),
+    }
+}
+</code></pre>
+<p>As you can see, we have marked this vertex format to use skinning middleware.
+We also define compound vertex format that will make that sprite vertex format
+mixed with skinned vertex format:</p>
+<pre><code class="language-rust ignore">compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceSkinnedDomain, SurfaceTexturedDomain)
+    pub struct SurfaceVertexSPT {
+        #[serde(default)]
+        pub vertex: SurfaceVertexPT,
+        #[serde(default)]
+        pub skinning: SurfaceSkinningFragment,
+    }
+}
+</code></pre>
+<p>Now we have to add skinning middleware material graph to Material Library resource:</p>
+<pre><code class="language-rust ignore"><span class="boring">library.add_function(graph_material_function! {
+</span><span class="boring">   fn skinning_fetch_bone_matrix(texture: sampler2D, index: int) -&gt; mat4 {
+</span><span class="boring">       [return (make_mat4,
+</span><span class="boring">           a: (texelFetch2d, sampler: texture, coord: (make_ivec2, x: {0}, y: index), lod: {0}),
+</span><span class="boring">           b: (texelFetch2d, sampler: texture, coord: (make_ivec2, x: {1}, y: index), lod: {0}),
+</span><span class="boring">           c: (texelFetch2d, sampler: texture, coord: (make_ivec2, x: {2}, y: index), lod: {0}),
+</span><span class="boring">           d: (texelFetch2d, sampler: texture, coord: (make_ivec2, x: {3}, y: index), lod: {0})
+</span><span class="boring">       )]
+</span><span class="boring">   }
+</span><span class="boring">});
+</span><span class="boring">library.add_function(graph_material_function! {
+</span><span class="boring">   fn skinning_weight_position(bone_matrix: mat4, position: vec4, weight: float) -&gt; vec4 {
+</span><span class="boring">       [return (mul_mat4_vec4,
+</span><span class="boring">           a: bone_matrix,
+</span><span class="boring">           b: (mul_vec4, a: position, b: (fill_vec4, v: weight))
+</span><span class="boring">       )]
+</span><span class="boring">   }
+</span><span class="boring">});
+</span>library.add_middleware(
+    &quot;skinning&quot;.to_owned(),
+    material_graph! {
+        inputs {
+            [vertex] in position as in_position: vec3 = {vec3(0.0, 0.0, 0.0)};
+            [vertex] in boneIndices: int = {0};
+            [vertex] in boneWeights: vec4 = {vec4(0.0, 0.0, 0.0, 0.0)};
+
+            [vertex] uniform boneMatrices: sampler2D;
+        }
+
+        outputs {
+            [vertex] out position as out_position: vec3;
+        }
+<span class="boring">
+</span><span class="boring">       [pos = (append_vec4, a: in_position, b: {1.0})]
+</span><span class="boring">       [index_a = (bitwise_and, a: boneIndices, b: {0xFF})]
+</span><span class="boring">       [index_b = (bitwise_and, a: (bitwise_shift_right, v: boneIndices, bits: {8}), b: {0xFF})]
+</span><span class="boring">       [index_c = (bitwise_and, a: (bitwise_shift_right, v: boneIndices, bits: {16}), b: {0xFF})]
+</span><span class="boring">       [index_d = (bitwise_and, a: (bitwise_shift_right, v: boneIndices, bits: {24}), b: {0xFF})]
+</span><span class="boring">       [result = (skinning_weight_position,
+</span><span class="boring">           bone_matrix: (skinning_fetch_bone_matrix, texture: boneMatrices, index: index_a),
+</span><span class="boring">           position: pos,
+</span><span class="boring">           weight: (maskX_vec4, v: boneWeights)
+</span><span class="boring">       )]
+</span><span class="boring">       [weighted = (skinning_weight_position,
+</span><span class="boring">           bone_matrix: (skinning_fetch_bone_matrix, texture: boneMatrices, index: index_b),
+</span><span class="boring">           position: pos,
+</span><span class="boring">           weight: (maskY_vec4, v: boneWeights)
+</span><span class="boring">       )]
+</span><span class="boring">       [result := (add_vec4, a: result, b: weighted)]
+</span><span class="boring">       [weighted := (skinning_weight_position,
+</span><span class="boring">           bone_matrix: (skinning_fetch_bone_matrix, texture: boneMatrices, index: index_c),
+</span><span class="boring">           position: pos,
+</span><span class="boring">           weight: (maskZ_vec4, v: boneWeights)
+</span><span class="boring">       )]
+</span><span class="boring">       [result := (add_vec4, a: result, b: weighted)]
+</span><span class="boring">       [weighted := (skinning_weight_position,
+</span><span class="boring">           bone_matrix: (skinning_fetch_bone_matrix, texture: boneMatrices, index: index_d),
+</span><span class="boring">           position: pos,
+</span><span class="boring">           weight: (maskW_vec4, v: boneWeights)
+</span><span class="boring">       )]
+</span><span class="boring">       [result := (add_vec4, a: result, b: weighted)]
+</span><span class="boring">       [(truncate_vec4, v: result) -&gt; out_position]
+</span>    },
+);
+</code></pre>
+<p>What is important there, material middlewares has to define in and out pins that
+it injects in between, so in case of skinning we essentially tell material
+compiler we want to inject skinning before vertex position data gets passed to
+actual material - we are making skinning middleware as vertex input preprocessor:</p>
+<pre><code class="language-rust ignore">inputs {
+  [vertex] in position as in_position: vec3 = {vec3(0.0, 0.0, 0.0)};
+}
+outputs {
+  [vertex] out position as out_position: vec3;
+}
+</code></pre>
+<p>Now whenever we want to render mesh with <code>SurfaceVertexSPT</code> vertex format (skinned
+position texcoord), for every material that has to use it, there will be compiled
+shader variant with skinning injected - no more duplicating materials with extra
+features, when we can just inject these features (middlewares) directly into
+materials that use them!</p>
 <hr />
-<p>As you can see, all of this moves away a burden of careful producing of all
-shader code from user to the engine. With materials there is no more need for any
+<p>As you can see, all of this moves away burden of careful producing of all shader
+code from user to the engine. With materials there is no more need for any
 tedious, boilerplate-y and unnecessary <code>#ifdef</code>-ed shader code - we have reduced
-the complexity of shader creation and management.</p>
+the complexity of shader creation and management to bare minimum.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="render-pipeline"><a class="header" href="#render-pipeline">Render Pipeline</a></h1>
 <h2 id="overview-1"><a class="header" href="#overview-1">Overview</a></h2>
 <p>HA renderer requires user to define render pipelines on game app setup phase.
@@ -478,7 +616,7 @@ render world entities.</p>
                     stencil: false,
                 }),
         )
-        .stage(
+        .debug_stage(
             StageDescriptor::new(&quot;gizmos&quot;)
                 .render_target(&quot;main&quot;)
                 .domain(&quot;@material/domain/gizmo&quot;),
@@ -487,7 +625,7 @@ render world entities.</p>
             StageDescriptor::new(&quot;ui&quot;)
                 .render_target(&quot;main&quot;)
                 .domain(&quot;@material/domain/surface/flat&quot;),
-        )
+        ),
 )
 </code></pre>
 <p>From that code snippet we can tell than render pipelines contains:</p>
@@ -507,8 +645,16 @@ with stage type given system provides, here is a brief snippet example:</p>
 <pre><code class="language-rust ignore">pub fn ha_render_gizmo_stage_system(universe: &amp;mut Universe) {
 <span class="boring">   type V = GizmoVertex;
 </span><span class="boring">
-</span>    let (world, mut renderer, mut gizmos, material_mapping, image_mapping, mut cache, ..) =
-        universe.query_resources::&lt;HaRenderGizmoStageSystemResources&gt;();
+</span>    let (
+        world,
+        mut renderer,
+        lifecycle,
+        mut gizmos,
+        material_mapping,
+        image_mapping,
+        mut cache,
+        ..,
+    ) = universe.query_resources::&lt;HaRenderGizmoStageSystemResources&gt;();
 
 <span class="boring">   if gizmos.factory.is_empty() {
 </span><span class="boring">       return;
@@ -523,6 +669,7 @@ with stage type given system provides, here is a brief snippet example:</p>
 </span><span class="boring">       Some(mesh_id) =&gt; mesh_id,
 </span><span class="boring">       None =&gt; {
 </span><span class="boring">           let mut m = Mesh::new(layout.to_owned());
+</span><span class="boring">           m.set_regenerate_bounds(false);
 </span><span class="boring">           m.set_vertex_storage_all(BufferStorage::Dynamic);
 </span><span class="boring">           m.set_index_storage(BufferStorage::Dynamic);
 </span><span class="boring">           match renderer.add_mesh(m) {
@@ -553,6 +700,12 @@ with stage type given system provides, here is a brief snippet example:</p>
 </span><span class="boring">       Some(material_id) =&gt; material_id,
 </span><span class="boring">       None =&gt; return,
 </span><span class="boring">   };
+</span><span class="boring">   let time = vec4(
+</span><span class="boring">       lifecycle.time_seconds(),
+</span><span class="boring">       lifecycle.delta_time_seconds(),
+</span><span class="boring">       lifecycle.time_seconds().fract(),
+</span><span class="boring">       0.0,
+</span><span class="boring">   );
 </span><span class="boring">
 </span>    for (_, (visibility, camera, transform)) in world
         .query::&lt;(Option&lt;&amp;HaVisibility&gt;, &amp;HaCamera, &amp;HaTransform)&gt;()
@@ -573,40 +726,41 @@ with stage type given system provides, here is a brief snippet example:</p>
             render_queue.clear();
             let mut recorder = render_queue.auto_recorder(None);
 <span class="boring">
-</span><span class="boring">           let _ = recorder.record(RenderCommand::ActivateMesh(mesh_id));
-</span><span class="boring">           let signature = info.make_material_signature(&amp;layout);
-</span><span class="boring">           let _ = recorder.record(RenderCommand::ActivateMaterial {
-</span><span class="boring">               id: material_id,
-</span><span class="boring">               signature: signature.to_owned(),
-</span><span class="boring">           });
-</span><span class="boring">           let _ = recorder.record(RenderCommand::SubmitUniform {
-</span><span class="boring">               signature: signature.to_owned(),
-</span><span class="boring">               name: MODEL_MATRIX_NAME.into(),
-</span><span class="boring">               value: Mat4::identity().into(),
-</span><span class="boring">           });
-</span><span class="boring">           let _ = recorder.record(RenderCommand::SubmitUniform {
-</span><span class="boring">               signature: signature.to_owned(),
-</span><span class="boring">               name: VIEW_MATRIX_NAME.into(),
-</span><span class="boring">               value: info.view_matrix.into(),
-</span><span class="boring">           });
-</span><span class="boring">           let _ = recorder.record(RenderCommand::SubmitUniform {
-</span><span class="boring">               signature: signature.to_owned(),
-</span><span class="boring">               name: PROJECTION_MATRIX_NAME.into(),
-</span><span class="boring">               value: info.projection_matrix.into(),
-</span><span class="boring">           });
+</span>            let _ = recorder.record(RenderCommand::ActivateMesh(mesh_id));
+<span class="boring">           let signature = info.make_material_signature(&amp;layout);
+</span>            let _ = recorder.record(RenderCommand::ActivateMaterial(
+                material_id,
+                signature.to_owned(),
+            ));
+<span class="boring">           let _ = recorder.record(RenderCommand::OverrideUniform(
+</span><span class="boring">               MODEL_MATRIX_NAME.into(),
+</span><span class="boring">               Mat4::identity().into(),
+</span><span class="boring">           ));
+</span><span class="boring">           let _ = recorder.record(RenderCommand::OverrideUniform(
+</span><span class="boring">               VIEW_MATRIX_NAME.into(),
+</span><span class="boring">               info.view_matrix.into(),
+</span><span class="boring">           ));
+</span>            let _ = recorder.record(RenderCommand::OverrideUniform(
+                PROJECTION_MATRIX_NAME.into(),
+                info.projection_matrix.into(),
+            ));
+<span class="boring">           let _ = recorder.record(RenderCommand::OverrideUniform(
+</span><span class="boring">               TIME_NAME.into(),
+</span><span class="boring">               time.into(),
+</span><span class="boring">           ));
+</span><span class="boring">           for (key, value) in &amp;gizmos.material.values {
+</span><span class="boring">               let _ = recorder.record(RenderCommand::OverrideUniform(
+</span><span class="boring">                   key.to_owned().into(),
+</span><span class="boring">                   value.to_owned(),
+</span><span class="boring">               ));
+</span><span class="boring">           }
 </span><span class="boring">           if let Some(draw_options) = &amp;gizmos.material.override_draw_options {
 </span><span class="boring">               let _ = recorder.record(RenderCommand::ApplyDrawOptions(draw_options.to_owned()));
 </span><span class="boring">           }
-</span><span class="boring">           for (name, value) in &amp;gizmos.material.values {
-</span><span class="boring">               let _ = recorder.record(RenderCommand::SubmitUniform {
-</span><span class="boring">                   signature: signature.to_owned(),
-</span><span class="boring">                   name: name.to_owned().into(),
-</span><span class="boring">                   value: value.to_owned(),
-</span><span class="boring">               });
-</span><span class="boring">           }
-</span><span class="boring">           let _ = recorder.record(RenderCommand::DrawMesh(MeshDrawRange::All));
-</span><span class="boring">           let _ = recorder.record(RenderCommand::SortingBarrier);
-</span>        }
+</span>            let _ = recorder.record(RenderCommand::DrawMesh(MeshDrawRange::All));
+<span class="boring">           let _ = recorder.record(RenderCommand::ResetUniforms);
+</span>            let _ = recorder.record(RenderCommand::SortingBarrier);
+        }
     }
 <span class="boring">
 </span><span class="boring">   gizmos.factory.clear();
@@ -638,7 +792,17 @@ order of entities iteration and just sort render commands itself. This obviously
 has its own cost so it's just an optional step and you should definitely
 benchmark to decide which of either render commands sorting or manual entity
 sorting approach will benefit more your stage rendering.</p>
-<p>Another thing worth mentioning about render queues is that they are only data containers so you can for example create your own render queues separately from what render pipeline provides, for example as a way of caching queues and reusing them with multiple pipelines by flushing your custom render queue into one provided by the render pipeline. Yet another use of render queues is to instead of recording them in your application, you can send them via network socket to render it on client application that will reflect your camera setup, but instead of recording world itself, it will render what server sends - similar use case could be for making both game and editor worlds embeded in one application host and game world sending its recorded queues to editor world which then renders game view in its rendering context.</p>
+<p>Another thing worth mentioning about render queues is that they are only data
+containers so you can for example create your own render queues separately from
+what render pipeline provides, for example as a way of caching queues and reusing
+them with multiple pipelines by flushing your custom render queue into one provided
+by the render pipeline. Yet another use of render queues is to instead of recording
+them in your application, you can send them via network socket to render it on
+client application that will reflect your camera setup, but instead of recording
+world itself, it will render what server sends - similar use case could be for
+making both game and editor worlds embeded in one application host and game world
+sending its recorded queues to editor world which then renders game view in its
+rendering context.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="more"><a class="header" href="#more">More...</a></h1>
 <p>If you need an explanation of some Oxygengine related topic, consider creating
 an issue on GitHub explaining what are you trying to achieve.</p>

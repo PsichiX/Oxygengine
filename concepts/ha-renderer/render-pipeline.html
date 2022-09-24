@@ -161,7 +161,7 @@ render world entities.</p>
                     stencil: false,
                 }),
         )
-        .stage(
+        .debug_stage(
             StageDescriptor::new(&quot;gizmos&quot;)
                 .render_target(&quot;main&quot;)
                 .domain(&quot;@material/domain/gizmo&quot;),
@@ -170,7 +170,7 @@ render world entities.</p>
             StageDescriptor::new(&quot;ui&quot;)
                 .render_target(&quot;main&quot;)
                 .domain(&quot;@material/domain/surface/flat&quot;),
-        )
+        ),
 )
 </code></pre>
 <p>From that code snippet we can tell than render pipelines contains:</p>
@@ -190,8 +190,16 @@ with stage type given system provides, here is a brief snippet example:</p>
 <pre><code class="language-rust ignore">pub fn ha_render_gizmo_stage_system(universe: &amp;mut Universe) {
 <span class="boring">   type V = GizmoVertex;
 </span><span class="boring">
-</span>    let (world, mut renderer, mut gizmos, material_mapping, image_mapping, mut cache, ..) =
-        universe.query_resources::&lt;HaRenderGizmoStageSystemResources&gt;();
+</span>    let (
+        world,
+        mut renderer,
+        lifecycle,
+        mut gizmos,
+        material_mapping,
+        image_mapping,
+        mut cache,
+        ..,
+    ) = universe.query_resources::&lt;HaRenderGizmoStageSystemResources&gt;();
 
 <span class="boring">   if gizmos.factory.is_empty() {
 </span><span class="boring">       return;
@@ -206,6 +214,7 @@ with stage type given system provides, here is a brief snippet example:</p>
 </span><span class="boring">       Some(mesh_id) =&gt; mesh_id,
 </span><span class="boring">       None =&gt; {
 </span><span class="boring">           let mut m = Mesh::new(layout.to_owned());
+</span><span class="boring">           m.set_regenerate_bounds(false);
 </span><span class="boring">           m.set_vertex_storage_all(BufferStorage::Dynamic);
 </span><span class="boring">           m.set_index_storage(BufferStorage::Dynamic);
 </span><span class="boring">           match renderer.add_mesh(m) {
@@ -236,6 +245,12 @@ with stage type given system provides, here is a brief snippet example:</p>
 </span><span class="boring">       Some(material_id) =&gt; material_id,
 </span><span class="boring">       None =&gt; return,
 </span><span class="boring">   };
+</span><span class="boring">   let time = vec4(
+</span><span class="boring">       lifecycle.time_seconds(),
+</span><span class="boring">       lifecycle.delta_time_seconds(),
+</span><span class="boring">       lifecycle.time_seconds().fract(),
+</span><span class="boring">       0.0,
+</span><span class="boring">   );
 </span><span class="boring">
 </span>    for (_, (visibility, camera, transform)) in world
         .query::&lt;(Option&lt;&amp;HaVisibility&gt;, &amp;HaCamera, &amp;HaTransform)&gt;()
@@ -256,40 +271,41 @@ with stage type given system provides, here is a brief snippet example:</p>
             render_queue.clear();
             let mut recorder = render_queue.auto_recorder(None);
 <span class="boring">
-</span><span class="boring">           let _ = recorder.record(RenderCommand::ActivateMesh(mesh_id));
-</span><span class="boring">           let signature = info.make_material_signature(&amp;layout);
-</span><span class="boring">           let _ = recorder.record(RenderCommand::ActivateMaterial {
-</span><span class="boring">               id: material_id,
-</span><span class="boring">               signature: signature.to_owned(),
-</span><span class="boring">           });
-</span><span class="boring">           let _ = recorder.record(RenderCommand::SubmitUniform {
-</span><span class="boring">               signature: signature.to_owned(),
-</span><span class="boring">               name: MODEL_MATRIX_NAME.into(),
-</span><span class="boring">               value: Mat4::identity().into(),
-</span><span class="boring">           });
-</span><span class="boring">           let _ = recorder.record(RenderCommand::SubmitUniform {
-</span><span class="boring">               signature: signature.to_owned(),
-</span><span class="boring">               name: VIEW_MATRIX_NAME.into(),
-</span><span class="boring">               value: info.view_matrix.into(),
-</span><span class="boring">           });
-</span><span class="boring">           let _ = recorder.record(RenderCommand::SubmitUniform {
-</span><span class="boring">               signature: signature.to_owned(),
-</span><span class="boring">               name: PROJECTION_MATRIX_NAME.into(),
-</span><span class="boring">               value: info.projection_matrix.into(),
-</span><span class="boring">           });
+</span>            let _ = recorder.record(RenderCommand::ActivateMesh(mesh_id));
+<span class="boring">           let signature = info.make_material_signature(&amp;layout);
+</span>            let _ = recorder.record(RenderCommand::ActivateMaterial(
+                material_id,
+                signature.to_owned(),
+            ));
+<span class="boring">           let _ = recorder.record(RenderCommand::OverrideUniform(
+</span><span class="boring">               MODEL_MATRIX_NAME.into(),
+</span><span class="boring">               Mat4::identity().into(),
+</span><span class="boring">           ));
+</span><span class="boring">           let _ = recorder.record(RenderCommand::OverrideUniform(
+</span><span class="boring">               VIEW_MATRIX_NAME.into(),
+</span><span class="boring">               info.view_matrix.into(),
+</span><span class="boring">           ));
+</span>            let _ = recorder.record(RenderCommand::OverrideUniform(
+                PROJECTION_MATRIX_NAME.into(),
+                info.projection_matrix.into(),
+            ));
+<span class="boring">           let _ = recorder.record(RenderCommand::OverrideUniform(
+</span><span class="boring">               TIME_NAME.into(),
+</span><span class="boring">               time.into(),
+</span><span class="boring">           ));
+</span><span class="boring">           for (key, value) in &amp;gizmos.material.values {
+</span><span class="boring">               let _ = recorder.record(RenderCommand::OverrideUniform(
+</span><span class="boring">                   key.to_owned().into(),
+</span><span class="boring">                   value.to_owned(),
+</span><span class="boring">               ));
+</span><span class="boring">           }
 </span><span class="boring">           if let Some(draw_options) = &amp;gizmos.material.override_draw_options {
 </span><span class="boring">               let _ = recorder.record(RenderCommand::ApplyDrawOptions(draw_options.to_owned()));
 </span><span class="boring">           }
-</span><span class="boring">           for (name, value) in &amp;gizmos.material.values {
-</span><span class="boring">               let _ = recorder.record(RenderCommand::SubmitUniform {
-</span><span class="boring">                   signature: signature.to_owned(),
-</span><span class="boring">                   name: name.to_owned().into(),
-</span><span class="boring">                   value: value.to_owned(),
-</span><span class="boring">               });
-</span><span class="boring">           }
-</span><span class="boring">           let _ = recorder.record(RenderCommand::DrawMesh(MeshDrawRange::All));
-</span><span class="boring">           let _ = recorder.record(RenderCommand::SortingBarrier);
-</span>        }
+</span>            let _ = recorder.record(RenderCommand::DrawMesh(MeshDrawRange::All));
+<span class="boring">           let _ = recorder.record(RenderCommand::ResetUniforms);
+</span>            let _ = recorder.record(RenderCommand::SortingBarrier);
+        }
     }
 <span class="boring">
 </span><span class="boring">   gizmos.factory.clear();
@@ -321,7 +337,17 @@ order of entities iteration and just sort render commands itself. This obviously
 has its own cost so it's just an optional step and you should definitely
 benchmark to decide which of either render commands sorting or manual entity
 sorting approach will benefit more your stage rendering.</p>
-<p>Another thing worth mentioning about render queues is that they are only data containers so you can for example create your own render queues separately from what render pipeline provides, for example as a way of caching queues and reusing them with multiple pipelines by flushing your custom render queue into one provided by the render pipeline. Yet another use of render queues is to instead of recording them in your application, you can send them via network socket to render it on client application that will reflect your camera setup, but instead of recording world itself, it will render what server sends - similar use case could be for making both game and editor worlds embeded in one application host and game world sending its recorded queues to editor world which then renders game view in its rendering context.</p>
+<p>Another thing worth mentioning about render queues is that they are only data
+containers so you can for example create your own render queues separately from
+what render pipeline provides, for example as a way of caching queues and reusing
+them with multiple pipelines by flushing your custom render queue into one provided
+by the render pipeline. Yet another use of render queues is to instead of recording
+them in your application, you can send them via network socket to render it on
+client application that will reflect your camera setup, but instead of recording
+world itself, it will render what server sends - similar use case could be for
+making both game and editor worlds embeded in one application host and game world
+sending its recorded queues to editor world which then renders game view in its
+rendering context.</p>
 
                     </main>
 
