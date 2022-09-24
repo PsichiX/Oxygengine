@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="cli/introduction.html"><strong aria-hidden="true">2.</strong> Oxygengine Ignite CLI tool</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="cli/update.html"><strong aria-hidden="true">2.1.</strong> Update engine version used in your game project</a></li><li class="chapter-item expanded "><a href="cli/faster-compilation-times.html"><strong aria-hidden="true">2.2.</strong> Speed up compilation times for new projects</a></li><li class="chapter-item expanded "><a href="cli/asset-pipeline.html"><strong aria-hidden="true">2.3.</strong> Asset pipeline and its tools</a></li><li class="chapter-item expanded "><a href="cli/new-project.html"><strong aria-hidden="true">2.4.</strong> Creating new project</a></li><li class="chapter-item expanded "><a href="cli/build-project.html"><strong aria-hidden="true">2.5.</strong> Building your project</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Concepts explained</div></li><li><ol class="section"><li class="chapter-item expanded "><a href="concepts/ha-renderer/introduction.html"><strong aria-hidden="true">3.1.</strong> Hardware Accelerated rendering</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="concepts/ha-renderer/render-pipeline.html"><strong aria-hidden="true">3.1.1.</strong> Render Pipeline</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.2.</strong> Camera</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.3.</strong> Render Target</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.4.</strong> Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.5.</strong> Virtual Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.6.</strong> Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.7.</strong> Virtual Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.8.</strong> Material</div></li></ol></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Tutorials</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">4.1.</strong> RPG game using Overworld module</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> VN game using Visual Novel module</div></li></ol></li><li class="chapter-item expanded "><a href="more.html"><strong aria-hidden="true">5.</strong> More...</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="cli/introduction.html"><strong aria-hidden="true">2.</strong> Oxygengine Ignite CLI tool</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="cli/new-project.html"><strong aria-hidden="true">2.1.</strong> Creating new project</a></li><li class="chapter-item expanded "><a href="cli/build-project.html"><strong aria-hidden="true">2.2.</strong> Building your project</a></li><li class="chapter-item expanded "><a href="cli/update.html"><strong aria-hidden="true">2.3.</strong> Update engine version used in your game project</a></li><li class="chapter-item expanded "><a href="cli/faster-compilation-times.html"><strong aria-hidden="true">2.4.</strong> Speed up compilation times for new projects</a></li><li class="chapter-item expanded "><a href="cli/asset-pipeline.html"><strong aria-hidden="true">2.5.</strong> Asset pipeline and its tools</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Concepts explained</div></li><li><ol class="section"><li class="chapter-item expanded "><a href="concepts/ha-renderer/introduction.html"><strong aria-hidden="true">3.1.</strong> Hardware Accelerated rendering</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="concepts/ha-renderer/render-pipeline.html"><strong aria-hidden="true">3.1.1.</strong> Render Pipeline</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.2.</strong> Camera</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.3.</strong> Render Target</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.4.</strong> Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.5.</strong> Virtual Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.6.</strong> Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.7.</strong> Virtual Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.8.</strong> Material</div></li></ol></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Tutorials</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">4.1.</strong> RPG game using Overworld module</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> VN game using Visual Novel module</div></li></ol></li><li class="chapter-item expanded "><a href="more.html"><strong aria-hidden="true">5.</strong> More...</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -186,6 +186,67 @@ Ignite CLI tool that will govern most vital operations on your game project
 development:</p>
 <pre><code class="language-bash">cargo install oxygengine-ignite
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="creating-new-project"><a class="header" href="#creating-new-project">Creating new project</a></h1>
+<p>Oxygengine uses a concept called &quot;Game Templates&quot; where instead of starting from
+blank page, you create your new project from one of existing game templates:</p>
+<ul>
+<li><code>desktop-headless-game</code> - used mostly for game servers logic, it doesn not
+provide access to any of rendering or audio features, but gives you all the
+features needed to create a game server logic.</li>
+<li><code>web-composite-game</code> - used for making visually simple games that uses Web
+Canvas rendering.</li>
+<li><code>web-composite-visual-novel</code> - used to jumpstart working on a completely
+asset-driven Visual Novel game.</li>
+<li><code>web-ha-game</code> - used to make visually more demanding games that needs to render
+greater number of entities, manipulate and enhance game visuals with shaders.</li>
+</ul>
+<p><strong>Create new game project with default (<code>web-ha-game</code>) game template:</strong></p>
+<pre><code class="language-bash">oxygengine-ignite new &lt;project-name&gt;
+</code></pre>
+<p>for example:</p>
+<pre><code class="language-bash">oxygengine-ignite new dream-game
+</code></pre>
+<p><strong>Create new game with specified game template to use:</strong></p>
+<pre><code class="language-bash">oxygengine-ignite new &lt;project-name&gt; -p &lt;game-template-name&gt;
+</code></pre>
+<p>for example:</p>
+<pre><code class="language-bash">oxygengine-ignite new dream-game-server -p desktop-headless-game
+</code></pre>
+<p><strong>Create new game project in specified path:</strong></p>
+<pre><code class="language-bash">oxygengine-ignite new &lt;project-name&gt; -d &lt;path-to-parent-directory&gt;
+</code></pre>
+<p>for example:</p>
+<pre><code class="language-bash">oxygengine-ignite new dream-game -d ~/game-projects/
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="building-your-project"><a class="header" href="#building-your-project">Building your project</a></h1>
+<h3 id="launch-live-development"><a class="header" href="#launch-live-development">Launch live development</a></h3>
+<p>With active code recompilation and assets baking in the background on change:</p>
+<pre><code class="language-bash">oxygengine-ignite live
+</code></pre>
+<p>Additionally to allow it to start http server to serve your build files in the
+browser, run:</p>
+<pre><code class="language-bash">oxygengine-ignite live -- -p 8080
+</code></pre>
+<p>files will be served from: http://localhost:8080.</p>
+<h3 id="build-binaries-in-debug-or-release-mode"><a class="header" href="#build-binaries-in-debug-or-release-mode">Build binaries in debug or release mode</a></h3>
+<p>Binaries will be put in <code>/bin</code> folder.</p>
+<p>With debug symbols:</p>
+<pre><code class="language-bash">oxygengine-ignite build
+</code></pre>
+<p>Optimized release mode:</p>
+<pre><code class="language-bash">oxygengine-ignite build -p release
+</code></pre>
+<h3 id="build-only-the-crate"><a class="header" href="#build-only-the-crate">Build only the crate</a></h3>
+<pre><code class="language-bash">cargo build
+</code></pre>
+<h3 id="package-application-build-with-assets-ready-for-distribution"><a class="header" href="#package-application-build-with-assets-ready-for-distribution">Package application build with assets ready for distribution</a></h3>
+<p>Package files will be put in <code>/dist</code> folder:</p>
+<pre><code class="language-bash">oxygengine-ignite package
+</code></pre>
+<p>this command will run release build, assets pipeline and bundle package.</p>
+<p>To produce a debug mode package you have to run:</p>
+<pre><code class="language-bash">oxygengine-ignite package -d
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="update-engine-version-used-in-your-game-project"><a class="header" href="#update-engine-version-used-in-your-game-project">Update engine version used in your game project</a></h1>
 <ul>
 <li>reinstall <code>oxygengine-ignite</code>:
@@ -250,67 +311,6 @@ These are:</p>
 </ul>
 <p>In general, if some engine module requires asset pipeline tools to work, there
 is a companion crate named: <code>&lt;some-engine-module&gt;-tools</code>.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="creating-new-project"><a class="header" href="#creating-new-project">Creating new project</a></h1>
-<p>Oxygengine uses a concept called &quot;Game Templates&quot; where instead of starting from
-blank page, you create your new project from one of existing game templates:</p>
-<ul>
-<li><code>desktop-headless-game</code> - used mostly for game servers logic, it doesn not
-provide access to any of rendering or audio features, but gives you all the
-features needed to create a game server logic.</li>
-<li><code>web-composite-game</code> - used for making visually simple games that uses Web
-Canvas rendering.</li>
-<li><code>web-composite-visual-novel</code> - used to jumpstart working on a completely
-asset-driven Visual Novel game.</li>
-<li><code>web-ha-game</code> - used to make visually more demanding games that needs to render
-greater number of entities, manipulate and enhance game visuals with shaders.</li>
-</ul>
-<p><strong>Create new game project with default (<code>web-ha-game</code>) game template:</strong></p>
-<pre><code class="language-bash">oxygengine-ignite new &lt;project-name&gt;
-</code></pre>
-<p>for example:</p>
-<pre><code class="language-bash">oxygengine-ignite new dream-game
-</code></pre>
-<p><strong>Create new game with specified game template to use:</strong></p>
-<pre><code class="language-bash">oxygengine-ignite new &lt;project-name&gt; -p &lt;game-template-name&gt;
-</code></pre>
-<p>for example:</p>
-<pre><code class="language-bash">oxygengine-ignite new dream-game-server -p desktop-headless-game
-</code></pre>
-<p><strong>Create new game project in specified path:</strong></p>
-<pre><code class="language-bash">oxygengine-ignite new &lt;project-name&gt; -d &lt;path-to-parent-directory&gt;
-</code></pre>
-<p>for example:</p>
-<pre><code class="language-bash">oxygengine-ignite new dream-game -d ~/game-projects/
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="building-your-project"><a class="header" href="#building-your-project">Building your project</a></h1>
-<h3 id="launch-live-development"><a class="header" href="#launch-live-development">Launch live development</a></h3>
-<p>With active code recompilation and assets baking in the background on change:</p>
-<pre><code class="language-bash">oxygengine-ignite live
-</code></pre>
-<p>Additionally to allow it to start http server to serve your build files in the
-browser, run:</p>
-<pre><code class="language-bash">oxygengine-ignite live -- -p 8080
-</code></pre>
-<p>files will be served from: http://localhost:8080.</p>
-<h3 id="build-binaries-in-debug-or-release-mode"><a class="header" href="#build-binaries-in-debug-or-release-mode">Build binaries in debug or release mode</a></h3>
-<p>Binaries will be put in <code>/bin</code> folder.</p>
-<p>With debug symbols:</p>
-<pre><code class="language-bash">oxygengine-ignite build
-</code></pre>
-<p>Optimized release mode:</p>
-<pre><code class="language-bash">oxygengine-ignite build -p release
-</code></pre>
-<h3 id="build-only-the-crate"><a class="header" href="#build-only-the-crate">Build only the crate</a></h3>
-<pre><code class="language-bash">cargo build
-</code></pre>
-<h3 id="package-application-build-with-assets-ready-for-distribution"><a class="header" href="#package-application-build-with-assets-ready-for-distribution">Package application build with assets ready for distribution</a></h3>
-<p>Package files will be put in <code>/dist</code> folder:</p>
-<pre><code class="language-bash">oxygengine-ignite package
-</code></pre>
-<p>this command will run release build, assets pipeline and bundle package.</p>
-<p>To produce a debug mode package you have to run:</p>
-<pre><code class="language-bash">oxygengine-ignite package -d
-</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="hardware-accelerated-rendering"><a class="header" href="#hardware-accelerated-rendering">Hardware Accelerated rendering</a></h1>
 <p>Here we will take a deeper look at how Oxygengine's hardware Accelerated rendering model works.</p>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
