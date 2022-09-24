@@ -80,7 +80,13 @@ pub fn ha_renderer_maintenance_system(universe: &mut Universe) {
         &mut mesh_mapping,
         &mut material_mapping,
     );
-    update_resource_references(&world, &image_mapping, &mesh_mapping, &material_mapping);
+    update_resource_references(
+        &world,
+        &mut renderer,
+        &image_mapping,
+        &mesh_mapping,
+        &material_mapping,
+    );
 }
 
 pub type HaRendererExecutionSystemResources<'a> = (
@@ -94,6 +100,7 @@ pub fn ha_renderer_execution_system(universe: &mut Universe) {
         universe.query_resources::<HaRendererExecutionSystemResources>();
 
     renderer.maintain_render_targets();
+    renderer.maintain_images();
     renderer.maintain_meshes();
     renderer.maintain_materials(
         &material_library,
@@ -104,6 +111,7 @@ pub fn ha_renderer_execution_system(universe: &mut Universe) {
 
 fn update_resource_references(
     world: &World,
+    renderer: &mut HaRenderer,
     image_mapping: &ImageResourceMapping,
     mesh_mapping: &MeshResourceMapping,
     material_mapping: &MaterialResourceMapping,
@@ -113,6 +121,11 @@ fn update_resource_references(
     }
     for (_, reference) in world.query::<&mut HaMaterialInstance>().iter() {
         reference.update_references(material_mapping, image_mapping);
+    }
+    for material in renderer.materials.resources_mut() {
+        for value in material.default_values.values_mut() {
+            value.update_references(image_mapping);
+        }
     }
 }
 
@@ -156,7 +169,7 @@ fn sync_mesh_assets(
         if let Some(asset) = assets.asset_by_id(*id) {
             let path = asset.path();
             if let Some(asset) = asset.get::<MeshAsset>() {
-                if let Ok(factory) = asset.factory() {
+                if let Ok(factory) = asset.factory(assets) {
                     let mut mesh = Mesh::new(factory.layout().to_owned());
                     if factory.write_into(&mut mesh).is_ok() {
                         if let Ok(mesh_id) = renderer.add_mesh(mesh) {
@@ -331,7 +344,10 @@ fn execute_pipelines(renderer: &mut HaRenderer) {
         Some(context) => context,
         None => return,
     };
-    unsafe { context.enable(BLEND) };
+    unsafe {
+        context.enable(BLEND);
+        context.disable(SCISSOR_TEST);
+    }
     let mut stats = RenderStats::default();
     let resources = renderer.stage_resources();
     for pipeline in renderer.pipelines.values() {

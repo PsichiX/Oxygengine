@@ -16,6 +16,7 @@ pub mod localization;
 pub mod ecs;
 pub mod jobs;
 pub mod storage;
+pub mod utils;
 
 #[cfg(test)]
 mod tests;
@@ -68,6 +69,7 @@ pub mod prelude {
             engines::{map::*, *},
             *,
         },
+        utils::*,
         Scalar, *,
     };
     #[cfg(not(feature = "web"))]

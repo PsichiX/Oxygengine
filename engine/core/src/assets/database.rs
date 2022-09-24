@@ -374,7 +374,7 @@ impl AssetsDatabase {
             if let Some(protocol) = self.protocols.get_mut(&prot) {
                 match protocol.on_load_with_path(&path, data) {
                     AssetLoadResult::Data(data) => {
-                        let asset = Asset::new(&prot, &path, data);
+                        let asset = Asset::new_boxed(&prot, &path, data);
                         self.insert(asset);
                     }
                     AssetLoadResult::Yield(meta, list) => {
@@ -413,7 +413,7 @@ impl AssetsDatabase {
                         .collect::<Vec<_>>();
                     match protocol.on_resume(meta, &list) {
                         AssetLoadResult::Data(data) => {
-                            let asset = Asset::new(&prot, &path, data);
+                            let asset = Asset::new_boxed(&prot, &path, data);
                             self.insert(asset);
                         }
                         AssetLoadResult::Yield(meta, list) => {

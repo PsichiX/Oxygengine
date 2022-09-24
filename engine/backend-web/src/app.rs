@@ -42,33 +42,52 @@ pub fn web_app_params() -> AppParams {
 
 pub struct WebAppTimer {
     timer: Scalar,
+    last_timer: Scalar,
+    time: Duration,
+    time_seconds: Scalar,
     delta_time: Duration,
     delta_time_seconds: Scalar,
+    ticks: usize,
 }
 
 impl Default for WebAppTimer {
     fn default() -> Self {
+        let current_time = performance().now() as Scalar * 0.001;
         Self {
-            timer: performance().now() as Scalar * 0.001,
+            timer: current_time,
+            last_timer: current_time,
+            time: Duration::default(),
+            time_seconds: 0.0,
             delta_time: Duration::default(),
             delta_time_seconds: 0.0,
+            ticks: 0,
         }
     }
 }
 
 impl AppTimer for WebAppTimer {
     fn tick(&mut self) {
-        let t = performance().now() as Scalar * 0.001;
-        let d = t - self.timer;
-        self.timer = t;
-        self.delta_time = Duration::new(d as u64, (d.fract() * 1e9) as u32);
-        self.delta_time_seconds = d;
+        let current_time = performance().now() as Scalar * 0.001;
+        self.delta_time_seconds = current_time - self.last_timer;
+        self.delta_time = Duration::new(
+            self.delta_time_seconds as u64,
+            (self.delta_time_seconds.fract() * 1e9) as u32,
+        );
+        self.time_seconds = current_time - self.timer;
+        self.time = Duration::new(
+            self.time_seconds as u64,
+            (self.time_seconds.fract() * 1e9) as u32,
+        );
+        self.last_timer = current_time;
+        self.ticks = self.ticks.wrapping_add(1);
     }
 
-    fn now_since_start(&self) -> Duration {
-        let t = performance().now() as Scalar * 0.001;
-        let d = t - self.timer;
-        Duration::new(d as u64, (d.fract() * 1e9) as u32)
+    fn time(&self) -> Duration {
+        self.time
+    }
+
+    fn time_seconds(&self) -> Scalar {
+        self.time_seconds
     }
 
     fn delta_time(&self) -> Duration {
@@ -77,6 +96,10 @@ impl AppTimer for WebAppTimer {
 
     fn delta_time_seconds(&self) -> Scalar {
         self.delta_time_seconds
+    }
+
+    fn ticks(&self) -> usize {
+        self.ticks
     }
 }
 

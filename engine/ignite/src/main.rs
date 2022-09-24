@@ -10,7 +10,7 @@ use crate::{
     test::{test_project, TestProfile},
 };
 use cargo_metadata::MetadataCommand;
-use clap::{App, Arg, SubCommand};
+use clap::{Arg, Command as App};
 use dirs::home_dir;
 use hotwatch::{Event, Hotwatch};
 use oxygengine_ignite_types::IgniteTypeDefinition;
@@ -119,20 +119,16 @@ async fn main() -> Result<()> {
         meta.packages
             .iter()
             .find_map(|p| {
-                if p.name == env!("CARGO_PKG_NAME") {
-                    if !p.metadata.is_null() {
-                        let root_path = p.manifest_path.clone();
-                        let project_meta = if let Ok(project_meta) =
-                            serde_json::from_value::<ProjectMeta>(p.metadata.clone())
-                        {
-                            project_meta
-                        } else {
-                            ProjectMeta::default()
-                        };
-                        Some((root_path.into(), project_meta))
+                if p.name == env!("CARGO_PKG_NAME") && !p.metadata.is_null() {
+                    let root_path = p.manifest_path.clone();
+                    let project_meta = if let Ok(project_meta) =
+                        serde_json::from_value::<ProjectMeta>(p.metadata.clone())
+                    {
+                        project_meta
                     } else {
-                        None
-                    }
+                        ProjectMeta::default()
+                    };
+                    Some((root_path.into(), project_meta))
                 } else {
                     None
                 }
@@ -160,56 +156,65 @@ async fn main() -> Result<()> {
         }
         presets_path
     };
-    let has_presets = if let Ok(iter) = read_dir(&presets_path) {
-        iter.count() > 0
-    } else {
-        false
-    };
+    let has_presets = std::env::var("OXY_DONT_AUTO_UPDATE").is_ok()
+        || read_dir(&presets_path)
+            .map(|iter| iter.count() > 0)
+            .unwrap_or_default();
     let update_presets = std::env::var("OXY_UPDATE_PRESETS").is_ok();
+    let update_pack_file = std::env::var("OXY_UPDATE_FILE");
     if !has_presets || update_presets {
         if update_presets {
-            drop(remove_dir_all(&presets_path));
+            let _ = remove_dir_all(&presets_path);
         }
-        let url = format!(
-            "https://oxygengine.io/ignite-presets/oxygengine-presets-{}.pack",
-            env!("CARGO_PKG_VERSION")
-        );
-        println!(
-            "There are no presets installed in {:?} - trying to download them now from: {:?}",
-            presets_path, url
-        );
-        let response =
-            reqwest::blocking::get(&url).unwrap_or_else(|_| panic!("Request for {:?} failed", url));
-        let bytes = response
-            .bytes()
-            .unwrap_or_else(|_| panic!("Could not get bytes from {:?} response", url));
-        let files = bincode::deserialize::<HashMap<String, Vec<u8>>>(bytes.as_ref())
-            .unwrap_or_else(|_| panic!("Could not unpack files from {:?} response", url));
-        drop(create_dir_all(&presets_path));
+        let bytes = if let Ok(ref update_pack_file) = update_pack_file {
+            std::fs::read(update_pack_file)
+                .unwrap_or_else(|_| panic!("Could not get bytes from {:?} file", update_pack_file))
+        } else {
+            let url = format!(
+                "https://oxygengine.io/ignite-presets/oxygengine-presets-{}.pack",
+                env!("CARGO_PKG_VERSION")
+            );
+            println!(
+                "There are no presets installed in {:?} - trying to download them now from: {:?}",
+                presets_path, url
+            );
+            let bytes = reqwest::blocking::get(&url)
+                .unwrap_or_else(|_| panic!("Request for {:?} failed", url))
+                .bytes()
+                .unwrap_or_else(|_| panic!("Could not get bytes from {:?} response", url));
+            bytes.as_ref().to_owned()
+        };
+        let files = bincode::deserialize::<HashMap<String, Vec<u8>>>(&bytes)
+            .unwrap_or_else(|_| panic!("Could not unpack files from presets pack"));
+        let _ = create_dir_all(&presets_path);
         for (fname, bytes) in files {
             let path = presets_path.join(fname);
             let mut dir_path = path.clone();
             dir_path.pop();
-            drop(create_dir_all(&dir_path));
+            let _ = create_dir_all(&dir_path);
             println!("Store file: {:?}", path);
             write(path, bytes)?;
         }
     }
-    let presets_list = read_dir(&presets_path)?
-        .filter_map(|entry| {
-            let path = entry.unwrap().path();
-            if path.is_dir() {
-                Some(path.file_name().unwrap().to_str().unwrap().to_owned())
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>();
-    if presets_list.is_empty() {
+    let presets_list = if presets_path.is_dir() {
+        read_dir(&presets_path)?
+            .filter_map(|entry| {
+                let path = entry.unwrap().path();
+                if path.is_dir() {
+                    Some(path.file_name().unwrap().to_str().unwrap().to_owned())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+    } else {
+        vec![]
+    };
+    if presets_list.is_empty() && std::env::var("OXY_DONT_AUTO_UPDATE").is_err() {
         return Err(Error::new(
-            ErrorKind::NotFound,
-            "There are no presets installed - consider reinstalling oxygengine-ignite, it might be corrupted",
-        ));
+                ErrorKind::NotFound,
+                "There are no presets installed - consider reinstalling oxygengine-ignite, it might be corrupted",
+            ));
     }
 
     if let Some(path) = &project_meta.sccache_bin {
@@ -224,18 +229,18 @@ async fn main() -> Result<()> {
         .author(env!("CARGO_PKG_AUTHORS"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .subcommand(
-            SubCommand::with_name("new")
+            App::new("new")
                 .about("Create new project")
                 .arg(
-                    Arg::with_name("id")
+                    Arg::new("id")
                         .value_name("ID")
                         .help("Project ID")
                         .takes_value(true)
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("destination")
-                        .short("d")
+                    Arg::new("destination")
+                        .short('d')
                         .long("destination")
                         .value_name("PATH")
                         .help("Project destination path")
@@ -243,16 +248,16 @@ async fn main() -> Result<()> {
                         .required(false),
                 )
                 .arg(
-                    Arg::with_name("preset")
-                        .short("p")
+                    Arg::new("preset")
+                        .short('p')
                         .long("preset")
-                        .help(&format!("Project preset ({})", presets_list.join(", ")))
+                        .help(&*format!("Project preset ({})", presets_list.join(", ")))
                         .takes_value(false)
                         .required(false)
-                        .default_value("web-ha-game"),
+                        .default_value("web-ha-base"),
                 )
                 .arg(
-                    Arg::with_name("dont-build")
+                    Arg::new("dont-build")
                         .long("dont-build")
                         .help("Prepare project and exit without building it")
                         .takes_value(false)
@@ -260,11 +265,11 @@ async fn main() -> Result<()> {
                 )
         )
         .subcommand(
-            SubCommand::with_name("pack")
+            App::new("pack")
                 .about("Pack assets")
                 .arg(
-                    Arg::with_name("input")
-                        .short("i")
+                    Arg::new("input")
+                        .short('i')
                         .long("input")
                         .value_name("PATH")
                         .help("Assets root folder")
@@ -272,8 +277,8 @@ async fn main() -> Result<()> {
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("output")
-                        .short("o")
+                    Arg::new("output")
+                        .short('o')
                         .long("output")
                         .value_name("PATH")
                         .help("Asset pack output file")
@@ -282,11 +287,11 @@ async fn main() -> Result<()> {
                 )
         )
         .subcommand(
-            SubCommand::with_name("pipeline")
+            App::new("pipeline")
                 .about("Execute project pipeline")
                 .arg(
-                    Arg::with_name("config")
-                        .short("c")
+                    Arg::new("config")
+                        .short('c')
                         .long("config")
                         .value_name("PATH")
                         .help("Pipeline JSON descriptor file")
@@ -295,8 +300,8 @@ async fn main() -> Result<()> {
                         .default_value("./pipeline.json")
                 )
                 .arg(
-                    Arg::with_name("template")
-                        .short("t")
+                    Arg::new("template")
+                        .short('t')
                         .long("template")
                         .help("Create and save pipeline template")
                         .takes_value(false)
@@ -304,11 +309,11 @@ async fn main() -> Result<()> {
                 )
         )
         .subcommand(
-            SubCommand::with_name("build")
+            App::new("build")
                 .about("Build project")
                 .arg(
-                    Arg::with_name("profile")
-                        .short("p")
+                    Arg::new("profile")
+                        .short('p')
                         .long("profile")
                         .value_name("PROFILE")
                         .help("Project build profile. Possible values: debug, release")
@@ -317,8 +322,8 @@ async fn main() -> Result<()> {
                         .default_value("debug"),
                 )
                 .arg(
-                    Arg::with_name("crate_dir")
-                        .short("c")
+                    Arg::new("crate_dir")
+                        .short('c')
                         .long("crate_dir")
                         .value_name("PATH")
                         .help("Project crate directory")
@@ -326,8 +331,8 @@ async fn main() -> Result<()> {
                         .required(false),
                 )
                 .arg(
-                    Arg::with_name("out_dir")
-                        .short("o")
+                    Arg::new("out_dir")
+                        .short('o')
                         .long("out_dir")
                         .value_name("PATH")
                         .help("Binaries output directory relative to crate directory")
@@ -335,18 +340,18 @@ async fn main() -> Result<()> {
                         .required(false),
                 )
                 .arg(
-                    Arg::with_name("extras")
+                    Arg::new("extras")
                         .last(true)
                         .allow_hyphen_values(true)
-                        .multiple(true)
+                        .multiple_values(true)
                 ),
         )
         .subcommand(
-            SubCommand::with_name("test")
+            App::new("test")
                 .about("Test project")
                 .arg(
-                    Arg::with_name("profile")
-                        .short("p")
+                    Arg::new("profile")
+                        .short('p')
                         .long("profile")
                         .value_name("PROFILE")
                         .help("Project build profile. Possible values: debug, release")
@@ -355,8 +360,8 @@ async fn main() -> Result<()> {
                         .default_value("debug"),
                 )
                 .arg(
-                    Arg::with_name("crate_dir")
-                        .short("c")
+                    Arg::new("crate_dir")
+                        .short('c')
                         .long("crate_dir")
                         .value_name("PATH")
                         .help("Project crate directory")
@@ -364,18 +369,18 @@ async fn main() -> Result<()> {
                         .required(false),
                 )
                 .arg(
-                    Arg::with_name("extras")
+                    Arg::new("extras")
                         .last(true)
                         .allow_hyphen_values(true)
-                        .multiple(true)
+                        .multiple_values(true)
                 ),
         )
         .subcommand(
-            SubCommand::with_name("serve")
+            App::new("serve")
                 .about("Serve project binary and baked asset files to browsers")
                 .arg(
-                    Arg::with_name("port")
-                        .short("p")
+                    Arg::new("port")
+                        .short('p')
                         .long("port")
                         .value_name("NUMBER")
                         .help("HTTP server port")
@@ -384,8 +389,8 @@ async fn main() -> Result<()> {
                         .default_value("8080")
                 )
                 .arg(
-                    Arg::with_name("binaries")
-                        .short("b")
+                    Arg::new("binaries")
+                        .short('b')
                         .long("binaries")
                         .value_name("PATH")
                         .help("Path to the binaries folder")
@@ -394,8 +399,8 @@ async fn main() -> Result<()> {
                         .default_value("./bin/")
                 )
                 .arg(
-                    Arg::with_name("assets")
-                        .short("a")
+                    Arg::new("assets")
+                        .short('a')
                         .long("assets")
                         .value_name("PATH")
                         .help("Path to the baked assets folder")
@@ -404,19 +409,50 @@ async fn main() -> Result<()> {
                         .default_value("./assets-baked/")
                 )
                 .arg(
-                    Arg::with_name("open")
-                        .short("o")
+                    Arg::new("open")
+                        .short('o')
                         .long("open")
                         .help("Open URL in the browser")
                         .required(false)
                 )
         )
         .subcommand(
-            SubCommand::with_name("live")
+            App::new("serve-dir")
+                .about("Serve directory files to browsers")
+                .arg(
+                    Arg::new("port")
+                        .short('p')
+                        .long("port")
+                        .value_name("NUMBER")
+                        .help("HTTP server port")
+                        .takes_value(true)
+                        .required(false)
+                        .default_value("8080")
+                )
+                .arg(
+                    Arg::new("root")
+                        .short('r')
+                        .long("root")
+                        .value_name("PATH")
+                        .help("Path to the root folder")
+                        .takes_value(true)
+                        .required(false)
+                        .default_value("./")
+                )
+                .arg(
+                    Arg::new("open")
+                        .short('o')
+                        .long("open")
+                        .help("Open URL in the browser")
+                        .required(false)
+                )
+        )
+        .subcommand(
+            App::new("live")
                 .about("Listen for changes in binary and asset sources and rebuild them when they change")
                 .arg(
-                    Arg::with_name("profile")
-                        .short("r")
+                    Arg::new("profile")
+                        .short('r')
                         .long("profile")
                         .value_name("PROFILE")
                         .help("Project build profile. Possible values: debug, release")
@@ -425,28 +461,28 @@ async fn main() -> Result<()> {
                         .default_value("debug"),
                 )
                 .arg(
-                    Arg::with_name("binaries")
-                        .short("b")
+                    Arg::new("binaries")
+                        .short('b')
                         .long("binaries")
                         .value_name("PATH")
                         .help("Path to the binaries source folders (Rust or JS code)")
                         .takes_value(true)
                         .required(false)
-                        .multiple(true)
+                        .multiple_values(true)
                 )
                 .arg(
-                    Arg::with_name("assets")
-                        .short("a")
+                    Arg::new("assets")
+                        .short('a')
                         .long("assets")
                         .value_name("PATH")
                         .help("Path to the assets sources folders")
                         .takes_value(true)
                         .required(false)
-                        .multiple(true)
+                        .multiple_values(true)
                 )
                 .arg(
-                    Arg::with_name("crate_dir")
-                        .short("c")
+                    Arg::new("crate_dir")
+                        .short('c')
                         .long("crate_dir")
                         .value_name("PATH")
                         .help("Project crate directory")
@@ -455,8 +491,8 @@ async fn main() -> Result<()> {
                         .default_value("./")
                 )
                 .arg(
-                    Arg::with_name("pipeline")
-                        .short("p")
+                    Arg::new("pipeline")
+                        .short('p')
                         .long("pipeline")
                         .value_name("PATH")
                         .help("Pipeline JSON descriptor file")
@@ -465,26 +501,26 @@ async fn main() -> Result<()> {
                         .default_value("./pipeline.json")
                 )
                 .arg(
-                    Arg::with_name("extras")
+                    Arg::new("extras")
                         .last(true)
                         .allow_hyphen_values(true)
-                        .multiple(true)
+                        .multiple_values(true)
                 )
         )
         .subcommand(
-            SubCommand::with_name("package")
+            App::new("package")
                 .about("Make distribution package of the project")
                 .arg(
-                    Arg::with_name("debug")
-                        .short("d")
+                    Arg::new("debug")
+                        .short('d')
                         .long("debug")
                         .help("Package with debug profile")
                         .takes_value(false)
                         .required(false)
                 )
                 .arg(
-                    Arg::with_name("crate_dir")
-                        .short("c")
+                    Arg::new("crate_dir")
+                        .short('c')
                         .long("crate_dir")
                         .value_name("PATH")
                         .help("Crate directory")
@@ -493,8 +529,8 @@ async fn main() -> Result<()> {
                         .default_value("./")
                 )
                 .arg(
-                    Arg::with_name("pipeline")
-                        .short("p")
+                    Arg::new("pipeline")
+                        .short('p')
                         .long("pipeline")
                         .value_name("PATH")
                         .help("Assets pipeline config file")
@@ -503,8 +539,8 @@ async fn main() -> Result<()> {
                         .default_value("./pipeline.json")
                 )
                 .arg(
-                    Arg::with_name("assets")
-                        .short("a")
+                    Arg::new("assets")
+                        .short('a')
                         .long("assets")
                         .value_name("PATH")
                         .help("Baked assets directory")
@@ -513,8 +549,8 @@ async fn main() -> Result<()> {
                         .default_value("./assets-baked/")
                 )
                 .arg(
-                    Arg::with_name("out_dir")
-                        .short("o")
+                    Arg::new("out_dir")
+                        .short('o')
                         .long("out_dir")
                         .value_name("PATH")
                         .help("Output directory relative to crate directory")
@@ -524,14 +560,14 @@ async fn main() -> Result<()> {
                 )
         )
         .subcommand(
-            SubCommand::with_name("types")
+            App::new("types")
                 .about("Performs operation on ignite type definitions")
                 .subcommand(
-                    SubCommand::with_name("validate")
+                    App::new("validate")
                         .about("Validate types")
                         .arg(
-                            Arg::with_name("path")
-                                .short("p")
+                            Arg::new("path")
+                                .short('p')
                                 .long("path")
                                 .value_name("PATH")
                                 .help("Path to the crate root directory")
@@ -539,18 +575,18 @@ async fn main() -> Result<()> {
                                 .required(false)
                         )
                         .arg(
-                            Arg::with_name("ignore")
-                                .short("i")
+                            Arg::new("ignore")
+                                .short('i')
                                 .long("ignore")
                                 .value_name("NAME")
                                 .help("Names of types to ignore in report")
                                 .takes_value(true)
                                 .required(false)
-                                .multiple(true)
+                                .multiple_values(true)
                         )
                         .arg(
-                            Arg::with_name("ignore-file")
-                                .short("f")
+                            Arg::new("ignore-file")
+                                .short('f')
                                 .long("ignore-file")
                                 .value_name("PATH")
                                 .help("Path to list of type names to ignore in report")
@@ -759,6 +795,18 @@ async fn main() -> Result<()> {
                 .expect("Could not open URL in the browser");
         }
         serve_files(port, binaries, assets).await;
+    } else if let Some(matches) = matches.subcommand_matches("serve-dir") {
+        let port = matches
+            .value_of("port")
+            .unwrap()
+            .parse::<u16>()
+            .expect("Could not parse port number");
+        let root = matches.value_of("root").unwrap().to_owned();
+        if matches.is_present("open") {
+            open::that(format!("http://localhost:{}", port))
+                .expect("Could not open URL in the browser");
+        }
+        serve_dir(port, root).await;
     } else if let Some(matches) = matches.subcommand_matches("live") {
         let profile = matches.value_of("profile").unwrap().to_owned();
         let binaries = matches
@@ -851,8 +899,8 @@ async fn main() -> Result<()> {
                 .status()
                 .expect("Could not run HTTP server");
         }
-        drop(builds.join());
-        drop(pipelines.join());
+        let _ = builds.join();
+        let _ = pipelines.join();
     } else if let Some(matches) = matches.subcommand_matches("package") {
         let debug = matches.is_present("debug");
         let crate_dir = matches.value_of("crate_dir").unwrap();
@@ -931,13 +979,9 @@ async fn main() -> Result<()> {
                             let definition = {
                                 match extension {
                                     "json" => {
-                                        let contents = read_to_string(path.to_owned())
-                                            .unwrap_or_else(|_| {
-                                                panic!(
-                                                    "Could not read ignite type file: {:?}",
-                                                    path
-                                                )
-                                            });
+                                        let contents = read_to_string(&path).unwrap_or_else(|_| {
+                                            panic!("Could not read ignite type file: {:?}", path)
+                                        });
                                         serde_json::from_str::<IgniteTypeDefinition>(&contents)
                                             .expect("Could not parse YAML type definition file")
                                     }
@@ -952,7 +996,7 @@ async fn main() -> Result<()> {
                     None
                 })
                 .collect::<HashMap<_, _>>();
-            let referenced = types.values().cloned().flatten().collect::<HashSet<_>>();
+            let referenced = types.values().flatten().cloned().collect::<HashSet<_>>();
             let type_names = types.keys().cloned().collect::<HashSet<_>>();
             let mut diff = referenced.difference(&type_names).collect::<Vec<_>>();
             diff.sort();
@@ -980,6 +1024,15 @@ async fn serve_files(port: u16, binaries: String, assets: String) {
     let binaries = warp::fs::dir(binaries);
     let assets = warp::fs::dir(assets);
     let routes = warp::get().and(binaries.or(assets));
+    warp::serve(routes).run(([127, 0, 0, 1], port)).await;
+}
+
+async fn serve_dir(port: u16, root: String) {
+    println!("* Serve directory files at: localhost:{}", port);
+    println!("- root:\t{:?}", root);
+    use warp::Filter;
+    let root = warp::fs::dir(root);
+    let routes = warp::get().and(root);
     warp::serve(routes).run(([127, 0, 0, 1], port)).await;
 }
 
@@ -1025,7 +1078,11 @@ fn copy_dir(from: &Path, to: &Path, id: &str) -> Result<()> {
 fn verify_used_plugins(pipeline: &Pipeline) {
     for command in &pipeline.commands {
         match command {
-            PipelineCommand::Plugin { name, .. } => {
+            PipelineCommand::Plugin {
+                name,
+                do_not_verify: false,
+                ..
+            } => {
                 if which::which(name).is_err() {
                     let plugin = name.rfind('-').map(|index| &name[0..index]).unwrap_or(name);
                     let plugin = format!("{}-tools", plugin);

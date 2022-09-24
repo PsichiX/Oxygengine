@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-ha-renderer-tools"
-version = "0.28.0"
+version = "0.30.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Tools for Hardware Accelerated renderer module for Oxygengine"
@@ -11,16 +11,17 @@ documentation = "https://docs.rs/oxygengine-ha-renderer-tools"
 readme = "../../README.md"
 
 [dependencies]
-oxygengine-build-tools = { version = "0.28", path = "../build-tools" }
-oxygengine-core = { version = "0.28", path = "../core" }
-oxygengine-ha-renderer = { version = "0.28", path = "../ha-renderer" }
+oxygengine-build-tools = { version = "0.30", path = "../build-tools" }
+oxygengine-core = { version = "0.30", path = "../core" }
+oxygengine-ha-renderer = { version = "0.30", path = "../ha-renderer" }
+oxygengine-animation = { version = "0.30", path = "../animation" }
 serde = { version = "1", features = ["derive"] }
-serde-xml-rs = "0.5"
-serde_yaml = "0.8"
+serde-xml-rs = "0.6"
+serde_yaml = "=0.8.26"
 serde_json = "1"
-image = "0.23"
-texture_packer = "0.23"
-ldtk_rust = "0.5"
+image = "0.24"
+texture_packer = "0.24"
+ldtk_rust = "0.6"
 chrobry-core = "1"
 
 [[bin]]
@@ -38,3 +39,7 @@ path = "./src/sdf_tool.rs"
 [[bin]]
 name = "oxygengine-ha-renderer-ldtk"
 path = "./src/ldtk_tool.rs"
+
+[[bin]]
+name = "oxygengine-ha-renderer-spine"
+path = "./src/spine/main.rs"

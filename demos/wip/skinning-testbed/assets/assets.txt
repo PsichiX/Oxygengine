@@ -1,0 +1,3 @@
+#image://images/logo.yaml
+#image://images/dither.yaml
+set://skeletons/watcher/assets.txt

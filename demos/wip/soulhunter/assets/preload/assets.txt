@@ -1,5 +1,0 @@
-fontface://fonts/aquatico.json
-svg://images/game-logo.svg
-svg://images/oxygen-logo.svg
-prefab://prefabs/loading-scene.yaml
-prefab://prefabs/intro-scene.yaml

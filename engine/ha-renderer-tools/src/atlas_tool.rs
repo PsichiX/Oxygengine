@@ -1,4 +1,4 @@
-use oxygengine_build_tools::AssetPipelineInput;
+use oxygengine_build_tools::*;
 use oxygengine_ha_renderer::{
     asset_protocols::{atlas::*, image::*},
     math::*,
@@ -40,6 +40,8 @@ impl Params {
         2
     }
 }
+
+impl ParamsFromArgs for Params {}
 
 fn main() -> Result<(), Error> {
     let (source, destination, params) = AssetPipelineInput::<Params>::consume().unwrap();

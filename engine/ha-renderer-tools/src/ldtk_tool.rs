@@ -1,5 +1,6 @@
+use image::*;
 use ldtk_rust::*;
-use oxygengine_build_tools::AssetPipelineInput;
+use oxygengine_build_tools::*;
 use oxygengine_core::{
     ecs::components::{Name, NonPersistentPrefabProxy, Tag},
     prefab::{Prefab, PrefabScene, PrefabSceneEntity, PrefabSceneEntityData, PrefabValue},
@@ -21,7 +22,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
     collections::{HashMap, HashSet},
-    fs::{copy, create_dir_all, read_to_string, write},
+    fs::{create_dir_all, read_to_string, write},
     io::Error,
     path::{Path, PathBuf},
 };
@@ -57,10 +58,13 @@ struct Params {
     pub rules: Vec<ComponentRule>,
 }
 
+impl ParamsFromArgs for Params {}
+
 fn main() -> Result<(), Error> {
     let (source, destination, params) = AssetPipelineInput::<Params>::consume().unwrap();
     let output = destination.join(&params.output);
     ensure_path(&output);
+
     let rules = params
         .rules
         .iter()
@@ -74,7 +78,7 @@ fn main() -> Result<(), Error> {
     for path in &params.input_projects {
         let path = source.join(path);
         let dirname = path.parent().map(|p| p.to_path_buf()).unwrap_or_default();
-        let project = Project::new(path.to_str().unwrap().to_owned());
+        let project = Project::new(path.to_str().unwrap());
         bake_project(
             project,
             &dirname,
@@ -116,6 +120,11 @@ fn bake_project(
     let mut atlases = HashMap::<_, _>::default();
 
     for tileset in &project.defs.tilesets {
+        let rel_path = match tileset.rel_path.as_ref() {
+            Some(rel_path) => rel_path,
+            None => continue,
+        };
+
         let image_bytes_name = format!(
             "{}{}/{}.png",
             assets_path_prefix, image_folder_name, tileset.identifier
@@ -125,9 +134,22 @@ fn bake_project(
             .join(&tileset.identifier)
             .with_extension("png");
         ensure_path(&image_bytes_path);
-        let source_path = input.join(&tileset.rel_path);
-        copy(source_path, image_bytes_path)
-            .unwrap_or_else(|_| panic!("Could not copy file: {}", tileset.rel_path));
+        let source_path = input.join(rel_path);
+        open(&source_path)
+            .unwrap_or_else(|error| {
+                panic!(
+                    "Could not open file: {:?} | Error: {:?}",
+                    source_path, error,
+                )
+            })
+            .into_rgba8()
+            .save(&image_bytes_path)
+            .unwrap_or_else(|error| {
+                panic!(
+                    "Could not save file: {:?} | Error: {:?}",
+                    image_bytes_path, error,
+                )
+            });
         image_bytes.insert(tileset.uid, image_bytes_name.to_owned());
 
         let image_name = format!(
@@ -379,7 +401,7 @@ fn bake_project(
                 entity_data.components.insert(
                     "HaMaterialInstance".to_owned(),
                     HaMaterialInstance {
-                        reference: MaterialInstanceReference::Asset(material_name.to_owned()),
+                        reference: MaterialReference::Asset(material_name.to_owned()),
                         ..Default::default()
                     }
                     .to_prefab()
@@ -719,7 +741,8 @@ fn bake_project(
                         entity_data.components.insert(
                             "HaMeshInstance".to_owned(),
                             HaMeshInstance {
-                                reference: MeshInstanceReference::Asset(name.to_owned()),
+                                reference: MeshReference::Asset(name.to_owned()),
+                                override_draw_range: None,
                             }
                             .to_prefab()
                             .unwrap_or_else(|_| {
@@ -731,7 +754,7 @@ fn bake_project(
                         entity_data.components.insert(
                             "HaMaterialInstance".to_owned(),
                             HaMaterialInstance {
-                                reference: MaterialInstanceReference::Asset(name.to_owned()),
+                                reference: MaterialReference::Asset(name.to_owned()),
                                 ..Default::default()
                             }
                             .to_prefab()
@@ -773,7 +796,7 @@ fn bake_project(
                                 panic!("Could not serialize HaSpriteAnimationInstance to prefab")
                             }),
                         );
-                        assets_used.insert(format!("sanim://{}", name));
+                        assets_used.insert(format!("spriteanim://{}", name));
                     }
                     if let Some(value) = entity_field_value("Components", entity, entity_def) {
                         let components = value.as_str().unwrap_or_else(|| {

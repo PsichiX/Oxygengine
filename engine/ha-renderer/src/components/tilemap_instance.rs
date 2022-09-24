@@ -122,5 +122,4 @@ impl Prefab for HaTileMapInstance {
         self.dirty = true;
     }
 }
-
 impl PrefabComponent for HaTileMapInstance {}

@@ -8,9 +8,14 @@ pub use ncollide2d as collide;
 pub use nphysics2d as physics;
 
 pub mod prelude {
-    pub use crate::{component::*, physics::*, resource::*, system::*};
-    pub use ncollide2d::shape::*;
-    pub use nphysics2d::{math::*, object::*};
+    pub use crate::{
+        collide::shape::*,
+        component::*,
+        physics::*,
+        physics::{math::*, object::*},
+        resource::*,
+        system::*,
+    };
 }
 
 use crate::{

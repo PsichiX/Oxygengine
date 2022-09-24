@@ -1,5 +1,6 @@
 use crate::{
     components::{camera::HaCamera, transform::HaTransform, visibility::HaVisibility},
+    constants::material_uniforms::*,
     ha_renderer::HaRenderer,
     image::ImageResourceMapping,
     material::{domains::gizmo::GizmoVertex, MaterialResourceMapping},
@@ -8,11 +9,10 @@ use crate::{
     pipeline::render_queue::RenderCommand,
     resources::gizmos::Gizmos,
 };
-use core::ecs::{Comp, Universe, WorldRef};
-
-const MODEL_MATRIX_NAME: &str = "model";
-const VIEW_MATRIX_NAME: &str = "view";
-const PROJECTION_MATRIX_NAME: &str = "projection";
+use core::{
+    app::AppLifeCycle,
+    ecs::{Comp, Universe, WorldRef},
+};
 
 #[derive(Debug, Default, Clone)]
 pub struct HaRenderGizmoStageSystemCache {
@@ -22,6 +22,7 @@ pub struct HaRenderGizmoStageSystemCache {
 pub type HaRenderGizmoStageSystemResources<'a> = (
     WorldRef,
     &'a mut HaRenderer,
+    &'a AppLifeCycle,
     &'a mut Gizmos,
     &'a MaterialResourceMapping,
     &'a ImageResourceMapping,
@@ -36,8 +37,16 @@ pub struct RenderGizmoStage;
 pub fn ha_render_gizmo_stage_system(universe: &mut Universe) {
     type V = GizmoVertex;
 
-    let (world, mut renderer, mut gizmos, material_mapping, image_mapping, mut cache, ..) =
-        universe.query_resources::<HaRenderGizmoStageSystemResources>();
+    let (
+        world,
+        mut renderer,
+        lifecycle,
+        mut gizmos,
+        material_mapping,
+        image_mapping,
+        mut cache,
+        ..,
+    ) = universe.query_resources::<HaRenderGizmoStageSystemResources>();
 
     if gizmos.factory.is_empty() {
         return;
@@ -83,6 +92,12 @@ pub fn ha_render_gizmo_stage_system(universe: &mut Universe) {
         Some(material_id) => material_id,
         None => return,
     };
+    let time = vec4(
+        lifecycle.time_seconds(),
+        lifecycle.delta_time_seconds(),
+        lifecycle.time_seconds().fract(),
+        0.0,
+    );
 
     for (_, (visibility, camera, transform)) in world
         .query::<(Option<&HaVisibility>, &HaCamera, &HaTransform)>()
@@ -120,6 +135,10 @@ pub fn ha_render_gizmo_stage_system(universe: &mut Universe) {
             let _ = recorder.record(RenderCommand::OverrideUniform(
                 PROJECTION_MATRIX_NAME.into(),
                 info.projection_matrix.into(),
+            ));
+            let _ = recorder.record(RenderCommand::OverrideUniform(
+                TIME_NAME.into(),
+                time.into(),
             ));
             for (key, value) in &gizmos.material.values {
                 let _ = recorder.record(RenderCommand::OverrideUniform(

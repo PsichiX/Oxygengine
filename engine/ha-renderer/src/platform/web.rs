@@ -2,6 +2,8 @@
 
 use crate::platform::{HaPlatformInterface, HaPlatformInterfaceProcessResult};
 use glow::*;
+#[cfg(feature = "web")]
+use oxygengine_backend_web::closure::WebClosure;
 #[cfg(target_arch = "wasm32")]
 use std::collections::HashMap;
 use std::{cell::RefCell, rc::Rc};
@@ -65,8 +67,8 @@ fn listen_for_events(
     canvas: &HtmlCanvasElement,
     context_lost: Rc<RefCell<bool>>,
     context_restored: Rc<RefCell<bool>>,
-) {
-    {
+) -> (WebClosure, WebClosure) {
+    let webgl_context_lost_closure = {
         let closure = Closure::wrap(Box::new(move |event: Event| {
             event.prevent_default();
             *context_lost.borrow_mut() = true;
@@ -74,9 +76,9 @@ fn listen_for_events(
         canvas
             .add_event_listener_with_callback("webglcontextlost", closure.as_ref().unchecked_ref())
             .unwrap();
-        closure.forget();
-    }
-    {
+        WebClosure::acquire(closure)
+    };
+    let webgl_context_restored_closure = {
         let closure = Closure::wrap(Box::new(move |_: Event| {
             *context_restored.borrow_mut() = true;
         }) as Box<dyn FnMut(_)>);
@@ -86,15 +88,28 @@ fn listen_for_events(
                 closure.as_ref().unchecked_ref(),
             )
             .unwrap();
-        closure.forget();
-    }
+        WebClosure::acquire(closure)
+    };
+    (webgl_context_lost_closure, webgl_context_restored_closure)
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct WebContextOptions {
     pub alpha: bool,
     pub depth: bool,
     pub stencil: bool,
+    pub preserve_drawing_buffer: bool,
+}
+
+impl Default for WebContextOptions {
+    fn default() -> Self {
+        Self {
+            alpha: false,
+            depth: false,
+            stencil: false,
+            preserve_drawing_buffer: true,
+        }
+    }
 }
 
 impl WebContextOptions {
@@ -104,10 +119,13 @@ impl WebContextOptions {
         options.insert("alpha", self.alpha);
         options.insert("depth", self.depth);
         options.insert("stencil", self.stencil);
-        JsValue::from_serde(&options).expect("Could not construct WebGL 2 context options map")
+        options.insert("preserveDrawingBuffer", self.preserve_drawing_buffer);
+        serde_wasm_bindgen::to_value(&options)
+            .expect("Could not construct WebGL 2 context options map")
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct WebPlatformInterface {
     canvas: HtmlCanvasElement,
@@ -116,9 +134,13 @@ pub struct WebPlatformInterface {
     cached_screen_size: (usize, usize),
     context_lost: Rc<RefCell<bool>>,
     context_restored: Rc<RefCell<bool>>,
+    webgl_context_lost_closure: WebClosure,
+    webgl_context_restored_closure: WebClosure,
 }
 
+#[cfg(feature = "web")]
 unsafe impl Send for WebPlatformInterface {}
+#[cfg(feature = "web")]
 unsafe impl Sync for WebPlatformInterface {}
 
 impl WebPlatformInterface {
@@ -133,7 +155,7 @@ impl WebPlatformInterface {
         let context = get_glow_context(&canvas, &options);
         let context_lost = Rc::new(RefCell::new(false));
         let context_restored = Rc::new(RefCell::new(false));
-        listen_for_events(
+        let (webgl_context_lost_closure, webgl_context_restored_closure) = listen_for_events(
             &canvas,
             Rc::clone(&context_lost),
             Rc::clone(&context_restored),
@@ -145,6 +167,8 @@ impl WebPlatformInterface {
             cached_screen_size: (0, 0),
             context_lost,
             context_restored,
+            webgl_context_lost_closure,
+            webgl_context_restored_closure,
         }
     }
 }

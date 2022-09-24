@@ -1,0 +1,1536 @@
+---
+line_height: 64
+line_base: 51
+sdf_resolution: 0
+pages:
+  - image: fonts/roboto.0.yaml
+    characters:
+      ü:
+        x: 325
+        y: 118
+        width: 25
+        height: 40
+        xoffset: 3
+        yoffset: 12
+        xadvance: 30
+      "#":
+        x: 279
+        y: 251
+        width: 31
+        height: 38
+        xoffset: 2
+        yoffset: 13
+        xadvance: 33
+      B:
+        x: 321
+        y: 0
+        width: 28
+        height: 38
+        xoffset: 4
+        yoffset: 13
+        xadvance: 34
+      "{":
+        x: 492
+        y: 80
+        width: 17
+        height: 51
+        xoffset: 1
+        yoffset: 9
+        xadvance: 18
+      É:
+        x: 279
+        y: 290
+        width: 26
+        height: 48
+        xoffset: 4
+        yoffset: 3
+        xadvance: 30
+      á:
+        x: 139
+        y: 165
+        width: 26
+        height: 41
+        xoffset: 2
+        yoffset: 11
+        xadvance: 29
+      ",":
+        x: 0
+        y: 0
+        width: 11
+        height: 15
+        xoffset: 0
+        yoffset: 43
+        xadvance: 12
+      "-":
+        x: 430
+        y: 0
+        width: 15
+        height: 6
+        xoffset: 2
+        yoffset: 32
+        xadvance: 18
+      ÿ:
+        x: 84
+        y: 177
+        width: 27
+        height: 50
+        xoffset: 0
+        yoffset: 12
+        xadvance: 26
+      Y:
+        x: 133
+        y: 300
+        width: 33
+        height: 38
+        xoffset: 0
+        yoffset: 13
+        xadvance: 33
+      "8":
+        x: 206
+        y: 100
+        width: 26
+        height: 39
+        xoffset: 3
+        yoffset: 13
+        xadvance: 31
+      ":":
+        x: 426
+        y: 229
+        width: 9
+        height: 30
+        xoffset: 4
+        yoffset: 21
+        xadvance: 15
+      x:
+        x: 272
+        y: 96
+        width: 26
+        height: 28
+        xoffset: 1
+        yoffset: 23
+        xadvance: 27
+      ½:
+        x: 250
+        y: 209
+        width: 37
+        height: 38
+        xoffset: 2
+        yoffset: 13
+        xadvance: 41
+      ">":
+        x: 91
+        y: 22
+        width: 24
+        height: 25
+        xoffset: 3
+        yoffset: 22
+        xadvance: 28
+      õ:
+        x: 436
+        y: 409
+        width: 28
+        height: 40
+        xoffset: 2
+        yoffset: 12
+        xadvance: 31
+      +:
+        x: 464
+        y: 120
+        width: 27
+        height: 27
+        xoffset: 2
+        yoffset: 20
+        xadvance: 30
+      E:
+        x: 351
+        y: 118
+        width: 26
+        height: 38
+        xoffset: 4
+        yoffset: 13
+        xadvance: 30
+      â:
+        x: 178
+        y: 107
+        width: 26
+        height: 41
+        xoffset: 2
+        yoffset: 11
+        xadvance: 29
+      "2":
+        x: 85
+        y: 95
+        width: 28
+        height: 38
+        xoffset: 2
+        yoffset: 13
+        xadvance: 31
+      ):
+        x: 492
+        y: 142
+        width: 16
+        height: 54
+        xoffset: 1
+        yoffset: 9
+        xadvance: 19
+      ì:
+        x: 154
+        y: 77
+        width: 14
+        height: 40
+        xoffset: -2
+        yoffset: 11
+        xadvance: 15
+      "4":
+        x: 302
+        y: 357
+        width: 29
+        height: 38
+        xoffset: 1
+        yoffset: 13
+        xadvance: 31
+      U:
+        x: 233
+        y: 137
+        width: 30
+        height: 39
+        xoffset: 3
+        yoffset: 13
+        xadvance: 35
+      s:
+        x: 218
+        y: 260
+        width: 25
+        height: 30
+        xoffset: 2
+        yoffset: 22
+        xadvance: 28
+      "`":
+        x: 492
+        y: 132
+        width: 14
+        height: 9
+        xoffset: 1
+        yoffset: 11
+        xadvance: 18
+      M:
+        x: 430
+        y: 60
+        width: 40
+        height: 38
+        xoffset: 4
+        yoffset: 13
+        xadvance: 47
+      £:
+        x: 472
+        y: 0
+        width: 28
+        height: 38
+        xoffset: 3
+        yoffset: 13
+        xadvance: 32
+      "%":
+        x: 393
+        y: 50
+        width: 36
+        height: 40
+        xoffset: 2
+        yoffset: 12
+        xadvance: 39
+      b:
+        x: 147
+        y: 123
+        width: 26
+        height: 41
+        xoffset: 3
+        yoffset: 11
+        xadvance: 30
+      Ú:
+        x: 174
+        y: 149
+        width: 30
+        height: 49
+        xoffset: 3
+        yoffset: 3
+        xadvance: 35
+      ú:
+        x: 446
+        y: 0
+        width: 25
+        height: 41
+        xoffset: 3
+        yoffset: 11
+        xadvance: 30
+      p:
+        x: 245
+        y: 96
+        width: 26
+        height: 40
+        xoffset: 3
+        yoffset: 22
+        xadvance: 30
+      "5":
+        x: 211
+        y: 0
+        width: 27
+        height: 39
+        xoffset: 3
+        yoffset: 13
+        xadvance: 31
+      I:
+        x: 37
+        y: 106
+        width: 9
+        height: 38
+        xoffset: 4
+        yoffset: 13
+        xadvance: 16
+      N:
+        x: 186
+        y: 401
+        width: 31
+        height: 38
+        xoffset: 4
+        yoffset: 13
+        xadvance: 38
+      Q:
+        x: 348
+        y: 202
+        width: 33
+        height: 45
+        xoffset: 2
+        yoffset: 13
+        xadvance: 37
+      /:
+        x: 108
+        y: 230
+        width: 21
+        height: 41
+        xoffset: 0
+        yoffset: 13
+        xadvance: 22
+      "<":
+        x: 307
+        y: 81
+        width: 24
+        height: 25
+        xoffset: 1
+        yoffset: 22
+        xadvance: 27
+      D:
+        x: 244
+        y: 298
+        width: 29
+        height: 38
+        xoffset: 4
+        yoffset: 13
+        xadvance: 35
+      Ä:
+        x: 270
+        y: 48
+        width: 36
+        height: 47
+        xoffset: 0
+        yoffset: 4
+        xadvance: 36
+      "[":
+        x: 430
+        y: 7
+        width: 13
+        height: 52
+        xoffset: 3
+        yoffset: 7
+        xadvance: 15
+      "3":
+        x: 82
+        y: 390
+        width: 27
+        height: 39
+        xoffset: 2
+        yoffset: 13
+        xadvance: 31
+      ß:
+        x: 84
+        y: 134
+        width: 28
+        height: 42
+        xoffset: 4
+        yoffset: 10
+        xadvance: 33
+      §:
+        x: 406
+        y: 407
+        width: 29
+        height: 50
+        xoffset: 2
+        yoffset: 13
+        xadvance: 33
+      ±:
+        x: 104
+        y: 313
+        width: 26
+        height: 34
+        xoffset: 2
+        yoffset: 17
+        xadvance: 29
+      °:
+        x: 33
+        y: 90
+        width: 16
+        height: 15
+        xoffset: 3
+        yoffset: 13
+        xadvance: 21
+      ".":
+        x: 220
+        y: 313
+        width: 9
+        height: 8
+        xoffset: 4
+        yoffset: 43
+        xadvance: 16
+      Ã:
+        x: 276
+        y: 0
+        width: 36
+        height: 47
+        xoffset: 0
+        yoffset: 4
+        xadvance: 36
+      Å:
+        x: 166
+        y: 199
+        width: 36
+        height: 50
+        xoffset: 0
+        yoffset: 1
+        xadvance: 36
+      "~":
+        x: 311
+        y: 264
+        width: 31
+        height: 12
+        xoffset: 3
+        yoffset: 29
+        xadvance: 36
+      Í:
+        x: 203
+        y: 237
+        width: 14
+        height: 48
+        xoffset: 4
+        yoffset: 3
+        xadvance: 16
+      ^:
+        x: 162
+        y: 341
+        width: 22
+        height: 19
+        xoffset: 1
+        yoffset: 13
+        xadvance: 23
+      Ô:
+        x: 439
+        y: 228
+        width: 32
+        height: 49
+        xoffset: 3
+        yoffset: 3
+        xadvance: 37
+      Ö:
+        x: 114
+        y: 108
+        width: 32
+        height: 48
+        xoffset: 3
+        yoffset: 4
+        xadvance: 37
+      ó:
+        x: 288
+        y: 209
+        width: 28
+        height: 41
+        xoffset: 2
+        yoffset: 11
+        xadvance: 31
+      þ:
+        x: 0
+        y: 350
+        width: 26
+        height: 51
+        xoffset: 3
+        yoffset: 11
+        xadvance: 31
+      i:
+        x: 501
+        y: 0
+        width: 9
+        height: 39
+        xoffset: 3
+        yoffset: 12
+        xadvance: 14
+      î:
+        x: 167
+        y: 300
+        width: 19
+        height: 40
+        xoffset: -2
+        yoffset: 11
+        xadvance: 15
+      «:
+        x: 218
+        y: 291
+        width: 23
+        height: 21
+        xoffset: 2
+        yoffset: 26
+        xadvance: 26
+      ­:
+        x: 205
+        y: 189
+        width: 15
+        height: 6
+        xoffset: 2
+        yoffset: 32
+        xadvance: 18
+      j:
+        x: 492
+        y: 203
+        width: 14
+        height: 50
+        xoffset: -2
+        yoffset: 12
+        xadvance: 14
+      L:
+        x: 0
+        y: 176
+        width: 25
+        height: 38
+        xoffset: 4
+        yoffset: 13
+        xadvance: 29
+      u:
+        x: 78
+        y: 277
+        width: 25
+        height: 29
+        xoffset: 3
+        yoffset: 23
+        xadvance: 30
+      O:
+        x: 472
+        y: 40
+        width: 32
+        height: 39
+        xoffset: 3
+        yoffset: 13
+        xadvance: 37
+      F:
+        x: 439
+        y: 187
+        width: 25
+        height: 38
+        xoffset: 4
+        yoffset: 13
+        xadvance: 30
+      ª:
+        x: 27
+        y: 378
+        width: 19
+        height: 21
+        xoffset: 3
+        yoffset: 13
+        xadvance: 24
+      ý:
+        x: 320
+        y: 159
+        width: 27
+        height: 51
+        xoffset: 0
+        yoffset: 11
+        xadvance: 26
+      d:
+        x: 265
+        y: 378
+        width: 26
+        height: 41
+        xoffset: 2
+        yoffset: 11
+        xadvance: 30
+      Ë:
+        x: 238
+        y: 344
+        width: 26
+        height: 47
+        xoffset: 4
+        yoffset: 4
+        xadvance: 30
+      "|":
+        x: 230
+        y: 313
+        width: 7
+        height: 45
+        xoffset: 4
+        yoffset: 13
+        xadvance: 14
+      o:
+        x: 0
+        y: 276
+        width: 28
+        height: 30
+        xoffset: 2
+        yoffset: 22
+        xadvance: 31
+      a:
+        x: 112
+        y: 199
+        width: 26
+        height: 30
+        xoffset: 2
+        yoffset: 22
+        xadvance: 29
+      Þ:
+        x: 183
+        y: 29
+        width: 27
+        height: 38
+        xoffset: 4
+        yoffset: 13
+        xadvance: 32
+      "!":
+        x: 499
+        y: 292
+        width: 9
+        height: 38
+        xoffset: 4
+        yoffset: 13
+        xadvance: 15
+      ·:
+        x: 72
+        y: 30
+        width: 9
+        height: 8
+        xoffset: 4
+        yoffset: 28
+        xadvance: 16
+      l:
+        x: 63
+        y: 0
+        width: 8
+        height: 40
+        xoffset: 4
+        yoffset: 11
+        xadvance: 14
+      ï:
+        x: 471
+        y: 80
+        width: 20
+        height: 39
+        xoffset: -3
+        yoffset: 12
+        xadvance: 15
+      "}":
+        x: 26
+        y: 176
+        width: 18
+        height: 51
+        xoffset: 0
+        yoffset: 9
+        xadvance: 18
+      C:
+        x: 463
+        y: 295
+        width: 31
+        height: 39
+        xoffset: 3
+        yoffset: 13
+        xadvance: 35
+      Î:
+        x: 400
+        y: 321
+        width: 19
+        height: 48
+        xoffset: -1
+        yoffset: 3
+        xadvance: 16
+      T:
+        x: 423
+        y: 327
+        width: 31
+        height: 38
+        xoffset: 1
+        yoffset: 13
+        xadvance: 33
+      ö:
+        x: 221
+        y: 177
+        width: 28
+        height: 40
+        xoffset: 2
+        yoffset: 12
+        xadvance: 31
+      Õ:
+        x: 0
+        y: 78
+        width: 32
+        height: 48
+        xoffset: 3
+        yoffset: 4
+        xadvance: 37
+      J:
+        x: 339
+        y: 39
+        width: 26
+        height: 39
+        xoffset: 1
+        yoffset: 13
+        xadvance: 30
+      W:
+        x: 113
+        y: 389
+        width: 46
+        height: 38
+        xoffset: 1
+        yoffset: 13
+        xadvance: 47
+      ;:
+        x: 499
+        y: 254
+        width: 12
+        height: 37
+        xoffset: 0
+        yoffset: 21
+        xadvance: 13
+      ¾:
+        x: 447
+        y: 148
+        width: 39
+        height: 38
+        xoffset: 2
+        yoffset: 13
+        xadvance: 42
+      c:
+        x: 59
+        y: 336
+        width: 26
+        height: 30
+        xoffset: 2
+        yoffset: 22
+        xadvance: 28
+      t:
+        x: 37
+        y: 53
+        width: 18
+        height: 36
+        xoffset: 0
+        yoffset: 16
+        xadvance: 18
+      "]":
+        x: 49
+        y: 0
+        width: 13
+        height: 52
+        xoffset: 0
+        yoffset: 7
+        xadvance: 15
+      m:
+        x: 378
+        y: 130
+        width: 41
+        height: 29
+        xoffset: 3
+        yoffset: 22
+        xadvance: 46
+      Ê:
+        x: 81
+        y: 228
+        width: 26
+        height: 48
+        xoffset: 4
+        yoffset: 3
+        xadvance: 30
+      Ü:
+        x: 408
+        y: 180
+        width: 30
+        height: 48
+        xoffset: 3
+        yoffset: 4
+        xadvance: 35
+      À:
+        x: 426
+        y: 278
+        width: 36
+        height: 48
+        xoffset: 0
+        yoffset: 3
+        xadvance: 36
+      Ç:
+        x: 247
+        y: 248
+        width: 31
+        height: 49
+        xoffset: 3
+        yoffset: 13
+        xadvance: 35
+      º:
+        x: 299
+        y: 147
+        width: 20
+        height: 21
+        xoffset: 3
+        yoffset: 13
+        xadvance: 25
+      "9":
+        x: 447
+        y: 370
+        width: 26
+        height: 38
+        xoffset: 3
+        yoffset: 13
+        xadvance: 31
+      Á:
+        x: 369
+        y: 370
+        width: 36
+        height: 48
+        xoffset: 0
+        yoffset: 3
+        xadvance: 36
+      ä:
+        x: 465
+        y: 187
+        width: 26
+        height: 40
+        xoffset: 2
+        yoffset: 12
+        xadvance: 29
+      Â:
+        x: 0
+        y: 127
+        width: 36
+        height: 48
+        xoffset: 0
+        yoffset: 3
+        xadvance: 36
+      Ñ:
+        x: 0
+        y: 228
+        width: 31
+        height: 47
+        xoffset: 4
+        yoffset: 4
+        xadvance: 38
+      à:
+        x: 272
+        y: 125
+        width: 26
+        height: 41
+        xoffset: 2
+        yoffset: 11
+        xadvance: 29
+      k:
+        x: 472
+        y: 254
+        width: 26
+        height: 40
+        xoffset: 3
+        yoffset: 11
+        xadvance: 28
+      ©:
+        x: 425
+        y: 99
+        width: 38
+        height: 39
+        xoffset: 2
+        yoffset: 13
+        xadvance: 42
+      _:
+        x: 242
+        y: 337
+        width: 25
+        height: 6
+        xoffset: 0
+        yoffset: 50
+        xadvance: 24
+      ¤:
+        x: 455
+        y: 335
+        width: 34
+        height: 34
+        xoffset: 2
+        yoffset: 18
+        xadvance: 37
+      Û:
+        x: 338
+        y: 329
+        width: 30
+        height: 49
+        xoffset: 3
+        yoffset: 3
+        xadvance: 35
+      S:
+        x: 98
+        y: 55
+        width: 29
+        height: 39
+        xoffset: 2
+        yoffset: 13
+        xadvance: 32
+      "1":
+        x: 60
+        y: 258
+        width: 17
+        height: 38
+        xoffset: 4
+        yoffset: 13
+        xadvance: 31
+      ¢:
+        x: 381
+        y: 160
+        width: 26
+        height: 41
+        xoffset: 2
+        yoffset: 16
+        xadvance: 30
+      A:
+        x: 12
+        y: 0
+        width: 36
+        height: 38
+        xoffset: 0
+        yoffset: 13
+        xadvance: 36
+      X:
+        x: 211
+        y: 61
+        width: 33
+        height: 38
+        xoffset: 1
+        yoffset: 13
+        xadvance: 34
+      H:
+        x: 306
+        y: 318
+        width: 31
+        height: 38
+        xoffset: 4
+        yoffset: 13
+        xadvance: 38
+      ÷:
+        x: 59
+        y: 307
+        width: 28
+        height: 28
+        xoffset: 2
+        yoffset: 19
+        xadvance: 31
+      Æ:
+        x: 339
+        y: 79
+        width: 50
+        height: 38
+        xoffset: 0
+        yoffset: 13
+        xadvance: 50
+      R:
+        x: 29
+        y: 298
+        width: 29
+        height: 38
+        xoffset: 4
+        yoffset: 13
+        xadvance: 33
+      Z:
+        x: 474
+        y: 370
+        width: 30
+        height: 38
+        xoffset: 2
+        yoffset: 13
+        xadvance: 32
+      è:
+        x: 220
+        y: 218
+        width: 26
+        height: 41
+        xoffset: 2
+        yoffset: 11
+        xadvance: 29
+      ¯:
+        x: 492
+        y: 197
+        width: 19
+        height: 5
+        xoffset: 4
+        yoffset: 13
+        xadvance: 26
+      g:
+        x: 420
+        y: 366
+        width: 26
+        height: 40
+        xoffset: 2
+        yoffset: 22
+        xadvance: 30
+      "0":
+        x: 45
+        y: 218
+        width: 26
+        height: 39
+        xoffset: 3
+        yoffset: 13
+        xadvance: 31
+      ¸:
+        x: 135
+        y: 0
+        width: 10
+        height: 12
+        xoffset: 3
+        yoffset: 50
+        xadvance: 14
+      "=":
+        x: 146
+        y: 0
+        width: 24
+        height: 17
+        xoffset: 4
+        yoffset: 25
+        xadvance: 30
+      "@":
+        x: 382
+        y: 229
+        width: 43
+        height: 49
+        xoffset: 3
+        yoffset: 14
+        xadvance: 48
+      æ:
+        x: 186
+        y: 370
+        width: 42
+        height: 30
+        xoffset: 2
+        yoffset: 22
+        xadvance: 45
+      ¬:
+        x: 239
+        y: 0
+        width: 23
+        height: 12
+        xoffset: 3
+        yoffset: 30
+        xadvance: 30
+      "*":
+        x: 317
+        y: 240
+        width: 23
+        height: 23
+        xoffset: 1
+        yoffset: 13
+        xadvance: 24
+      ¥:
+        x: 239
+        y: 22
+        width: 30
+        height: 38
+        xoffset: 0
+        yoffset: 13
+        xadvance: 29
+      ¡:
+        x: 88
+        y: 307
+        width: 9
+        height: 38
+        xoffset: 4
+        yoffset: 22
+        xadvance: 15
+      e:
+        x: 366
+        y: 39
+        width: 26
+        height: 30
+        xoffset: 2
+        yoffset: 22
+        xadvance: 29
+      ³:
+        x: 72
+        y: 8
+        width: 18
+        height: 21
+        xoffset: 1
+        yoffset: 13
+        xadvance: 20
+      ë:
+        x: 191
+        y: 286
+        width: 26
+        height: 40
+        xoffset: 2
+        yoffset: 12
+        xadvance: 29
+      q:
+        x: 27
+        y: 400
+        width: 26
+        height: 40
+        xoffset: 2
+        yoffset: 22
+        xadvance: 31
+      Ó:
+        x: 397
+        y: 0
+        width: 32
+        height: 49
+        xoffset: 3
+        yoffset: 3
+        xadvance: 37
+      h:
+        x: 29
+        y: 337
+        width: 25
+        height: 40
+        xoffset: 3
+        yoffset: 11
+        xadvance: 30
+      ô:
+        x: 343
+        y: 287
+        width: 28
+        height: 41
+        xoffset: 2
+        yoffset: 11
+        xadvance: 31
+      "\\":
+        x: 162
+        y: 361
+        width: 23
+        height: 41
+        xoffset: 1
+        yoffset: 13
+        xadvance: 23
+      È:
+        x: 332
+        y: 379
+        width: 26
+        height: 48
+        xoffset: 4
+        yoffset: 3
+        xadvance: 30
+      "'":
+        x: 313
+        y: 0
+        width: 7
+        height: 14
+        xoffset: 2
+        yoffset: 11
+        xadvance: 10
+      z:
+        x: 245
+        y: 61
+        width: 24
+        height: 28
+        xoffset: 2
+        yoffset: 23
+        xadvance: 27
+      r:
+        x: 350
+        y: 0
+        width: 16
+        height: 29
+        xoffset: 3
+        yoffset: 22
+        xadvance: 19
+      å:
+        x: 55
+        y: 367
+        width: 26
+        height: 43
+        xoffset: 2
+        yoffset: 9
+        xadvance: 29
+      K:
+        x: 344
+        y: 248
+        width: 31
+        height: 38
+        xoffset: 4
+        yoffset: 13
+        xadvance: 34
+      ¿:
+        x: 108
+        y: 273
+        width: 24
+        height: 39
+        xoffset: 2
+        yoffset: 22
+        xadvance: 26
+      ²:
+        x: 490
+        y: 335
+        width: 18
+        height: 21
+        xoffset: 1
+        yoffset: 13
+        xadvance: 20
+      ø:
+        x: 372
+        y: 321
+        width: 27
+        height: 36
+        xoffset: 2
+        yoffset: 19
+        xadvance: 30
+      Ò:
+        x: 158
+        y: 250
+        width: 32
+        height: 49
+        xoffset: 3
+        yoffset: 3
+        xadvance: 37
+      Ð:
+        x: 390
+        y: 91
+        width: 34
+        height: 38
+        xoffset: 0
+        yoffset: 13
+        xadvance: 36
+      û:
+        x: 113
+        y: 157
+        width: 25
+        height: 41
+        xoffset: 3
+        yoffset: 11
+        xadvance: 30
+      ç:
+        x: 420
+        y: 139
+        width: 26
+        height: 40
+        xoffset: 2
+        yoffset: 22
+        xadvance: 28
+       :
+        x: 495
+        y: 295
+        width: 3
+        height: 1
+        xoffset: -1
+        yoffset: 63
+        xadvance: 14
+      é:
+        x: 376
+        y: 279
+        width: 26
+        height: 41
+        xoffset: 2
+        yoffset: 11
+        xadvance: 29
+      ò:
+        x: 56
+        y: 87
+        width: 28
+        height: 41
+        xoffset: 2
+        yoffset: 11
+        xadvance: 31
+      »:
+        x: 93
+        y: 0
+        width: 24
+        height: 21
+        xoffset: 2
+        yoffset: 26
+        xadvance: 26
+      f:
+        x: 403
+        y: 279
+        width: 19
+        height: 41
+        xoffset: 1
+        yoffset: 10
+        xadvance: 19
+      y:
+        x: 130
+        y: 233
+        width: 27
+        height: 39
+        xoffset: 0
+        yoffset: 23
+        xadvance: 26
+      ð:
+        x: 0
+        y: 307
+        width: 28
+        height: 42
+        xoffset: 2
+        yoffset: 10
+        xadvance: 31
+      ®:
+        x: 264
+        y: 169
+        width: 38
+        height: 39
+        xoffset: 2
+        yoffset: 13
+        xadvance: 42
+      "6":
+        x: 32
+        y: 258
+        width: 27
+        height: 39
+        xoffset: 3
+        yoffset: 13
+        xadvance: 31
+      Ì:
+        x: 205
+        y: 140
+        width: 15
+        height: 48
+        xoffset: -2
+        yoffset: 3
+        xadvance: 16
+      V:
+        x: 63
+        y: 48
+        width: 34
+        height: 38
+        xoffset: 1
+        yoffset: 13
+        xadvance: 35
+      Ù:
+        x: 131
+        y: 339
+        width: 30
+        height: 49
+        xoffset: 3
+        yoffset: 3
+        xadvance: 35
+      Ý:
+        x: 50
+        y: 129
+        width: 33
+        height: 48
+        xoffset: 0
+        yoffset: 3
+        xadvance: 33
+      ×:
+        x: 139
+        y: 207
+        width: 26
+        height: 25
+        xoffset: 2
+        yoffset: 21
+        xadvance: 29
+      ¨:
+        x: 72
+        y: 0
+        width: 20
+        height: 7
+        xoffset: 2
+        yoffset: 12
+        xadvance: 24
+      ã:
+        x: 311
+        y: 277
+        width: 26
+        height: 40
+        xoffset: 2
+        yoffset: 12
+        xadvance: 29
+      " ":
+        x: 505
+        y: 40
+        width: 3
+        height: 1
+        xoffset: -1
+        yoffset: 63
+        xadvance: 14
+      w:
+        x: 171
+        y: 0
+        width: 39
+        height: 28
+        xoffset: 1
+        yoffset: 23
+        xadvance: 40
+      µ:
+        x: 128
+        y: 68
+        width: 25
+        height: 39
+        xoffset: 4
+        yoffset: 23
+        xadvance: 32
+      ¹:
+        x: 263
+        y: 0
+        width: 12
+        height: 21
+        xoffset: 3
+        yoffset: 13
+        xadvance: 20
+      "7":
+        x: 274
+        y: 339
+        width: 27
+        height: 38
+        xoffset: 2
+        yoffset: 13
+        xadvance: 31
+      í:
+        x: 205
+        y: 196
+        width: 14
+        height: 40
+        xoffset: 4
+        yoffset: 11
+        xadvance: 15
+      ¼:
+        x: 0
+        y: 39
+        width: 36
+        height: 38
+        xoffset: 2
+        yoffset: 13
+        xadvance: 39
+      P:
+        x: 367
+        y: 0
+        width: 29
+        height: 38
+        xoffset: 4
+        yoffset: 13
+        xadvance: 34
+      (:
+        x: 118
+        y: 0
+        width: 16
+        height: 54
+        xoffset: 3
+        yoffset: 9
+        xadvance: 19
+      "?":
+        x: 292
+        y: 396
+        width: 24
+        height: 38
+        xoffset: 1
+        yoffset: 13
+        xadvance: 26
+      G:
+        x: 348
+        y: 160
+        width: 32
+        height: 39
+        xoffset: 2
+        yoffset: 13
+        xadvance: 36
+      ¦:
+        x: 169
+        y: 77
+        width: 8
+        height: 45
+        xoffset: 3
+        yoffset: 13
+        xadvance: 14
+      ´:
+        x: 472
+        y: 228
+        width: 14
+        height: 9
+        xoffset: 3
+        yoffset: 11
+        xadvance: 18
+      "\"":
+        x: 472
+        y: 238
+        width: 14
+        height: 14
+        xoffset: 3
+        yoffset: 11
+        xadvance: 18
+      Ø:
+        x: 187
+        y: 327
+        width: 32
+        height: 42
+        xoffset: 3
+        yoffset: 12
+        xadvance: 37
+      ê:
+        x: 86
+        y: 348
+        width: 26
+        height: 41
+        xoffset: 2
+        yoffset: 11
+        xadvance: 29
+      Ï:
+        x: 162
+        y: 29
+        width: 20
+        height: 47
+        xoffset: -2
+        yoffset: 4
+        xadvance: 16
+      ù:
+        x: 313
+        y: 39
+        width: 25
+        height: 41
+        xoffset: 3
+        yoffset: 11
+        xadvance: 30
+      "&":
+        x: 47
+        y: 178
+        width: 33
+        height: 39
+        xoffset: 2
+        yoffset: 13
+        xadvance: 34
+      ¶:
+        x: 183
+        y: 68
+        width: 22
+        height: 38
+        xoffset: 2
+        yoffset: 13
+        xadvance: 27
+      ñ:
+        x: 299
+        y: 107
+        width: 25
+        height: 39
+        xoffset: 3
+        yoffset: 12
+        xadvance: 30
+      n:
+        x: 229
+        y: 392
+        width: 25
+        height: 29
+        xoffset: 3
+        yoffset: 22
+        xadvance: 30
+      $:
+        x: 135
+        y: 18
+        width: 26
+        height: 49
+        xoffset: 3
+        yoffset: 7
+        xadvance: 31
+      v:
+        x: 317
+        y: 211
+        width: 26
+        height: 28
+        xoffset: 1
+        yoffset: 23
+        xadvance: 27
+filtering: Linear

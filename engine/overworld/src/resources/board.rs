@@ -249,7 +249,7 @@ pub enum BoardIgnoreOccupancy<'a> {
 #[derive(Debug, Clone)]
 struct ChunkNavigation {
     grid: NavGrid,
-    islands_count: usize,
+    // islands_count: usize,
     // {chunk location: island index}
     islands_map: HashMap<ChunkLocation, usize>,
     // [from portal location?, to portal location?, island index, linear cost estimate]
@@ -374,7 +374,7 @@ impl BoardChunk {
             Err(error) => return Err(BoardError::ChunkNavigation(error)),
         };
         let islands = grid.find_islands();
-        let islands_count = islands.len();
+        // let islands_count = islands.len();
         let islands_map = islands
             .iter()
             .enumerate()
@@ -419,7 +419,7 @@ impl BoardChunk {
             .collect::<Vec<_>>();
         self.navigation = Some(ChunkNavigation {
             grid,
-            islands_count,
+            // islands_count,
             islands_map,
             islands_portals_costs,
         });
@@ -616,7 +616,7 @@ impl Board {
 
     pub fn locations_in_range(&self, a: Location, b: Location, range: usize) -> bool {
         let (dx, dy) = self.location_relative(a, b);
-        dx.abs() as usize <= range && dy.abs() as usize <= range
+        dx.unsigned_abs() <= range && dy.unsigned_abs() <= range
     }
 
     pub fn create_chunk(&mut self, location: BoardLocation) -> Result<(), BoardError> {

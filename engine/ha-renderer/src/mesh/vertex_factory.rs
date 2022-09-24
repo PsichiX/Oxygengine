@@ -63,7 +63,6 @@ impl StreamingVertexFactory {
         let offset = self.vertices as u32;
         if self.layout == factory.layout {
             for (from, to) in factory.buffers.iter().zip(self.buffers.iter_mut()) {
-                to.reserve(from.len());
                 to.extend(from);
             }
             self.indices.reserve(factory.indices.len());
@@ -263,6 +262,10 @@ impl StaticVertexFactory {
         let layout = T::vertex_layout()?;
         if self.layout != layout {
             return Err(MeshError::LayoutsMismatch(layout, self.layout.to_owned()));
+        }
+        if layout.is_compact() {
+            self.buffers[0] = unsafe { data.align_to::<u8>().1.to_owned() };
+            return Ok(());
         }
         for buffer in layout.buffers {
             for (attribute, _) in buffer.attributes {
@@ -621,6 +624,8 @@ macro_rules! vertex_type {
     (@data(imat4, $ignore:ident), $field_name:ident, $field_mapping:ident, $name:expr, $this:expr) => ();
     (
         $( #[ $meta:meta ] )*
+        $( @ middlewares ( $( $middleware:ident ),* ) )?
+        $( @ tags ( $( $tag:ident ),* ) )?
         $visibility:vis struct $name:ident {
             $(
                 $( #[ $field_meta:meta ] )*
@@ -680,11 +685,12 @@ macro_rules! vertex_type {
                 )+
                 let mut result = $crate::mesh::VertexLayout::default();
                 for (_, buffer) in buffers {
-                    result = result.with(buffer)?;
+                    result = result.with_buffer(buffer)?;
                 }
                 if let Some(bounds) = bounds {
                     result = result.with_bounds(Some(bounds.to_owned()));
                 }
+                result = result.with_middlewares(vec![ $( $( stringify!($middleware).to_owned() ),* )? ]);
                 Ok(result)
             }
 
@@ -879,7 +885,178 @@ macro_rules! vertex_type {
                 None
             }
         }
+
+        $( $( impl $tag for $name {} )* )?
     };
+}
+
+#[macro_export]
+macro_rules! compound_vertex_type {
+    (
+        $( #[ $meta:meta ] )*
+        $( @ tags ( $( $tag:ident ),* ) )?
+        $visibility:vis struct $name:ident {
+            $(
+                $( #[ $field_meta:meta ] )*
+                $field_visibility:vis $field_name:ident : $field_type:ty,
+            )+
+        }
+    ) => {
+        $( #[ $meta ] )*
+        $visibility struct $name {
+            $(
+                $( #[ $field_meta ] )*
+                $field_visibility $field_name : $field_type,
+            )+
+        }
+
+        impl $crate::mesh::vertex_factory::VertexType for $name {
+            fn vertex_layout() -> Result<$crate::mesh::VertexLayout, $crate::mesh::MeshError> {
+                let mut result = $crate::mesh::VertexLayout::default();
+                $(
+                    result = result.with(<$field_type>::vertex_layout()?)?;
+                )+
+                Ok(result)
+            }
+
+            fn has_attribute(name: &str) -> bool {
+                $(
+                    if <$field_type>::has_attribute(name) {
+                        return true;
+                    }
+                )+
+                false
+            }
+
+            fn scalar(&self, name: &str) -> Option<f32> {
+                $(
+                    if let Some(result) = self.$field_name.scalar(name) {
+                        return Some(result);
+                    }
+                )+
+                None
+            }
+
+            fn vec2f(&self, name: &str) -> Option<vek::Vec2<f32>> {
+                $(
+                    if let Some(result) = self.$field_name.vec2f(name) {
+                        return Some(result);
+                    }
+                )+
+                None
+            }
+
+            fn vec3f(&self, name: &str) -> Option<vek::Vec3<f32>> {
+                $(
+                    if let Some(result) = self.$field_name.vec3f(name) {
+                        return Some(result);
+                    }
+                )+
+                None
+            }
+
+            fn vec4f(&self, name: &str) -> Option<vek::Vec4<f32>> {
+                $(
+                    if let Some(result) = self.$field_name.vec4f(name) {
+                        return Some(result);
+                    }
+                )+
+                None
+            }
+
+            fn mat2f(&self, name: &str) -> Option<vek::Mat2<f32>> {
+                $(
+                    if let Some(result) = self.$field_name.mat2f(name) {
+                        return Some(result);
+                    }
+                )+
+                None
+            }
+
+            fn mat3f(&self, name: &str) -> Option<vek::Mat3<f32>> {
+                $(
+                    if let Some(result) = self.$field_name.mat3f(name) {
+                        return Some(result);
+                    }
+                )+
+                None
+            }
+
+            fn mat4f(&self, name: &str) -> Option<vek::Mat4<f32>> {
+                $(
+                    if let Some(result) = self.$field_name.mat4f(name) {
+                        return Some(result);
+                    }
+                )+
+                None
+            }
+
+            fn integer(&self, name: &str) -> Option<i32> {
+                $(
+                    if let Some(result) = self.$field_name.integer(name) {
+                        return Some(result);
+                    }
+                )+
+                None
+            }
+
+            fn vec2i(&self, name: &str) -> Option<vek::Vec2<i32>> {
+                $(
+                    if let Some(result) = self.$field_name.vec2i(name) {
+                        return Some(result);
+                    }
+                )+
+                None
+            }
+
+            fn vec3i(&self, name: &str) -> Option<vek::Vec3<i32>> {
+                $(
+                    if let Some(result) = self.$field_name.vec3i(name) {
+                        return Some(result);
+                    }
+                )+
+                None
+            }
+
+            fn vec4i(&self, name: &str) -> Option<vek::Vec4<i32>> {
+                $(
+                    if let Some(result) = self.$field_name.vec4i(name) {
+                        return Some(result);
+                    }
+                )+
+                None
+            }
+
+            fn mat2i(&self, name: &str) -> Option<vek::Mat2<i32>> {
+                $(
+                    if let Some(result) = self.$field_name.mat2i(name) {
+                        return Some(result);
+                    }
+                )+
+                None
+            }
+
+            fn mat3i(&self, name: &str) -> Option<vek::Mat3<i32>> {
+                $(
+                    if let Some(result) = self.$field_name.mat3i(name) {
+                        return Some(result);
+                    }
+                )+
+                None
+            }
+
+            fn mat4i(&self, name: &str) -> Option<vek::Mat4<i32>> {
+                $(
+                    if let Some(result) = self.$field_name.mat4i(name) {
+                        return Some(result);
+                    }
+                )+
+                None
+            }
+        }
+
+        $( $( impl $tag for $name {} )* )?
+    }
 }
 
 impl VertexType for () {

@@ -14,7 +14,7 @@ use std::{
     },
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum AudioSourceDirtyMode {
     None,
     Param,
@@ -24,26 +24,6 @@ pub(crate) enum AudioSourceDirtyMode {
 impl Default for AudioSourceDirtyMode {
     fn default() -> Self {
         Self::None
-    }
-}
-
-impl From<u8> for AudioSourceDirtyMode {
-    fn from(value: u8) -> Self {
-        match value {
-            1 => Self::Param,
-            2 => Self::All,
-            _ => Self::None,
-        }
-    }
-}
-
-impl From<AudioSourceDirtyMode> for u8 {
-    fn from(v: AudioSourceDirtyMode) -> Self {
-        match v {
-            AudioSourceDirtyMode::Param => 1,
-            AudioSourceDirtyMode::All => 2,
-            _ => 0,
-        }
     }
 }
 
@@ -223,11 +203,7 @@ impl AudioSource {
 
     pub fn set_looped(&mut self, looped: bool) {
         self.looped = looped;
-        self.dirty = {
-            let o: u8 = self.dirty.into();
-            let n: u8 = AudioSourceDirtyMode::Param.into();
-            o.max(n).into()
-        };
+        self.dirty = self.dirty.max(AudioSourceDirtyMode::Param);
     }
 
     pub fn playback_rate(&self) -> Scalar {
@@ -236,11 +212,7 @@ impl AudioSource {
 
     pub fn set_playback_rate(&mut self, playback_rate: Scalar) {
         self.playback_rate = playback_rate;
-        self.dirty = {
-            let o: u8 = self.dirty.into();
-            let n: u8 = AudioSourceDirtyMode::Param.into();
-            o.max(n).into()
-        };
+        self.dirty = self.dirty.max(AudioSourceDirtyMode::Param);
     }
 
     pub fn volume(&self) -> Scalar {
@@ -249,37 +221,25 @@ impl AudioSource {
 
     pub fn set_volume(&mut self, volume: Scalar) {
         self.volume = volume;
-        self.dirty = {
-            let o: u8 = self.dirty.into();
-            let n: u8 = AudioSourceDirtyMode::Param.into();
-            o.max(n).into()
-        };
+        self.dirty = self.dirty.max(AudioSourceDirtyMode::Param);
     }
 
     pub fn current_time(&self) -> Option<Scalar> {
         self.current_time
     }
 
-    pub fn must_play(&self) -> bool {
+    pub fn is_playing(&self) -> bool {
         self.play
     }
 
     pub fn play(&mut self) {
         self.play = true;
-        self.dirty = {
-            let o: u8 = self.dirty.into();
-            let n: u8 = AudioSourceDirtyMode::All.into();
-            o.max(n).into()
-        };
+        self.dirty = self.dirty.max(AudioSourceDirtyMode::All);
     }
 
     pub fn stop(&mut self) {
         self.play = false;
-        self.dirty = {
-            let o: u8 = self.dirty.into();
-            let n: u8 = AudioSourceDirtyMode::All.into();
-            o.max(n).into()
-        };
+        self.dirty = self.dirty.max(AudioSourceDirtyMode::All);
     }
 
     pub fn is_ready(&self) -> bool {

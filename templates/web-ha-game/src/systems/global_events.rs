@@ -11,7 +11,7 @@ pub fn global_events_system(universe: &mut Universe) {
         match message {
             GlobalEvent::LevelUp(entity, levels) => {
                 if levels > 0 {
-                    if let Ok(mut player) = world.get_mut::<Player>(entity) {
+                    if let Ok(mut player) = world.get::<&mut Player>(entity) {
                         player.level += levels;
                     }
                 }

@@ -1,4 +1,4 @@
-use crate::curve::*;
+use crate::{curve::*, range_iter};
 use core::Scalar;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{convert::TryFrom, fmt};
@@ -24,7 +24,7 @@ where
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SplinePoint<T>
 where
-    T: Clone + Curved,
+    T: Curved,
 {
     pub point: T,
     #[serde(default)]
@@ -33,7 +33,7 @@ where
 
 impl<T> SplinePoint<T>
 where
-    T: Clone + Curved,
+    T: Curved,
 {
     pub fn point(point: T) -> Self {
         Self {
@@ -49,7 +49,7 @@ where
 
 impl<T> From<T> for SplinePoint<T>
 where
-    T: Clone + Curved,
+    T: Curved,
 {
     fn from(value: T) -> Self {
         Self::point(value)
@@ -58,7 +58,7 @@ where
 
 impl<T> From<(T, T)> for SplinePoint<T>
 where
-    T: Clone + Curved,
+    T: Curved,
 {
     fn from(value: (T, T)) -> Self {
         Self::new(value.0, SplinePointDirection::Single(value.1))
@@ -67,7 +67,7 @@ where
 
 impl<T> From<(T, T, T)> for SplinePoint<T>
 where
-    T: Clone + Curved,
+    T: Curved,
 {
     fn from(value: (T, T, T)) -> Self {
         Self::new(value.0, SplinePointDirection::InOut(value.1, value.2))
@@ -76,7 +76,7 @@ where
 
 impl<T> From<[T; 2]> for SplinePoint<T>
 where
-    T: Clone + Curved,
+    T: Curved,
 {
     fn from(value: [T; 2]) -> Self {
         let [a, b] = value;
@@ -86,7 +86,7 @@ where
 
 impl<T> From<[T; 3]> for SplinePoint<T>
 where
-    T: Clone + Curved,
+    T: Curved,
 {
     fn from(value: [T; 3]) -> Self {
         let [a, b, c] = value;
@@ -97,6 +97,8 @@ where
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum SplineError {
     EmptyPointsList,
+    /// (points pair index, curve error)
+    Curve(usize, CurveError),
 }
 
 impl fmt::Display for SplineError {
@@ -113,21 +115,17 @@ pub type SplineDef<T> = Vec<SplinePoint<T>>;
 #[serde(bound = "T: Serialize + DeserializeOwned")]
 pub struct Spline<T>
 where
-    T: Default + Clone + Curved + CurvedDistance + CurvedOffset + CurvedTangent,
+    T: Default + Clone + Curved + CurvedChange,
 {
-    #[serde(skip)]
     points: Vec<SplinePoint<T>>,
-    #[serde(skip)]
     cached: Vec<Curve<T>>,
-    #[serde(skip)]
     length: Scalar,
-    #[serde(skip)]
-    parts_times: Vec<Scalar>,
+    parts_times_values: Vec<(Scalar, T)>,
 }
 
 impl<T> Default for Spline<T>
 where
-    T: Default + Clone + Curved + CurvedDistance + CurvedOffset + CurvedTangent,
+    T: Default + Clone + Curved + CurvedChange,
 {
     fn default() -> Self {
         Self::point(T::zero()).unwrap()
@@ -136,7 +134,7 @@ where
 
 impl<T> Spline<T>
 where
-    T: Default + Clone + Curved + CurvedDistance + CurvedOffset + CurvedTangent,
+    T: Default + Clone + Curved + CurvedChange,
 {
     pub fn new(mut points: Vec<SplinePoint<T>>) -> Result<Self, SplineError> {
         if points.is_empty() {
@@ -147,7 +145,8 @@ where
         }
         let cached = points
             .windows(2)
-            .map(|pair| {
+            .enumerate()
+            .map(|(index, pair)| {
                 let from_direction = match &pair[0].direction {
                     SplinePointDirection::Single(dir) => dir.clone(),
                     SplinePointDirection::InOut(_, dir) => dir.negate(),
@@ -156,32 +155,33 @@ where
                     SplinePointDirection::Single(dir) => dir.negate(),
                     SplinePointDirection::InOut(dir, _) => dir.clone(),
                 };
-                let from_param = pair[0].point.curved_offset(&from_direction);
-                let to_param = pair[1].point.curved_offset(&to_direction);
+                let from_param = pair[0].point.offset(&from_direction);
+                let to_param = pair[1].point.offset(&to_direction);
                 Curve::bezier(
                     pair[0].point.clone(),
                     from_param,
                     to_param,
                     pair[1].point.clone(),
                 )
+                .map_err(|error| SplineError::Curve(index, error))
             })
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>, _>>()?;
         let lengths = cached
             .iter()
             .map(|curve| curve.length())
             .collect::<Vec<_>>();
         let mut time = 0.0;
-        let mut parts_times = Vec::with_capacity(points.len());
-        parts_times.push(0.0);
-        for length in &lengths {
+        let mut parts_times_values = Vec::with_capacity(points.len());
+        parts_times_values.push((0.0, points[0].point.clone()));
+        for (length, point) in lengths.iter().zip(points.iter().skip(1)) {
             time += length;
-            parts_times.push(time);
+            parts_times_values.push((time, point.point.clone()));
         }
         Ok(Self {
             points,
             cached,
             length: time,
-            parts_times,
+            parts_times_values,
         })
     }
 
@@ -193,116 +193,44 @@ where
         Self::linear(point.clone(), point)
     }
 
-    pub fn sample(&self, mut factor: Scalar) -> T {
-        factor = factor.max(0.0).min(1.0);
-        let t = factor * self.length;
-        let index = match self
-            .parts_times
-            .binary_search_by(|time| time.partial_cmp(&t).unwrap())
-        {
-            Ok(index) | Err(index) => {
-                if index > 0 {
-                    index - 1
-                } else {
-                    index
-                }
-            }
-        };
-        let index = index.min(self.cached.len() - 1);
-        let a = self.parts_times[index];
-        let length = self.parts_times[index + 1] - a;
-        let f = if length > 0.0 { (t - a) / length } else { 1.0 };
-        self.cached[index].sample(f)
+    pub fn value_along_axis_iter(
+        &self,
+        steps: usize,
+        axis_index: usize,
+    ) -> Option<impl Iterator<Item = Scalar>> {
+        let from = self.points.first()?.point.get_axis(axis_index)?;
+        let to = self.points.last()?.point.get_axis(axis_index)?;
+        Some(range_iter(steps, from, to))
+    }
+
+    pub fn sample(&self, factor: Scalar) -> T {
+        let (index, factor) = self.find_curve_index_factor(factor);
+        self.cached[index].sample(factor)
     }
 
     pub fn sample_along_axis(&self, axis_value: Scalar, axis_index: usize) -> Option<T> {
-        let factor = self.find_time_for_axis(axis_value, axis_index)?;
-        Some(self.sample(factor))
+        let index = self.find_curve_index_by_axis_value(axis_value, axis_index)?;
+        self.cached[index].sample_along_axis(axis_value, axis_index)
     }
 
-    pub fn calculate_samples(&self, count: usize) -> impl Iterator<Item = T> + '_ {
-        (0..=count).map(move |i| self.sample(i as Scalar / count as Scalar))
+    pub fn sample_direction(&self, factor: Scalar) -> T {
+        let (index, factor) = self.find_curve_index_factor(factor);
+        self.cached[index].sample_direction(factor)
     }
 
-    pub fn calculate_samples_along_axis(
-        &self,
-        count: usize,
-        axis_index: usize,
-    ) -> Option<impl Iterator<Item = T> + '_> {
-        let from = self.points.first()?.point.get_axis(axis_index)?;
-        let diff = self.points.last()?.point.get_axis(axis_index)? - from;
-        Some((0..=count).filter_map(move |i| {
-            self.sample_along_axis(from + diff * i as Scalar / count as Scalar, axis_index)
-        }))
+    pub fn sample_direction_along_axis(&self, axis_value: Scalar, axis_index: usize) -> Option<T> {
+        let index = self.find_curve_index_by_axis_value(axis_value, axis_index)?;
+        self.cached[index].sample_direction_along_axis(axis_value, axis_index)
     }
 
-    pub fn sample_direction_with_sensitivity(&self, factor: Scalar, sensitivity: Scalar) -> T
-    where
-        T: CurvedDirection,
-    {
-        if self.length > 0.0 {
-            let s = sensitivity / self.length;
-            let a = self.sample(factor - s);
-            let b = self.sample(factor + s);
-            a.curved_direction(&b)
-        } else {
-            T::zero()
-        }
+    pub fn sample_tangent(&self, factor: Scalar) -> T {
+        let (index, factor) = self.find_curve_index_factor(factor);
+        self.cached[index].sample_tangent(factor)
     }
 
-    pub fn sample_direction_with_sensitivity_along_axis(
-        &self,
-        axis_value: Scalar,
-        sensitivity: Scalar,
-        axis_index: usize,
-    ) -> Option<T>
-    where
-        T: CurvedDirection,
-    {
-        if self.length > 0.0 {
-            let factor = self.find_time_for_axis(axis_value, axis_index)?;
-            let s = sensitivity / self.length;
-            let a = self.sample(factor - s);
-            let b = self.sample(factor + s);
-            Some(a.curved_direction(&b))
-        } else {
-            Some(T::zero())
-        }
-    }
-
-    pub fn sample_direction(&self, factor: Scalar) -> T
-    where
-        T: CurvedDirection,
-    {
-        self.sample_direction_with_sensitivity(factor, 1.0e-2)
-    }
-
-    pub fn sample_direction_along_axis(&self, axis_value: Scalar, axis_index: usize) -> Option<T>
-    where
-        T: CurvedDirection,
-    {
-        self.sample_direction_with_sensitivity_along_axis(axis_value, 1.0e-2, axis_index)
-    }
-
-    pub fn sample_tangent_with_sensitivity(&self, factor: Scalar, sensitivity: Scalar) -> T
-    where
-        T: CurvedTangent,
-    {
-        if self.length > 0.0 {
-            let s = sensitivity / self.length;
-            let a = self.sample(factor - s);
-            let b = self.sample(factor + s);
-            a.curved_tangent(&b)
-        } else {
-            T::zero()
-        }
-    }
-
-    pub fn sample_tangent(&self, factor: Scalar) -> T
-    where
-        T: CurvedTangent,
-    {
-        self.sample_tangent_with_sensitivity(factor, 1.0e-2)
+    pub fn sample_tangent_along_axis(&self, axis_value: Scalar, axis_index: usize) -> Option<T> {
+        let index = self.find_curve_index_by_axis_value(axis_value, axis_index)?;
+        self.cached[index].sample_tangent_along_axis(axis_value, axis_index)
     }
 
     pub fn length(&self) -> Scalar {
@@ -323,42 +251,57 @@ where
         &self.cached
     }
 
-    pub fn find_time_for_axis(&self, mut axis_value: Scalar, axis_index: usize) -> Option<Scalar> {
+    pub fn find_curve_index_factor(&self, mut factor: Scalar) -> (usize, Scalar) {
+        factor = factor.max(0.0).min(1.0);
+        let t = factor * self.length;
+        let index = match self
+            .parts_times_values
+            .binary_search_by(|(time, _)| time.partial_cmp(&t).unwrap())
+        {
+            Ok(index) => index,
+            Err(index) => index.saturating_sub(1),
+        };
+        let index = index.min(self.cached.len().saturating_sub(1));
+        let start = self.parts_times_values[index].0;
+        let length = self.parts_times_values[index + 1].0 - start;
+        let factor = if length > 0.0 {
+            (t - start) / length
+        } else {
+            1.0
+        };
+        (index, factor)
+    }
+
+    pub fn find_curve_index_by_axis_value(
+        &self,
+        mut axis_value: Scalar,
+        axis_index: usize,
+    ) -> Option<usize> {
         let min = self.points.first().unwrap().point.get_axis(axis_index)?;
         let max = self.points.last().unwrap().point.get_axis(axis_index)?;
-        let dist = max - min;
-        if dist.abs() < 1.0e-6 {
-            return Some(1.0);
-        }
         axis_value = axis_value.max(min).min(max);
-        let mut guess = axis_value / dist;
-        let mut last_tangent = None;
-        for _ in 0..5 {
-            let dv = self.sample(guess).get_axis(axis_index)? - axis_value;
-            if dv.abs() < 1.0e-6 {
-                return Some(guess);
-            }
-            let dv = if self.length > 0.0 {
-                dv / self.length
-            } else {
-                0.0
-            };
-            let tangent = self.sample_tangent(guess);
-            let slope = if let Some(last_tangent) = last_tangent {
-                tangent.curved_slope(&last_tangent)
-            } else {
-                1.0
-            };
-            last_tangent = Some(tangent);
-            guess -= dv * slope;
-        }
-        Some(guess)
+        let index = match self.parts_times_values.binary_search_by(|(_, value)| {
+            value
+                .get_axis(axis_index)
+                .unwrap()
+                .partial_cmp(&axis_value)
+                .unwrap()
+        }) {
+            Ok(index) => index,
+            Err(index) => index.saturating_sub(1),
+        };
+        Some(index.min(self.cached.len().saturating_sub(1)))
+    }
+
+    pub fn find_time_for_axis(&self, axis_value: Scalar, axis_index: usize) -> Option<Scalar> {
+        let index = self.find_curve_index_by_axis_value(axis_value, axis_index)?;
+        self.cached[index].find_time_for_axis(axis_value, axis_index)
     }
 }
 
 impl<T> TryFrom<SplineDef<T>> for Spline<T>
 where
-    T: Default + Clone + Curved + CurvedDistance + CurvedOffset + CurvedTangent,
+    T: Default + Clone + Curved + CurvedChange,
 {
     type Error = SplineError;
 
@@ -369,7 +312,7 @@ where
 
 impl<T> From<Spline<T>> for SplineDef<T>
 where
-    T: Default + Clone + Curved + CurvedDistance + CurvedOffset + CurvedTangent,
+    T: Default + Clone + Curved + CurvedChange,
 {
     fn from(v: Spline<T>) -> Self {
         v.points

@@ -153,7 +153,7 @@ pub fn notifications(mut context: WidgetContext) -> WidgetNode {
 
     let item = if let Ok(state) = state.read::<NotificationsState>() {
         if let Some(state) = state.0.front() {
-            let height = state.height.unwrap_or_else(|| {
+            let height = state.height.unwrap_or({
                 if state.side {
                     side_default_height
                 } else {

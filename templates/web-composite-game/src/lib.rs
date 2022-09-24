@@ -85,9 +85,7 @@ pub fn main_js() -> Result<(), JsValue> {
         // install UI support.
         .with_bundle(
             oxygengine::user_interface::bundle_installer::<_, ()>,
-            UserInterface::new(ui::setup)
-                .with_pointer_axis("pointer-x", "pointer-y")
-                .with_pointer_trigger("pointer-action", "pointer-context"),
+            UserInterface::new(ui::setup),
         )
         .unwrap()
         // install integration between UI and composite rendering.

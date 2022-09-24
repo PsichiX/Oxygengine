@@ -1,0 +1,5 @@
+{
+    "default_state": "#walk",
+    "loop_sequences": ["walk", "run", "watch"],
+    "make_state_per_sequence": {}
+}

@@ -68,6 +68,24 @@ impl SpriteAnimationValue {
     }
 }
 
+impl From<bool> for SpriteAnimationValue {
+    fn from(v: bool) -> Self {
+        Self::Bool(v)
+    }
+}
+
+impl From<i32> for SpriteAnimationValue {
+    fn from(v: i32) -> Self {
+        Self::Integer(v)
+    }
+}
+
+impl From<Scalar> for SpriteAnimationValue {
+    fn from(v: Scalar) -> Self {
+        Self::Scalar(v)
+    }
+}
+
 #[derive(Ignite, Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum SpriteAnimationCondition {
     Bool(bool),
@@ -124,16 +142,26 @@ pub enum SpriteAnimationRule {
         region: SpriteAnimationRegion,
     },
     BlendSpace {
-        #[serde(default)]
-        conditions: HashMap<String, SpriteAnimationCondition>,
         axis_scalars: Vec<String>,
         blend_states: Vec<SpriteAnimationBlendState>,
+        #[serde(default)]
+        conditions: HashMap<String, SpriteAnimationCondition>,
     },
+}
+
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+pub struct SpriteAnimationSignal {
+    pub time: Scalar,
+    pub id: String,
+    #[serde(default)]
+    pub params: HashMap<String, SpriteAnimationValue>,
 }
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SpriteAnimationState {
     pub frames: Vec<String>,
+    #[serde(default)]
+    pub signals: Vec<SpriteAnimationSignal>,
     #[serde(default = "default_speed")]
     pub speed: Scalar,
     #[serde(default)]
@@ -160,7 +188,7 @@ pub struct SpriteAnimationAssetProtocol;
 
 impl AssetProtocol for SpriteAnimationAssetProtocol {
     fn name(&self) -> &str {
-        "sanim"
+        "spriteanim"
     }
 
     fn on_load_with_path(&mut self, path: &str, data: Vec<u8>) -> AssetLoadResult {

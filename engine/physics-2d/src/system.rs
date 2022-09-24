@@ -56,7 +56,7 @@ pub fn physics_2d_system(universe: &mut Universe) {
                 Collider2dBody::Me => entity,
                 Collider2dBody::Entity(other) => *other,
             };
-            if let Ok(body) = unsafe { world.get_unchecked::<RigidBody2d>(other) } {
+            if let Ok(body) = unsafe { world.get_unchecked::<&RigidBody2d>(other) } {
                 if let Some(h) = body.handle() {
                     let c = collider
                         .take_description()

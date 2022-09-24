@@ -171,7 +171,7 @@ impl Server for NativeServer {
         }
         if let Ok(mut clients) = self.clients.write() {
             for client in clients.values_mut() {
-                drop(client.send(id, data));
+                client.send(id, data);
             }
         }
     }

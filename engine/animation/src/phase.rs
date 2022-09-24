@@ -1,7 +1,7 @@
-use crate::spline::*;
+use crate::{range_iter, spline::*};
 use core::Scalar;
 use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
+use std::{convert::TryFrom, ops::Range};
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum Ease {
@@ -69,7 +69,7 @@ pub type PhaseDef = Vec<SplinePoint<(Scalar, Scalar)>>;
 #[serde(into = "PhaseDef")]
 pub struct Phase {
     spline: Spline<(Scalar, Scalar)>,
-    duration: Scalar,
+    time_frame: Range<Scalar>,
 }
 
 impl Default for Phase {
@@ -80,7 +80,7 @@ impl Default for Phase {
 
 impl Phase {
     pub fn new(mut points: Vec<SplinePoint<(Scalar, Scalar)>>) -> Result<Self, SplineError> {
-        let mut last = 0.0;
+        let mut time_frame = Scalar::INFINITY..Scalar::NEG_INFINITY;
         for point in &mut points {
             match &mut point.direction {
                 SplinePointDirection::Single(dir) => dir.0 = dir.0.max(0.0),
@@ -89,54 +89,73 @@ impl Phase {
                     to.0 = to.0.max(0.0);
                 }
             }
-            point.point.0 = point.point.0.max(last);
-            last = point.point.0;
+            point.point.0 = point.point.0.max(time_frame.end);
+            time_frame.start = time_frame.start.min(point.point.0);
+            time_frame.end = time_frame.start.max(point.point.0);
         }
         Ok(Self {
             spline: Spline::new(points)?,
-            duration: last,
+            time_frame,
         })
     }
 
-    pub fn linear(from: Scalar, to: Scalar, duration: Scalar) -> Result<Self, SplineError> {
+    pub fn linear(
+        value_frame: Range<Scalar>,
+        mut time_frame: Range<Scalar>,
+    ) -> Result<Self, SplineError> {
+        if time_frame.start > time_frame.end {
+            time_frame = time_frame.end..value_frame.start;
+        }
         Self::new(vec![
-            SplinePoint::point((0.0, from)),
-            SplinePoint::point((duration, to)),
+            SplinePoint::point((time_frame.start, value_frame.start)),
+            SplinePoint::point((time_frame.end, value_frame.end)),
         ])
     }
 
     pub fn bezier(
         (mut x1, mut y1, mut x2, mut y2): (Scalar, Scalar, Scalar, Scalar),
-        from: Scalar,
-        to: Scalar,
-        duration: Scalar,
+        value_frame: Range<Scalar>,
+        mut time_frame: Range<Scalar>,
     ) -> Result<Self, SplineError> {
-        let distance = (to - from).abs();
+        if time_frame.start > time_frame.end {
+            time_frame = time_frame.end..value_frame.start;
+        }
+        let distance = (value_frame.end - value_frame.start).abs();
+        let duration = time_frame.end - time_frame.start;
         x1 *= duration;
         y1 *= distance;
         x2 = (1.0 - x2) * -duration;
         y2 = (1.0 - y2) * -distance;
         Self::new(vec![
-            SplinePoint::new((0.0, from), SplinePointDirection::Single((x1, y1))),
-            SplinePoint::new((duration, to), SplinePointDirection::Single((x2, y2))),
+            SplinePoint::new(
+                (time_frame.start, value_frame.start),
+                SplinePointDirection::Single((x1, y1)),
+            ),
+            SplinePoint::new(
+                (time_frame.end, value_frame.end),
+                SplinePointDirection::Single((x2, y2)),
+            ),
         ])
     }
 
     pub fn ease(
         ease: Ease,
-        from: Scalar,
-        to: Scalar,
-        duration: Scalar,
+        value_frame: Range<Scalar>,
+        time_frame: Range<Scalar>,
     ) -> Result<Self, SplineError> {
-        Self::bezier(ease.bezier(), from, to, duration)
+        Self::bezier(ease.bezier(), value_frame, time_frame)
     }
 
     pub fn point(point: Scalar) -> Result<Self, SplineError> {
-        Self::linear(point, point, 0.0)
+        Self::linear(point..point, 0.0..0.0)
+    }
+
+    pub fn time_frame(&self) -> Range<Scalar> {
+        self.time_frame.to_owned()
     }
 
     pub fn duration(&self) -> Scalar {
-        self.duration
+        self.time_frame.end - self.time_frame.start
     }
 
     pub fn points(&self) -> &[SplinePoint<(Scalar, Scalar)>] {
@@ -153,13 +172,13 @@ impl Phase {
         &self.spline
     }
 
-    pub fn sample(&self, mut time: Scalar) -> Scalar {
-        time = time.max(0.0).min(self.duration);
-        self.spline.sample_along_axis(time, 0).unwrap().1
+    pub fn time_iter(&self, steps: usize) -> impl Iterator<Item = Scalar> {
+        range_iter(steps, self.time_frame.start, self.time_frame.end)
     }
 
-    pub fn calculate_samples(&self, count: usize) -> impl Iterator<Item = Scalar> + '_ {
-        (0..=count).map(move |i| self.sample(self.duration * i as Scalar / count as Scalar))
+    pub fn sample(&self, mut time: Scalar) -> Scalar {
+        time = time.max(self.time_frame.start).min(self.time_frame.end);
+        self.spline.sample_along_axis(time, 0).unwrap().1
     }
 }
 

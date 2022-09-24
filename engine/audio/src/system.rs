@@ -1,7 +1,7 @@
 use crate::{
     audio_asset_protocol::AudioAsset,
     component::{AudioSource, AudioSourceDirtyMode},
-    resource::Audio,
+    resource::{Audio, AudioPlayState},
 };
 use core::{
     assets::database::AssetsDatabase,
@@ -42,7 +42,7 @@ where
                                 source.looped(),
                                 source.playback_rate(),
                                 source.volume(),
-                                source.must_play(),
+                                source.is_playing(),
                                 source.ready.clone(),
                             );
                             source.dirty = AudioSourceDirtyMode::None;
@@ -56,7 +56,7 @@ where
                     source.playback_rate(),
                     source.volume(),
                     if source.dirty == AudioSourceDirtyMode::All {
-                        Some(source.must_play())
+                        Some(source.is_playing())
                     } else {
                         None
                     },
@@ -66,6 +66,22 @@ where
         }
         if let Some(state) = audio.get_source_state(entity) {
             source.current_time = state.current_time;
+            match state.is_playing {
+                AudioPlayState::Ended(v) => {
+                    if v {
+                        source.stop();
+                    }
+                }
+                AudioPlayState::State(v) => {
+                    if v != source.is_playing() {
+                        if v {
+                            source.play();
+                        } else {
+                            source.stop();
+                        }
+                    }
+                }
+            }
         }
     }
 }

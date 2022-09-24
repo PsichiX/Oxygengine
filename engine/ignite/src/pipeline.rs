@@ -50,6 +50,21 @@ impl Pipeline {
                     if disabled {
                         continue;
                     }
+                    if from.is_empty() && pathbuf_is_empty(&to) {
+                        let mut options = fs_extra::dir::CopyOptions::new();
+                        options.overwrite = true;
+                        options.copy_inside = true;
+                        options.content_only = true;
+                        if let Err(error) =
+                            fs_extra::dir::copy(&self.source, &self.destination, &options)
+                        {
+                            return Err(Error::new(
+                                ErrorKind::Other,
+                                format!("Could not copy directory content: {:?}", error),
+                            ));
+                        }
+                        continue;
+                    }
                     let from = from
                         .into_iter()
                         .map(|path| {
@@ -104,6 +119,7 @@ impl Pipeline {
                     disabled,
                     name,
                     params,
+                    ..
                 } => {
                     if disabled {
                         continue;
@@ -198,6 +214,9 @@ pub enum PipelineCommand {
         #[serde(default)]
         #[serde(skip_serializing_if = "bool_is_false")]
         disabled: bool,
+        #[serde(default)]
+        #[serde(skip_serializing_if = "bool_is_false")]
+        do_not_verify: bool,
         name: String,
         #[serde(default)]
         #[serde(skip_serializing_if = "Value::is_null")]

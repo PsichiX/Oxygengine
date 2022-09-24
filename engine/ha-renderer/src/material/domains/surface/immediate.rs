@@ -52,9 +52,7 @@ where
 
     pub fn triangles(&mut self, vertices: &[V], triangles: &[(u32, u32, u32)]) {
         let offset = self.vertices.len() as u32;
-        self.vertices.reserve(vertices.len());
         self.vertices.extend(vertices.iter().copied());
-        self.triangles.reserve(triangles.len());
         self.triangles.extend(
             triangles
                 .iter()
@@ -77,7 +75,6 @@ where
         }
         let offset = self.vertices.len() as u32;
         let triangles = vertices.len() - 2;
-        self.vertices.reserve(vertices.len());
         self.vertices.extend(vertices.iter().copied());
         self.triangles.reserve(triangles);
         for i in 0..(triangles as u32) {

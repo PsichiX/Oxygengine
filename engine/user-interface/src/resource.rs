@@ -4,6 +4,26 @@ use raui_core::{
 };
 use std::collections::HashMap;
 
+pub mod input_mappings {
+    pub const NAV_POINTER_AXES: &str = "nav-pointer";
+    pub const NAV_POINTER_ACTION_TRIGGER: &str = "nav-pointer-action";
+    pub const NAV_POINTER_CONTEXT_TRIGGER: &str = "nav-pointer-context";
+    pub const NAV_ACCEPT_TRIGGER: &str = "nav-accept";
+    pub const NAV_CANCEL_TRIGGER: &str = "nav-cancel";
+    pub const NAV_UP_TRIGGER: &str = "nav-up";
+    pub const NAV_DOWN_TRIGGER: &str = "nav-down";
+    pub const NAV_LEFT_TRIGGER: &str = "nav-left";
+    pub const NAV_RIGHT_TRIGGER: &str = "nav-right";
+    pub const NAV_PREV_TRIGGER: &str = "nav-prev";
+    pub const NAV_NEXT_TRIGGER: &str = "nav-next";
+    pub const NAV_TEXT_MOVE_CURSOR_LEFT_TRIGGER: &str = "nav-text-move-cursor-left";
+    pub const NAV_TEXT_MOVE_CURSOR_RIGHT_TRIGGER: &str = "nav-text-move-cursor-right";
+    pub const NAV_TEXT_MOVE_CURSOR_START_TRIGGER: &str = "nav-text-move-cursor-start";
+    pub const NAV_TEXT_MOVE_CURSOR_END_TRIGGER: &str = "nav-text-move-cursor-end";
+    pub const NAV_TEXT_DELETE_LEFT_TRIGGER: &str = "nav-text-delete-left";
+    pub const NAV_TEXT_DELETE_RIGHT_TRIGGER: &str = "nav-text-delete-right";
+}
+
 #[derive(Default)]
 pub struct ApplicationData {
     pub application: Application,
@@ -22,25 +42,6 @@ impl ApplicationData {
 pub struct UserInterface {
     pub(crate) data: HashMap<String, ApplicationData>,
     pub(crate) setup_application: Option<fn(&mut Application)>,
-    pub(crate) last_frame_captured: bool,
-    pub pointer_axis_x: String,
-    pub pointer_axis_y: String,
-    pub pointer_action_trigger: String,
-    pub pointer_context_trigger: String,
-    pub navigate_accept: String,
-    pub navigate_cancel: String,
-    pub navigate_up: String,
-    pub navigate_down: String,
-    pub navigate_left: String,
-    pub navigate_right: String,
-    pub navigate_prev: String,
-    pub navigate_next: String,
-    pub text_move_cursor_left: String,
-    pub text_move_cursor_right: String,
-    pub text_move_cursor_start: String,
-    pub text_move_cursor_end: String,
-    pub text_delete_left: String,
-    pub text_delete_right: String,
 }
 
 impl UserInterface {
@@ -48,88 +49,7 @@ impl UserInterface {
         Self {
             data: Default::default(),
             setup_application: Some(setup_application),
-            last_frame_captured: false,
-            pointer_axis_x: Default::default(),
-            pointer_axis_y: Default::default(),
-            pointer_action_trigger: Default::default(),
-            pointer_context_trigger: Default::default(),
-            navigate_accept: Default::default(),
-            navigate_cancel: Default::default(),
-            navigate_up: Default::default(),
-            navigate_down: Default::default(),
-            navigate_left: Default::default(),
-            navigate_right: Default::default(),
-            navigate_prev: Default::default(),
-            navigate_next: Default::default(),
-            text_move_cursor_left: Default::default(),
-            text_move_cursor_right: Default::default(),
-            text_move_cursor_start: Default::default(),
-            text_move_cursor_end: Default::default(),
-            text_delete_left: Default::default(),
-            text_delete_right: Default::default(),
         }
-    }
-
-    pub fn last_frame_captured(&self) -> bool {
-        self.last_frame_captured
-    }
-
-    pub fn with_pointer_axis(mut self, x: &str, y: &str) -> Self {
-        self.pointer_axis_x = x.to_owned();
-        self.pointer_axis_y = y.to_owned();
-        self
-    }
-
-    pub fn with_pointer_trigger(mut self, action: &str, context: &str) -> Self {
-        self.pointer_action_trigger = action.to_owned();
-        self.pointer_context_trigger = context.to_owned();
-        self
-    }
-
-    pub fn with_navigation_actions(mut self, accept: &str, cancel: &str) -> Self {
-        self.navigate_accept = accept.to_owned();
-        self.navigate_cancel = cancel.to_owned();
-        self
-    }
-
-    pub fn with_navigation_directions(
-        mut self,
-        up: &str,
-        down: &str,
-        left: &str,
-        right: &str,
-    ) -> Self {
-        self.navigate_up = up.to_owned();
-        self.navigate_down = down.to_owned();
-        self.navigate_left = left.to_owned();
-        self.navigate_right = right.to_owned();
-        self
-    }
-
-    pub fn with_navigation_tabs(mut self, prev: &str, next: &str) -> Self {
-        self.navigate_prev = prev.to_owned();
-        self.navigate_next = next.to_owned();
-        self
-    }
-
-    pub fn with_text_move_cursor(
-        mut self,
-        left: &str,
-        right: &str,
-        start: &str,
-        end: &str,
-    ) -> Self {
-        self.text_move_cursor_left = left.to_owned();
-        self.text_move_cursor_right = right.to_owned();
-        self.text_move_cursor_start = start.to_owned();
-        self.text_move_cursor_end = end.to_owned();
-        self
-    }
-
-    pub fn with_text_delete(mut self, left: &str, right: &str) -> Self {
-        self.text_delete_left = left.to_owned();
-        self.text_delete_right = right.to_owned();
-        self
     }
 
     #[inline]

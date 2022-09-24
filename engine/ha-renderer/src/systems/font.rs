@@ -4,13 +4,14 @@ use crate::{
         material_instance::HaMaterialInstance, mesh_instance::HaMeshInstance,
         text_instance::HaTextInstance,
     },
+    constants::material_uniforms::*,
     ha_renderer::HaRenderer,
-    image::{ImageInstanceReference, ImageResourceMapping},
+    image::{ImageReference, ImageResourceMapping},
     material::{
         common::MaterialValue,
         domains::surface::{text::SurfaceTextFactory, SurfaceVertexText},
     },
-    mesh::{Mesh, MeshId, MeshInstanceReference},
+    mesh::{Mesh, MeshId, MeshReference},
 };
 use core::{
     assets::{asset::AssetId, database::AssetsDatabase},
@@ -70,7 +71,7 @@ pub fn ha_font_system(universe: &mut Universe) {
         .iter()
     {
         if text.dirty || !cache.meshes.contains_key(&entity) {
-            mesh.reference = MeshInstanceReference::None;
+            mesh.reference = MeshReference::None;
             if let Some(id) = cache.fonts_map.get(text.font()) {
                 if let Some(asset) = assets.asset_by_id(*id) {
                     if let Some(asset) = asset.get::<FontAsset>() {
@@ -83,7 +84,7 @@ pub fn ha_font_system(universe: &mut Universe) {
                                     m.set_index_storage(text.change_frequency().into());
                                     if factory.write_into(m).is_ok() {
                                         text.dirty = false;
-                                        mesh.reference = MeshInstanceReference::Id(*id);
+                                        mesh.reference = MeshReference::Id(*id);
                                         set_material_sampler(material, asset, &image_mapping);
                                     }
                                 }
@@ -94,7 +95,7 @@ pub fn ha_font_system(universe: &mut Universe) {
                                 if factory.write_into(&mut m).is_ok() {
                                     if let Ok(id) = renderer.add_mesh(m) {
                                         text.dirty = false;
-                                        mesh.reference = MeshInstanceReference::Id(id);
+                                        mesh.reference = MeshReference::Id(id);
                                         set_material_sampler(material, asset, &image_mapping);
                                         cache.meshes.insert(entity, id);
                                     }
@@ -116,9 +117,9 @@ fn set_material_sampler(
     if let Some((_, id)) = font.pages_image_assets.get(0) {
         if let Some(id) = image_mapping.resource_by_asset(*id) {
             material.values.insert(
-                "mainImage".to_owned(),
+                MAIN_IMAGE_NAME.to_owned(),
                 MaterialValue::Sampler2dArray {
-                    reference: ImageInstanceReference::Id(id),
+                    reference: ImageReference::Id(id),
                     filtering: font.filtering,
                 },
             );

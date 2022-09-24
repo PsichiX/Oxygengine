@@ -1,0 +1,4 @@
+inject
+```
+Speed: %{ $VALUE }%
+```

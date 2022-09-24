@@ -20,7 +20,7 @@ pub fn effects_system(universe: &mut Universe) {
 
     if let Some((_, batch)) = world
         .query::<&mut HaImmediateBatch<V>>()
-        .with::<BatchedAttacksTag>()
+        .with::<&BatchedAttacksTag>()
         .iter()
         .next()
     {
@@ -31,7 +31,7 @@ pub fn effects_system(universe: &mut Universe) {
 
     if let Some((_, batch)) = world
         .query::<&mut HaImmediateBatch<V>>()
-        .with::<BatchedSecretsTag>()
+        .with::<&BatchedSecretsTag>()
         .iter()
         .next()
     {

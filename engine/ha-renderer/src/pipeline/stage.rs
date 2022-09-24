@@ -3,8 +3,8 @@ use crate::{
     math::*,
     mesh::VertexLayout,
     pipeline::render_queue::{RenderQueue, RenderQueueSize},
-    TagFilters,
 };
+use core::utils::TagFilters;
 use serde::{Deserialize, Serialize};
 use std::{
     any::TypeId,
@@ -32,6 +32,7 @@ impl StageProcessInfo {
             MaterialMeshSignature::new(vertex_layout),
             self.material_render_target_signature.to_owned(),
             self.domain.to_owned(),
+            vertex_layout.middlewares().into(),
         )
     }
 }
@@ -126,7 +127,7 @@ impl StageDescriptor {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct StageDetailedInfo {
     pub queue_sorting: StageQueueSorting,
     pub filters: TagFilters,

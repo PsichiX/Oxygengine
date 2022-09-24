@@ -3,5 +3,7 @@ pub mod font;
 pub mod image;
 pub mod material;
 pub mod mesh;
+pub mod skeletal_animation;
+pub mod skeleton;
 pub mod sprite_animation;
 pub mod tilemap;

@@ -1,6 +1,8 @@
+extern crate oxygengine_backend_web as backend;
 extern crate oxygengine_core as core;
 extern crate oxygengine_network as network;
 
+use backend::closure::WebClosure;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use js_sys::*;
 use network::client::{Client, ClientId, ClientState, MessageId};
@@ -20,7 +22,6 @@ pub mod prelude {
 
 type MsgData = (MessageId, Vec<u8>);
 
-#[derive(Clone)]
 pub struct WebClient {
     socket: WebSocket,
     id: ClientId,
@@ -28,6 +29,9 @@ pub struct WebClient {
     state: Rc<Cell<ClientState>>,
     #[allow(clippy::type_complexity)]
     messages: Rc<RefCell<VecDeque<MsgData>>>,
+    on_open_closure: WebClosure,
+    on_close_closure: WebClosure,
+    on_message_closure: WebClosure,
 }
 
 unsafe impl Send for WebClient {}
@@ -50,23 +54,23 @@ impl Client for WebClient {
             let history_size = Rc::new(Cell::new(0));
             let state = Rc::new(Cell::new(ClientState::Connecting));
             let messages = Rc::new(RefCell::new(Default::default()));
-            {
+            let on_open_closure = {
                 let state2 = state.clone();
                 let closure = Closure::wrap(Box::new(move |_: Event| {
                     state2.set(ClientState::Open);
                 }) as Box<dyn FnMut(_)>);
                 socket.set_onopen(Some(closure.as_ref().unchecked_ref()));
-                closure.forget();
-            }
-            {
+                WebClosure::acquire(closure)
+            };
+            let on_close_closure = {
                 let state2 = state.clone();
                 let closure = Closure::wrap(Box::new(move |_: Event| {
                     state2.set(ClientState::Closed);
                 }) as Box<dyn FnMut(_)>);
                 socket.set_onclose(Some(closure.as_ref().unchecked_ref()));
-                closure.forget();
-            }
-            {
+                WebClosure::acquire(closure)
+            };
+            let on_message_closure = {
                 let history_size2 = history_size.clone();
                 let messages2 = messages.clone();
                 let closure = Closure::wrap(Box::new(move |event: MessageEvent| {
@@ -93,22 +97,27 @@ impl Client for WebClient {
                     }
                 }) as Box<dyn FnMut(_)>);
                 socket.set_onmessage(Some(closure.as_ref().unchecked_ref()));
-                closure.forget();
-            }
+                WebClosure::acquire(closure)
+            };
             Some(Self {
                 socket,
                 id: Default::default(),
                 history_size,
                 state,
                 messages,
+                on_open_closure,
+                on_close_closure,
+                on_message_closure,
             })
         } else {
             None
         }
     }
 
-    fn close(self) -> Self {
-        // TODO: unbind closures from socket.
+    fn close(mut self) -> Self {
+        self.on_open_closure.release();
+        self.on_close_closure.release();
+        self.on_message_closure.release();
         if self.state.get() != ClientState::Closed {
             drop(self.socket.close());
             self.state.set(ClientState::Closed);

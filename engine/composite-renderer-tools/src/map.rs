@@ -51,9 +51,9 @@ pub(crate) enum TiledMapLayerType {
     ObjectGroup,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Deserialize)]
 pub(crate) struct TiledMapObject {
-    pub id: usize,
+    // pub id: usize,
     #[serde(default)]
     pub name: String,
     #[serde(alias = "type")]
@@ -67,28 +67,28 @@ pub(crate) struct TiledMapObject {
     pub height: usize,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Deserialize)]
 pub(crate) struct TiledMapLayer {
-    pub id: usize,
+    // pub id: usize,
     pub name: String,
-    pub visible: bool,
+    // pub visible: bool,
     #[serde(alias = "type")]
     pub layer_type: TiledMapLayerType,
     pub data: Option<Vec<usize>>,
     pub objects: Option<Vec<TiledMapObject>>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Deserialize)]
 pub(crate) struct TiledMap {
-    #[serde(default)]
-    pub orientation: TiledMapOrientation,
-    #[serde(default)]
-    pub renderorder: TiledMapRenderOrder,
+    // #[serde(default)]
+    // pub orientation: TiledMapOrientation,
+    // #[serde(default)]
+    // pub renderorder: TiledMapRenderOrder,
     pub width: usize,
     pub height: usize,
     pub tilewidth: usize,
     pub tileheight: usize,
-    pub infinite: bool,
+    // pub infinite: bool,
     pub tilesets: Vec<TiledMapTileset>,
     pub layers: Vec<TiledMapLayer>,
 }

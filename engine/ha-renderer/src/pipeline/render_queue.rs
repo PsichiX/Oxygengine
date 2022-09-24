@@ -22,7 +22,7 @@ pub enum RenderQueueError {
     NoMaterialActive,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RenderCommand {
     SortingBarrier,
     Viewport(usize, usize, usize, usize),
@@ -33,10 +33,12 @@ pub enum RenderCommand {
     ApplyDrawOptions(MaterialDrawOptions),
     ActivateMesh(MeshId),
     DrawMesh(MeshDrawRange),
+    /// (x, y, width, height)
     Scissor(Option<(usize, usize, usize, usize)>),
 }
 
-type GroupOrder = (usize, usize);
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct GroupOrder(usize, usize);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RenderQueueSize {
@@ -50,7 +52,7 @@ impl Default for RenderQueueSize {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RenderQueue {
     size: RenderQueueSize,
     commands: Vec<(GroupOrder, RenderCommand)>,
@@ -101,7 +103,7 @@ impl RenderQueue {
                 }
             }
         }
-        self.commands.push(((group, order), command));
+        self.commands.push((GroupOrder(group, order), command));
         Ok(())
     }
 
@@ -122,14 +124,14 @@ impl RenderQueue {
     }
 
     pub fn move_into(&mut self, other: &mut Self) -> Result<(), RenderQueueError> {
-        for ((group, order), command) in self.commands.drain(..) {
+        for (GroupOrder(group, order), command) in self.commands.drain(..) {
             other.record(group, order, command)?;
         }
         Ok(())
     }
 
     pub fn clone_into(&self, other: &mut Self) -> Result<(), RenderQueueError> {
-        for ((group, order), command) in &self.commands {
+        for (GroupOrder(group, order), command) in &self.commands {
             other.record(*group, *order, command.to_owned())?;
         }
         Ok(())
@@ -139,7 +141,7 @@ impl RenderQueue {
     where
         F: FnMut(usize) -> usize,
     {
-        for ((group, _), _) in &mut self.commands {
+        for (GroupOrder(group, _), _) in &mut self.commands {
             *group = f(*group);
         }
     }
@@ -172,6 +174,19 @@ impl RenderQueue {
         resources: &RenderStageResources<'a>,
         stats: &mut RenderStats,
     ) -> Result<(), RenderQueueError> {
+        let result = self.execute_inner(context, resources, stats);
+        if !self.persistent {
+            self.commands.clear();
+        }
+        result
+    }
+
+    fn execute_inner<'a>(
+        &mut self,
+        context: &Context,
+        resources: &RenderStageResources<'a>,
+        stats: &mut RenderStats,
+    ) -> Result<(), RenderQueueError> {
         let mut current_material = None;
         let mut current_mesh = None;
         let mut current_uniforms = HashMap::<&str, &MaterialValue>::with_capacity(32);
@@ -195,9 +210,7 @@ impl RenderQueue {
                             match material.activate(signature, context, resources, stats) {
                                 Ok(_) => {
                                     current_uniforms.clear();
-                                    current_uniforms.reserve(material.default_values.len());
                                     last_uniforms.clear();
-                                    last_uniforms.reserve(material.default_values.len());
                                     current_material = Some((id, signature, material));
                                 }
                                 Err(error) => return Err(RenderQueueError::Material(*id, error)),
@@ -300,9 +313,6 @@ impl RenderQueue {
                     current_scissor = *rect;
                 }
             }
-        }
-        if !self.persistent {
-            self.commands.clear();
         }
         Ok(())
     }

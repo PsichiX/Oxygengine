@@ -5,9 +5,16 @@ use core::{
 };
 use std::sync::{atomic::AtomicBool, Arc};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
+pub enum AudioPlayState {
+    Ended(bool),
+    State(bool),
+}
+
+#[derive(Debug, Clone)]
 pub struct AudioState {
     pub current_time: Option<Scalar>,
+    pub is_playing: AudioPlayState,
 }
 
 pub trait Audio: Send + Sync {

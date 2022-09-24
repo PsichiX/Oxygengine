@@ -7,38 +7,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install Rust Toolchain
+      - name: Install Rust Toolchain and Wasm32 target
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          target: wasm32-unknown-unknown
+      - name: Install Just
+        run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | sudo bash -s -- --to /usr/local/bin
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --all --manifest-path ./engine/Cargo.toml --verbose
+        run: just build
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all --manifest-path ./engine/Cargo.toml --verbose
-      - name: Install Ignite CLI
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: --path ./engine/ignite --force
-      - name: Install Composite Renderer tools
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: --path ./engine/composite-renderer-tools --force
-      - name: Install HA Renderer tools
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: --path ./engine/ha-renderer-tools --force
+        run: just test
+      - name: Install tools
+        run: just install-tools
       - name: Clean project for the test
+        if: github.ref == 'refs/heads/master'
         run: rm -rf ./* && ls -al
       - name: Create project with Ignite CLI
+        if: github.ref == 'refs/heads/master'
         run: OXY_UPDATE_PRESETS=1 oxygengine-ignite new test
       - name: Build test project
+        if: github.ref == 'refs/heads/master'
         run: cd test && ls -al && cat Cargo.toml && oxygengine-ignite package

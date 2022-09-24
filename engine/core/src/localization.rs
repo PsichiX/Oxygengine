@@ -9,7 +9,7 @@ use crate::{
     },
 };
 use pest::{iterators::Pair, Parser};
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Write};
 
 #[allow(clippy::upper_case_acronyms)]
 mod parser {
@@ -123,7 +123,7 @@ impl Localization {
                     if let Some((_, v)) = params.iter().find(|(id, _)| id == &ident) {
                         result.push_str(v);
                     } else {
-                        result.push_str(&format!("{{@{}}}", ident));
+                        write!(result, "{{@{}}}", ident).unwrap();
                     }
                 }
                 _ => {}

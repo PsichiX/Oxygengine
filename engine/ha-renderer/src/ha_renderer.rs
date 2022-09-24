@@ -9,11 +9,11 @@ use crate::{
     resources::material_library::*,
     Error, HasContextResources, Resources,
 };
-use core::Ignite;
+use core::{utils::StringSequence, Ignite};
 use glow::*;
 use serde::{Deserialize, Serialize};
 use std::{
-    any::TypeId,
+    any::{type_name, TypeId},
     collections::{HashMap, HashSet},
     sync::{Arc, RwLock},
 };
@@ -67,10 +67,10 @@ pub struct RenderStageResources<'a> {
 }
 
 impl<'a> RenderStageResources<'a> {
-    pub fn mesh_by_ref(&self, reference: &MeshInstanceReference) -> Option<&Mesh> {
+    pub fn mesh_by_ref(&self, reference: &MeshReference) -> Option<&Mesh> {
         match reference {
-            MeshInstanceReference::Id(id) => self.meshes.get(*id),
-            MeshInstanceReference::VirtualId { owner, .. } => {
+            MeshReference::Id(id) => self.meshes.get(*id),
+            MeshReference::VirtualId { owner, .. } => {
                 if let Some(virtual_mesh) = self.virtual_meshes.get(*owner) {
                     return self.meshes.get(virtual_mesh.source());
                 }
@@ -80,19 +80,19 @@ impl<'a> RenderStageResources<'a> {
         }
     }
 
-    pub fn image_by_ref(&self, reference: &ImageInstanceReference) -> Option<&Image> {
+    pub fn image_by_ref(&self, reference: &ImageReference) -> Option<&Image> {
         match reference {
-            ImageInstanceReference::Id(id) => self.images.get(*id),
+            ImageReference::Id(id) => self.images.get(*id),
             _ => None,
         }
     }
 
     pub fn image_handle_by_ref(
         &self,
-        reference: &ImageInstanceReference,
+        reference: &ImageReference,
     ) -> Option<<Context as HasContext>::Texture> {
         match reference {
-            ImageInstanceReference::Id(id) => {
+            ImageReference::Id(id) => {
                 if let Some(image) = self.images.get(*id) {
                     if let Some(resources) = image.resources(self) {
                         return Some(resources.handle);
@@ -100,7 +100,7 @@ impl<'a> RenderStageResources<'a> {
                 }
                 None
             }
-            ImageInstanceReference::VirtualId { owner, .. } => {
+            ImageReference::VirtualId { owner, .. } => {
                 if let Some(virtual_image) = self.virtual_images.get(*owner) {
                     match virtual_image.source() {
                         VirtualImageSource::Image(id) => {
@@ -128,10 +128,10 @@ impl<'a> RenderStageResources<'a> {
         }
     }
 
-    pub fn draw_range_by_ref(&self, reference: &MeshInstanceReference) -> Option<MeshDrawRange> {
+    pub fn draw_range_by_ref(&self, reference: &MeshReference) -> Option<MeshDrawRange> {
         match reference {
-            MeshInstanceReference::Id(_) => Some(MeshDrawRange::All),
-            MeshInstanceReference::VirtualId { owner, id } => {
+            MeshReference::Id(_) => Some(MeshDrawRange::All),
+            MeshReference::VirtualId { owner, id } => {
                 if let Some(virtual_mesh) = self.virtual_meshes.get(*owner) {
                     return virtual_mesh.mesh_range(*id).map(MeshDrawRange::Range);
                 }
@@ -141,9 +141,9 @@ impl<'a> RenderStageResources<'a> {
         }
     }
 
-    pub fn material_by_ref(&self, reference: &MaterialInstanceReference) -> Option<&Material> {
+    pub fn material_by_ref(&self, reference: &MaterialReference) -> Option<&Material> {
         match reference {
-            MaterialInstanceReference::Id(id) => self.materials.get(*id),
+            MaterialReference::Id(id) => self.materials.get(*id),
             _ => None,
         }
     }
@@ -216,7 +216,7 @@ impl HaRendererDetailedInfoFilter {
 
 pub struct HaRenderer {
     pub(crate) platform_interface: Box<dyn HaPlatformInterface + Send + Sync>,
-    stage_registry: HashMap<String, TypeId>,
+    stage_registry: HashMap<String, (TypeId, String)>,
     pipeline_registry: HashMap<String, PipelineDescriptor>,
     pub(crate) pipelines: HashMap<PipelineId, Pipeline>,
     pub(crate) render_targets: Resources<RenderTarget>,
@@ -224,7 +224,7 @@ pub struct HaRenderer {
     images: Resources<Image>,
     pub virtual_images: Resources<VirtualImage>,
     pub virtual_meshes: Resources<VirtualMesh>,
-    materials: Resources<Material>,
+    pub(crate) materials: Resources<Material>,
     cached_signatures: HashSet<MaterialSignature>,
     dirty_signatures: bool,
     added_materials: HashSet<MaterialId>,
@@ -286,8 +286,8 @@ impl HaRenderer {
     }
 
     #[inline]
-    pub fn has_context(&self) -> bool {
-        self.platform_interface.context().is_some()
+    pub fn interface(&self) -> &dyn HaPlatformInterface {
+        &*self.platform_interface
     }
 
     #[inline]
@@ -394,12 +394,21 @@ impl HaRenderer {
     }
 
     pub fn register_stage<T: 'static>(&mut self, id: &str) {
-        self.stage_registry.insert(id.to_owned(), TypeId::of::<T>());
+        self.stage_registry.insert(
+            id.to_owned(),
+            (TypeId::of::<T>(), type_name::<T>().to_owned()),
+        );
     }
 
     pub fn with_stage<T: 'static>(mut self, id: &str) -> Self {
         self.register_stage::<T>(id);
         self
+    }
+
+    pub fn stages(&self) -> impl Iterator<Item = (&str, TypeId, &str)> {
+        self.stage_registry
+            .iter()
+            .map(|(n, (t, tn))| (n.as_str(), *t, tn.as_str()))
     }
 
     pub fn unregister_stage(&mut self, id: &str) {
@@ -429,9 +438,9 @@ impl HaRenderer {
         };
         let mut stages = Vec::with_capacity(data.stages.len());
         for stage in data.stages {
-            if let Some(type_id) = self.stage_registry.get(&stage.name).copied() {
+            if let Some((type_id, _)) = self.stage_registry.get(&stage.name) {
                 stages.push(Stage {
-                    type_id,
+                    type_id: *type_id,
                     render_queue: Arc::new(RwLock::new(RenderQueue::new(
                         stage.queue_size,
                         stage.queue_persistent,
@@ -487,6 +496,14 @@ impl HaRenderer {
             self.dirty_signatures = true;
         }
         Ok(())
+    }
+
+    pub fn pipelines(&self) -> impl Iterator<Item = PipelineId> + '_ {
+        self.pipelines.keys().copied()
+    }
+
+    pub fn pipeline(&self, id: PipelineId) -> Option<&Pipeline> {
+        self.pipelines.get(&id)
     }
 
     pub fn render_targets(&self) -> &Resources<RenderTarget> {
@@ -601,6 +618,10 @@ impl HaRenderer {
         Ok(())
     }
 
+    pub fn material(&self, id: MaterialId) -> Option<&Material> {
+        self.materials.get(id)
+    }
+
     #[inline]
     pub fn error_reporter(&self) -> &dyn HaRendererErrorReporter {
         &*self.error_reporter
@@ -693,6 +714,18 @@ impl HaRenderer {
         }
     }
 
+    pub(crate) fn maintain_images(&mut self) {
+        let context = match self.platform_interface.context() {
+            Some(context) => context,
+            None => return,
+        };
+        for (id, image) in self.images.iter_mut() {
+            if let Err(error) = image.maintain(context) {
+                self.error_reporter.on_report(Error::Image(id, error));
+            }
+        }
+    }
+
     pub(crate) fn maintain_meshes(&mut self) {
         let context = match self.platform_interface.context() {
             Some(context) => context,
@@ -715,25 +748,31 @@ impl HaRenderer {
             None => return,
         };
         if self.dirty_signatures {
-            let mesh_signatures = self
+            let mesh_signatures_middlewares = self
                 .meshes
                 .resources()
-                .map(|mesh| MaterialMeshSignature::new(mesh.layout()))
-                .collect::<HashSet<_>>();
+                .map(|mesh| {
+                    (
+                        MaterialMeshSignature::new(mesh.layout()),
+                        StringSequence::new(mesh.layout().middlewares()),
+                    )
+                })
+                .collect::<HashMap<_, _>>();
             let count = self.cached_signatures.len();
             let old = std::mem::replace(&mut self.cached_signatures, HashSet::with_capacity(count));
-            if !mesh_signatures.is_empty() {
+            if !mesh_signatures_middlewares.is_empty() {
                 for pipeline in self.pipelines.values() {
                     for stage in &pipeline.stages {
                         if let Some((_, id)) = pipeline.render_targets.get(&stage.render_target) {
                             if let Some(render_target) = self.render_targets.get(*id) {
                                 let render_target_signature =
                                     MaterialRenderTargetSignature::new(render_target);
-                                for mesh_signature in &mesh_signatures {
+                                for (mesh_signature, middlewares) in &mesh_signatures_middlewares {
                                     self.cached_signatures.insert(MaterialSignature::new(
                                         mesh_signature.to_owned(),
                                         render_target_signature.to_owned(),
                                         stage.domain.to_owned(),
+                                        middlewares.to_owned(),
                                     ));
                                 }
                             }

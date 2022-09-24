@@ -11,7 +11,14 @@ pub struct Asset {
 }
 
 impl Asset {
-    pub fn new(protocol: &str, path: &str, data: Box<dyn Any + Send + Sync>) -> Self {
+    pub fn new<T>(protocol: &str, path: &str, data: T) -> Self
+    where
+        T: Any + Send + Sync + 'static,
+    {
+        Self::new_boxed(protocol, path, Box::new(data))
+    }
+
+    pub fn new_boxed(protocol: &str, path: &str, data: Box<dyn Any + Send + Sync>) -> Self {
         Self {
             id: AssetId::new(),
             protocol: protocol.to_owned(),

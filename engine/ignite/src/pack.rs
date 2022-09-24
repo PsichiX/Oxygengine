@@ -21,7 +21,7 @@ pub fn pack_assets<P: AsRef<Path>>(paths: &[P]) -> Result<Vec<u8>, Error> {
                     .and_then(|(p, c)| pathdiff::diff_paths(p, path).map(|p| (p, c)))
                     .and_then(|(p, c)| p.to_str().map(|p| (p.to_owned(), c)))
                     .map(|(p, c)| {
-                        let name = p.replace("\\\\", "/").replace("\\", "/");
+                        let name = p.replace("\\\\", "/").replace('\\', "/");
                         println!("* Include file: {:?} as: {:?}", path.join(p), name);
                         (name, c)
                     })

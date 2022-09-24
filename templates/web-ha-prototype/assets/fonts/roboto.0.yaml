@@ -1,0 +1,8 @@
+---
+Png:
+  descriptor:
+    mode: Image2dArray
+    format: RGBA
+    mipmap: None
+  bytes_paths:
+    - fonts/roboto.0.png

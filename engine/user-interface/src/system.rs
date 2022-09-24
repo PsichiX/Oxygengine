@@ -1,6 +1,6 @@
 use crate::{
     component::UserInterfaceView,
-    resource::{ApplicationData, UserInterface},
+    resource::{input_mappings::*, ApplicationData, UserInterface},
     ui_theme_asset_protocol::UiThemeAsset,
     FeedProcessContext,
 };
@@ -9,7 +9,10 @@ use core::{
     assets::{asset::AssetId, database::AssetsDatabase},
     ecs::{AccessType, Comp, ResQuery, ResQueryItem, Universe, UnsafeRef, UnsafeScope, WorldRef},
 };
-use input::resource::{InputController, TriggerState};
+use input::{
+    component::InputStackInstance,
+    resources::stack::{InputStack, InputStackListener},
+};
 use raui_core::{
     application::{Application, ProcessContext},
     interactive::default_interactions_engine::{Interaction, PointerButton},
@@ -25,7 +28,6 @@ use std::collections::HashMap;
 
 #[derive(Default)]
 pub struct UserInterfaceSystemCache {
-    last_pointer_pos: Vec2,
     themes_cache: HashMap<String, ThemeProps>,
     themes_table: HashMap<AssetId, String>,
 }
@@ -41,10 +43,11 @@ pub type UserInterfaceSystemResources<'a, Q> = (
     WorldRef,
     &'a AppLifeCycle,
     &'a AssetsDatabase,
+    &'a InputStack,
     &'a mut UserInterface,
-    &'a InputController,
     &'a mut UserInterfaceSystemCache,
     Comp<&'a mut UserInterfaceView>,
+    Comp<&'a InputStackInstance>,
 );
 
 pub fn user_interface_system<Q>(universe: &mut Universe)
@@ -73,23 +76,24 @@ where
             }
         }
     }
-    let scope = UnsafeScope;
+
     let mut ui = universe.expect_resource_mut::<UserInterface>();
+    let scope = UnsafeScope;
     let meta = {
         let world = universe.world();
-        let input = universe.expect_resource::<InputController>();
+        let input_stack = universe.expect_resource::<InputStack>();
 
-        ui.data = std::mem::take(&mut ui.data)
-            .into_iter()
-            .filter(|(k, _)| {
-                world
-                    .query::<&UserInterfaceView>()
-                    .iter()
-                    .any(|(_, v)| k == v.app_id())
-            })
-            .collect();
+        ui.data.retain(|k, _| {
+            world
+                .query::<&UserInterfaceView>()
+                .iter()
+                .any(|(_, v)| k == v.app_id())
+        });
 
-        for (_, view) in world.query::<&mut UserInterfaceView>().iter() {
+        for (_, (view, input)) in world
+            .query::<(&mut UserInterfaceView, Option<&InputStackInstance>)>()
+            .iter()
+        {
             if !ui.data.contains_key(view.app_id()) {
                 let mut application = Application::new();
                 application.setup(core_setup);
@@ -107,6 +111,18 @@ where
                     },
                 );
             }
+
+            if let Some(listener) = input
+                .and_then(|input| input.as_listener())
+                .and_then(|id| input_stack.listener(id))
+            {
+                apply_inputs(
+                    ui.get_mut(view.app_id()).unwrap(),
+                    listener,
+                    &mut view.last_pointer_pos,
+                );
+            }
+
             if view.dirty {
                 view.dirty = false;
                 let app = ui.application_mut(view.app_id()).unwrap();
@@ -124,153 +140,21 @@ where
             }
         }
 
-        let pointer_pos = Vec2 {
-            x: input.axis_or_default(&ui.pointer_axis_x),
-            y: input.axis_or_default(&ui.pointer_axis_y),
-        };
-        let pointer_moved = (pointer_pos.x - cache.last_pointer_pos.x).abs() > 1.0e-6
-            || (pointer_pos.y - cache.last_pointer_pos.y).abs() > 1.0e-6;
-        cache.last_pointer_pos = pointer_pos;
-        let pointer_trigger = input.trigger_or_default(&ui.pointer_action_trigger);
-        let pointer_context = input.trigger_or_default(&ui.pointer_context_trigger);
-        let mut text = input
-            .text()
-            .chars()
-            .filter_map(|c| {
-                if !c.is_control() {
-                    Some(NavTextChange::InsertCharacter(c))
-                } else if c == '\n' || c == '\r' {
-                    Some(NavTextChange::NewLine)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
-        let accept = input.trigger_or_default(&ui.navigate_accept);
-        let cancel = input.trigger_or_default(&ui.navigate_cancel);
-        let up = input.trigger_or_default(&ui.navigate_up) == TriggerState::Pressed;
-        let down = input.trigger_or_default(&ui.navigate_down) == TriggerState::Pressed;
-        let left = input.trigger_or_default(&ui.navigate_left) == TriggerState::Pressed;
-        let right = input.trigger_or_default(&ui.navigate_right) == TriggerState::Pressed;
-        let prev = input.trigger_or_default(&ui.navigate_prev) == TriggerState::Pressed;
-        let next = input.trigger_or_default(&ui.navigate_next) == TriggerState::Pressed;
-        if input.trigger_or_default(&ui.text_move_cursor_left) == TriggerState::Pressed {
-            text.push(NavTextChange::MoveCursorLeft);
-        }
-        if input.trigger_or_default(&ui.text_move_cursor_right) == TriggerState::Pressed {
-            text.push(NavTextChange::MoveCursorRight);
-        }
-        if input.trigger_or_default(&ui.text_move_cursor_start) == TriggerState::Pressed {
-            text.push(NavTextChange::MoveCursorStart);
-        }
-        if input.trigger_or_default(&ui.text_move_cursor_end) == TriggerState::Pressed {
-            text.push(NavTextChange::MoveCursorEnd);
-        }
-        if input.trigger_or_default(&ui.text_delete_left) == TriggerState::Pressed {
-            text.push(NavTextChange::DeleteLeft);
-        }
-        if input.trigger_or_default(&ui.text_delete_right) == TriggerState::Pressed {
-            text.push(NavTextChange::DeleteRight);
-        }
-        for data in ui.data.values_mut() {
-            let pointer_pos = data.coords_mapping.real_to_virtual_vec2(pointer_pos, false);
-            if pointer_moved {
-                data.interactions
-                    .interact(Interaction::PointerMove(pointer_pos));
-            }
-            match pointer_trigger {
-                TriggerState::Pressed => {
-                    data.interactions.interact(Interaction::PointerDown(
-                        PointerButton::Trigger,
-                        pointer_pos,
-                    ));
-                }
-                TriggerState::Released => {
-                    data.interactions
-                        .interact(Interaction::PointerUp(PointerButton::Trigger, pointer_pos));
-                }
-                _ => {}
-            }
-            match pointer_context {
-                TriggerState::Pressed => {
-                    data.interactions.interact(Interaction::PointerDown(
-                        PointerButton::Context,
-                        pointer_pos,
-                    ));
-                }
-                TriggerState::Released => {
-                    data.interactions
-                        .interact(Interaction::PointerUp(PointerButton::Context, pointer_pos));
-                }
-                _ => {}
-            }
-            for change in &text {
-                data.interactions
-                    .interact(Interaction::Navigate(NavSignal::TextChange(*change)));
-            }
-            match accept {
-                TriggerState::Pressed => {
-                    data.interactions
-                        .interact(Interaction::Navigate(NavSignal::Accept(true)));
-                }
-                TriggerState::Released => {
-                    data.interactions
-                        .interact(Interaction::Navigate(NavSignal::Accept(false)));
-                }
-                _ => {}
-            }
-            match cancel {
-                TriggerState::Pressed => {
-                    data.interactions
-                        .interact(Interaction::Navigate(NavSignal::Cancel(true)));
-                }
-                TriggerState::Released => {
-                    data.interactions
-                        .interact(Interaction::Navigate(NavSignal::Cancel(false)));
-                }
-                _ => {}
-            }
-            if up {
-                data.interactions
-                    .interact(Interaction::Navigate(NavSignal::Up));
-            }
-            if down {
-                data.interactions
-                    .interact(Interaction::Navigate(NavSignal::Down));
-            }
-            if left {
-                data.interactions
-                    .interact(Interaction::Navigate(NavSignal::Left));
-            }
-            if right {
-                data.interactions
-                    .interact(Interaction::Navigate(NavSignal::Right));
-            }
-            if prev {
-                data.interactions
-                    .interact(Interaction::Navigate(NavSignal::Prev));
-            }
-            if next {
-                data.interactions
-                    .interact(Interaction::Navigate(NavSignal::Next));
-            }
-        }
-
-        let mut meta = world
+        let result = world
             .query::<&UserInterfaceView>()
             .iter()
             .map(|(_, v)| unsafe { UnsafeRef::upgrade(&scope, v) })
             .collect::<Vec<_>>();
-        meta.sort_by(|a, b| unsafe { a.read().input_order.cmp(&b.read().input_order) });
-        meta
+        result
     };
+
     let dt = universe
         .expect_resource::<AppLifeCycle>()
         .delta_time_seconds();
-    let mut captured = false;
     let mut context = ProcessContext::new();
     let extras = universe.query_resources::<Q>();
     extras.feed_process_context(&mut context);
+
     for view in meta {
         if let Some(data) = ui.data.get_mut(unsafe { view.read().app_id() }) {
             data.application.animations_delta_time = dt;
@@ -278,18 +162,181 @@ where
             data.application
                 .layout(&data.coords_mapping, &mut DefaultLayoutEngine)
                 .unwrap_or_default();
-            if captured {
-                data.interactions.clear_queue(true);
-            }
             data.interactions.deselect_when_no_button_found =
                 unsafe { view.read().deselect_when_no_button_found };
-            if let Ok(result) = data.application.interact(&mut data.interactions) {
-                if unsafe { view.read().capture_input } && result.is_any() {
-                    captured = true;
-                }
-            }
+            let _ = data.application.interact(&mut data.interactions);
             data.signals_received = data.application.consume_signals();
         }
     }
-    ui.last_frame_captured = captured;
+}
+
+fn apply_inputs(
+    data: &mut ApplicationData,
+    listener: &InputStackListener,
+    last_pointer_pos: &mut Vec2,
+) {
+    let pointer_pos = listener.axes_state_or_default::<2>(NAV_POINTER_AXES);
+    let pointer_pos = Vec2 {
+        x: pointer_pos[0],
+        y: pointer_pos[1],
+    };
+    let pointer_moved = (pointer_pos.x - last_pointer_pos.x).abs() > 1.0e-6
+        || (pointer_pos.y - last_pointer_pos.y).abs() > 1.0e-6;
+    *last_pointer_pos = pointer_pos;
+    let pointer_pos = data.coords_mapping.real_to_virtual_vec2(pointer_pos, false);
+    if pointer_moved {
+        data.interactions
+            .interact(Interaction::PointerMove(pointer_pos));
+    }
+
+    let trigger = listener.trigger_state_or_default(NAV_POINTER_ACTION_TRIGGER);
+    if trigger.is_pressed() {
+        data.interactions.interact(Interaction::PointerDown(
+            PointerButton::Trigger,
+            pointer_pos,
+        ));
+    } else if trigger.is_released() {
+        data.interactions
+            .interact(Interaction::PointerUp(PointerButton::Trigger, pointer_pos));
+    }
+
+    let trigger = listener.trigger_state_or_default(NAV_POINTER_CONTEXT_TRIGGER);
+    if trigger.is_pressed() {
+        data.interactions.interact(Interaction::PointerDown(
+            PointerButton::Context,
+            pointer_pos,
+        ));
+    } else if trigger.is_released() {
+        data.interactions
+            .interact(Interaction::PointerUp(PointerButton::Context, pointer_pos));
+    }
+
+    for c in listener.text_state_or_default().chars() {
+        if !c.is_control() {
+            data.interactions
+                .interact(Interaction::Navigate(NavSignal::TextChange(
+                    NavTextChange::InsertCharacter(c),
+                )));
+        } else if c == '\n' || c == '\r' {
+            data.interactions
+                .interact(Interaction::Navigate(NavSignal::TextChange(
+                    NavTextChange::NewLine,
+                )));
+        }
+    }
+    if listener
+        .trigger_state_or_default(NAV_TEXT_MOVE_CURSOR_LEFT_TRIGGER)
+        .is_pressed()
+    {
+        data.interactions
+            .interact(Interaction::Navigate(NavSignal::TextChange(
+                NavTextChange::MoveCursorLeft,
+            )));
+    }
+    if listener
+        .trigger_state_or_default(NAV_TEXT_MOVE_CURSOR_RIGHT_TRIGGER)
+        .is_pressed()
+    {
+        data.interactions
+            .interact(Interaction::Navigate(NavSignal::TextChange(
+                NavTextChange::MoveCursorRight,
+            )));
+    }
+    if listener
+        .trigger_state_or_default(NAV_TEXT_MOVE_CURSOR_START_TRIGGER)
+        .is_pressed()
+    {
+        data.interactions
+            .interact(Interaction::Navigate(NavSignal::TextChange(
+                NavTextChange::MoveCursorStart,
+            )));
+    }
+    if listener
+        .trigger_state_or_default(NAV_TEXT_MOVE_CURSOR_END_TRIGGER)
+        .is_pressed()
+    {
+        data.interactions
+            .interact(Interaction::Navigate(NavSignal::TextChange(
+                NavTextChange::MoveCursorEnd,
+            )));
+    }
+    if listener
+        .trigger_state_or_default(NAV_TEXT_DELETE_LEFT_TRIGGER)
+        .is_pressed()
+    {
+        data.interactions
+            .interact(Interaction::Navigate(NavSignal::TextChange(
+                NavTextChange::DeleteLeft,
+            )));
+    }
+    if listener
+        .trigger_state_or_default(NAV_TEXT_DELETE_RIGHT_TRIGGER)
+        .is_pressed()
+    {
+        data.interactions
+            .interact(Interaction::Navigate(NavSignal::TextChange(
+                NavTextChange::DeleteRight,
+            )));
+    }
+
+    let trigger = listener.trigger_state_or_default(NAV_ACCEPT_TRIGGER);
+    if trigger.is_pressed() {
+        data.interactions
+            .interact(Interaction::Navigate(NavSignal::Accept(true)));
+    } else if trigger.is_released() {
+        data.interactions
+            .interact(Interaction::Navigate(NavSignal::Accept(false)));
+    }
+
+    let trigger = listener.trigger_state_or_default(NAV_CANCEL_TRIGGER);
+    if trigger.is_pressed() {
+        data.interactions
+            .interact(Interaction::Navigate(NavSignal::Cancel(true)));
+    } else if trigger.is_released() {
+        data.interactions
+            .interact(Interaction::Navigate(NavSignal::Cancel(false)));
+    }
+
+    if listener
+        .trigger_state_or_default(NAV_UP_TRIGGER)
+        .is_pressed()
+    {
+        data.interactions
+            .interact(Interaction::Navigate(NavSignal::Up));
+    }
+    if listener
+        .trigger_state_or_default(NAV_DOWN_TRIGGER)
+        .is_pressed()
+    {
+        data.interactions
+            .interact(Interaction::Navigate(NavSignal::Down));
+    }
+    if listener
+        .trigger_state_or_default(NAV_LEFT_TRIGGER)
+        .is_pressed()
+    {
+        data.interactions
+            .interact(Interaction::Navigate(NavSignal::Left));
+    }
+    if listener
+        .trigger_state_or_default(NAV_RIGHT_TRIGGER)
+        .is_pressed()
+    {
+        data.interactions
+            .interact(Interaction::Navigate(NavSignal::Right));
+    }
+    if listener
+        .trigger_state_or_default(NAV_PREV_TRIGGER)
+        .is_pressed()
+    {
+        data.interactions
+            .interact(Interaction::Navigate(NavSignal::Prev));
+    }
+    if listener
+        .trigger_state_or_default(NAV_NEXT_TRIGGER)
+        .is_pressed()
+    {
+        data.interactions
+            .interact(Interaction::Navigate(NavSignal::Next));
+    }
 }

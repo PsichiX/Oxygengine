@@ -17,10 +17,10 @@ use crate::{
 pub use hecs::*;
 use std::{
     any::{type_name, Any, TypeId},
-    cell::{Ref, RefCell, RefMut},
     collections::{HashMap, HashSet},
     marker::PhantomData,
     ops::{Deref, DerefMut},
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 use typid::ID;
 
@@ -177,7 +177,9 @@ impl Multiverse {
                     self.universes.get_mut(universe),
                     self.pipelines.get(pipeline),
                 ) {
-                    pipeline.run(universe);
+                    if !universe.paused_systems_execution {
+                        pipeline.run(universe);
+                    }
                 }
             }
             for universe in self.universes.values_mut() {
@@ -197,9 +199,11 @@ impl Multiverse {
                     if let (Some(universe), Some(pipeline)) =
                         (self.universes.get(&universe), self.pipelines.get(&pipeline))
                     {
-                        #[allow(mutable_transmutes)]
-                        #[allow(clippy::transmute_ptr_to_ptr)]
-                        pipeline.run(unsafe { std::mem::transmute(universe) });
+                        if !universe.paused_systems_execution {
+                            #[allow(mutable_transmutes)]
+                            #[allow(clippy::transmute_ptr_to_ptr)]
+                            pipeline.run(unsafe { std::mem::transmute(universe) });
+                        }
                     }
                 });
                 self.universes
@@ -211,7 +215,9 @@ impl Multiverse {
                         self.universes.get_mut(universe),
                         self.pipelines.get(pipeline),
                     ) {
-                        pipeline.run(universe);
+                        if !universe.paused_systems_execution {
+                            pipeline.run(universe);
+                        }
                     }
                 }
                 for universe in self.universes.values_mut() {
@@ -223,15 +229,12 @@ impl Multiverse {
 }
 
 pub struct Universe {
-    resources: HashMap<TypeId, RefCell<Box<Resource>>>,
+    resources: HashMap<TypeId, Arc<RwLock<Box<Resource>>>>,
     states: Vec<Box<dyn State>>,
     startup: bool,
-    world: RefCell<World>,
+    pub paused_systems_execution: bool,
+    world: Arc<RwLock<World>>,
 }
-
-// TODO: consider finding idiomatic solution for ensuring Universe is Send + Sync.
-unsafe impl Send for Universe {}
-unsafe impl Sync for Universe {}
 
 impl Default for Universe {
     fn default() -> Self {
@@ -239,6 +242,7 @@ impl Default for Universe {
             resources: Default::default(),
             states: vec![],
             startup: true,
+            paused_systems_execution: false,
             world: Default::default(),
         }
     }
@@ -253,34 +257,29 @@ impl Universe {
             resources: Default::default(),
             states: vec![Box::new(state)],
             startup: true,
+            paused_systems_execution: false,
             world: Default::default(),
         }
     }
 
-    pub fn world(&self) -> Ref<World> {
+    pub fn world(&self) -> RwLockReadGuard<World> {
         self.world
-            .try_borrow()
+            .try_read()
             .unwrap_or_else(|error| panic!("{}: {}", std::any::type_name::<World>(), error))
     }
 
-    pub fn world_mut(&self) -> RefMut<World> {
+    pub fn world_mut(&self) -> RwLockWriteGuard<World> {
         self.world
-            .try_borrow_mut()
+            .try_write()
             .unwrap_or_else(|error| panic!("{}: {}", std::any::type_name::<World>(), error))
     }
 
-    pub fn try_world(&self) -> Option<Ref<World>> {
-        match self.world.try_borrow() {
-            Ok(v) => Some(v),
-            Err(_) => None,
-        }
+    pub fn try_world(&self) -> Option<RwLockReadGuard<World>> {
+        self.world.try_read().ok()
     }
 
-    pub fn try_world_mut(&self) -> Option<RefMut<World>> {
-        match self.world.try_borrow_mut() {
-            Ok(v) => Some(v),
-            Err(_) => None,
-        }
+    pub fn try_world_mut(&self) -> Option<RwLockWriteGuard<World>> {
+        self.world.try_write().ok()
     }
 
     pub fn insert_resource<T>(&mut self, resource: T)
@@ -288,7 +287,7 @@ impl Universe {
         T: 'static + Send + Sync,
     {
         self.resources
-            .insert(TypeId::of::<T>(), RefCell::new(Box::new(resource)));
+            .insert(TypeId::of::<T>(), Arc::new(RwLock::new(Box::new(resource))));
     }
 
     /// # Safety
@@ -296,7 +295,8 @@ impl Universe {
     /// for example if you want to move already prepared resources from another place to this
     /// universe (in this case we can be sure type IDs matches the types of resources).
     pub unsafe fn insert_resource_raw(&mut self, as_type: TypeId, resource: Box<Resource>) {
-        self.resources.insert(as_type, RefCell::new(resource));
+        self.resources
+            .insert(as_type, Arc::new(RwLock::new(resource)));
     }
 
     pub fn remove_resource<T>(&mut self)
@@ -320,7 +320,7 @@ impl Universe {
         if let Some(res) = self.resources.get(&TypeId::of::<T>()) {
             return Some(ResRead {
                 inner: unsafe {
-                    std::mem::transmute(res.try_borrow().unwrap_or_else(|error| {
+                    std::mem::transmute(res.try_read().unwrap_or_else(|error| {
                         panic!("{}: {}", std::any::type_name::<T>(), error)
                     }))
                 },
@@ -337,7 +337,7 @@ impl Universe {
         if let Some(res) = self.resources.get(&TypeId::of::<T>()) {
             return Some(ResWrite {
                 inner: unsafe {
-                    std::mem::transmute(res.try_borrow_mut().unwrap_or_else(|error| {
+                    std::mem::transmute(res.try_write().unwrap_or_else(|error| {
                         panic!("{}: {}", std::any::type_name::<T>(), error)
                     }))
                 },
@@ -536,7 +536,7 @@ pub trait ResQuery {
 }
 
 pub struct ResRead<T> {
-    inner: Ref<'static, Box<Resource>>,
+    inner: RwLockReadGuard<'static, Box<Resource>>,
     _phantom: PhantomData<fn() -> T>,
 }
 
@@ -553,7 +553,7 @@ where
     }
 }
 
-pub struct RefRead<T>(Ref<'static, T>)
+pub struct RefRead<T>(RwLockReadGuard<'static, T>)
 where
     T: 'static;
 
@@ -568,7 +568,7 @@ impl<T> Deref for RefRead<T> {
 }
 
 pub struct ResWrite<T> {
-    inner: RefMut<'static, Box<Resource>>,
+    inner: RwLockWriteGuard<'static, Box<Resource>>,
     _phantom: PhantomData<fn() -> T>,
 }
 
@@ -594,7 +594,7 @@ where
     }
 }
 
-pub struct RefWrite<T>(RefMut<'static, T>)
+pub struct RefWrite<T>(RwLockWriteGuard<'static, T>)
 where
     T: 'static;
 

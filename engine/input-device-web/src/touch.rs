@@ -1,4 +1,5 @@
 use crate::input::device::InputDevice;
+use backend::closure::WebClosure;
 use core::Scalar;
 use std::{
     any::Any,
@@ -24,6 +25,10 @@ pub struct WebTouchInputDevice {
     started: HashSet<i32>,
     ended: HashSet<i32>,
     cached: HashSet<i32>,
+    touch_start_closure: WebClosure,
+    touch_end_closure: WebClosure,
+    touch_move_closure: WebClosure,
+    touch_cancel_closure: WebClosure,
 }
 
 unsafe impl Send for WebTouchInputDevice {}
@@ -37,6 +42,10 @@ impl WebTouchInputDevice {
             cached: Default::default(),
             started: Default::default(),
             ended: Default::default(),
+            touch_start_closure: Default::default(),
+            touch_end_closure: Default::default(),
+            touch_move_closure: Default::default(),
+            touch_cancel_closure: Default::default(),
         }
     }
 
@@ -90,18 +99,21 @@ impl InputDevice for WebTouchInputDevice {
                 self.element
                     .add_event_listener_with_callback($name, closure.as_ref().unchecked_ref())
                     .unwrap();
-                closure.forget();
+                WebClosure::acquire(closure)
             }};
         }
 
-        impl_callback!("touchstart");
-        impl_callback!("touchend");
-        impl_callback!("touchmove");
-        impl_callback!("touchstart");
+        self.touch_start_closure = impl_callback!("touchstart");
+        self.touch_end_closure = impl_callback!("touchend");
+        self.touch_move_closure = impl_callback!("touchmove");
+        self.touch_cancel_closure = impl_callback!("touchcancel");
     }
 
     fn on_unregister(&mut self) {
-        // TODO: cache callbacks, remove events and kill callbacks here.
+        self.touch_start_closure.release();
+        self.touch_end_closure.release();
+        self.touch_move_closure.release();
+        self.touch_cancel_closure.release();
     }
 
     fn process(&mut self) {

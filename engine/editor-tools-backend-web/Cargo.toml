@@ -1,0 +1,27 @@
+[package]
+name = "oxygengine-editor-tools-backend-web"
+version = "0.30.0"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+edition = "2021"
+description = "Editor tools Web backend module for Oxygengine"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine-editor-tools-backend-web"
+readme = "../../README.md"
+
+[features]
+web = []
+
+[dependencies]
+oxygengine-backend-web = { version = "0.30", path = "../backend-web" }
+oxygengine-editor-tools = { version = "0.30", path = "../editor-tools" }
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+  "BroadcastChannel",
+  "MessageEvent",
+]

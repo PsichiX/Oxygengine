@@ -5,7 +5,7 @@ use crate::{
     },
     ha_renderer::HaRenderer,
     material::domains::surface::SurfaceDomain,
-    mesh::{BufferStorage, Mesh, MeshId, MeshInstanceReference},
+    mesh::{BufferStorage, Mesh, MeshId, MeshReference},
 };
 use core::ecs::{life_cycle::EntityChanges, Comp, Entity, Universe, WorldRef};
 use std::collections::HashMap;
@@ -40,15 +40,15 @@ where
 
     for (entity, (batch, mesh)) in world
         .query::<(&mut HaImmediateBatch<V>, &mut HaMeshInstance)>()
-        .with::<HaMaterialInstance>()
+        .with::<&HaMaterialInstance>()
         .iter()
     {
-        mesh.reference = MeshInstanceReference::None;
+        mesh.reference = MeshReference::None;
         if let Ok(factory) = batch.factory.factory() {
             if let Some(id) = cache.meshes.get(&entity) {
                 if let Some(m) = renderer.mesh_mut(*id) {
                     if factory.write_into(m).is_ok() {
-                        mesh.reference = MeshInstanceReference::Id(*id);
+                        mesh.reference = MeshReference::Id(*id);
                     }
                 }
             } else {
@@ -58,7 +58,7 @@ where
                 m.set_index_storage(BufferStorage::Dynamic);
                 if factory.write_into(&mut m).is_ok() {
                     if let Ok(id) = renderer.add_mesh(m) {
-                        mesh.reference = MeshInstanceReference::Id(id);
+                        mesh.reference = MeshReference::Id(id);
                         cache.meshes.insert(entity, id);
                     }
                 }

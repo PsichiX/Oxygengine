@@ -3,8 +3,8 @@ use oxygengine::prelude::*;
 pub fn avatar_material_graph() -> MaterialGraph {
     material_graph! {
         inputs {
-            [vertex] domain TextureCoord: vec3 = {vec3(0.0, 0.0, 0.0)};
-            [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+            [vertex] inout TextureCoord: vec3 = {vec3(0.0, 0.0, 0.0)};
+            [vertex] inout TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
 
             [fragment] uniform mainImage: sampler2D;
             // alpha is used to lerp between original color and blink color.
@@ -12,7 +12,7 @@ pub fn avatar_material_graph() -> MaterialGraph {
         }
 
         outputs {
-            [fragment] domain BaseColor: vec4;
+            [fragment] out BaseColor: vec4;
         }
 
         [coord = (truncate_vec3, v: [TextureCoord => vTexCoord])]
@@ -30,8 +30,8 @@ pub fn avatar_material_graph() -> MaterialGraph {
 pub fn virtual_uniform_avatar_material_graph() -> MaterialGraph {
     material_graph! {
         inputs {
-            [vertex] domain TextureCoord: vec3 = {vec3(0.0, 0.0, 0.0)};
-            [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+            [vertex] inout TextureCoord: vec3 = {vec3(0.0, 0.0, 0.0)};
+            [vertex] inout TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
 
             [fragment] uniform mainImage: sampler2D;
             [fragment] uniform mainImageOffset: vec2;
@@ -41,7 +41,7 @@ pub fn virtual_uniform_avatar_material_graph() -> MaterialGraph {
         }
 
         outputs {
-            [fragment] domain BaseColor: vec4;
+            [fragment] inout BaseColor: vec4;
         }
 
         [coord = (truncate_vec3, v: [TextureCoord => vTexCoord])]
@@ -67,7 +67,7 @@ mod tests {
 
     #[test]
     fn test_avatar_material() {
-        MaterialLibrary::assert_validate_material_compilation(
+        MaterialLibrary::assert_material_compilation(
             &SurfaceVertexPT::vertex_layout().unwrap(),
             RenderTargetDescriptor::Main,
             &surface_flat_domain_graph(),

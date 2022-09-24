@@ -1,4 +1,4 @@
-use oxygengine_build_tools::AssetPipelineInput;
+use oxygengine_build_tools::*;
 use oxygengine_composite_renderer::{math::*, sprite_sheet_asset_protocol::*};
 use serde::Deserialize;
 use std::{
@@ -45,6 +45,8 @@ impl Params {
         2
     }
 }
+
+impl ParamsFromArgs for Params {}
 
 fn main() -> Result<(), Error> {
     let (source, destination, params) = AssetPipelineInput::<Params>::consume().unwrap();
@@ -191,7 +193,7 @@ fn scan_dir(from: &Path, root: &Path, map: &mut HashMap<String, Vec<u8>>) -> Res
                     if let Some(path) = pathdiff::diff_paths(&path, root) {
                         if let Some(path) = path.to_str() {
                             println!("* Include file: {:?} as: {:?}", root.join(path), path);
-                            let name = path.to_owned().replace("\\\\", "/").replace("\\", "/");
+                            let name = path.to_owned().replace("\\\\", "/").replace('\\', "/");
                             map.insert(name, contents);
                         } else {
                             println!("* Cannot parse path: {:?}", root.join(path));

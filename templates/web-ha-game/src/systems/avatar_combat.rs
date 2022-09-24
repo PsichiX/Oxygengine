@@ -52,17 +52,17 @@ pub fn avatar_combat_system(universe: &mut Universe) {
         if !is_touching_side(dx, dy) {
             continue;
         }
-        let assume_dead = if let Ok(mut health) = world.get_mut::<Health>(entity) {
+        let assume_dead = if let Ok(mut health) = world.get::<&mut Health>(entity) {
             health.0 = health.0.saturating_sub(attack);
             health.0 == 0
         } else {
             false
         };
-        if let Ok(mut blink) = world.get_mut::<Blink>(entity) {
+        if let Ok(mut blink) = world.get::<&mut Blink>(entity) {
             blink.0 = 0.5;
         }
         if assume_dead {
-            if let Ok(level_up) = world.get::<LevelUp>(entity) {
+            if let Ok(level_up) = world.get::<&LevelUp>(entity) {
                 events.send(GlobalEvent::LevelUp(my_entity, level_up.0));
             }
         }

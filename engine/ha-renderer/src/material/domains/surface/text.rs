@@ -6,16 +6,15 @@ use crate::{
     mesh::{vertex_factory::StaticVertexFactory, MeshDrawMode, MeshError},
 };
 
-#[derive(Debug, Clone)]
 struct TextGlyph {
-    character: char,
+    // character: char,
     page: usize,
     position: Vec2,
     uvs: Rect,
     size: Vec2,
     color: Rgba,
     outline: Rgba,
-    thickness: f32,
+    // thickness: f32,
     cursive_shift: f32,
     baseline: f32,
 }
@@ -117,7 +116,7 @@ impl SurfaceTextFactory {
                     size,
                     color,
                     outline,
-                    thickness,
+                    // thickness,
                     cursive,
                     ..
                 } => {
@@ -139,7 +138,7 @@ impl SurfaceTextFactory {
                             let cursive_shift = yadvance * cursive;
                             line_height = line_height.max(yadvance);
                             line_cache.push(TextGlyph {
-                                character,
+                                // character,
                                 page: c.page as _,
                                 position: Vec2::new(x, y) + offset,
                                 uvs: Rect::new(
@@ -151,7 +150,7 @@ impl SurfaceTextFactory {
                                 size,
                                 color,
                                 outline,
-                                thickness,
+                                // thickness,
                                 cursive_shift,
                                 baseline,
                             });

@@ -3,16 +3,8 @@ use core::{
     prefab::{Prefab, PrefabComponent},
     Ignite, Scalar,
 };
-use pest::{iterators::Pair, Parser};
 use serde::{Deserialize, Serialize};
 use std::str::Chars;
-
-#[allow(clippy::upper_case_acronyms)]
-mod parser {
-    #[derive(Parser)]
-    #[grammar = "components/rich_text.pest"]
-    pub(crate) struct SentenceParser;
-}
 
 pub enum HaTextElementIter<'a> {
     NewLine {
@@ -29,7 +21,7 @@ pub enum HaTextElementIter<'a> {
 
 impl<'a> HaTextElementIter<'a> {
     pub fn new(instance: &'a HaTextInstance) -> Self {
-        if let Some(fragment) = instance.content.fragments().get(0) {
+        if let Some(fragment) = instance.content.0.get(0) {
             match fragment {
                 HaTextFragment::NewLine => Self::NewLine { instance, index: 0 },
                 HaTextFragment::Text { text, .. } => Self::Text {
@@ -50,7 +42,7 @@ impl<'a> Iterator for HaTextElementIter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         match self {
             Self::NewLine { instance, index } => {
-                if let Some(fragment) = instance.content.fragments().get(*index + 1) {
+                if let Some(fragment) = instance.content.0.get(*index + 1) {
                     match fragment {
                         HaTextFragment::NewLine => {
                             *self = Self::NewLine {
@@ -78,13 +70,17 @@ impl<'a> Iterator for HaTextElementIter<'a> {
             } => {
                 if let Some(character) = characters.next() {
                     if let Some(HaTextFragment::Text {
-                        size,
-                        color,
-                        outline,
-                        thickness,
-                        cursive,
+                        params:
+                            HaTextFragmentParams {
+                                size,
+                                color,
+                                outline,
+                                thickness,
+                                cursive,
+                                wrapping,
+                            },
                         ..
-                    }) = instance.content.fragments().get(*index)
+                    }) = instance.content.0.get(*index)
                     {
                         Some(HaTextElement::Glyph {
                             character,
@@ -93,13 +89,13 @@ impl<'a> Iterator for HaTextElementIter<'a> {
                             outline: outline.unwrap_or_else(|| instance.outline),
                             thickness: thickness.unwrap_or_else(|| instance.thickness),
                             cursive: cursive.unwrap_or_else(|| instance.cursive),
-                            wrapping: &instance.wrapping,
+                            wrapping: wrapping.as_ref().unwrap_or(&instance.wrapping),
                         })
                     } else {
                         *self = Self::Done;
                         None
                     }
-                } else if let Some(fragment) = instance.content.fragments().get(*index + 1) {
+                } else if let Some(fragment) = instance.content.0.get(*index + 1) {
                     match fragment {
                         HaTextFragment::NewLine => {
                             *self = Self::NewLine {
@@ -141,24 +137,30 @@ pub enum HaTextElement<'a> {
     },
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct HaTextFragmentParams {
+    #[serde(default)]
+    size: Option<Scalar>,
+    #[serde(default)]
+    color: Option<Rgba>,
+    #[serde(default)]
+    outline: Option<Rgba>,
+    #[serde(default)]
+    thickness: Option<Scalar>,
+    #[serde(default)]
+    cursive: Option<Scalar>,
+    #[serde(default)]
+    wrapping: Option<HaTextWrapping>,
+}
+
+#[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum HaTextFragment {
     NewLine,
     Text {
         #[serde(default)]
         text: String,
         #[serde(default)]
-        size: Option<Scalar>,
-        #[serde(default)]
-        color: Option<Rgba>,
-        #[serde(default)]
-        outline: Option<Rgba>,
-        #[serde(default)]
-        thickness: Option<Scalar>,
-        #[serde(default)]
-        cursive: Option<Scalar>,
-        #[serde(default)]
-        wrapping: Option<HaTextWrapping>,
+        params: HaTextFragmentParams,
     },
 }
 
@@ -169,15 +171,10 @@ impl Default for HaTextFragment {
 }
 
 impl HaTextFragment {
-    pub fn text(text: &str) -> Self {
+    pub fn text(text: impl ToString) -> Self {
         Self::Text {
-            text: text.to_owned(),
-            size: None,
-            color: None,
-            outline: None,
-            thickness: None,
-            cursive: None,
-            wrapping: None,
+            text: text.to_string(),
+            params: Default::default(),
         }
     }
 
@@ -196,6 +193,40 @@ impl HaTextFragment {
     }
 }
 
+#[derive(Ignite, Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct HaTextContent(pub Vec<HaTextFragment>);
+
+impl HaTextContent {
+    pub fn parse(text: &str) -> Self {
+        let mut result = vec![];
+        let mut first = true;
+        for line in text.split(|c| c == '\r' || c == '\n') {
+            if first {
+                first = false;
+            } else {
+                result.push(HaTextFragment::NewLine);
+            }
+            result.push(HaTextFragment::text(line))
+        }
+        Self(result)
+    }
+}
+
+impl From<HaRichTextBuilder> for HaTextContent {
+    fn from(other: HaRichTextBuilder) -> Self {
+        other.build()
+    }
+}
+
+impl<T> From<T> for HaTextContent
+where
+    T: AsRef<str>,
+{
+    fn from(other: T) -> Self {
+        Self::parse(other.as_ref())
+    }
+}
+
 #[derive(Ignite, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HaTextWrapping {
     Character,
@@ -205,7 +236,7 @@ pub enum HaTextWrapping {
 
 impl Default for HaTextWrapping {
     fn default() -> Self {
-        Self::Character
+        Self::Word
     }
 }
 
@@ -215,67 +246,6 @@ impl HaTextWrapping {
             Self::Character => true,
             Self::Word => character.is_whitespace(),
             Self::Set(characters) => characters.chars().any(|c| c == character),
-        }
-    }
-}
-
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
-pub enum HaTextContent {
-    Fragments(Vec<HaTextFragment>),
-    RichTextTree(HaRichTextContent),
-    RichText(String),
-}
-
-impl Default for HaTextContent {
-    fn default() -> Self {
-        Self::Fragments(vec![])
-    }
-}
-
-impl HaTextContent {
-    const EMPTY_FRAGMENTS: &'static [HaTextFragment] = &[];
-
-    pub fn text(text: &str) -> Self {
-        let count = text.lines().count();
-        if count == 1 {
-            return Self::Fragments(vec![HaTextFragment::text(text)]);
-        }
-        let mut result = Vec::with_capacity(count * 2 - 1);
-        for (i, line) in text.lines().enumerate() {
-            if i > 0 {
-                result.push(HaTextFragment::NewLine);
-            }
-            result.push(HaTextFragment::text(line));
-        }
-        Self::Fragments(result)
-    }
-
-    pub fn normalize(self) -> Result<Self, String> {
-        match self {
-            Self::Fragments(_) => Ok(self),
-            Self::RichTextTree(content) => Ok(Self::Fragments(content.build_fragments())),
-            Self::RichText(text) => Ok(Self::Fragments(
-                HaRichTextContent::new(&text)?.build_fragments(),
-            )),
-        }
-    }
-
-    pub fn normalize_lossy(self) -> Self {
-        match self {
-            Self::Fragments(_) => self,
-            Self::RichTextTree(content) => Self::Fragments(content.build_fragments()),
-            Self::RichText(text) => Self::Fragments(
-                HaRichTextContent::new(&text)
-                    .map(|content| content.build_fragments())
-                    .unwrap_or_else(|error| vec![HaTextFragment::text(&error)]),
-            ),
-        }
-    }
-
-    pub fn fragments(&self) -> &[HaTextFragment] {
-        match self {
-            Self::Fragments(f) => f.as_slice(),
-            _ => Self::EMPTY_FRAGMENTS,
         }
     }
 }
@@ -347,24 +317,18 @@ impl HaTextInstance {
     pub fn lines_count(&self) -> usize {
         1 + self
             .content
-            .fragments()
+            .0
             .iter()
             .filter(|fragment| matches!(fragment, HaTextFragment::NewLine))
             .count()
     }
 
     pub fn glyphs_count(&self) -> usize {
-        self.content
-            .fragments()
-            .iter()
-            .fold(0, |a, v| a + v.glyphs_count())
+        self.content.0.iter().fold(0, |a, v| a + v.glyphs_count())
     }
 
     pub fn elements_count(&self) -> usize {
-        self.content
-            .fragments()
-            .iter()
-            .fold(0, |a, v| a + v.elements_count())
+        self.content.0.iter().fold(0, |a, v| a + v.elements_count())
     }
 
     pub fn iter(&self) -> HaTextElementIter {
@@ -384,14 +348,12 @@ impl HaTextInstance {
         &self.content
     }
 
-    pub fn set_content(&mut self, content: HaTextContent) -> Result<(), String> {
-        self.content = content.normalize()?;
-        self.dirty = true;
-        Ok(())
+    pub fn fragments(&self) -> &[HaTextFragment] {
+        &self.content.0
     }
 
-    pub fn set_content_lossy(&mut self, content: HaTextContent) {
-        self.content = content.normalize_lossy();
+    pub fn set_content(&mut self, content: impl Into<HaTextContent>) {
+        self.content = content.into();
         self.dirty = true;
     }
 
@@ -501,198 +463,145 @@ impl HaTextInstance {
 
 impl Prefab for HaTextInstance {
     fn post_from_prefab(&mut self) {
-        self.content = std::mem::take(&mut self.content).normalize_lossy();
         self.alignment = Vec2::partial_max(Vec2::partial_min(self.alignment, 1.0), 0.0);
         self.pivot = Vec2::partial_max(Vec2::partial_min(self.pivot, 1.0), 0.0);
         self.dirty = true;
     }
 }
-
 impl PrefabComponent for HaTextInstance {}
 
-#[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum HaRichTextOption {
-    Size(Scalar),
-    Color(Rgba),
-    Outline(Rgba),
-    Thickness(Scalar),
-    Cursive(Scalar),
-    Wrapping(HaTextWrapping),
-}
-
-impl HaRichTextOption {
-    fn parse(pair: Pair<parser::Rule>) -> Self {
-        match pair.as_rule() {
-            parser::Rule::opt_size => {
-                Self::Size(Self::parse_number(pair.into_inner().next().unwrap()))
-            }
-            parser::Rule::opt_color => {
-                Self::Color(Self::parse_color(pair.into_inner().next().unwrap()))
-            }
-            parser::Rule::opt_outline => {
-                Self::Outline(Self::parse_color(pair.into_inner().next().unwrap()))
-            }
-            parser::Rule::opt_thickness => {
-                Self::Thickness(Self::parse_number(pair.into_inner().next().unwrap()))
-            }
-            parser::Rule::opt_cursive => {
-                Self::Cursive(Self::parse_number(pair.into_inner().next().unwrap()))
-            }
-            parser::Rule::opt_wrapping => {
-                Self::Wrapping(Self::parse_wrapping(pair.into_inner().next().unwrap()))
-            }
-            _ => unreachable!(),
-        }
-    }
-
-    fn parse_number(pair: Pair<parser::Rule>) -> Scalar {
-        pair.as_str().parse().unwrap()
-    }
-
-    fn parse_color(pair: Pair<parser::Rule>) -> Rgba {
-        let mut pairs = pair.into_inner();
-        let r = Self::parse_number(pairs.next().unwrap());
-        let g = Self::parse_number(pairs.next().unwrap());
-        let b = Self::parse_number(pairs.next().unwrap());
-        let a = Self::parse_number(pairs.next().unwrap());
-        Rgba::new(r, g, b, a)
-    }
-
-    fn parse_wrapping(pair: Pair<parser::Rule>) -> HaTextWrapping {
-        match pair.as_rule() {
-            parser::Rule::opt_wrapping_char => HaTextWrapping::Character,
-            parser::Rule::opt_wrapping_word => HaTextWrapping::Word,
-            parser::Rule::opt_wrapping_set => HaTextWrapping::Set(HaRichTextItem::parse_string(
-                pair.into_inner().next().unwrap(),
-            )),
-            _ => unreachable!(),
-        }
-    }
-}
-
-#[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum HaRichTextItem {
-    Group {
-        #[serde(default)]
-        options: Vec<HaRichTextOption>,
-        content: HaRichTextContent,
-    },
-    Text(String),
-    NewLine,
-}
-
-impl HaRichTextItem {
-    fn collect_fragments(&self, opts: &RichTextOptions, output: &mut Vec<HaTextFragment>) {
-        match self {
-            Self::Group { options, content } => {
-                let mut opts = opts.to_owned();
-                for option in options {
-                    match option {
-                        HaRichTextOption::Size(v) => opts.size = Some(*v),
-                        HaRichTextOption::Color(v) => opts.color = Some(*v),
-                        HaRichTextOption::Outline(v) => opts.outline = Some(*v),
-                        HaRichTextOption::Thickness(v) => opts.thickness = Some(*v),
-                        HaRichTextOption::Cursive(v) => opts.cursive = Some(*v),
-                        HaRichTextOption::Wrapping(v) => opts.wrapping = Some(v.to_owned()),
-                    }
-                }
-                content.collect_fragments(&opts, output);
-            }
-            Self::Text(text) => output.push(HaTextFragment::Text {
-                text: text.to_owned(),
-                size: opts.size,
-                color: opts.color,
-                outline: opts.outline,
-                thickness: opts.thickness,
-                cursive: opts.cursive,
-                wrapping: opts.wrapping.to_owned(),
-            }),
-            Self::NewLine => output.push(HaTextFragment::NewLine),
-        }
-    }
-
-    fn fragments_count(&self) -> usize {
-        match self {
-            Self::Group { content, .. } => content.fragments_count(),
-            Self::Text(_) | Self::NewLine => 1,
-        }
-    }
-
-    fn parse(pair: Pair<parser::Rule>) -> Self {
-        match pair.as_rule() {
-            parser::Rule::group => {
-                let mut pairs = pair.into_inner();
-                let options = Self::parse_options(pairs.next().unwrap());
-                let content = HaRichTextContent::parse(pairs.next().unwrap());
-                Self::Group { options, content }
-            }
-            parser::Rule::string => Self::Text(Self::parse_string(pair)),
-            parser::Rule::new_line => Self::NewLine,
-            _ => unreachable!(),
-        }
-    }
-
-    fn parse_options(pair: Pair<parser::Rule>) -> Vec<HaRichTextOption> {
-        pair.into_inner()
-            .map(|p| HaRichTextOption::parse(p.into_inner().next().unwrap()))
-            .collect()
-    }
-
-    fn parse_string(pair: Pair<parser::Rule>) -> String {
-        pair.into_inner().next().unwrap().as_str().to_owned()
-    }
-}
-
-#[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct HaRichTextContent(pub Vec<HaRichTextItem>);
-
-impl HaRichTextContent {
-    pub fn new(text: &str) -> Result<Self, String> {
-        match parser::SentenceParser::parse(parser::Rule::main, text) {
-            Ok(mut ast) => {
-                let pair = ast.next().unwrap();
-                match pair.as_rule() {
-                    parser::Rule::main => Ok(Self::parse(pair.into_inner().next().unwrap())),
-                    _ => unreachable!(),
-                }
-            }
-            Err(error) => Err(error.to_string()),
-        }
-    }
-
-    pub fn build_fragments(&self) -> Vec<HaTextFragment> {
-        let mut result = Vec::with_capacity(self.fragments_count());
-        self.collect_fragments(&RichTextOptions::default(), &mut result);
-        result
-    }
-
-    fn collect_fragments(&self, options: &RichTextOptions, output: &mut Vec<HaTextFragment>) {
-        for item in &self.0 {
-            item.collect_fragments(options, output);
-        }
-    }
-
-    fn fragments_count(&self) -> usize {
-        self.0.iter().fold(0, |a, v| a + v.fragments_count())
-    }
-
-    fn parse(pair: Pair<parser::Rule>) -> Self {
-        Self(
-            pair.into_inner()
-                .map(HaRichTextItem::parse)
-                .collect::<Vec<_>>(),
-        )
-    }
-}
-
 #[derive(Debug, Default, Clone)]
-struct RichTextOptions {
-    size: Option<Scalar>,
-    color: Option<Rgba>,
-    outline: Option<Rgba>,
-    thickness: Option<Scalar>,
-    cursive: Option<Scalar>,
-    wrapping: Option<HaTextWrapping>,
+pub struct HaRichTextBuilder {
+    size: Vec<Scalar>,
+    color: Vec<Rgba>,
+    outline: Vec<Rgba>,
+    thickness: Vec<Scalar>,
+    cursive: Vec<Scalar>,
+    wrapping: Vec<HaTextWrapping>,
+    fragments: Vec<HaTextFragment>,
+}
+
+macro_rules! impl_rich_text_group {
+    ($name:ident : $type:ty) => {
+        pub fn $name<F>(mut self, value: $type, f: F) -> Self
+        where
+            F: FnOnce(Self) -> Self,
+        {
+            self.$name.push(value);
+            self = f(self);
+            self.$name.pop();
+            self
+        }
+    };
+}
+
+impl HaRichTextBuilder {
+    pub fn with_capacity(depth: usize, count: usize) -> Self {
+        Self {
+            size: Vec::with_capacity(depth),
+            color: Vec::with_capacity(depth),
+            outline: Vec::with_capacity(depth),
+            thickness: Vec::with_capacity(depth),
+            cursive: Vec::with_capacity(depth),
+            wrapping: Vec::with_capacity(depth),
+            fragments: Vec::with_capacity(count),
+        }
+    }
+
+    pub fn build(self) -> HaTextContent {
+        HaTextContent(self.fragments)
+    }
+
+    impl_rich_text_group!(size: Scalar);
+    impl_rich_text_group!(color: Rgba);
+    impl_rich_text_group!(outline: Rgba);
+    impl_rich_text_group!(thickness: Scalar);
+    impl_rich_text_group!(cursive: Scalar);
+    impl_rich_text_group!(wrapping: HaTextWrapping);
+
+    pub fn new_line(mut self) -> Self {
+        self.fragments.push(HaTextFragment::NewLine);
+        self
+    }
+
+    pub fn text(mut self, value: impl ToString) -> Self {
+        let mut first = true;
+        for line in value.to_string().split(|c| c == '\r' || c == '\n') {
+            if first {
+                first = false;
+            } else {
+                self.fragments.push(HaTextFragment::NewLine);
+            }
+            self.fragments.push(HaTextFragment::Text {
+                text: line.to_owned(),
+                params: HaTextFragmentParams {
+                    size: self.size.last().copied(),
+                    color: self.color.last().copied(),
+                    outline: self.outline.last().copied(),
+                    thickness: self.thickness.last().copied(),
+                    cursive: self.cursive.last().copied(),
+                    wrapping: self.wrapping.last().cloned(),
+                },
+            });
+        }
+        self
+    }
+}
+
+#[macro_export]
+macro_rules! rich_text {
+    ( @item($builder:expr) => [size ( $value:expr ) $( $item:tt )* ] ) => {
+        $crate::rich_text! { @item($builder, size, $value) => ( $($item)* ) }
+    };
+    ( @item($builder:expr) => [color = $value:ident $( $item:tt )* ] ) => {
+        $crate::rich_text! { @item($builder, color, $crate::math::Rgba::$value()) => ( $($item)* ) }
+    };
+    ( @item($builder:expr) => [color ( $value:expr ) $( $item:tt )* ] ) => {
+        $crate::rich_text! { @item($builder, color, $value) => ( $($item)* ) }
+    };
+    ( @item($builder:expr) => [outline ( $value:expr ) $( $item:tt )* ] ) => {
+        $crate::rich_text! { @item($builder, outline, $value) => ( $($item)* ) }
+    };
+    ( @item($builder:expr) => [thickness ( $value:expr ) $( $item:tt )* ] ) => {
+        $crate::rich_text! { @item($builder, thickness, $value) => ( $($item)* ) }
+    };
+    ( @item($builder:expr) => [cursive ( $value:expr ) $( $item:tt )* ] ) => {
+        $crate::rich_text! { @item($builder, cursive, $value) => ( $($item)* ) }
+    };
+    ( @item($builder:expr) => [wrapping ( $value:expr ) $( $item:tt )* ] ) => {
+        $crate::rich_text! { @item($builder, wrapping, $value) => ( $($item)* ) }
+    };
+    ( @item($builder:expr) => [wrapping = character $( $item:tt )* ] ) => {
+        $crate::rich_text! { @item($builder, wrapping, $crate::components::text_instance::HaTextWrapping::Character) => ( $($item)* ) }
+    };
+    ( @item($builder:expr) => [wrapping = word $( $item:tt )* ] ) => {
+        $crate::rich_text! { @item($builder, wrapping, $crate::components::text_instance::HaTextWrapping::Word) => ( $($item)* ) }
+    };
+    ( @item($builder:expr) => [wrapping = $value:literal $( $item:tt )* ] ) => {
+        $crate::rich_text! { @item($builder, wrapping, $crate::components::text_instance::HaTextWrapping::Set($value.to_string())) => ( $($item)* ) }
+    };
+    ( @item($builder:expr, $param:ident, $value:expr ) => ( $( $item:tt )* ) ) => {
+        $builder.$param($value.into(), |mut builder| {
+            $(
+                builder = $crate::rich_text! { @item(builder) => $item };
+            )*
+            builder
+        })
+    };
+    ( @item($builder:expr) => newline ) => ( $builder.new_line() );
+    ( @item($builder:expr) => $value:literal ) => ( $builder.text($value) );
+    ( @item($builder:expr) => { $value:expr } ) => ( $builder.text($value) );
+    (
+        $( $item:tt )+
+    ) => {
+        {
+            let mut builder = $crate::components::text_instance::HaRichTextBuilder::default();
+            $(
+                builder = $crate::rich_text! { @item(builder) => $item };
+            )+
+            builder.build()
+        }
+    };
 }
 
 #[cfg(test)]
@@ -701,11 +610,28 @@ mod tests {
 
     #[test]
     fn test_rich_text() {
-        let rich =
-            HaRichTextContent::new("[s:1|c:(0,1,2,3)|`webgl2`[w:`_`|`text`#`renderer`]]").unwrap();
-        println!("* Rich text: {:#?}", rich);
-        assert_eq!(rich.fragments_count(), 4);
-        let fragments = rich.build_fragments();
-        println!("* Rich text fragments: {:#?}", fragments);
+        let a = HaRichTextBuilder::default()
+            .size(64.0, |b| {
+                b.text("webgl2").color(Rgba::red(), |b| {
+                    b.wrapping(HaTextWrapping::Character, |b| {
+                        b.text("text").new_line().text("renderer").text(42)
+                    })
+                })
+            })
+            .build();
+        let b = rich_text! {
+            [size(64.0)
+                "webgl2"
+                [color=red
+                    [wrapping=character
+                        "text"
+                        newline
+                        "renderer"
+                        {42}
+                    ]
+                ]
+            ]
+        };
+        assert_eq!(a, b);
     }
 }

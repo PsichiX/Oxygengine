@@ -1,11 +1,14 @@
 use crate::{
-    image::{ImageFiltering, ImageInstanceReference, ImageResourceMapping},
+    image::{ImageFiltering, ImageReference, ImageResourceMapping},
     math::vek::*,
     mesh::VertexLayout,
     render_target::RenderTarget,
     resources::material_library::MaterialLibrary,
 };
-use core::Ignite;
+use core::{
+    utils::{StrSequence, StringSequence},
+    Ignite,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{hash_map::DefaultHasher, HashMap},
@@ -71,6 +74,7 @@ pub struct MaterialSignature {
     mesh: MaterialMeshSignature,
     render_target: MaterialRenderTargetSignature,
     domain: Option<String>,
+    middlewares: StringSequence,
 }
 
 impl MaterialSignature {
@@ -78,11 +82,13 @@ impl MaterialSignature {
         mesh: MaterialMeshSignature,
         render_target: MaterialRenderTargetSignature,
         domain: Option<String>,
+        middlewares: StringSequence,
     ) -> Self {
         Self {
             mesh,
             render_target,
             domain,
+            middlewares,
         }
     }
 
@@ -90,10 +96,11 @@ impl MaterialSignature {
         vertex_layout: &VertexLayout,
         render_target: &RenderTarget,
         domain: Option<String>,
+        middlewares: StringSequence,
     ) -> Self {
         let mesh = MaterialMeshSignature::new(vertex_layout);
         let render_target = MaterialRenderTargetSignature::new(render_target);
-        Self::new(mesh, render_target, domain)
+        Self::new(mesh, render_target, domain, middlewares)
     }
 
     /// # Safety
@@ -103,10 +110,11 @@ impl MaterialSignature {
         vertex_layout: Vec<(String, usize)>,
         render_target: Vec<String>,
         domain: Option<String>,
+        middlewares: StringSequence,
     ) -> Self {
         let mesh = MaterialMeshSignature::from_raw(vertex_layout);
         let render_target = MaterialRenderTargetSignature::from_raw(render_target);
-        Self::new(mesh, render_target, domain)
+        Self::new(mesh, render_target, domain, middlewares)
     }
 
     pub fn hashed(&self) -> MaterialHashedSignature {
@@ -126,6 +134,10 @@ impl MaterialSignature {
 
     pub fn domain(&self) -> Option<&str> {
         self.domain.as_deref()
+    }
+
+    pub fn middlewares(&self) -> StrSequence {
+        self.middlewares.as_slice()
     }
 }
 
@@ -150,8 +162,12 @@ where
 
 pub enum MaterialCompilationState<'a> {
     FunctionDeclaration,
-    FunctionDefinition,
-    FunctionBody,
+    FunctionDefinition {
+        library: &'a MaterialLibrary,
+    },
+    FunctionBody {
+        library: &'a MaterialLibrary,
+    },
     Main {
         shader_type: MaterialShaderType,
         signature: &'a MaterialSignature,
@@ -214,13 +230,20 @@ pub enum MaterialDataType {
     Attribute,
     Uniform,
     BufferOutput,
-    Domain,
 }
 
 impl Default for MaterialDataType {
     fn default() -> Self {
         Self::Constant
     }
+}
+
+#[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum MaterialValueCategory {
+    Bool,
+    Float,
+    Integer,
+    Sampler,
 }
 
 #[derive(Ignite, Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -258,6 +281,38 @@ impl Default for MaterialValueType {
     }
 }
 
+impl MaterialValueType {
+    pub fn category(&self) -> MaterialValueCategory {
+        match self {
+            Self::Bool
+            | Self::Vec2B
+            | Self::Vec3B
+            | Self::Vec4B
+            | Self::Mat2B
+            | Self::Mat3B
+            | Self::Mat4B => MaterialValueCategory::Bool,
+            Self::Scalar
+            | Self::Vec2F
+            | Self::Vec3F
+            | Self::Vec4F
+            | Self::Mat2F
+            | Self::Mat3F
+            | Self::Mat4F => MaterialValueCategory::Float,
+            Self::Integer
+            | Self::Vec2I
+            | Self::Vec3I
+            | Self::Vec4I
+            | Self::Mat2I
+            | Self::Mat3I
+            | Self::Mat4I => MaterialValueCategory::Integer,
+            Self::Sampler2d | Self::Sampler2dArray | Self::Sampler3d => {
+                MaterialValueCategory::Sampler
+            }
+            Self::Array(value_type, _) => value_type.category(),
+        }
+    }
+}
+
 impl ToString for MaterialValueType {
     fn to_string(&self) -> String {
         match self {
@@ -286,7 +341,7 @@ impl ToString for MaterialValueType {
             Self::Sampler2dArray => "sampler2DArray".to_owned(),
             Self::Sampler3d => "sampler3D".to_owned(),
             Self::Array(t, c) => match c {
-                Some(c) => format!("{}[{}]", t.to_string(), c.to_string()),
+                Some(c) => format!("{}[{}]", t.to_string(), c),
                 None => format!("{}[]", t.to_string()),
             },
         }
@@ -317,21 +372,128 @@ pub enum MaterialValue {
     Mat3I(Mat3<i32>),
     Mat4I(Mat4<i32>),
     Sampler2d {
-        reference: ImageInstanceReference,
+        reference: ImageReference,
         #[serde(default)]
         filtering: ImageFiltering,
     },
     Sampler2dArray {
-        reference: ImageInstanceReference,
+        reference: ImageReference,
         #[serde(default)]
         filtering: ImageFiltering,
     },
     Sampler3d {
-        reference: ImageInstanceReference,
+        reference: ImageReference,
         #[serde(default)]
         filtering: ImageFiltering,
     },
     Array(Vec<MaterialValue>),
+}
+
+impl MaterialValue {
+    pub fn sampler_2d(reference: ImageReference) -> Self {
+        Self::Sampler2d {
+            reference,
+            filtering: Default::default(),
+        }
+    }
+
+    pub fn sampler_2d_filter(reference: ImageReference, filtering: ImageFiltering) -> Self {
+        Self::Sampler2d {
+            reference,
+            filtering,
+        }
+    }
+
+    pub fn sampler_2d_array(reference: ImageReference) -> Self {
+        Self::Sampler2dArray {
+            reference,
+            filtering: Default::default(),
+        }
+    }
+
+    pub fn sampler_2d_array_filter(reference: ImageReference, filtering: ImageFiltering) -> Self {
+        Self::Sampler2dArray {
+            reference,
+            filtering,
+        }
+    }
+
+    pub fn sampler_3d(reference: ImageReference) -> Self {
+        Self::Sampler3d {
+            reference,
+            filtering: Default::default(),
+        }
+    }
+
+    pub fn sampler_3d_filter(reference: ImageReference, filtering: ImageFiltering) -> Self {
+        Self::Sampler3d {
+            reference,
+            filtering,
+        }
+    }
+
+    pub fn value_type(&self) -> MaterialValueType {
+        match self {
+            Self::Bool(_) => MaterialValueType::Bool,
+            Self::Vec2B(_) => MaterialValueType::Vec2B,
+            Self::Vec3B(_) => MaterialValueType::Vec3B,
+            Self::Vec4B(_) => MaterialValueType::Vec4B,
+            Self::Mat2B(_) => MaterialValueType::Mat2B,
+            Self::Mat3B(_) => MaterialValueType::Mat3B,
+            Self::Mat4B(_) => MaterialValueType::Mat4B,
+            Self::Scalar(_) => MaterialValueType::Scalar,
+            Self::Vec2F(_) => MaterialValueType::Vec2F,
+            Self::Vec3F(_) => MaterialValueType::Vec3F,
+            Self::Vec4F(_) => MaterialValueType::Vec4F,
+            Self::Mat2F(_) => MaterialValueType::Mat2F,
+            Self::Mat3F(_) => MaterialValueType::Mat3F,
+            Self::Mat4F(_) => MaterialValueType::Mat4F,
+            Self::Integer(_) => MaterialValueType::Integer,
+            Self::Vec2I(_) => MaterialValueType::Vec2I,
+            Self::Vec3I(_) => MaterialValueType::Vec3I,
+            Self::Vec4I(_) => MaterialValueType::Vec4I,
+            Self::Mat2I(_) => MaterialValueType::Mat2I,
+            Self::Mat3I(_) => MaterialValueType::Mat3I,
+            Self::Mat4I(_) => MaterialValueType::Mat4I,
+            Self::Sampler2d { .. } => MaterialValueType::Sampler2d,
+            Self::Sampler2dArray { .. } => MaterialValueType::Sampler2dArray,
+            Self::Sampler3d { .. } => MaterialValueType::Sampler3d,
+            Self::Array(data) => MaterialValueType::Array(
+                Box::new(if let Some(item) = data.first() {
+                    item.value_type()
+                } else {
+                    Default::default()
+                }),
+                Some(data.len()),
+            ),
+        }
+    }
+
+    pub fn update_references(&mut self, image_mapping: &ImageResourceMapping) {
+        match self {
+            Self::Sampler2d { reference, .. }
+            | Self::Sampler2dArray { reference, .. }
+            | Self::Sampler3d { reference, .. } => match reference {
+                ImageReference::Asset(path) => {
+                    if let Some(id) = image_mapping.resource_by_name(path) {
+                        *reference = ImageReference::Id(id);
+                    }
+                }
+                ImageReference::VirtualAsset(path) => {
+                    if let Some((owner, id)) = image_mapping.virtual_resource_by_name(path) {
+                        *reference = ImageReference::VirtualId { owner, id };
+                    }
+                }
+                _ => {}
+            },
+            Self::Array(data) => {
+                for value in data {
+                    value.update_references(image_mapping);
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 impl ToString for MaterialValue {
@@ -422,71 +584,6 @@ impl ToString for MaterialValue {
                         .join(", ")
                 )
             }
-        }
-    }
-}
-
-impl MaterialValue {
-    pub fn value_type(&self) -> MaterialValueType {
-        match self {
-            Self::Bool(_) => MaterialValueType::Bool,
-            Self::Vec2B(_) => MaterialValueType::Vec2B,
-            Self::Vec3B(_) => MaterialValueType::Vec3B,
-            Self::Vec4B(_) => MaterialValueType::Vec4B,
-            Self::Mat2B(_) => MaterialValueType::Mat2B,
-            Self::Mat3B(_) => MaterialValueType::Mat3B,
-            Self::Mat4B(_) => MaterialValueType::Mat4B,
-            Self::Scalar(_) => MaterialValueType::Scalar,
-            Self::Vec2F(_) => MaterialValueType::Vec2F,
-            Self::Vec3F(_) => MaterialValueType::Vec3F,
-            Self::Vec4F(_) => MaterialValueType::Vec4F,
-            Self::Mat2F(_) => MaterialValueType::Mat2F,
-            Self::Mat3F(_) => MaterialValueType::Mat3F,
-            Self::Mat4F(_) => MaterialValueType::Mat4F,
-            Self::Integer(_) => MaterialValueType::Integer,
-            Self::Vec2I(_) => MaterialValueType::Vec2I,
-            Self::Vec3I(_) => MaterialValueType::Vec3I,
-            Self::Vec4I(_) => MaterialValueType::Vec4I,
-            Self::Mat2I(_) => MaterialValueType::Mat2I,
-            Self::Mat3I(_) => MaterialValueType::Mat3I,
-            Self::Mat4I(_) => MaterialValueType::Mat4I,
-            Self::Sampler2d { .. } => MaterialValueType::Sampler2d,
-            Self::Sampler2dArray { .. } => MaterialValueType::Sampler2dArray,
-            Self::Sampler3d { .. } => MaterialValueType::Sampler3d,
-            Self::Array(data) => MaterialValueType::Array(
-                Box::new(if let Some(item) = data.first() {
-                    item.value_type()
-                } else {
-                    Default::default()
-                }),
-                Some(data.len()),
-            ),
-        }
-    }
-
-    pub fn update_references(&mut self, image_mapping: &ImageResourceMapping) {
-        match self {
-            Self::Sampler2d { reference, .. }
-            | Self::Sampler2dArray { reference, .. }
-            | Self::Sampler3d { reference, .. } => match reference {
-                ImageInstanceReference::Asset(path) => {
-                    if let Some(id) = image_mapping.resource_by_name(path) {
-                        *reference = ImageInstanceReference::Id(id);
-                    }
-                }
-                ImageInstanceReference::VirtualAsset(path) => {
-                    if let Some((owner, id)) = image_mapping.virtual_resource_by_name(path) {
-                        *reference = ImageInstanceReference::VirtualId { owner, id };
-                    }
-                }
-                _ => {}
-            },
-            Self::Array(data) => {
-                for value in data {
-                    value.update_references(image_mapping);
-                }
-            }
-            _ => {}
         }
     }
 }

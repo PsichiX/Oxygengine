@@ -1226,7 +1226,6 @@ impl Prefab for CompositeMesh {
         self.dirty_visuals = true;
     }
 }
-
 impl PrefabComponent for CompositeMesh {}
 
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
@@ -1438,5 +1437,4 @@ impl Prefab for CompositeMeshAnimation {
         self.dirty = true;
     }
 }
-
 impl PrefabComponent for CompositeMeshAnimation {}

@@ -13,11 +13,11 @@ use serde::{Deserialize, Serialize};
 pub fn default_gizmo_color_material_graph() -> MaterialGraph {
     material_graph! {
         inputs {
-            [vertex] domain TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+            [vertex] inout TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
         }
 
         outputs {
-            [fragment] domain BaseColor: vec4;
+            [fragment] inout BaseColor: vec4;
         }
 
         [[TintColor => vColor] -> BaseColor]
@@ -27,7 +27,8 @@ pub fn default_gizmo_color_material_graph() -> MaterialGraph {
 pub fn gizmo_domain_graph() -> MaterialGraph {
     material_graph! {
         inputs {
-            [fragment] domain BaseColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+            [fragment] inout BaseColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+            [fragment] inout VisibilityMask: bool = {true};
 
             [vertex] uniform model: mat4;
             [vertex] uniform view: mat4;
@@ -39,20 +40,21 @@ pub fn gizmo_domain_graph() -> MaterialGraph {
         }
 
         outputs {
-            [vertex] domain LocalPosition: vec3;
-            [vertex] domain WorldPosition: vec3;
-            [vertex] domain ScreenPosition: vec3;
-            [vertex] domain Phase: float;
-            [vertex] domain TintColor: vec4;
+            [vertex] inout LocalPosition: vec3;
+            [vertex] inout WorldPosition: vec3;
+            [vertex] inout ScreenPosition: vec3;
+            [vertex] inout Phase: float;
+            [vertex] inout TintColor: vec4;
 
             [vertex] builtin gl_Position: vec4;
             [fragment] out finalColor: vec4;
         }
 
+        [discarded = (discard_test, condition: (negate, v: VisibilityMask))]
         [view_projection = (mul_mat4, a: projection, b: view)]
         [pos = (append_vec4, a: position, b: {1.0})]
         [world_position = (truncate_vec4, v: (mul_mat4_vec4, a: model, b: pos))]
-        [pos = (append_vec4, a: world_position, b: {1.0})]
+        [(append_vec4, a: world_position, b: {1.0}) -> pos]
         [screen_position = (truncate_vec4, v: (mul_mat4_vec4, a: view_projection, b: pos))]
 
         [position -> LocalPosition]
@@ -61,7 +63,11 @@ pub fn gizmo_domain_graph() -> MaterialGraph {
         [phase -> Phase]
         [color -> TintColor]
         [(append_vec4, a: screen_position, b: {1.0}) -> gl_Position]
-        [BaseColor -> finalColor]
+        [(if_vec4,
+            condition: discarded,
+            truthy: {vec4(0.0, 0.0, 0.0, 0.0)},
+            falsy: BaseColor
+        ) -> finalColor]
     }
 }
 
@@ -77,6 +83,7 @@ pub trait GizmoDomain: VertexType {}
 
 vertex_type! {
     #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(GizmoDomain)
     pub struct GizmoVertex {
         #[serde(default = "default_position")]
         pub position: vec3 = position(0, bounds),
@@ -86,8 +93,6 @@ vertex_type! {
         pub color: vec4 = color(0),
     }
 }
-
-impl GizmoDomain for GizmoVertex {}
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct GizmoFactory {

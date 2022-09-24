@@ -10,12 +10,21 @@ use crate::{
     },
     render_target::RenderTargetError,
     resources::resource_mapping::ResourceMapping,
-    HasContextResources, ResourceInstanceReference,
+    HasContextResources, ResourceReference,
 };
 use core::{id::ID, Ignite};
 use glow::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+
+pub type MaterialId = ID<Material>;
+pub type MaterialReference = ResourceReference<MaterialId>;
+pub type MaterialResourceMapping = ResourceMapping<Material>;
+type CompilationResultValue = (
+    <Context as HasContext>::Program,
+    HashMap<String, (<Context as HasContext>::UniformLocation, MaterialValueType)>,
+    HashMap<String, <Context as HasContext>::Sampler>,
+);
 
 #[derive(Debug, Clone)]
 pub enum MaterialError {
@@ -50,7 +59,7 @@ pub enum MaterialError {
         param: Option<String>,
     },
     TargetNodeRequiresParamName(MaterialGraphNodeId),
-    DomainInputHasNoDefaultValue {
+    AttributeInputHasNoDefaultValue {
         node: MaterialGraphNodeId,
         name: String,
     },
@@ -78,15 +87,10 @@ pub enum MaterialError {
     SubgraphInputsDoesNotMatchSignature(HashSet<String>, MaterialSignature),
     Baking(MaterialGraph, Box<MaterialError>),
     CouldNotCreateRenderTarget(RenderTargetError),
+    FunctionIsNotValidMiddleware(String),
+    FunctionDoesNotExists(String),
+    MiddlewareDoesNotExists(String),
 }
-
-pub type MaterialInstanceReference = ResourceInstanceReference<MaterialId>;
-pub type MaterialResourceMapping = ResourceMapping<Material>;
-type CompilationResultValue = (
-    <Context as HasContext>::Program,
-    HashMap<String, (<Context as HasContext>::UniformLocation, MaterialValueType)>,
-    HashMap<String, <Context as HasContext>::Sampler>,
-);
 
 #[derive(Debug)]
 pub struct MaterialResourceHandles {
@@ -180,12 +184,11 @@ impl MaterialDrawOptions {
     }
 }
 
-pub type MaterialId = ID<Material>;
-
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MaterialDetailedInfo {
     pub versions: HashMap<MaterialSignature, BakedMaterialShaders>,
     pub default_values: HashMap<String, MaterialValue>,
+    pub draw_options: MaterialDrawOptions,
 }
 
 #[derive(Debug)]
@@ -292,6 +295,7 @@ impl Material {
         MaterialDetailedInfo {
             versions: self.versions.clone(),
             default_values: self.default_values.clone(),
+            draw_options: self.draw_options.clone(),
         }
     }
 
@@ -321,7 +325,7 @@ impl Material {
         &self,
         signature: &MaterialSignature,
         context: &Context,
-        _: &RenderStageResources<'a>,
+        render_stage_resources: &RenderStageResources<'a>,
         render_stats: &mut RenderStats,
     ) -> Result<(), MaterialError> {
         let resources = match &self.resources {
@@ -336,6 +340,16 @@ impl Material {
         unsafe {
             context.use_program(Some(handles.program));
             render_stats.material_changes += 1;
+        }
+        for (name, value) in &self.default_values {
+            self.submit_uniform(
+                signature,
+                name,
+                value,
+                context,
+                render_stage_resources,
+                render_stats,
+            )?;
         }
         Ok(())
     }
@@ -372,15 +386,21 @@ impl Material {
     ) -> Result<(), MaterialError> {
         let resources = match &self.resources {
             Some(resources) => resources,
-            None => return Err(MaterialError::NoResources),
+            None => {
+                return Err(MaterialError::NoResources);
+            }
         };
         let handles = match resources.0.get(signature) {
             Some(handles) => handles,
-            None => return Err(MaterialError::NoShaderVersion(signature.to_owned())),
+            None => {
+                return Err(MaterialError::NoShaderVersion(signature.to_owned()));
+            }
         };
         let (handle, value_type) = match handles.uniforms.get(name) {
             Some(result) => result,
-            None => return Ok(()),
+            None => {
+                return Ok(());
+            }
         };
         if &value.value_type() != value_type {
             return Err(MaterialError::InvalidUniformTypeToSubmit(
@@ -477,7 +497,7 @@ impl Material {
                 reference,
                 filtering,
             } => {
-                if let Some(handle) = render_stage_resources.image_handle_by_ref(reference) {
+                if let Some(texture) = render_stage_resources.image_handle_by_ref(reference) {
                     if let Some((index, sampler)) = handles
                         .samplers
                         .iter()
@@ -495,8 +515,9 @@ impl Material {
                             context.sampler_parameter_i32(*sampler, TEXTURE_MIN_FILTER, min as _);
                             context.sampler_parameter_i32(*sampler, TEXTURE_MAG_FILTER, mag as _);
                             context.active_texture(TEXTURE0 + index as u32);
-                            context.bind_texture(gl_mode, Some(handle));
+                            context.bind_texture(gl_mode, Some(texture));
                             context.bind_sampler(index as u32, Some(*sampler));
+                            context.uniform_1_i32(Some(handle), index as i32);
                             render_stats.sampler_changes += 1;
                         }
                     }
@@ -879,16 +900,16 @@ macro_rules! material_graph_input {
         $crate::material::common::MaterialShaderType::Fragment
     };
     (builtin) => {
-        $crate::material::common::MaterialDataType::BuiltIn
+        ($crate::material::common::MaterialDataType::BuiltIn, false)
     };
     (in) => {
-        $crate::material::common::MaterialDataType::Attribute
+        ($crate::material::common::MaterialDataType::Attribute, false)
+    };
+    (inout) => {
+        ($crate::material::common::MaterialDataType::Attribute, true)
     };
     (uniform) => {
-        $crate::material::common::MaterialDataType::Uniform
-    };
-    (domain) => {
-        $crate::material::common::MaterialDataType::Domain
+        ($crate::material::common::MaterialDataType::Uniform, false)
     };
     (defaultp) => {
         $crate::material::common::MaterialDataPrecision::Default
@@ -907,6 +928,7 @@ macro_rules! material_graph_input {
         $data_type:ident $name:ident : $value_type:tt $( @ $data_precision:ident )? $( = $default_value:expr )?
     ) => {
         {
+            let (data_type, undirected) = $crate::material_graph_input!($data_type);
             #[allow(unused_assignments, unused_mut)]
             let mut data_precision = $crate::material::common::MaterialDataPrecision::Default;
             $(
@@ -924,8 +946,9 @@ macro_rules! material_graph_input {
             )?
             $crate::material::graph::node::MaterialGraphInput {
                 name: stringify!($name).to_owned(),
+                undirected,
                 data_precision,
-                data_type: $crate::material_graph_input!($data_type),
+                data_type,
                 value_type: $crate::material_value_type!($value_type),
                 shader_type,
                 default_value,
@@ -943,16 +966,17 @@ macro_rules! material_graph_output {
         $crate::material::common::MaterialShaderType::Fragment
     };
     (builtin) => {
-        $crate::material::common::MaterialDataType::BuiltIn
+        ($crate::material::common::MaterialDataType::BuiltIn, false)
     };
     (out) => {
-        $crate::material::common::MaterialDataType::BufferOutput
+        ($crate::material::common::MaterialDataType::BufferOutput, false)
     };
-    (domain) => {
-        $crate::material::common::MaterialDataType::Domain
+    (inout) => {
+        ($crate::material::common::MaterialDataType::BufferOutput, true)
     };
     ( $( [ $shader_type:ident ] )? $data_type:ident $name:ident : $value_type:tt ) => {
         {
+            let (data_type, undirected) = $crate::material_graph_output!($data_type);
             #[allow(unused_assignments, unused_mut)]
             let mut shader_type = $crate::material::common::MaterialShaderType::Undefined;
             $(
@@ -960,7 +984,8 @@ macro_rules! material_graph_output {
             )?
             $crate::material::graph::node::MaterialGraphOutput::new(
                 stringify!($name).to_owned(),
-                $crate::material_graph_output!($data_type),
+                undirected,
+                data_type,
                 $crate::material_value_type!($value_type),
                 shader_type,
             ).into()
@@ -974,7 +999,7 @@ macro_rules! material_graph {
         inputs {
             $(
                 $( [ $in_shader_type:ident ] )?
-                $in_data_type:ident $in_name:ident : $in_value_type:tt
+                $in_data_type:ident $in_name:ident $( as $in_as_name:ident )? : $in_value_type:tt
                 $( @ $in_data_precision:ident )?
                 $( = $in_default_value:expr )?;
             )*
@@ -982,7 +1007,7 @@ macro_rules! material_graph {
         outputs {
             $(
                 $( [ $out_shader_type:ident ] )?
-                $out_data_type:ident $out_name:ident : $out_value_type:tt;
+                $out_data_type:ident $out_name:ident $( as $out_as_name:ident )? : $out_value_type:tt;
             )*
         }
         $( $statement:tt )*
@@ -994,20 +1019,24 @@ macro_rules! material_graph {
                 #[deny(clippy::shadow_reuse)]
                 #[warn(clippy::shadow_unrelated)]
                 #[allow(non_snake_case)]
-                let $in_name = ___graph.add_node($crate::material_graph_input! {
-                    $( [ $in_shader_type ] )?
-                    $in_data_type $in_name : $in_value_type
-                    $( @ $in_data_precision )?
-                    $( = $in_default_value )?
-                });
+                let $crate::material_graph!(@optional_name $in_name $( as $in_as_name )?) = {
+                    ___graph.add_node($crate::material_graph_input! {
+                        $( [ $in_shader_type ] )?
+                        $in_data_type $in_name : $in_value_type
+                        $( @ $in_data_precision )?
+                        $( = $in_default_value )?
+                    })
+                };
             )*
             $(
                 #[deny(clippy::shadow_reuse)]
                 #[warn(clippy::shadow_unrelated)]
                 #[allow(non_snake_case)]
-                let $out_name = ___graph.add_node($crate::material_graph_output! {
-                    $( [ $out_shader_type ] )? $out_data_type $out_name : $out_value_type
-                });
+                let $crate::material_graph!(@optional_name $out_name $( as $out_as_name )?) = {
+                    ___graph.add_node($crate::material_graph_output! {
+                        $( [ $out_shader_type ] )? $out_data_type $out_name : $out_value_type
+                    })
+                };
             )*
             $(
                 $crate::material_graph!( @statement $statement, ___graph, result );
@@ -1015,11 +1044,19 @@ macro_rules! material_graph {
             ___graph
         }
     };
+    ( @optional_name $in_name:ident as $in_as_name:ident ) => { $in_as_name };
+    ( @optional_name $in_name:ident ) => { $in_name };
     ( @statement [ return $expression:tt ], $graph:expr, $result:ident ) => {
         {
             let ___source = $crate::material_graph!(@expression $expression, $graph);
             let _ = $graph.connect(___source, $result, None);
         }
+    };
+    ( @statement [ $node:ident := $expression:tt ], $graph:expr, $result:ident ) => {
+        #[allow(clippy::shadow_reuse)]
+        #[allow(clippy::shadow_unrelated)]
+        #[allow(non_snake_case)]
+        let $node = $crate::material_graph!(@expression $expression, $graph);
     };
     ( @statement [ $node:ident = $expression:tt ], $graph:expr, $result:ident ) => {
         #[deny(clippy::shadow_reuse)]
@@ -1034,16 +1071,18 @@ macro_rules! material_graph {
         }
     };
     ( @expression { $value:expr }, $graph:expr ) => {
-        $graph.add_node($crate::material::common::MaterialValue::from($value).into())
+        {
+            let ___temp = $crate::material::common::MaterialValue::from($value).into();
+            $graph.add_node(___temp)
+        }
     };
     ( @expression [ $node:tt => $name:ident ], $graph:expr ) => {
         {
-            $graph.add_node(
-                $crate::material::graph::node::MaterialGraphTransfer::new_connected(
-                    stringify!($name).to_owned(),
-                    $crate::material_graph!(@expression $node, $graph)
-                ).into()
-            )
+            let ___temp = $crate::material::graph::node::MaterialGraphTransfer::new_connected(
+                stringify!($name).to_owned(),
+                $crate::material_graph!(@expression $node, $graph)
+            ).into();
+            $graph.add_node(___temp)
         }
     };
     ( @expression ( $name:tt $( , $param_name:ident : $param_value:tt )* ), $graph:expr ) => {
@@ -1058,12 +1097,11 @@ macro_rules! material_graph {
                     $crate::material_graph!(@expression $param_value, $graph),
                 );
             )*
-            $graph.add_node(
-                $crate::material::graph::node::MaterialGraphOperation::new_connected(
-                    $crate::material_graph!(@name $name),
-                    ___connections,
-                ).into()
-            )
+            let ___temp = $crate::material::graph::node::MaterialGraphOperation::new_connected(
+                $crate::material_graph!(@name $name),
+                ___connections,
+            ).into();
+            $graph.add_node(___temp)
         }
     };
     (@expression $node:ident, $graph:expr) => {

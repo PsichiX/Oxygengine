@@ -1,4 +1,5 @@
 extern crate oxygengine_audio as audio;
+extern crate oxygengine_backend_web as web;
 extern crate oxygengine_core as core;
 
 use audio::resource::*;
@@ -18,15 +19,20 @@ use std::{
 };
 use wasm_bindgen::{prelude::*, JsCast};
 use wasm_bindgen_futures::{future_to_promise, JsFuture};
+use web::closure::WebClosure;
 use web_sys::*;
 
 pub mod prelude {
     pub use crate::*;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum AudioCache {
-    Buffered(AudioBufferSourceNode, GainNode),
+    /// (source, (gain, notify ended))
+    Buffered(
+        AudioBufferSourceNode,
+        (GainNode, Arc<AtomicBool>, WebClosure),
+    ),
     Streaming(HtmlAudioElement, MediaElementAudioSourceNode),
 }
 
@@ -92,12 +98,22 @@ impl Audio for WebAudio {
             AudioCache::Streaming(audio, node)
         } else {
             let audio = self.context.create_buffer_source().unwrap();
+            let notify_ended = Arc::new(AtomicBool::new(false));
+            let notify_ended2 = notify_ended.clone();
+            let closure = Closure::wrap(Box::new(move |_: web_sys::Event| {
+                notify_ended.store(true, Ordering::Relaxed);
+            }) as Box<dyn FnMut(_)>);
+            // audio.set_onended(Some(closure.as_ref().unchecked_ref()));
+            audio
+                .add_event_listener_with_callback("ended", closure.as_ref().unchecked_ref())
+                .unwrap();
+            let ended_closure = WebClosure::acquire(closure);
             let audio2 = audio.clone();
             let gain = self.context.create_gain().unwrap();
             let gain2 = gain.clone();
-            let promise = self.context.decode_audio_data(&buffer.buffer()).unwrap();
             let destination = self.context.destination();
             let context = self.context.clone();
+            let promise = self.context.decode_audio_data(&buffer.buffer()).unwrap();
             let future = JsFuture::from(promise).and_then(move |buff| {
                 assert!(buff.is_instance_of::<AudioBuffer>());
                 let buff: AudioBuffer = buff.dyn_into().unwrap();
@@ -121,7 +137,7 @@ impl Audio for WebAudio {
             });
             // TODO: fail process on error catch.
             drop(future_to_promise(future));
-            AudioCache::Buffered(audio2, gain2)
+            AudioCache::Buffered(audio2, (gain2, notify_ended2, ended_closure))
         };
         self.sources_cache.insert(entity, cache);
     }
@@ -129,12 +145,14 @@ impl Audio for WebAudio {
     fn destroy_source(&mut self, entity: Entity) {
         if let Some(audio) = self.sources_cache.remove(&entity) {
             match audio {
-                AudioCache::Buffered(audio, gain) => {
+                AudioCache::Buffered(audio, (gain, notify_ended, mut ended_closure)) => {
                     audio
                         .disconnect()
                         .expect("Could not disconnect audio source from gain");
                     gain.disconnect()
-                        .expect("Could not disconnect gain from audio output")
+                        .expect("Could not disconnect gain from audio output");
+                    notify_ended.store(true, Ordering::Relaxed);
+                    ended_closure.release();
                 }
                 AudioCache::Streaming(_, audio) => audio
                     .disconnect()
@@ -157,7 +175,7 @@ impl Audio for WebAudio {
     ) {
         if let Some(audio) = self.sources_cache.get(&entity) {
             match audio {
-                AudioCache::Buffered(audio, gain) => {
+                AudioCache::Buffered(audio, (gain, _, _)) => {
                     if audio.buffer().is_some() {
                         audio.set_loop(looped);
                         audio.playback_rate().set_value(playback_rate as f32);
@@ -193,9 +211,13 @@ impl Audio for WebAudio {
 
     fn get_source_state(&self, entity: Entity) -> Option<AudioState> {
         self.sources_cache.get(&entity).map(|audio| match audio {
-            AudioCache::Buffered(_, _) => AudioState { current_time: None },
+            AudioCache::Buffered(_, (_, notify_ended, _)) => AudioState {
+                current_time: None,
+                is_playing: AudioPlayState::Ended(notify_ended.swap(false, Ordering::Relaxed)),
+            },
             AudioCache::Streaming(audio, _) => AudioState {
                 current_time: Some(audio.current_time() as Scalar),
+                is_playing: AudioPlayState::State(!audio.paused()),
             },
         })
     }

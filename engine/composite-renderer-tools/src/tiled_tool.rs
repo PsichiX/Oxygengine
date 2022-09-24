@@ -3,7 +3,7 @@ mod tiled;
 mod tileset;
 
 use crate::tiled::*;
-use oxygengine_build_tools::AssetPipelineInput;
+use oxygengine_build_tools::*;
 use serde::Deserialize;
 use std::{fs::write, io::Error, path::PathBuf};
 
@@ -18,6 +18,8 @@ struct Params {
     #[serde(default)]
     pub full_names: bool,
 }
+
+impl ParamsFromArgs for Params {}
 
 fn main() -> Result<(), Error> {
     let (source, destination, params) = AssetPipelineInput::<Params>::consume().unwrap();

@@ -6,9 +6,8 @@ use crate::{
     },
     math::vek::*,
     resources::material_library::MaterialLibrary,
-    StringBuffer,
 };
-use core::Ignite;
+use core::{utils::StringBuffer, Ignite};
 use serde::{Deserialize, Serialize};
 
 #[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -97,18 +96,16 @@ impl MaterialFunction {
             output.write_space()?;
             output.write_str(&input.name)?;
         }
-        output.write_str(");\n")?;
+        output.write_str(");")?;
+        output.write_new_line()?;
         Ok(())
     }
 
-    fn compile_definition(&self, output: &mut StringBuffer) -> std::io::Result<()> {
-        let content = match &self.content {
-            MaterialFunctionContent::Graph(graph) => {
-                graph.compile(MaterialCompilationState::FunctionBody)?
-            }
-            MaterialFunctionContent::Code(content) => content.to_owned(),
-            MaterialFunctionContent::BuiltIn(_) => return Ok(()),
-        };
+    fn compile_definition(
+        &self,
+        output: &mut StringBuffer,
+        library: &MaterialLibrary,
+    ) -> std::io::Result<()> {
         output.write_str(self.output.to_string())?;
         output.write_space()?;
         output.write_str(&self.name)?;
@@ -121,9 +118,32 @@ impl MaterialFunction {
             output.write_space()?;
             output.write_str(&input.name)?;
         }
-        output.write_str(") {\n")?;
-        output.write_str(content)?;
-        output.write_str("\n}\n")?;
+        output.write_str(") {")?;
+        match &self.content {
+            MaterialFunctionContent::Graph(graph) => {
+                output.push_level();
+                output.write_new_line()?;
+                output.write_str(self.output.to_string())?;
+                output.write_space()?;
+                output.write_str("result;")?;
+                output.write_indented_lines(
+                    graph.compile(MaterialCompilationState::FunctionBody { library })?,
+                )?;
+                output.write_new_line()?;
+                output.write_str("return result;")?;
+                output.pop_level();
+                output.write_new_line()?;
+            }
+            MaterialFunctionContent::Code(content) => {
+                output.push_level();
+                output.write_indented_lines(content)?;
+                output.pop_level();
+                output.write_new_line()?;
+            }
+            MaterialFunctionContent::BuiltIn(_) => {}
+        }
+        output.write_str("}")?;
+        output.write_new_line()?;
         Ok(())
     }
 }
@@ -138,8 +158,8 @@ impl MaterialCompile<StringBuffer, String, MaterialCompilationState<'_>> for Mat
             MaterialCompilationState::FunctionDeclaration => {
                 self.compile_declaration(output)?;
             }
-            MaterialCompilationState::FunctionDefinition => {
-                self.compile_definition(output)?;
+            MaterialCompilationState::FunctionDefinition { library } => {
+                self.compile_definition(output, library)?;
             }
             _ => {}
         }

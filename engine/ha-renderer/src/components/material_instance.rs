@@ -1,8 +1,7 @@
 use crate::{
     image::ImageResourceMapping,
     material::{
-        common::MaterialValue, MaterialDrawOptions, MaterialInstanceReference,
-        MaterialResourceMapping,
+        common::MaterialValue, MaterialDrawOptions, MaterialReference, MaterialResourceMapping,
     },
 };
 use core::{
@@ -15,7 +14,7 @@ use std::collections::HashMap;
 #[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct HaMaterialInstance {
     #[serde(default)]
-    pub reference: MaterialInstanceReference,
+    pub reference: MaterialReference,
     #[serde(default)]
     pub values: HashMap<String, MaterialValue>,
     #[serde(default)]
@@ -23,7 +22,7 @@ pub struct HaMaterialInstance {
 }
 
 impl HaMaterialInstance {
-    pub fn new(reference: MaterialInstanceReference) -> Self {
+    pub fn new(reference: MaterialReference) -> Self {
         Self {
             reference,
             values: Default::default(),
@@ -46,9 +45,9 @@ impl HaMaterialInstance {
         material_mapping: &MaterialResourceMapping,
         image_mapping: &ImageResourceMapping,
     ) {
-        if let MaterialInstanceReference::Asset(path) = &self.reference {
+        if let MaterialReference::Asset(path) = &self.reference {
             if let Some(id) = material_mapping.resource_by_name(path) {
-                self.reference = MaterialInstanceReference::Id(id);
+                self.reference = MaterialReference::Id(id);
             }
         }
         for value in self.values.values_mut() {
@@ -58,5 +57,4 @@ impl HaMaterialInstance {
 }
 
 impl Prefab for HaMaterialInstance {}
-
 impl PrefabComponent for HaMaterialInstance {}

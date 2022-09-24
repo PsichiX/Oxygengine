@@ -32,6 +32,9 @@ pub struct HaSpriteAnimationInstance {
     #[serde(skip)]
     #[ignite(ignore)]
     pub(crate) frame_changed: bool,
+    #[serde(skip)]
+    #[ignite(ignore)]
+    pub(crate) signals: Vec<SpriteAnimationSignal>,
 }
 
 impl Default for HaSpriteAnimationInstance {
@@ -44,6 +47,7 @@ impl Default for HaSpriteAnimationInstance {
             animation: Default::default(),
             active: None,
             frame_changed: false,
+            signals: Default::default(),
         }
     }
 }
@@ -53,12 +57,15 @@ impl HaSpriteAnimationInstance {
         1.0
     }
 
-    /// (state name, fractional frame)
-    pub fn active_state(&self) -> Option<(&str, Scalar)> {
-        self.active.as_ref().map(|a| (a.state.as_str(), a.frame))
+    pub fn active_state(&self) -> Option<&str> {
+        self.active.as_ref().map(|a| a.state.as_str())
     }
 
-    pub fn active_frame(&self) -> Option<&str> {
+    pub fn active_frame_time(&self) -> Option<Scalar> {
+        self.active.as_ref().map(|a| a.frame)
+    }
+
+    pub fn active_frame_name(&self) -> Option<&str> {
         if let Some(active) = &self.active {
             return active.cached_frame.as_deref();
         }
@@ -67,6 +74,10 @@ impl HaSpriteAnimationInstance {
 
     pub fn frame_lately_changed(&self) -> bool {
         self.frame_changed
+    }
+
+    pub fn received_signals(&self) -> &[SpriteAnimationSignal] {
+        &self.signals
     }
 
     pub fn play(&mut self, state: impl ToString) {

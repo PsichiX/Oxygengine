@@ -139,7 +139,7 @@ impl<'a> Renderer<StreamingVertexFactory, Error> for RauiRenderer<'a> {
                         None => continue,
                     };
                     let mut instance = HaTextInstance::default();
-                    instance.set_content_lossy(build_content(&text.text));
+                    instance.set_content(&text.text);
                     instance.set_font(&text.font);
                     instance.set_size(text.size * font_scale);
                     instance.set_color(Rgba::new(
@@ -179,17 +179,6 @@ impl<'a> Renderer<StreamingVertexFactory, Error> for RauiRenderer<'a> {
         }
 
         Ok(stream)
-    }
-}
-
-fn build_content(text: &str) -> HaTextContent {
-    if let Some(text) = text.strip_prefix('~') {
-        match HaRichTextContent::new(text) {
-            Ok(content) => HaTextContent::Fragments(content.build_fragments()),
-            Err(error) => HaTextContent::text(&error),
-        }
-    } else {
-        HaTextContent::text(text)
     }
 }
 

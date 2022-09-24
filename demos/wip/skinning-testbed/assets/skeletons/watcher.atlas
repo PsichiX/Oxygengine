@@ -1,0 +1,17 @@
+watcher.png
+	size: 1206, 179
+	filter: Linear, Linear
+corpus
+	bounds: 2, 2, 384, 175
+head
+	bounds: 575, 51, 253, 126
+lower-leg
+	bounds: 388, 11, 59, 166
+middle-leg
+	bounds: 830, 96, 184, 81
+spine-segment
+	bounds: 1016, 97, 188, 80
+tail-segment
+	bounds: 830, 14, 200, 80
+upper-leg
+	bounds: 449, 17, 124, 160

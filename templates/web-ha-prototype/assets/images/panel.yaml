@@ -1,0 +1,7 @@
+Png:
+  descriptor:
+    mode: Image2d
+    format: RGBA
+    mipmap: None
+  bytes_paths:
+    - images/panel.png

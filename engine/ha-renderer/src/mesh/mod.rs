@@ -1,15 +1,22 @@
+pub mod skeleton;
 pub mod vertex_factory;
 
 use crate::{
     ha_renderer::{RenderStageResources, RenderStats},
     math::*,
+    mesh::vertex_factory::VertexType,
     resources::resource_mapping::ResourceMapping,
-    HasContextResources, ResourceInstanceReference,
+    HasContextResources, ResourceReference,
 };
 use core::id::ID;
 use glow::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, ops::Range};
+
+pub type MeshId = ID<Mesh>;
+pub type VirtualMeshId = ID<VirtualMesh>;
+pub type MeshReference = ResourceReference<MeshId, VirtualMeshId>;
+pub type MeshResourceMapping = ResourceMapping<Mesh, VirtualMesh>;
 
 #[derive(Debug, Clone)]
 pub enum MeshError {
@@ -25,15 +32,14 @@ pub enum MeshError {
     NoBuffer(usize, usize),
     /// (provided, expected)
     LayoutsMismatch(VertexLayout, VertexLayout),
+    LayoutIsNotCompact(VertexLayout),
     /// (layout, attribute name)
     MissingRequiredLayoutAttribute(VertexLayout, String),
     /// (source, target)
     IncompatibleDrawMode(MeshDrawMode, MeshDrawMode),
+    NoAvailableFactory,
     Internal(String),
 }
-
-pub type MeshInstanceReference = ResourceInstanceReference<MeshId, VirtualMeshId>;
-pub type MeshResourceMapping = ResourceMapping<Mesh, VirtualMesh>;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum BufferStorage {
@@ -313,10 +319,11 @@ pub struct VertexLayout {
     buffers: Vec<VertexBufferLayout>,
     locations: usize,
     bounds: Option<String>,
+    middlewares: Vec<String>,
 }
 
 impl VertexLayout {
-    pub fn with(mut self, mut buffer: VertexBufferLayout) -> Result<Self, MeshError> {
+    pub fn with_buffer(mut self, mut buffer: VertexBufferLayout) -> Result<Self, MeshError> {
         for b in &self.buffers {
             for attribute in &b.attributes {
                 if buffer.attributes.iter().any(|a| a.0.id == attribute.0.id) {
@@ -335,12 +342,48 @@ impl VertexLayout {
         self
     }
 
+    pub fn with_middlewares(mut self, middlewares: Vec<String>) -> Self {
+        self.middlewares.extend(middlewares);
+        self
+    }
+
+    pub fn with(self, other: Self) -> Result<Self, MeshError> {
+        let mut result = Self::default()
+            .with_middlewares(self.middlewares)
+            .with_middlewares(other.middlewares);
+        if let Some(bounds) = self.bounds {
+            result = result.with_bounds(Some(bounds));
+        }
+        if let Some(bounds) = other.bounds {
+            result = result.with_bounds(Some(bounds));
+        }
+        let mut a = self.buffers.into_iter();
+        let mut b = other.buffers.into_iter();
+        loop {
+            result = match (a.next(), b.next()) {
+                (Some(mut a), Some(b)) => {
+                    for (attribute, _) in b.attributes {
+                        a = a.with(attribute)?;
+                    }
+                    result.with_buffer(a)?
+                }
+                (Some(v), None) | (None, Some(v)) => result.with_buffer(v)?,
+                (None, None) => break,
+            }
+        }
+        Ok(result)
+    }
+
     pub fn buffers(&self) -> &[VertexBufferLayout] {
         &self.buffers
     }
 
     pub fn bounds(&self) -> Option<&str> {
         self.bounds.as_deref()
+    }
+
+    pub fn middlewares(&self) -> &[String] {
+        &self.middlewares
     }
 
     pub fn is_subset_of(&self, other: &Self) -> bool {
@@ -374,6 +417,11 @@ impl VertexLayout {
                 .map(|(index, _, chunk)| (index, chunk.channels(), chunk.offset(), chunk.stride()))
         })
     }
+
+    /// Tells if entire vertex type data can be copied at once (uses single buffer).
+    pub fn is_compact(&self) -> bool {
+        self.buffers.len() == 1
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -381,6 +429,12 @@ pub enum MeshDrawRange {
     All,
     Range(Range<usize>),
     Chunks(Vec<Range<usize>>),
+}
+
+impl Default for MeshDrawRange {
+    fn default() -> Self {
+        Self::All
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -421,13 +475,11 @@ pub struct MeshResources {
     pub array_handle: <Context as HasContext>::VertexArray,
 }
 
-pub type MeshId = ID<Mesh>;
-
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MeshDetailedInfo {
     pub layout: VertexLayout,
-    pub vertex_data: Vec<(usize, BufferStorage, bool)>,
-    pub index_data: (usize, BufferStorage, bool),
+    pub vertex_data: Vec<(usize, BufferStorage)>,
+    pub index_data: (usize, BufferStorage),
     pub draw_mode: MeshDrawMode,
 }
 
@@ -570,13 +622,9 @@ impl Mesh {
             vertex_data: self
                 .vertex_data
                 .iter()
-                .map(|(v, s, d)| (v.len(), *s, *d))
+                .map(|(v, s, _)| (v.len(), *s))
                 .collect(),
-            index_data: (
-                self.index_data.0.len(),
-                self.index_data.1,
-                self.index_data.2,
-            ),
+            index_data: (self.index_data.0.len(), self.index_data.1),
             draw_mode: self.draw_mode,
         }
     }
@@ -765,6 +813,21 @@ impl Mesh {
         Ok(())
     }
 
+    pub fn with_compact_vertices_as<T, F>(&mut self, mut f: F) -> Result<(), MeshError>
+    where
+        T: VertexType,
+        F: FnMut(&mut [T]),
+    {
+        let layout = T::vertex_layout()?;
+        if self.layout != layout {
+            return Err(MeshError::LayoutsMismatch(layout, self.layout.to_owned()));
+        }
+        if !layout.is_compact() {
+            return Err(MeshError::LayoutIsNotCompact(layout));
+        }
+        self.with_vertices(0, |data| f(unsafe { data.align_to_mut::<T>().1 }))
+    }
+
     pub fn with_indices<F>(&mut self, mut f: F)
     where
         F: FnMut(&mut [u32]),
@@ -896,8 +959,6 @@ impl Mesh {
         Ok(())
     }
 }
-
-pub type VirtualMeshId = ID<VirtualMesh>;
 
 #[derive(Debug)]
 pub struct VirtualMeshDetailedInfo {

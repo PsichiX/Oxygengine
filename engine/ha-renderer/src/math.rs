@@ -1,5 +1,6 @@
 use core::{Ignite, Scalar};
 use serde::{Deserialize, Serialize};
+use std::ops::{Add, Deref, Sub};
 
 #[cfg(not(feature = "scalar64"))]
 use std::f32::consts::PI;
@@ -41,29 +42,98 @@ pub fn vec4<T>(x: T, y: T, z: T, w: T) -> vek::Vec4<T> {
     vek::Vec4::new(x, y, z, w)
 }
 
-pub fn mat2<T>(a: [[T; 2]; 2]) -> vek::Mat2<T> {
-    vek::Mat2::<T>::from_col_arrays(a)
+pub fn mat2<T>(v: [[T; 2]; 2]) -> vek::Mat2<T> {
+    vek::Mat2::<T>::from_col_arrays(v)
 }
 
-pub fn mat3<T>(a: [[T; 3]; 3]) -> vek::Mat3<T> {
-    vek::Mat3::<T>::from_col_arrays(a)
+pub fn mat3<T>(v: [[T; 3]; 3]) -> vek::Mat3<T> {
+    vek::Mat3::<T>::from_col_arrays(v)
 }
 
-pub fn mat4<T>(a: [[T; 4]; 4]) -> vek::Mat4<T> {
-    vek::Mat4::<T>::from_col_arrays(a)
+pub fn mat4<T>(v: [[T; 4]; 4]) -> vek::Mat4<T> {
+    vek::Mat4::<T>::from_col_arrays(v)
 }
 
 #[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Eulers {
-    /// Z radians
+    /// Z degrees
     #[serde(default)]
     pub yaw: Scalar,
-    /// Y radians
+    /// Y degrees
     #[serde(default)]
     pub pitch: Scalar,
-    /// X radians
+    /// X degrees
     #[serde(default)]
     pub roll: Scalar,
+}
+
+impl Eulers {
+    pub fn new(yaw: Scalar, pitch: Scalar, roll: Scalar) -> Self {
+        Self { yaw, pitch, roll }
+    }
+
+    pub fn yaw(yaw: Scalar) -> Self {
+        Self {
+            yaw,
+            pitch: 0.0,
+            roll: 0.0,
+        }
+    }
+
+    pub fn pitch(pitch: Scalar) -> Self {
+        Self {
+            yaw: 0.0,
+            pitch,
+            roll: 0.0,
+        }
+    }
+
+    pub fn roll(roll: Scalar) -> Self {
+        Self {
+            yaw: 0.0,
+            pitch: 0.0,
+            roll,
+        }
+    }
+
+    pub fn with_yaw(mut self, degrees: Scalar) -> Self {
+        self.yaw = degrees;
+        self
+    }
+
+    pub fn with_pitch(mut self, degrees: Scalar) -> Self {
+        self.pitch = degrees;
+        self
+    }
+
+    pub fn with_roll(mut self, degrees: Scalar) -> Self {
+        self.roll = degrees;
+        self
+    }
+}
+
+impl Add for Eulers {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self {
+            yaw: self.yaw + other.yaw,
+            pitch: self.pitch + other.pitch,
+            roll: self.roll + other.roll,
+        }
+    }
+}
+
+impl Sub for Eulers {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        Self {
+            yaw: self.yaw - other.yaw,
+            pitch: self.pitch - other.pitch,
+            roll: self.roll - other.roll,
+        }
+    }
 }
 
 impl From<Vec3> for Eulers {
@@ -87,16 +157,17 @@ impl From<Quat> for Eulers {
         let q = q.normalized();
         let sinr_cosp = 2.0 * (q.w * q.x + q.y * q.z);
         let cosr_cosp = 1.0 - 2.0 * (q.x * q.x + q.y * q.y);
-        let roll = sinr_cosp.atan2(cosr_cosp);
+        let roll = sinr_cosp.atan2(cosr_cosp).to_degrees();
         let sinp = 2.0 * (q.w * q.y - q.z * q.x);
         let pitch = if sinp.abs() >= 1.0 {
             PI * 0.5 * sinp.signum()
         } else {
             sinp.asin()
-        };
+        }
+        .to_degrees();
         let siny_cosp = 2.0 * (q.w * q.z + q.x * q.y);
         let cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z);
-        let yaw = siny_cosp.atan2(cosy_cosp);
+        let yaw = siny_cosp.atan2(cosy_cosp).to_degrees();
         Eulers { yaw, pitch, roll }
     }
 }
@@ -104,7 +175,11 @@ impl From<Quat> for Eulers {
 impl From<Eulers> for Quat {
     #[allow(clippy::many_single_char_names)]
     fn from(value: Eulers) -> Self {
-        let v = Vec3::new(value.roll, value.pitch, value.yaw) * 0.5;
+        let v = Vec3::new(
+            value.roll.to_radians(),
+            value.pitch.to_radians(),
+            value.yaw.to_radians(),
+        ) * 0.5;
         let (sy, cy) = v.z.sin_cos();
         let (sp, cp) = v.y.sin_cos();
         let (sr, cr) = v.x.sin_cos();
@@ -113,6 +188,197 @@ impl From<Eulers> for Quat {
         let y = cr * sp * cy + sr * cp * sy;
         let z = cr * cp * sy - sr * sp * cy;
         Self::from_xyzw(x, y, z, w)
+    }
+}
+
+#[derive(Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RotatorDef(pub Eulers);
+
+impl From<Rotator> for RotatorDef {
+    fn from(v: Rotator) -> Self {
+        Self(v.eulers())
+    }
+}
+
+impl From<RotatorDef> for Rotator {
+    fn from(v: RotatorDef) -> Self {
+        v.0.into()
+    }
+}
+
+#[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(from = "RotatorDef")]
+#[serde(into = "RotatorDef")]
+pub struct Rotator {
+    #[ignite(ignore)]
+    quat: Quat,
+    eulers: Eulers,
+}
+
+impl Rotator {
+    pub fn quat(&self) -> Quat {
+        self.quat
+    }
+
+    pub fn set_quat(&mut self, value: Quat) {
+        self.quat = value;
+        self.eulers = value.into();
+    }
+
+    pub fn with_quat<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&mut Quat),
+    {
+        f(&mut self.quat);
+        self.eulers = self.quat.into();
+    }
+
+    pub fn eulers(&self) -> Eulers {
+        self.eulers
+    }
+
+    pub fn set_eulers(&mut self, value: Eulers) {
+        self.quat = value.into();
+        self.eulers = value;
+    }
+
+    pub fn with_eulers<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&mut Eulers),
+    {
+        f(&mut self.eulers);
+        self.quat = self.eulers.into();
+    }
+
+    pub fn transform_direction(&self, direction: Vec3) -> Vec3 {
+        self.quat * direction
+    }
+
+    pub fn interpolate(from: &Self, to: &Self, factor: Scalar) -> Self {
+        Quat::slerp(from.quat, to.quat, factor).into()
+    }
+
+    pub fn interpolate_many(iter: impl Iterator<Item = (Self, Scalar)>) -> Option<Self> {
+        let mut result = None;
+        for (value, weight) in iter {
+            let quat = Quat::slerp(Quat::identity(), value.quat(), weight);
+            result = match result {
+                Some(result) => Some(result * quat),
+                None => Some(quat),
+            }
+        }
+        result.map(|result| result.into())
+    }
+
+    pub fn look_at(mut forward: Vec3, mut up: Vec3) -> Self {
+        forward = forward.normalized();
+        up = up.normalized();
+        let right = up.cross(forward).normalized();
+        up = forward.cross(right);
+        let result = Mat3::new(
+            forward.x, right.x, up.x, forward.y, right.y, up.y, forward.z, right.z, up.z,
+        );
+        result.into()
+    }
+}
+
+impl Add for Rotator {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        (self.eulers() + other.eulers()).into()
+    }
+}
+
+impl Sub for Rotator {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        (self.eulers() - other.eulers()).into()
+    }
+}
+
+impl Deref for Rotator {
+    type Target = Quat;
+
+    fn deref(&self) -> &Self::Target {
+        &self.quat
+    }
+}
+
+impl From<Mat3> for Rotator {
+    fn from(m: Mat3) -> Self {
+        let right = m.cols.x;
+        let up = m.cols.y;
+        let forward = m.cols.z;
+        let trace = m.trace();
+        if trace > 0.0 {
+            let s = 0.5 / (trace + 1.0).sqrt();
+            let x = (up.z - forward.y) * s;
+            let y = (forward.x - right.z) * s;
+            let z = (right.y - up.x) * s;
+            let w = 0.25 / s;
+            Quat::from_xyzw(x, y, z, w)
+        } else if right.x > up.y && right.x > forward.z {
+            let s = 2.0 * (1.0 + right.x - up.y - forward.z).sqrt();
+            let x = 0.25 * s;
+            let y = (up.x + right.y) / s;
+            let z = (forward.x + right.z) / s;
+            let w = (up.z - forward.y) / s;
+            Quat::from_xyzw(x, y, z, w)
+        } else if up.y > forward.z {
+            let s = 2.0 * (1.0 + up.y - right.x - forward.z).sqrt();
+            let x = (up.x + right.y) / s;
+            let y = 0.25 * s;
+            let z = (forward.y + up.z) / s;
+            let w = (forward.x - right.z) / s;
+            Quat::from_xyzw(x, y, z, w)
+        } else {
+            let s = 2.0 * (1.0 + forward.z - right.x - up.y).sqrt();
+            let x = (forward.x + right.z) / s;
+            let y = (forward.y + up.z) / s;
+            let z = 0.25 * s;
+            let w = (right.y - up.x) / s;
+            Quat::from_xyzw(x, y, z, w)
+        }
+        .normalized()
+        .into()
+    }
+}
+
+impl From<Rotator> for Mat3 {
+    fn from(value: Rotator) -> Self {
+        value.quat().into()
+    }
+}
+
+impl From<Quat> for Rotator {
+    fn from(value: Quat) -> Self {
+        Self {
+            quat: value,
+            eulers: value.into(),
+        }
+    }
+}
+
+impl From<Rotator> for Quat {
+    fn from(value: Rotator) -> Self {
+        value.quat()
+    }
+}
+
+impl From<Eulers> for Rotator {
+    fn from(value: Eulers) -> Self {
+        Self {
+            quat: value.into(),
+            eulers: value,
+        }
+    }
+}
+
+impl From<Rotator> for Eulers {
+    fn from(value: Rotator) -> Self {
+        value.eulers()
     }
 }
 

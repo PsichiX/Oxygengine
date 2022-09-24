@@ -84,7 +84,9 @@ pub struct JobsPipelineEngine {
     pub(crate) systems: Vec<PipelineGraphSystem>,
 }
 
+#[cfg(feature = "web")]
 unsafe impl Send for JobsPipelineEngine {}
+#[cfg(feature = "web")]
 unsafe impl Sync for JobsPipelineEngine {}
 
 impl Default for JobsPipelineEngine {

@@ -20,5 +20,4 @@ impl HaGizmo {
 }
 
 impl Prefab for HaGizmo {}
-
 impl PrefabComponent for HaGizmo {}

@@ -124,7 +124,7 @@ impl Default for VisualNovelOverlayPhase {
 
 impl VisualNovelOverlayPhase {
     fn default_phase() -> Phase {
-        Phase::ease(Ease::InOutCubic, 0.0, 1.0, 1.0).unwrap()
+        Phase::ease(Ease::InOutCubic, 0.0..1.0, 0.0..1.0).unwrap()
     }
 }
 

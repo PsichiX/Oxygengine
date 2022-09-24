@@ -42,7 +42,7 @@ pub fn sync_game_state_info_system(universe: &mut Universe) {
         for message in events.read() {
             match message {
                 HaVolumeOverlapEvent::Begin(entity) => {
-                    if let Ok(name) = world.get::<Name>(*entity) {
+                    if let Ok(name) = world.get::<&Name>(*entity) {
                         info.area = Some(name.0.as_ref().to_owned());
                         dirty = true;
                     }

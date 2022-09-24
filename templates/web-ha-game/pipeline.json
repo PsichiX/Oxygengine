@@ -7,13 +7,6 @@
         "clear_destination": true,
         "commands": [
           {
-            "Copy": {
-              "from": [
-                "animations/"
-              ]
-            }
-          },
-          {
             "Plugin": {
               "name": "oxygengine-ha-renderer-atlas",
               "params": {
@@ -27,7 +20,7 @@
           },
           {
             "Plugin": {
-              "name": "debug/oxygengine-ha-renderer-bmfont",
+              "name": "oxygengine-ha-renderer-bmfont",
               "params": {
                 "descriptors": ["fonts/pixel.fnt"],
                 "output": "fonts/",
@@ -133,6 +126,7 @@
           {
             "Copy": {
               "from": [
+                "animations/",
                 "assets.txt"
               ]
             }

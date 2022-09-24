@@ -105,5 +105,4 @@ impl BoardAvatar {
 }
 
 impl Prefab for BoardAvatar {}
-
 impl PrefabComponent for BoardAvatar {}

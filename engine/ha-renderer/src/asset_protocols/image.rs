@@ -1,4 +1,4 @@
-use crate::image::{ImageDescriptor, ImageMode};
+use crate::image::{ImageDescriptor, ImageFormat, ImageMipmap, ImageMode};
 use core::{
     assets::{
         asset::{Asset, AssetId},
@@ -71,6 +71,23 @@ pub struct ImageAsset {
     pub depth: usize,
     pub bytes: Vec<u8>,
     pub content_assets: Vec<AssetId>,
+}
+
+impl ImageAsset {
+    pub fn color(color: [u8; 4], mode: ImageMode) -> Self {
+        Self {
+            descriptor: ImageDescriptor {
+                mode,
+                format: ImageFormat::RGBA,
+                mipmap: ImageMipmap::None,
+            },
+            width: 1,
+            height: 1,
+            depth: 1,
+            bytes: color.to_vec(),
+            content_assets: vec![],
+        }
+    }
 }
 
 pub struct ImageAssetProtocol;
@@ -212,6 +229,15 @@ impl AssetProtocol for ImageAssetProtocol {
                         let w = info.width as usize;
                         let h = info.height as usize;
                         let size = reader.output_buffer_size();
+                        let bytesize = size / (w * h);
+                        if bytesize != descriptor.format.bytesize() {
+                            return AssetLoadResult::Error(format!(
+                                "PNG: {:?} image doesn't have expected per-pixel bytesize: {} (provided: {})",
+                                asset.to_full_path(),
+                                descriptor.format.bytesize(),
+                                bytesize,
+                            ));
+                        }
                         if width == 0 || height == 0 {
                             width = w;
                             height = h;
@@ -259,6 +285,15 @@ impl AssetProtocol for ImageAssetProtocol {
                         let h = info.height as usize;
                         let data = decoder.decode().unwrap();
                         let size = bytes.len();
+                        let bytesize = size / (w * h);
+                        if bytesize != descriptor.format.bytesize() {
+                            return AssetLoadResult::Error(format!(
+                                "JPEG: {:?} image doesn't have expected per-pixel bytesize: {} (provided: {})",
+                                asset.to_full_path(),
+                                descriptor.format.bytesize(),
+                                bytesize,
+                            ));
+                        }
                         if width == 0 || height == 0 {
                             width = w;
                             height = h;

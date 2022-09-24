@@ -1,0 +1,15 @@
+list:
+  just --list
+
+format:
+  cargo fmt
+
+build:
+  cargo build
+
+live:
+  oxygengine-ignite live -- -p 8080 -a ./assets
+
+package:
+  oxygengine-ignite package -a ./assets
+

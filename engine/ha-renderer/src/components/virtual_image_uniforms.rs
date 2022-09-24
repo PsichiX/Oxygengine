@@ -65,5 +65,4 @@ impl Prefab for HaVirtualImageUniforms {
         self.dirty = true;
     }
 }
-
 impl PrefabComponent for HaVirtualImageUniforms {}

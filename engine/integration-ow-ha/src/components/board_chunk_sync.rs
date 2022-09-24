@@ -6,5 +6,4 @@ use serde::{Deserialize, Serialize};
 pub struct HaBoardChunkSync(pub BoardLocation);
 
 impl Prefab for HaBoardChunkSync {}
-
 impl PrefabComponent for HaBoardChunkSync {}

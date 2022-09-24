@@ -119,7 +119,7 @@ where
                 Option<&CompositeEffect>,
                 Option<&CompositeRenderableStroke>,
             )>()
-            .with::<CompositeTransform>()
+            .with::<&CompositeTransform>()
             .iter()
             .filter(|(_, (_, tag, ..))| unsafe {
                 camera.read().tags.is_empty()

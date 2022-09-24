@@ -19,7 +19,7 @@ pub fn composite_transform_system(universe: &mut Universe) {
     cache.clear();
     for (entity, transform) in world
         .query::<&CompositeTransform>()
-        .without::<Parent>()
+        .without::<&Parent>()
         .iter()
     {
         let mat = transform.matrix();
@@ -41,7 +41,7 @@ fn add_matrix(
     hierarchy: &Hierarchy,
     cache: &mut CompositeTransformCache,
 ) {
-    if let Ok(transform) = unsafe { world.get_unchecked::<CompositeTransform>(child) } {
+    if let Ok(transform) = unsafe { world.get_unchecked::<&CompositeTransform>(child) } {
         let mat = parent_matrix * transform.matrix();
         cache.insert(child, mat);
         if let Some(children) = hierarchy.children(child) {

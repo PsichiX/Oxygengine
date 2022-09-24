@@ -1,6 +1,6 @@
-use crate::TagFilters;
 use core::{
     prefab::{Prefab, PrefabComponent},
+    utils::TagFilters,
     Ignite, Scalar,
 };
 use serde::{Deserialize, Serialize};

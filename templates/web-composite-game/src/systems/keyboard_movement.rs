@@ -12,19 +12,21 @@ pub type KeyboardMovementSystemResources<'a> = (
 );
 
 pub fn keyboard_movement_system(universe: &mut Universe) {
-    let (world, input, mut physics, lifecycle, ..) =
+    let (world, inputs, mut physics, lifecycle, ..) =
         universe.query_resources::<KeyboardMovementSystemResources>();
 
     // calculate force to apply.
     let dt = lifecycle.delta_time_seconds();
-    let hor = -input.axis_or_default("move-left") + input.axis_or_default("move-right");
-    let ver = -input.axis_or_default("move-up") + input.axis_or_default("move-down");
-    let force = Vector::new(hor as Scalar, ver as Scalar) * dt * 7.0;
+    let force = Vector::from(
+        inputs
+            .mirror_multi_axis_or_default([("move-left", "move-right"), ("move-up", "move-down")]),
+    );
+    let force = force * dt * 7.0;
 
     // iterate over all bodies with speed and keyboard movement components.
     for (_, (speed, body)) in world
         .query::<(&Speed, &RigidBody2d)>()
-        .with::<KeyboardMovementTag>()
+        .with::<&KeyboardMovementTag>()
         .iter()
     {
         // get physical body by handle.

@@ -4,12 +4,12 @@ use crate::{
         tilemap_instance::HaTileMapInstance,
     },
     ha_renderer::HaRenderer,
-    image::{ImageFiltering, ImageId, ImageInstanceReference, VirtualImageSource},
+    image::{ImageFiltering, ImageId, ImageReference, VirtualImageSource},
     material::{
         common::MaterialValue,
         domains::surface::{tilemap::SurfaceTileMapFactory, SurfaceVertexPT},
     },
-    mesh::{Mesh, MeshId, MeshInstanceReference},
+    mesh::{Mesh, MeshId, MeshReference},
 };
 use core::ecs::{life_cycle::EntityChanges, Comp, Entity, Universe, WorldRef};
 use std::collections::HashMap;
@@ -48,7 +48,7 @@ pub fn ha_tilemap_system(universe: &mut Universe) {
         .iter()
     {
         if tilemap.dirty || !cache.meshes.contains_key(&entity) {
-            mesh.reference = MeshInstanceReference::None;
+            mesh.reference = MeshReference::None;
             if let Ok(factory) =
                 SurfaceTileMapFactory::factory::<SurfaceVertexPT>(tilemap, &renderer.virtual_images)
             {
@@ -68,7 +68,7 @@ pub fn ha_tilemap_system(universe: &mut Universe) {
                             m.set_index_storage(tilemap.change_frequency().into());
                             if factory.write_into(m).is_ok() {
                                 tilemap.dirty = false;
-                                mesh.reference = MeshInstanceReference::Id(*id);
+                                mesh.reference = MeshReference::Id(*id);
                                 set_material_sampler(material, image_id, tilemap.filtering);
                             }
                         }
@@ -79,7 +79,7 @@ pub fn ha_tilemap_system(universe: &mut Universe) {
                         if factory.write_into(&mut m).is_ok() {
                             if let Ok(id) = renderer.add_mesh(m) {
                                 tilemap.dirty = false;
-                                mesh.reference = MeshInstanceReference::Id(id);
+                                mesh.reference = MeshReference::Id(id);
                                 set_material_sampler(material, image_id, tilemap.filtering);
                                 cache.meshes.insert(entity, id);
                             }
@@ -95,7 +95,7 @@ fn set_material_sampler(material: &mut HaMaterialInstance, id: ImageId, filterin
     material.values.insert(
         "mainImage".to_owned(),
         MaterialValue::Sampler2d {
-            reference: ImageInstanceReference::Id(id),
+            reference: ImageReference::Id(id),
             filtering,
         },
     );

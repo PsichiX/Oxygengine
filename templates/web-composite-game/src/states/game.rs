@@ -3,7 +3,6 @@ use oxygengine::prelude::*;
 #[derive(Debug, Default)]
 pub struct GameState {
     camera: Option<Entity>,
-    camera_ui: Option<Entity>,
 }
 
 impl State for GameState {

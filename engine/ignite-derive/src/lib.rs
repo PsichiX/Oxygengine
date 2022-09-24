@@ -299,7 +299,7 @@ fn parse_type_attribs(attrs: &[Attribute]) -> IgniteTypeAttribs {
         match attrib.parse_meta() {
             Err(error) => panic!(
                 "Could not parse ignite attribute `{}`: {:?}",
-                attrib.to_token_stream().to_string(),
+                attrib.to_token_stream(),
                 error
             ),
             Ok(Meta::List(meta)) => {
@@ -340,7 +340,7 @@ fn parse_field_attribs(attrs: &[Attribute]) -> IgniteFieldAttribs {
         match attrib.parse_meta() {
             Err(error) => panic!(
                 "Could not parse ignite attribute `{}`: {:?}",
-                attrib.to_token_stream().to_string(),
+                attrib.to_token_stream(),
                 error
             ),
             Ok(Meta::List(meta)) => {
@@ -411,7 +411,7 @@ fn parse_type(type_: &Type) -> IgniteType {
             if tuple.elems.is_empty() {
                 IgniteType::Unit
             } else {
-                let elems = tuple.elems.iter().map(|elem| parse_type(elem)).collect::<Vec<_>>();
+                let elems = tuple.elems.iter().map(parse_type).collect::<Vec<_>>();
                 IgniteType::Tuple(elems)
             }
         }

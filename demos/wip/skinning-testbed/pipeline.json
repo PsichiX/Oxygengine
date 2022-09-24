@@ -1,0 +1,63 @@
+{
+  "commands": [
+    {
+      "Pipeline": {
+        "source": "assets",
+        "destination": "assets-intermediate",
+        "clear_destination": true,
+        "commands": [
+          {
+            "Plugin": {
+              "disabled": true,
+              "name": "oxygengine-ha-renderer-atlas",
+              "params": {
+                "input_directories": [],
+                "output": "atlases/",
+                "assets_path_prefix": "atlases/",
+                "max_width": 1024,
+                "max_height": 1024
+              }
+            }
+          },
+          {
+            "Plugin": {
+              "name": "oxygengine-ha-renderer-spine",
+              "params": {
+                "input_skeletons": ["skeletons/watcher.json", "skeletons/color-rope.json"],
+                "output": "skeletons/",
+                "assets_path_prefix": "skeletons/"
+              }
+            }
+          },
+          {
+            "Copy": {
+              "from": [
+                "images/",
+                "assets.txt"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "Pipeline": {
+        "destination": "assets-baked",
+        "clear_destination": true,
+        "commands": [
+          {
+            "Pack": {
+              "paths": ["assets-intermediate/"],
+              "output": "assets.pack"
+            }
+          },
+          {
+            "Copy": {
+              "from": ["assets/index.html"]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

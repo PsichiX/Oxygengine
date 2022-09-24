@@ -19,40 +19,61 @@ use std::{
 
 pub trait AppTimer: Send + Sync {
     fn tick(&mut self);
-    fn now_since_start(&self) -> Duration;
+    fn time(&self) -> Duration;
+    fn time_seconds(&self) -> Scalar;
     fn delta_time(&self) -> Duration;
     fn delta_time_seconds(&self) -> Scalar;
+    fn ticks(&self) -> usize;
 }
 
 pub struct StandardAppTimer {
     timer: Instant,
+    last_timer: Instant,
+    time: Duration,
+    time_seconds: Scalar,
     delta_time: Duration,
     delta_time_seconds: Scalar,
+    ticks: usize,
 }
 
 impl Default for StandardAppTimer {
     fn default() -> Self {
         Self {
             timer: Instant::now(),
+            last_timer: Instant::now(),
+            time: Duration::default(),
+            time_seconds: 0.0,
             delta_time: Duration::default(),
             delta_time_seconds: 0.0,
+            ticks: 0,
         }
     }
 }
 
 impl AppTimer for StandardAppTimer {
     fn tick(&mut self) {
-        let d = self.timer.elapsed();
-        self.delta_time = d;
+        self.delta_time = self.last_timer.elapsed();
         #[cfg(feature = "scalar64")]
-        let secs = d.as_secs_f64();
+        let d = self.delta_time.as_secs_f64();
         #[cfg(not(feature = "scalar64"))]
-        let secs = d.as_secs_f32();
-        self.delta_time_seconds = secs + d.subsec_nanos() as Scalar * 1e-9;
+        let d = self.delta_time.as_secs_f32();
+        self.delta_time_seconds = d;
+        self.time = self.timer.elapsed();
+        #[cfg(feature = "scalar64")]
+        let d = self.time.as_secs_f64();
+        #[cfg(not(feature = "scalar64"))]
+        let d = self.time.as_secs_f32();
+        self.time_seconds = d;
+        self.ticks = self.ticks.wrapping_add(1);
+        self.last_timer = Instant::now();
     }
 
-    fn now_since_start(&self) -> Duration {
-        self.timer.elapsed()
+    fn time(&self) -> Duration {
+        self.time
+    }
+
+    fn time_seconds(&self) -> Scalar {
+        self.time_seconds
     }
 
     fn delta_time(&self) -> Duration {
@@ -61,6 +82,10 @@ impl AppTimer for StandardAppTimer {
 
     fn delta_time_seconds(&self) -> Scalar {
         self.delta_time_seconds
+    }
+
+    fn ticks(&self) -> usize {
+        self.ticks
     }
 }
 
@@ -105,8 +130,12 @@ impl AppLifeCycle {
         }
     }
 
-    pub fn now_since_start(&self) -> Duration {
-        self.timer.now_since_start()
+    pub fn time(&self) -> Duration {
+        self.timer.time()
+    }
+
+    pub fn time_seconds(&self) -> Scalar {
+        self.timer.time_seconds()
     }
 
     pub fn delta_time(&self) -> Duration {
@@ -129,6 +158,10 @@ impl AppLifeCycle {
             }
             None => dt,
         }
+    }
+
+    pub fn ticks(&self) -> usize {
+        self.timer.ticks()
     }
 
     pub fn current_state_token(&self) -> StateToken {

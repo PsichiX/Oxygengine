@@ -1,6 +1,6 @@
 use crate::{
     ha_renderer::RenderStageResources, math::Rect, render_target::RenderTargetId,
-    resources::resource_mapping::ResourceMapping, HasContextResources, ResourceInstanceReference,
+    resources::resource_mapping::ResourceMapping, HasContextResources, ResourceReference,
 };
 use core::{id::ID, Ignite};
 use glow::*;
@@ -9,12 +9,15 @@ use std::{collections::HashMap, hash::Hash};
 
 #[derive(Debug, Clone)]
 pub enum ImageError {
+    NoResources,
     /// (provided, expected)
     InvalidSize(usize, usize),
     Internal(String),
 }
 
-pub type ImageInstanceReference = ResourceInstanceReference<ImageId, VirtualImageId>;
+pub type ImageId = ID<Image>;
+pub type VirtualImageId = ID<VirtualImage>;
+pub type ImageReference = ResourceReference<ImageId, VirtualImageId>;
 pub type ImageResourceMapping = ResourceMapping<Image, VirtualImage>;
 
 #[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,6 +48,7 @@ pub enum ImageFormat {
     RGBA,
     RGB,
     Luminance,
+    Data,
 }
 
 impl Default for ImageFormat {
@@ -54,17 +58,34 @@ impl Default for ImageFormat {
 }
 
 impl ImageFormat {
-    pub fn as_gl(&self) -> u32 {
+    pub fn as_internal_format_gl(&self) -> u32 {
         match self {
             Self::RGBA => RGBA,
             Self::RGB => RGB,
             Self::Luminance => LUMINANCE,
+            Self::Data => RGBA32F,
+        }
+    }
+
+    pub fn as_format_gl(&self) -> u32 {
+        match self {
+            Self::RGBA => RGBA,
+            Self::RGB => RGB,
+            Self::Luminance => LUMINANCE,
+            Self::Data => RGBA,
+        }
+    }
+
+    pub fn as_type_gl(&self) -> u32 {
+        match self {
+            Self::Data => FLOAT,
+            _ => UNSIGNED_BYTE,
         }
     }
 
     pub fn alignment(&self) -> usize {
         let size = match self {
-            Self::RGBA => 4,
+            Self::RGBA | Self::Data => 4,
             _ => 1,
         };
         std::mem::size_of::<u8>() * size
@@ -75,6 +96,7 @@ impl ImageFormat {
             Self::RGBA => 4,
             Self::RGB => 3,
             Self::Luminance => 1,
+            Self::Data => 16,
         };
         std::mem::size_of::<u8>() * size
     }
@@ -131,9 +153,7 @@ pub struct ImageResources {
     pub handle: <Context as HasContext>::Texture,
 }
 
-pub type ImageId = ID<Image>;
-
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ImageDetailedInfo {
     pub mode: ImageMode,
     pub format: ImageFormat,
@@ -153,6 +173,7 @@ pub struct Image {
     depth: usize,
     data: Vec<u8>,
     resources: Option<ImageResources>,
+    dirty: bool,
 }
 
 impl Drop for Image {
@@ -180,67 +201,8 @@ impl HasContextResources<Context> for Image {
             Ok(handle) => handle,
             Err(error) => return Err(ImageError::Internal(error)),
         };
-
-        unsafe {
-            let format = self.format.as_gl();
-            let alignment = self.format.alignment();
-            let gl_mode = self.mode.as_gl();
-            context.bind_texture(gl_mode, Some(handle));
-            context.pixel_store_i32(UNPACK_ALIGNMENT, alignment as _);
-            match self.mode {
-                ImageMode::Image2d => {
-                    context.tex_image_2d(
-                        gl_mode,
-                        0,
-                        format as _,
-                        self.width as _,
-                        self.height as _,
-                        0,
-                        format,
-                        UNSIGNED_BYTE,
-                        Some(&self.data),
-                    );
-                }
-                ImageMode::Image2dArray => {
-                    context.tex_image_3d(
-                        gl_mode,
-                        0,
-                        format as _,
-                        self.width as _,
-                        self.height as _,
-                        self.depth as _,
-                        0,
-                        format,
-                        UNSIGNED_BYTE,
-                        Some(&self.data),
-                    );
-                }
-                ImageMode::Image3d => {
-                    context.tex_image_3d(
-                        gl_mode,
-                        0,
-                        format as _,
-                        self.width as _,
-                        self.height as _,
-                        self.depth as _,
-                        0,
-                        format,
-                        UNSIGNED_BYTE,
-                        Some(&self.data),
-                    );
-                }
-            }
-            if let ImageMipmap::Generate(limit) = self.mipmap {
-                if let Some(limit) = limit {
-                    context.tex_parameter_i32(gl_mode, TEXTURE_MAX_LEVEL, limit as i32);
-                }
-                context.generate_mipmap(gl_mode);
-            }
-            context.bind_texture(gl_mode, None);
-        }
-
         self.resources = Some(ImageResources { handle });
-        Ok(())
+        self.maintain(context)
     }
 
     fn context_release(&mut self, context: &Context) -> Result<(), Self::Error> {
@@ -277,6 +239,7 @@ impl Image {
                 depth,
                 data,
                 resources: None,
+                dirty: true,
             })
         } else {
             Err(ImageError::InvalidSize(data.len(), size))
@@ -318,12 +281,110 @@ impl Image {
         self.depth
     }
 
+    pub fn data(&self) -> &[u8] {
+        &self.data
+    }
+
+    pub fn set_data(&mut self, data: Vec<u8>) -> Result<(), ImageError> {
+        let size = self.format.bytesize() * self.width * self.height * self.depth;
+        if size == data.len() {
+            self.data = data;
+            self.dirty = true;
+            Ok(())
+        } else {
+            Err(ImageError::InvalidSize(data.len(), size))
+        }
+    }
+
+    pub fn with_data<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&mut [u8]),
+    {
+        f(&mut self.data);
+        self.dirty = true;
+    }
+
+    pub fn overwrite(
+        &mut self,
+        width: usize,
+        height: usize,
+        depth: usize,
+        data: Vec<u8>,
+    ) -> Result<(), ImageError> {
+        let size = self.format.bytesize() * width * height * depth;
+        if size == data.len() {
+            self.width = width;
+            self.height = height;
+            self.depth = depth;
+            self.data = data;
+            self.dirty = true;
+            Ok(())
+        } else {
+            Err(ImageError::InvalidSize(data.len(), size))
+        }
+    }
+
     pub fn resources<'a>(&self, _: &RenderStageResources<'a>) -> Option<&ImageResources> {
         self.resources.as_ref()
     }
-}
 
-pub type VirtualImageId = ID<VirtualImage>;
+    pub(crate) fn maintain(&mut self, context: &Context) -> Result<(), ImageError> {
+        let resources = match &self.resources {
+            Some(resources) => resources,
+            None => return Err(ImageError::NoResources),
+        };
+        if self.dirty {
+            unsafe {
+                let gl_mode = self.mode.as_gl();
+                let gl_internal_format = self.format.as_internal_format_gl();
+                let gl_format = self.format.as_format_gl();
+                let gl_type = self.format.as_type_gl();
+                let alignment = self.format.alignment();
+                context.bind_texture(gl_mode, Some(resources.handle));
+                context.pixel_store_i32(PACK_ALIGNMENT, alignment as _);
+                context.pixel_store_i32(UNPACK_ALIGNMENT, alignment as _);
+                match self.mode {
+                    ImageMode::Image2d => {
+                        context.tex_image_2d(
+                            gl_mode,
+                            0,
+                            gl_internal_format as _,
+                            self.width as _,
+                            self.height as _,
+                            0,
+                            gl_format,
+                            gl_type,
+                            Some(&self.data),
+                        );
+                    }
+                    ImageMode::Image2dArray | ImageMode::Image3d => {
+                        context.tex_image_3d(
+                            gl_mode,
+                            0,
+                            gl_internal_format as _,
+                            self.width as _,
+                            self.height as _,
+                            self.depth as _,
+                            0,
+                            gl_format,
+                            gl_type,
+                            Some(&self.data),
+                        );
+                    }
+                }
+                if let ImageMipmap::Generate(limit) = self.mipmap {
+                    if let Some(limit) = limit {
+                        context.tex_parameter_i32(gl_mode, TEXTURE_MAX_LEVEL, limit as i32);
+                    }
+                    context.generate_mipmap(gl_mode);
+                }
+                context.bind_texture(gl_mode, None);
+            }
+            self.dirty = false;
+        }
+        Ok(())
+    }
+}
 
 #[derive(Debug)]
 pub struct VirtualImageDetailedInfo {

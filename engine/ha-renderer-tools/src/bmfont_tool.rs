@@ -2,7 +2,7 @@ mod sdf_generator;
 
 use crate::sdf_generator::*;
 use image::*;
-use oxygengine_build_tools::AssetPipelineInput;
+use oxygengine_build_tools::*;
 use oxygengine_ha_renderer::{
     asset_protocols::{font::*, image::*},
     image::*,
@@ -102,6 +102,8 @@ impl Params {
         1024
     }
 }
+
+impl ParamsFromArgs for Params {}
 
 fn main() -> Result<(), Error> {
     let (source, destination, params) = AssetPipelineInput::<Params>::consume().unwrap();

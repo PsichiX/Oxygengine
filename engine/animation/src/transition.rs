@@ -1,12 +1,10 @@
 use crate::phase::Phase;
 use core::Scalar;
 use serde::{Deserialize, Serialize};
+use std::ops::Range;
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
-pub struct Transition<T>
-where
-    T: Clone,
-{
+pub struct Transition<T> {
     from: T,
     to: T,
     #[serde(default)]
@@ -25,9 +23,9 @@ where
         Self {
             from,
             to,
-            phase,
             playing: false,
-            time: 0.0,
+            time: phase.time_frame().start,
+            phase,
         }
     }
 
@@ -44,19 +42,21 @@ where
     }
 
     pub fn start(&mut self) {
-        self.time = 0.0;
+        self.time = self.phase.time_frame().start;
     }
 
     pub fn end(&mut self) {
-        self.time = self.phase.duration();
+        self.time = self.phase.time_frame().end;
     }
 
     pub fn set_time(&mut self, time: Scalar) {
-        self.time = time.max(0.0).min(self.duration());
+        self.time = time
+            .max(self.phase.time_frame().start)
+            .min(self.phase.time_frame().end);
     }
 
     pub fn in_progress(&self) -> bool {
-        self.time < self.phase.duration()
+        self.time < self.phase.time_frame().end
     }
 
     pub fn is_complete(&self) -> bool {
@@ -79,6 +79,10 @@ where
         &mut self.to
     }
 
+    pub fn time_frame(&self) -> Range<Scalar> {
+        self.phase.time_frame()
+    }
+
     pub fn duration(&self) -> Scalar {
         self.phase.duration()
     }
@@ -99,12 +103,12 @@ where
 
     pub fn process(&mut self, delta_time: Scalar) {
         if self.playing {
-            let duration = self.phase.duration();
+            let time_frame = self.phase.time_frame();
             let time = self.time + delta_time;
-            if time >= duration {
+            if time >= time_frame.end {
                 self.playing = false;
             }
-            self.time = time.max(0.0).min(duration);
+            self.time = time.max(time_frame.start).min(time_frame.end);
         }
     }
 }
@@ -122,7 +126,11 @@ pub struct SwitchTransition {
 
 impl SwitchTransition {
     pub fn new(value: bool, phase: Phase) -> Self {
-        let time = if value { phase.duration() } else { 0.0 };
+        let time = if value {
+            phase.time_frame().end
+        } else {
+            phase.time_frame().start
+        };
         Self {
             value,
             phase,
@@ -144,29 +152,31 @@ impl SwitchTransition {
 
     pub fn start(&mut self) {
         self.time = if self.value {
-            0.0
+            self.phase.time_frame().start
         } else {
-            self.phase.duration()
+            self.phase.time_frame().end
         };
     }
 
     pub fn end(&mut self) {
         self.time = if self.value {
-            self.phase.duration()
+            self.phase.time_frame().end
         } else {
-            0.0
+            self.phase.time_frame().start
         };
     }
 
     pub fn set_time(&mut self, time: Scalar) {
-        self.time = time.max(0.0).min(self.duration());
+        self.time = time
+            .max(self.phase.time_frame().start)
+            .min(self.phase.time_frame().end);
     }
 
     pub fn in_progress(&self) -> bool {
         if self.value {
-            self.time < self.phase.duration()
+            self.time < self.phase.time_frame().end
         } else {
-            self.time > 0.0
+            self.time > self.phase.time_frame().start
         }
     }
 
@@ -196,21 +206,21 @@ impl SwitchTransition {
 
     pub fn process(&mut self, delta_time: Scalar) {
         if self.playing {
-            let duration = self.phase.duration();
+            let time_frame = self.phase.time_frame();
             let time = if self.value {
                 let time = self.time + delta_time;
-                if time >= duration {
+                if time >= time_frame.end {
                     self.playing = false;
                 }
                 time
             } else {
                 let time = self.time - delta_time;
-                if time <= 0.0 {
+                if time <= time_frame.start {
                     self.playing = false;
                 }
                 time
             };
-            self.time = time.max(0.0).min(duration);
+            self.time = time.max(time_frame.start).min(time_frame.end);
         }
     }
 }

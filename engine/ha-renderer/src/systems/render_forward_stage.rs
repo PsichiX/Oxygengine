@@ -3,19 +3,20 @@ use crate::{
         camera::HaCamera, material_instance::HaMaterialInstance, mesh_instance::HaMeshInstance,
         transform::HaTransform, visibility::HaVisibility,
     },
+    constants::material_uniforms::*,
     ha_renderer::HaRenderer,
-    mesh::MeshDrawRange,
+    math::*,
     pipeline::render_queue::RenderCommand,
 };
-use core::ecs::{components::Tag, Comp, Universe, WorldRef};
-
-const MODEL_MATRIX_NAME: &str = "model";
-const VIEW_MATRIX_NAME: &str = "view";
-const PROJECTION_MATRIX_NAME: &str = "projection";
+use core::{
+    app::AppLifeCycle,
+    ecs::{components::Tag, Comp, Universe, WorldRef},
+};
 
 pub type HaRenderForwardStageSystemResources<'a> = (
     WorldRef,
     &'a HaRenderer,
+    &'a AppLifeCycle,
     Comp<&'a mut HaCamera>,
     Comp<&'a Tag>,
     Comp<&'a HaVisibility>,
@@ -27,7 +28,15 @@ pub type HaRenderForwardStageSystemResources<'a> = (
 pub struct RenderForwardStage;
 
 pub fn ha_render_forward_stage_system(universe: &mut Universe) {
-    let (world, renderer, ..) = universe.query_resources::<HaRenderForwardStageSystemResources>();
+    let (world, renderer, lifecycle, ..) =
+        universe.query_resources::<HaRenderForwardStageSystemResources>();
+
+    let time = vec4(
+        lifecycle.time_seconds(),
+        lifecycle.delta_time_seconds(),
+        lifecycle.time_seconds().fract(),
+        0.0,
+    );
 
     for (_, (visibility, camera, transform)) in world
         .query::<(Option<&HaVisibility>, &HaCamera, &HaTransform)>()
@@ -95,6 +104,10 @@ pub fn ha_render_forward_stage_system(universe: &mut Universe) {
                     PROJECTION_MATRIX_NAME.into(),
                     info.projection_matrix.into(),
                 ));
+                let _ = recorder.record(RenderCommand::OverrideUniform(
+                    TIME_NAME.into(),
+                    time.into(),
+                ));
                 for (key, value) in &material.values {
                     let _ = recorder.record(RenderCommand::OverrideUniform(
                         key.to_owned().into(),
@@ -105,8 +118,12 @@ pub fn ha_render_forward_stage_system(universe: &mut Universe) {
                     let _ =
                         recorder.record(RenderCommand::ApplyDrawOptions(draw_options.to_owned()));
                 }
-                // TODO: add support for virtual mesh ranges.
-                let _ = recorder.record(RenderCommand::DrawMesh(MeshDrawRange::All));
+                let draw_range = mesh
+                    .override_draw_range
+                    .as_ref()
+                    .cloned()
+                    .unwrap_or_default();
+                let _ = recorder.record(RenderCommand::DrawMesh(draw_range));
                 let _ = recorder.record(RenderCommand::ResetUniforms);
             }
 

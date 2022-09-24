@@ -1,10 +1,16 @@
 use crate::{
     builtin_material_functions, code_material_function, code_material_functions,
+    graph_material_function,
     material::{
         common::{BakedMaterialShaders, MaterialSignature},
-        graph::{function::MaterialFunction, MaterialGraph},
+        graph::{
+            function::{MaterialFunction, MaterialFunctionContent},
+            MaterialGraph,
+        },
         MaterialError,
     },
+    material_graph,
+    math::*,
     mesh::VertexLayout,
     render_target::{RenderTarget, RenderTargetDescriptor},
 };
@@ -13,22 +19,28 @@ use std::collections::HashMap;
 #[derive(Debug)]
 pub struct MaterialLibraryInfo {
     pub domains: Vec<String>,
+    pub middlewares: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
 pub struct MaterialLibrary {
     functions: HashMap<String, MaterialFunction>,
     domains: HashMap<String, MaterialGraph>,
+    middlewares: HashMap<String, MaterialGraph>,
 }
 
 impl MaterialLibrary {
     pub fn info(&self) -> MaterialLibraryInfo {
         MaterialLibraryInfo {
             domains: self.domains.keys().cloned().collect(),
+            middlewares: self.middlewares.keys().cloned().collect(),
         }
     }
 
-    pub fn add_function(&mut self, function: MaterialFunction) {
+    pub fn add_function(&mut self, mut function: MaterialFunction) {
+        if let MaterialFunctionContent::Graph(graph) = &mut function.content {
+            graph.optimize();
+        }
         self.functions.insert(function.name.to_owned(), function);
     }
 
@@ -64,7 +76,8 @@ impl MaterialLibrary {
         self.functions.len()
     }
 
-    pub fn add_domain(&mut self, name: String, graph: MaterialGraph) {
+    pub fn add_domain(&mut self, name: String, mut graph: MaterialGraph) {
+        graph.optimize();
         self.domains.insert(name, graph);
     }
 
@@ -87,6 +100,90 @@ impl MaterialLibrary {
 
     pub fn domains_count(&self) -> usize {
         self.domains.len()
+    }
+
+    pub fn add_middleware(&mut self, name: String, mut graph: MaterialGraph) {
+        graph.optimize();
+        self.middlewares.insert(name, graph);
+    }
+
+    pub fn with_middleware(mut self, name: String, graph: MaterialGraph) -> Self {
+        self.add_middleware(name, graph);
+        self
+    }
+
+    pub fn remove_middleware(&mut self, name: &str) {
+        self.middlewares.remove(name);
+    }
+
+    pub fn has_middleware(&self, name: &str) -> bool {
+        self.middlewares.contains_key(name)
+    }
+
+    pub fn middleware(&self, name: &str) -> Option<&MaterialGraph> {
+        self.middlewares.get(name)
+    }
+
+    pub fn middlewares_count(&self) -> usize {
+        self.middlewares.len()
+    }
+
+    pub fn validate_material_compilation(
+        vertex_layout: &VertexLayout,
+        render_target: RenderTargetDescriptor,
+        domain: &MaterialGraph,
+        graph: &MaterialGraph,
+    ) -> Result<Option<BakedMaterialShaders>, MaterialError> {
+        let render_target = match render_target {
+            RenderTargetDescriptor::Main => match RenderTarget::main() {
+                Ok(render_target) => render_target,
+                Err(error) => return Err(MaterialError::CouldNotCreateRenderTarget(error)),
+            },
+            RenderTargetDescriptor::Custom {
+                buffers,
+                width,
+                height,
+            } => RenderTarget::new(buffers, width, height),
+        };
+        let signature = MaterialSignature::from_objects(
+            vertex_layout,
+            &render_target,
+            None,
+            vertex_layout.middlewares().into(),
+        );
+        graph.bake(&signature, Some(domain), &Self::default(), true)
+    }
+
+    pub fn assert_material_compilation(
+        vertex_layout: &VertexLayout,
+        render_target: RenderTargetDescriptor,
+        domain: &MaterialGraph,
+        graph: &MaterialGraph,
+    ) {
+        let baked =
+            Self::validate_material_compilation(vertex_layout, render_target, domain, graph)
+                .unwrap_or_else(|error| match &error {
+                    MaterialError::Baking(graph, error) => match &**error {
+                        MaterialError::GraphIsCyclic(nodes) => {
+                            let nodes = nodes
+                                .iter()
+                                .map(|id| (id, graph.node(*id).unwrap()))
+                                .collect::<Vec<_>>();
+                            panic!(
+                                "Could not bake shaders from material: {:?} | Cycle: {:#?}",
+                                error, nodes
+                            );
+                        }
+                        _ => panic!("Could not bake shaders from material: {:?}", error),
+                    },
+                    _ => panic!("Could not bake shaders from material: {:?}", error),
+                })
+                .expect("Baked shaders are empty");
+        println!("* compiled vertex material graph text:\n{}", baked.vertex);
+        println!(
+            "* compiled fragment material graph text:\n{}",
+            baked.fragment
+        );
     }
 
     fn with_angle_functions(mut self) -> Self {
@@ -242,11 +339,11 @@ impl MaterialLibrary {
             { "roundEven" }
         });
         self.add_functions(builtin_material_functions! {
-            {fn frac_float(v: float) -> float}
-            {fn frac_vec2(v: vec2) -> vec2}
-            {fn frac_vec3(v: vec3) -> vec3}
-            {fn frac_vec4(v: vec4) -> vec4}
-            { "frac" }
+            {fn fract_float(v: float) -> float}
+            {fn fract_vec2(v: vec2) -> vec2}
+            {fn fract_vec3(v: vec3) -> vec3}
+            {fn fract_vec4(v: vec4) -> vec4}
+            { "fract" }
         });
         self.add_functions(builtin_material_functions! {
             {fn mod_float(x: float, y: float) -> float}
@@ -254,6 +351,13 @@ impl MaterialLibrary {
             {fn mod_vec3(x: vec3, y: vec3) -> vec3}
             {fn mod_vec4(x: vec4, y: vec4) -> vec4}
             { "mod" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn mod_int(x: int, y: int) -> int}
+            {fn mod_ivec2(x: ivec2, y: ivec2) -> ivec2}
+            {fn mod_ivec3(x: ivec3, y: ivec3) -> ivec3}
+            {fn mod_ivec4(x: ivec4, y: ivec4) -> ivec4}
+            { "return x % y;" }
         });
         self.add_functions(builtin_material_functions! {
             {fn min_float(x: float, y: float) -> float}
@@ -346,6 +450,41 @@ impl MaterialLibrary {
             {fn refract_vec3(i: vec3, n: vec3, eta: float) -> vec3}
             {fn refract_vec4(i: vec4, n: vec4, eta: float) -> vec4}
             { "refract" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn aspect_vec2(v: vec2) -> float}
+            {fn aspect_ivec2(v: ivec2) -> int}
+            { "return v.x / v.y;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn sum_vec2(v: vec2) -> float}
+            {fn sum_ivec2(v: ivec2) -> int}
+            { "return v.x + v.y;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn sum_vec3(v: vec3) -> float}
+            {fn sum_ivec3(v: ivec3) -> int}
+            { "return v.x + v.y + v.z;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn sum_vec4(v: vec4) -> float}
+            {fn sum_ivec4(v: ivec4) -> int}
+            { "return v.x + v.y + v.z + v.w;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn product_vec2(v: vec2) -> float}
+            {fn product_ivec2(v: ivec2) -> int}
+            { "return v.x * v.y;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn product_vec3(v: vec3) -> float}
+            {fn product_ivec3(v: ivec3) -> int}
+            { "return v.x * v.y * v.z;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn product_vec4(v: vec4) -> float}
+            {fn product_ivec4(v: ivec4) -> int}
+            { "return v.x * v.y * v.z * v.w;" }
         });
         self
     }
@@ -509,16 +648,26 @@ impl MaterialLibrary {
             {fn not_bvec4(x: bvec4) -> bvec4}
             { "not" }
         });
+        self.add_function(code_material_function! {
+            fn negate(v: bool) -> bool {
+                "return !v;"
+            }
+        });
         self.add_functions(code_material_functions! {
-            {fn if_float(cond: bool, truthy: float, falsy: float) -> float}
-            {fn if_vec2(cond: bool, truthy: vec2, falsy: vec2) -> vec2}
-            {fn if_vec3(cond: bool, truthy: vec3, falsy: vec3) -> vec3}
-            {fn if_vec4(cond: bool, truthy: vec4, falsy: vec4) -> vec4}
-            {fn if_int(cond: bool, truthy: int, falsy: int) -> int}
-            {fn if_ivec2(cond: bool, truthy: ivec2, falsy: ivec2) -> ivec2}
-            {fn if_ivec3(cond: bool, truthy: ivec3, falsy: ivec3) -> ivec3}
-            {fn if_ivec4(cond: bool, truthy: ivec4, falsy: ivec4) -> ivec4}
-            { "return mix(falsy, truthy, float(cond));" }
+            {fn if_float(condition: bool, truthy: float, falsy: float) -> float}
+            {fn if_vec2(condition: bool, truthy: vec2, falsy: vec2) -> vec2}
+            {fn if_vec3(condition: bool, truthy: vec3, falsy: vec3) -> vec3}
+            {fn if_vec4(condition: bool, truthy: vec4, falsy: vec4) -> vec4}
+            {fn if_int(condition: bool, truthy: int, falsy: int) -> int}
+            {fn if_ivec2(condition: bool, truthy: ivec2, falsy: ivec2) -> ivec2}
+            {fn if_ivec3(condition: bool, truthy: ivec3, falsy: ivec3) -> ivec3}
+            {fn if_ivec4(condition: bool, truthy: ivec4, falsy: ivec4) -> ivec4}
+            { "return mix(falsy, truthy, float(condition));" }
+        });
+        self.add_function(code_material_function! {
+            fn discard_test(condition: bool) -> bool {
+                "if (condition) discard; return condition;"
+            }
         });
         self
     }
@@ -555,13 +704,13 @@ impl MaterialLibrary {
         self.add_functions(code_material_functions! {
             {fn virtualTextureCoord2d(coord: vec2, offset: vec2, size: vec2) -> vec2}
             {fn virtualTextureCoord3d(coord: vec3, offset: vec3, size: vec3) -> vec3}
-            { "return mix(offset, offset + size, coord);" }
+            { "return clamp(mix(offset, offset + size, coord), 0.0, 1.0);" }
         });
         self.add_functions(code_material_functions! {
             {fn virtualTexture2d(sampler: sampler2D, coord: vec2, offset: vec2, size: vec2) -> vec4}
             {fn virtualTexture2dArray(sampler: sampler2DArray, coord: vec3, offset: vec3, size: vec3) -> vec4}
             {fn virtualTexture3d(sampler: sampler3D, coord: vec3, offset: vec3, size: vec3) -> vec4}
-            { "return texture(sampler, mix(offset, offset + size, coord));" }
+            { "return texture(sampler, clamp(mix(offset, offset + size, coord), 0.0, 1.0));" }
         });
         self
     }
@@ -622,6 +771,31 @@ impl MaterialLibrary {
             {fn div_ivec3(a: ivec3, b: ivec3) -> ivec3}
             {fn div_ivec4(a: ivec4, b: ivec4) -> ivec4}
             { "return a / b;" }
+        });
+        self.add_function(code_material_function! {
+            fn bitwise_and(a: int, b: int) -> int {
+                "return a & b;"
+            }
+        });
+        self.add_function(code_material_function! {
+            fn bitwise_or(a: int, b: int) -> int {
+                "return a | b;"
+            }
+        });
+        self.add_function(code_material_function! {
+            fn bitwise_xor(a: int, b: int) -> int {
+                "return a ^ b;"
+            }
+        });
+        self.add_function(code_material_function! {
+            fn bitwise_shift_left(v: int, bits: int) -> int {
+                "return v << bits;"
+            }
+        });
+        self.add_function(code_material_function! {
+            fn bitwise_shift_right(v: int, bits: int) -> int {
+                "return v >> bits;"
+            }
         });
         self
     }
@@ -811,7 +985,7 @@ impl MaterialLibrary {
             }
         });
         self.add_function(code_material_function! {
-            fn make_mat4(a: vec4, b: vec4, c: vec4) -> mat4 {
+            fn make_mat4(a: vec4, b: vec4, c: vec4, d: vec4) -> mat4 {
                 "return mat4(a, b, c, d);"
             }
         });
@@ -903,6 +1077,249 @@ impl MaterialLibrary {
             {fn maskW_ivec4(v: ivec4) -> int}
             { "return v.w;" }
         });
+        self.add_functions(code_material_functions! {
+            {fn maskXX_bvec3(v: bvec3) -> bvec2}
+            {fn maskXX_bvec4(v: bvec4) -> bvec2}
+            {fn maskXX_vec3(v: vec3) -> vec2}
+            {fn maskXX_vec4(v: vec4) -> vec2}
+            {fn maskXX_ivec3(v: ivec3) -> ivec2}
+            {fn maskXX_ivec4(v: ivec4) -> ivec2}
+            { "return v.xx;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskXY_bvec3(v: bvec3) -> bvec2}
+            {fn maskXY_bvec4(v: bvec4) -> bvec2}
+            {fn maskXY_vec3(v: vec3) -> vec2}
+            {fn maskXY_vec4(v: vec4) -> vec2}
+            {fn maskXY_ivec3(v: ivec3) -> ivec2}
+            {fn maskXY_ivec4(v: ivec4) -> ivec2}
+            { "return v.xy;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskXZ_bvec3(v: bvec3) -> bvec2}
+            {fn maskXZ_bvec4(v: bvec4) -> bvec2}
+            {fn maskXZ_vec3(v: vec3) -> vec2}
+            {fn maskXZ_vec4(v: vec4) -> vec2}
+            {fn maskXZ_ivec3(v: ivec3) -> ivec2}
+            {fn maskXZ_ivec4(v: ivec4) -> ivec2}
+            { "return v.xz;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskYX_bvec3(v: bvec3) -> bvec2}
+            {fn maskYX_bvec4(v: bvec4) -> bvec2}
+            {fn maskYX_vec3(v: vec3) -> vec2}
+            {fn maskYX_vec4(v: vec4) -> vec2}
+            {fn maskYX_ivec3(v: ivec3) -> ivec2}
+            {fn maskYX_ivec4(v: ivec4) -> ivec2}
+            { "return v.yx;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskYY_bvec3(v: bvec3) -> bvec2}
+            {fn maskYY_bvec4(v: bvec4) -> bvec2}
+            {fn maskYY_vec3(v: vec3) -> vec2}
+            {fn maskYY_vec4(v: vec4) -> vec2}
+            {fn maskYY_ivec3(v: ivec3) -> ivec2}
+            {fn maskYY_ivec4(v: ivec4) -> ivec2}
+            { "return v.yy;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskYZ_bvec3(v: bvec3) -> bvec2}
+            {fn maskYZ_bvec4(v: bvec4) -> bvec2}
+            {fn maskYZ_vec3(v: vec3) -> vec2}
+            {fn maskYZ_vec4(v: vec4) -> vec2}
+            {fn maskYZ_ivec3(v: ivec3) -> ivec2}
+            {fn maskYZ_ivec4(v: ivec4) -> ivec2}
+            { "return v.yz;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskZX_bvec3(v: bvec3) -> bvec2}
+            {fn maskZX_bvec4(v: bvec4) -> bvec2}
+            {fn maskZX_vec3(v: vec3) -> vec2}
+            {fn maskZX_vec4(v: vec4) -> vec2}
+            {fn maskZX_ivec3(v: ivec3) -> ivec2}
+            {fn maskZX_ivec4(v: ivec4) -> ivec2}
+            { "return v.zx;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskZY_bvec3(v: bvec3) -> bvec2}
+            {fn maskZY_bvec4(v: bvec4) -> bvec2}
+            {fn maskZY_vec3(v: vec3) -> vec2}
+            {fn maskZY_vec4(v: vec4) -> vec2}
+            {fn maskZY_ivec3(v: ivec3) -> ivec2}
+            {fn maskZY_ivec4(v: ivec4) -> ivec2}
+            { "return v.zy;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskZZ_bvec3(v: bvec3) -> bvec2}
+            {fn maskZZ_bvec4(v: bvec4) -> bvec2}
+            {fn maskZZ_vec3(v: vec3) -> vec2}
+            {fn maskZZ_vec4(v: vec4) -> vec2}
+            {fn maskZZ_ivec3(v: ivec3) -> ivec2}
+            {fn maskZZ_ivec4(v: ivec4) -> ivec2}
+            { "return v.zz;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskXXX_bvec4(v: bvec4) -> bvec3}
+            {fn maskXXX_vec4(v: vec4) -> vec3}
+            {fn maskXXX_ivec4(v: ivec4) -> ivec3}
+            { "return v.xxx;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskXXY_bvec4(v: bvec4) -> bvec3}
+            {fn maskXXY_vec4(v: vec4) -> vec3}
+            {fn maskXXY_ivec4(v: ivec4) -> ivec3}
+            { "return v.xxy;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskXXZ_bvec4(v: bvec4) -> bvec3}
+            {fn maskXXZ_vec4(v: vec4) -> vec3}
+            {fn maskXXZ_ivec4(v: ivec4) -> ivec3}
+            { "return v.xxz;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskXYX_bvec4(v: bvec4) -> bvec3}
+            {fn maskXYX_vec4(v: vec4) -> vec3}
+            {fn maskXYX_ivec4(v: ivec4) -> ivec3}
+            { "return v.xyx;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskXYY_bvec4(v: bvec4) -> bvec3}
+            {fn maskXYY_vec4(v: vec4) -> vec3}
+            {fn maskXYY_ivec4(v: ivec4) -> ivec3}
+            { "return v.xyy;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskXYZ_bvec4(v: bvec4) -> bvec3}
+            {fn maskXYZ_vec4(v: vec4) -> vec3}
+            {fn maskXYZ_ivec4(v: ivec4) -> ivec3}
+            { "return v.xyz;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskXZX_bvec4(v: bvec4) -> bvec3}
+            {fn maskXZX_vec4(v: vec4) -> vec3}
+            {fn maskXZX_ivec4(v: ivec4) -> ivec3}
+            { "return v.xzx;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskXZY_bvec4(v: bvec4) -> bvec3}
+            {fn maskXZY_vec4(v: vec4) -> vec3}
+            {fn maskXZY_ivec4(v: ivec4) -> ivec3}
+            { "return v.xzy;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskXZZ_bvec4(v: bvec4) -> bvec3}
+            {fn maskXZZ_vec4(v: vec4) -> vec3}
+            {fn maskXZZ_ivec4(v: ivec4) -> ivec3}
+            { "return v.xzz;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskYXX_bvec4(v: bvec4) -> bvec3}
+            {fn maskYXX_vec4(v: vec4) -> vec3}
+            {fn maskYXX_ivec4(v: ivec4) -> ivec3}
+            { "return v.yxx;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskYXY_bvec4(v: bvec4) -> bvec3}
+            {fn maskYXY_vec4(v: vec4) -> vec3}
+            {fn maskYXY_ivec4(v: ivec4) -> ivec3}
+            { "return v.yxy;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskYXZ_bvec4(v: bvec4) -> bvec3}
+            {fn maskYXZ_vec4(v: vec4) -> vec3}
+            {fn maskYXZ_ivec4(v: ivec4) -> ivec3}
+            { "return v.yxz;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskYYX_bvec4(v: bvec4) -> bvec3}
+            {fn maskYYX_vec4(v: vec4) -> vec3}
+            {fn maskYYX_ivec4(v: ivec4) -> ivec3}
+            { "return v.yyx;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskYYY_bvec4(v: bvec4) -> bvec3}
+            {fn maskYYY_vec4(v: vec4) -> vec3}
+            {fn maskYYY_ivec4(v: ivec4) -> ivec3}
+            { "return v.yyy;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskYYZ_bvec4(v: bvec4) -> bvec3}
+            {fn maskYYZ_vec4(v: vec4) -> vec3}
+            {fn maskYYZ_ivec4(v: ivec4) -> ivec3}
+            { "return v.yyz;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskYZX_bvec4(v: bvec4) -> bvec3}
+            {fn maskYZX_vec4(v: vec4) -> vec3}
+            {fn maskYZX_ivec4(v: ivec4) -> ivec3}
+            { "return v.yzx;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskYZY_bvec4(v: bvec4) -> bvec3}
+            {fn maskYZY_vec4(v: vec4) -> vec3}
+            {fn maskYZY_ivec4(v: ivec4) -> ivec3}
+            { "return v.yzy;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskYZZ_bvec4(v: bvec4) -> bvec3}
+            {fn maskYZZ_vec4(v: vec4) -> vec3}
+            {fn maskYZZ_ivec4(v: ivec4) -> ivec3}
+            { "return v.yzz;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskZXX_bvec4(v: bvec4) -> bvec3}
+            {fn maskZXX_vec4(v: vec4) -> vec3}
+            {fn maskZXX_ivec4(v: ivec4) -> ivec3}
+            { "return v.zxx;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskZXY_bvec4(v: bvec4) -> bvec3}
+            {fn maskZXY_vec4(v: vec4) -> vec3}
+            {fn maskZXY_ivec4(v: ivec4) -> ivec3}
+            { "return v.zxy;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskZXZ_bvec4(v: bvec4) -> bvec3}
+            {fn maskZXZ_vec4(v: vec4) -> vec3}
+            {fn maskZXZ_ivec4(v: ivec4) -> ivec3}
+            { "return v.zxz;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskZYX_bvec4(v: bvec4) -> bvec3}
+            {fn maskZYX_vec4(v: vec4) -> vec3}
+            {fn maskZYX_ivec4(v: ivec4) -> ivec3}
+            { "return v.zyx;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskZYY_bvec4(v: bvec4) -> bvec3}
+            {fn maskZYY_vec4(v: vec4) -> vec3}
+            {fn maskZYY_ivec4(v: ivec4) -> ivec3}
+            { "return v.zyy;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskZYZ_bvec4(v: bvec4) -> bvec3}
+            {fn maskZYZ_vec4(v: vec4) -> vec3}
+            {fn maskZYZ_ivec4(v: ivec4) -> ivec3}
+            { "return v.zyz;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskZZX_bvec4(v: bvec4) -> bvec3}
+            {fn maskZZX_vec4(v: vec4) -> vec3}
+            {fn maskZZX_ivec4(v: ivec4) -> ivec3}
+            { "return v.zzx;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskZZY_bvec4(v: bvec4) -> bvec3}
+            {fn maskZZY_vec4(v: vec4) -> vec3}
+            {fn maskZZY_ivec4(v: ivec4) -> ivec3}
+            { "return v.zzy;" }
+        });
+        self.add_functions(code_material_functions! {
+            {fn maskZZZ_bvec4(v: bvec4) -> bvec3}
+            {fn maskZZZ_vec4(v: vec4) -> vec3}
+            {fn maskZZZ_ivec4(v: ivec4) -> ivec3}
+            { "return v.zzz;" }
+        });
         self
     }
 
@@ -914,12 +1331,12 @@ impl MaterialLibrary {
         });
         self.add_function(code_material_function! {
             fn append_bvec3(a: bvec2, b: bool) -> bvec3 {
-                "return bvec3(a.x, a.y, b);"
+                "return bvec3(a.xy, b);"
             }
         });
         self.add_function(code_material_function! {
             fn append_bvec4(a: bvec3, b: bool) -> bvec4 {
-                "return bvec4(a.x, a.y, a.z, b);"
+                "return bvec4(a.xyz, b);"
             }
         });
         self.add_function(code_material_function! {
@@ -929,12 +1346,12 @@ impl MaterialLibrary {
         });
         self.add_function(code_material_function! {
             fn append_vec3(a: vec2, b: float) -> vec3 {
-                "return vec3(a.x, a.y, b);"
+                "return vec3(a.xy, b);"
             }
         });
         self.add_function(code_material_function! {
             fn append_vec4(a: vec3, b: float) -> vec4 {
-                "return vec4(a.x, a.y, a.z, b);"
+                "return vec4(a.xyz, b);"
             }
         });
         self.add_function(code_material_function! {
@@ -943,13 +1360,13 @@ impl MaterialLibrary {
             }
         });
         self.add_function(code_material_function! {
-            fn append_ivec3(a: vec2, b: int) -> ivec3 {
-                "return ivec3(a.x, a.y, b);"
+            fn append_ivec3(a: ivec2, b: int) -> ivec3 {
+                "return ivec3(a.xy, b);"
             }
         });
         self.add_function(code_material_function! {
-            fn append_ivec4(a: vec3, b: int) -> ivec4 {
-                "return ivec4(a.x, a.y, a.z, b);"
+            fn append_ivec4(a: ivec3, b: int) -> ivec4 {
+                "return ivec4(a.xyz, b);"
             }
         });
         self
@@ -977,58 +1394,131 @@ impl MaterialLibrary {
         self
     }
 
-    pub fn validate_material_compilation(
-        vertex_layout: &VertexLayout,
-        render_target: RenderTargetDescriptor,
-        domain: &MaterialGraph,
-        graph: &MaterialGraph,
-    ) -> Result<Option<BakedMaterialShaders>, MaterialError> {
-        let render_target = match render_target {
-            RenderTargetDescriptor::Main => match RenderTarget::main() {
-                Ok(render_target) => render_target,
-                Err(error) => return Err(MaterialError::CouldNotCreateRenderTarget(error)),
-            },
-            RenderTargetDescriptor::Custom {
-                buffers,
-                width,
-                height,
-            } => RenderTarget::new(buffers, width, height),
-        };
-        let signature =
-            MaterialSignature::from_objects(vertex_layout, &render_target, Some("test".to_owned()));
-        graph.bake(&signature, Some(domain), &Self::default(), true)
+    fn with_dethering(mut self) -> Self {
+        self.add_function(graph_material_function! {
+            fn dither_threshold(texture: sampler2D, coord: ivec2) -> float {
+                [size = (textureSize2d, sampler: texture, lod: {0})]
+                [wrapped_coord = (mod_ivec2, x: coord, y: size)]
+                [return (maskX_vec4,
+                    v: (texelFetch2d, sampler: texture, coord: wrapped_coord, lod: {0})
+                )]
+            }
+        });
+        self.add_function(graph_material_function! {
+            fn dither_mask(texture: sampler2D, coord: ivec2, value: float) -> bool {
+                [threshold = (dither_threshold, texture: texture, coord: coord)]
+                [return (greaterThan_float, x: value, y: threshold)]
+            }
+        });
+        self.add_function(graph_material_function! {
+            fn temporal_dither_threshold(texture: sampler2D, coord: ivec2, time: float) -> float {
+                [threshold = (dither_threshold, texture: texture, coord: coord)]
+                [return (fract_float, v: (add_float, a: threshold, b: time))]
+            }
+        });
+        self.add_function(graph_material_function! {
+            fn temporal_dither_mask(texture: sampler2D, coord: ivec2, time: float, value: float) -> bool {
+                [threshold = (temporal_dither_threshold, texture: texture, coord: coord, time: time)]
+                [return (greaterThan_float, x: value, y: threshold)]
+            }
+        });
+        self
     }
 
-    pub fn assert_validate_material_compilation(
-        vertex_layout: &VertexLayout,
-        render_target: RenderTargetDescriptor,
-        domain: &MaterialGraph,
-        graph: &MaterialGraph,
-    ) {
-        let baked =
-            Self::validate_material_compilation(vertex_layout, render_target, domain, graph)
-                .unwrap_or_else(|error| match &error {
-                    MaterialError::Baking(graph, error) => match &**error {
-                        MaterialError::GraphIsCyclic(nodes) => {
-                            let nodes = nodes
-                                .iter()
-                                .map(|id| (id, graph.node(*id).unwrap()))
-                                .collect::<Vec<_>>();
-                            panic!(
-                                "Could not bake shaders from material: {:?} | Cycle: {:#?}",
-                                error, nodes
-                            );
-                        }
-                        _ => panic!("Could not bake shaders from material: {:?}", error),
-                    },
-                    _ => panic!("Could not bake shaders from material: {:?}", error),
-                })
-                .expect("Baked shaders are empty");
-        println!("* compiled vertex material graph text:\n{}", baked.vertex);
-        println!(
-            "* compiled fragment material graph text:\n{}",
-            baked.fragment
+    fn with_vertanim_middleware(mut self) -> Self {
+        self.add_middleware(
+            "vertanim".to_owned(),
+            material_graph! {
+                inputs {
+                    [vertex] in position as in_position: vec3 = {vec3(0.0, 0.0, 0.0)};
+                    [vertex] in animationColumn: float = {0.0};
+
+                    [vertex] uniform animationFrames: sampler2D;
+                    [vertex] uniform animationRow: float;
+                }
+
+                outputs {
+                    [vertex] out position as out_position: vec3;
+                }
+
+                [row = (fract_float, v: animationRow)]
+                [coord = (make_vec2, x: animationColumn, y: row)]
+                [data = (texture2d, sampler: animationFrames, coord: coord)]
+                [offset = (truncate_vec4, v: data)]
+                [enabled = (step_float, edge: {0.5}, x: (maskW_vec4, v: data))]
+                [offset := (mul_vec3, a: offset, b: (fill_vec3, v: enabled))]
+                [(add_vec3, a: in_position, b: offset) -> out_position]
+            },
         );
+        self
+    }
+
+    fn with_skinning_middleware(mut self) -> Self {
+        self.add_function(graph_material_function! {
+            fn skinning_fetch_bone_matrix(texture: sampler2D, index: int) -> mat4 {
+                [return (make_mat4,
+                    a: (texelFetch2d, sampler: texture, coord: (make_ivec2, x: {0}, y: index), lod: {0}),
+                    b: (texelFetch2d, sampler: texture, coord: (make_ivec2, x: {1}, y: index), lod: {0}),
+                    c: (texelFetch2d, sampler: texture, coord: (make_ivec2, x: {2}, y: index), lod: {0}),
+                    d: (texelFetch2d, sampler: texture, coord: (make_ivec2, x: {3}, y: index), lod: {0})
+                )]
+            }
+        });
+        self.add_function(graph_material_function! {
+            fn skinning_weight_position(bone_matrix: mat4, position: vec4, weight: float) -> vec4 {
+                [return (mul_mat4_vec4,
+                    a: bone_matrix,
+                    b: (mul_vec4, a: position, b: (fill_vec4, v: weight))
+                )]
+            }
+        });
+        self.add_middleware(
+            "skinning".to_owned(),
+            material_graph! {
+                inputs {
+                    [vertex] in position as in_position: vec3 = {vec3(0.0, 0.0, 0.0)};
+                    [vertex] in boneIndices: int = {0};
+                    [vertex] in boneWeights: vec4 = {vec4(0.0, 0.0, 0.0, 0.0)};
+
+                    [vertex] uniform boneMatrices: sampler2D;
+                }
+
+                outputs {
+                    [vertex] out position as out_position: vec3;
+                }
+
+                [pos = (append_vec4, a: in_position, b: {1.0})]
+                [index_a = (bitwise_and, a: boneIndices, b: {0xFF})]
+                [index_b = (bitwise_and, a: (bitwise_shift_right, v: boneIndices, bits: {8}), b: {0xFF})]
+                [index_c = (bitwise_and, a: (bitwise_shift_right, v: boneIndices, bits: {16}), b: {0xFF})]
+                [index_d = (bitwise_and, a: (bitwise_shift_right, v: boneIndices, bits: {24}), b: {0xFF})]
+                [result = (skinning_weight_position,
+                    bone_matrix: (skinning_fetch_bone_matrix, texture: boneMatrices, index: index_a),
+                    position: pos,
+                    weight: (maskX_vec4, v: boneWeights)
+                )]
+                [weighted = (skinning_weight_position,
+                    bone_matrix: (skinning_fetch_bone_matrix, texture: boneMatrices, index: index_b),
+                    position: pos,
+                    weight: (maskY_vec4, v: boneWeights)
+                )]
+                [result := (add_vec4, a: result, b: weighted)]
+                [weighted := (skinning_weight_position,
+                    bone_matrix: (skinning_fetch_bone_matrix, texture: boneMatrices, index: index_c),
+                    position: pos,
+                    weight: (maskZ_vec4, v: boneWeights)
+                )]
+                [result := (add_vec4, a: result, b: weighted)]
+                [weighted := (skinning_weight_position,
+                    bone_matrix: (skinning_fetch_bone_matrix, texture: boneMatrices, index: index_d),
+                    position: pos,
+                    weight: (maskW_vec4, v: boneWeights)
+                )]
+                [result := (add_vec4, a: result, b: weighted)]
+                [(truncate_vec4, v: result) -> out_position]
+            },
+        );
+        self
     }
 }
 
@@ -1037,6 +1527,7 @@ impl Default for MaterialLibrary {
         Self {
             functions: Default::default(),
             domains: Default::default(),
+            middlewares: Default::default(),
         }
         .with_angle_functions()
         .with_single_functions()
@@ -1053,171 +1544,8 @@ impl Default for MaterialLibrary {
         .with_mask_functions()
         .with_append_functions()
         .with_truncate_functions()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{
-        graph_material_function,
-        material::{common::*, domains::surface::*},
-        material_graph,
-        math::*,
-    };
-
-    macro_rules! material_signature {
-        (
-            mesh( $( $mesh_name:literal ),* )
-            render_target( $( $render_target_name:literal ),* )
-            $( domain( $domain_name:literal ) )?
-        ) => {
-            unsafe {
-                #[allow(unused_mut)]
-                #[allow(unused_assignments)]
-                let mut mesh = vec![];
-                $(
-                    mesh.push(($mesh_name.to_string(), mesh.len()));
-                )*
-                let render_target = vec![ $( $render_target_name.to_string() ),* ];
-                #[allow(unused_mut)]
-                #[allow(unused_assignments)]
-                let mut domain = None;
-                $(
-                    domain = Some($domain_name.to_string());
-                )?
-                MaterialSignature::from_raw(mesh, render_target, domain)
-            }
-        };
-    }
-
-    #[test]
-    fn test_material_graph() {
-        let mut library = MaterialLibrary::default();
-        let domain = surface_flat_domain_graph();
-        // println!("* domain graph: {:#?}", domain);
-        library.add_domain("forward".to_owned(), domain.to_owned());
-        // {
-        //     let graph = default_surface_flat_color_material_graph();
-        //     // println!("* material graph color: {:#?}", graph);
-        //     let signature = material_signature! {
-        //         mesh("position", "color")
-        //         render_target("finalColor")
-        //         domain("forward")
-        //     };
-        //     println!("* material graph color signature: {:#?}", signature);
-        //     let baked = graph
-        //         .bake(&signature, Some(&domain), &library)
-        //         .unwrap()
-        //         .unwrap();
-        //     println!("* compiled vertex material graph color:\n{}", baked.vertex);
-        //     println!(
-        //         "* compiled fragment material graph color:\n{}",
-        //         baked.fragment
-        //     );
-        // }
-        // {
-        //     let graph = default_surface_flat_texture_material_graph();
-        //     // println!("* material graph texture: {:#?}", graph);
-        //     let signature = material_signature! {
-        //         mesh("position", "textureCoord", "color")
-        //         render_target("finalColor")
-        //         domain("forward")
-        //     };
-        //     println!("* material graph texture signature: {:#?}", signature);
-        //     let baked = graph
-        //         .bake(&signature, Some(&domain), &library)
-        //         .unwrap()
-        //         .unwrap();
-        //     println!(
-        //         "* compiled vertex material graph texture:\n{}",
-        //         baked.vertex
-        //     );
-        //     println!(
-        //         "* compiled fragment material graph texture:\n{}",
-        //         baked.fragment
-        //     );
-        // }
-        {
-            let graph = default_surface_flat_text_material_graph();
-            // println!("* material graph texture: {:#?}", graph);
-            let signature = material_signature! {
-                mesh("position", "textureCoord", "color", "outline", "page", "thickness")
-                render_target("finalColor")
-                domain("forward")
-            };
-            println!("* material graph text signature: {:#?}", signature);
-            let baked = graph
-                .bake(&signature, Some(&domain), &library, true)
-                .unwrap()
-                .unwrap();
-            println!("* compiled vertex material graph text:\n{}", baked.vertex);
-            println!(
-                "* compiled fragment material graph text:\n{}",
-                baked.fragment
-            );
-        }
-    }
-
-    #[test]
-    fn test_graph_variants() {
-        let library = MaterialLibrary::default();
-        let graph = material_graph! {
-            inputs {}
-
-            outputs {
-                [vertex] builtin gl_Position: vec4;
-                [fragment] out outputA: vec4;
-                [fragment] out outputB: vec4;
-            }
-
-            [{vec4(1.0, 0.0, 0.0, 1.0)} -> gl_Position]
-            [{vec4(0.0, 1.0, 0.0, 1.0)} -> outputA]
-            [{vec4(0.0, 0.0, 1.0, 1.0)} -> outputB]
-        };
-        // println!("* material graph: {:#?}", graph);
-        {
-            let signature = material_signature! {
-                mesh()
-                render_target("outputA")
-            };
-            let baked = graph
-                .bake(&signature, None, &library, true)
-                .unwrap()
-                .unwrap();
-            println!("* VS variant A:\n{}", baked.vertex);
-            println!("* FS variant A:\n{}", baked.fragment);
-        }
-        {
-            let signature = material_signature! {
-                mesh()
-                render_target("outputB")
-            };
-            let baked = graph
-                .bake(&signature, None, &library, true)
-                .unwrap()
-                .unwrap();
-            println!("* VS variant B:\n{}", baked.vertex);
-            println!("* FS variant B:\n{}", baked.fragment);
-        }
-    }
-
-    #[test]
-    fn test_graph_function() {
-        let library = MaterialLibrary::default();
-        let add = graph_material_function! {
-            fn add(a: vec3, b: vec3) -> vec3 {
-                [return (add_vec3, a: a, b: b)]
-            }
-        };
-        add.validate(&library).unwrap();
-        // println!("* `add` material function: {:#?}", add);
-        let times_two = graph_material_function! {
-            fn times_two(a: vec3) -> vec3 {
-                [return (mul_vec3, a: a, b: {vec3(2.0, 2.0, 2.0)})]
-            }
-        };
-        times_two.validate(&library).unwrap();
-        // println!("* `times_two` material function: {:#?}", times_two);
+        .with_dethering()
+        .with_vertanim_middleware()
+        .with_skinning_middleware()
     }
 }

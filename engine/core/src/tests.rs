@@ -43,7 +43,7 @@ impl State for ExamplePrefab {
                 self.0 = true;
                 let prefab = asset
                     .get::<PrefabAsset>()
-                    .expect("scene.ron is not a prefab asset")
+                    .expect("scene.yaml is not a prefab asset")
                     .get();
                 let entities = prefabs.load_scene_from_prefab(prefab, universe).unwrap();
                 println!("scene.yaml asset finally loaded: {:?}", entities);
@@ -96,8 +96,8 @@ fn test_prefabs() {
           - Data:
               components:
                 Name: hello
-                Tag: greting
-                NonPersistent:
+                Tag: greeting
+                NonPersistent: ~
         "#
         .to_vec(),
     );

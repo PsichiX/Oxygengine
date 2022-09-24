@@ -32,8 +32,8 @@ pub fn area_system(universe: &mut Universe) {
 
     for (_, events) in world
         .query::<&Events<HaVolumeOverlapEvent>>()
-        .with::<Player>()
-        .with::<HaVolumeOverlap>()
+        .with::<&Player>()
+        .with::<&HaVolumeOverlap>()
         .iter()
     {
         for message in events.read() {

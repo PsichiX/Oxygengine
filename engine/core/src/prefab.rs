@@ -14,12 +14,12 @@ use hecs::*;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::collections::HashMap;
 
-pub use serde_yaml::{Number as PrefabNumber, Value as PrefabValue};
+pub use serde_intermediate::Intermediate as PrefabValue;
 
 type ComponentFactory = Box<
     dyn Fn(
             &mut EntityBuilder,
-            PrefabValue,
+            &PrefabValue,
             &HashMap<String, Entity>,
             StateToken,
         ) -> Result<(), PrefabError>
@@ -35,8 +35,8 @@ pub enum PrefabError {
 }
 
 pub trait Prefab: Serialize + DeserializeOwned + Sized {
-    fn from_prefab(data: PrefabValue) -> Result<Self, PrefabError> {
-        match serde_yaml::from_value(data) {
+    fn from_prefab(data: &PrefabValue) -> Result<Self, PrefabError> {
+        match serde_intermediate::from_intermediate(data) {
             Ok(result) => {
                 let mut result: Self = result;
                 result.post_from_prefab();
@@ -47,7 +47,7 @@ pub trait Prefab: Serialize + DeserializeOwned + Sized {
     }
 
     fn from_prefab_with_extras(
-        data: PrefabValue,
+        data: &PrefabValue,
         _named_entities: &HashMap<String, Entity>,
         _state_token: StateToken,
     ) -> Result<Self, PrefabError> {
@@ -55,7 +55,7 @@ pub trait Prefab: Serialize + DeserializeOwned + Sized {
     }
 
     fn to_prefab(&self) -> Result<PrefabValue, PrefabError> {
-        match serde_yaml::to_value(self) {
+        match serde_intermediate::to_intermediate(self) {
             Ok(result) => Ok(result),
             Err(error) => Err(PrefabError::CouldNotDeserialize(error.to_string())),
         }
@@ -82,8 +82,6 @@ pub trait Prefab: Serialize + DeserializeOwned + Sized {
     fn post_from_prefab(&mut self) {}
 }
 
-impl Prefab for PrefabValue {}
-
 pub trait PrefabProxy<P>: Component + Sized
 where
     P: Prefab,
@@ -95,6 +93,7 @@ where
     ) -> Result<Self, PrefabError>;
 }
 
+impl Prefab for PrefabValue {}
 pub trait PrefabComponent: Prefab + Component {}
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -106,8 +105,6 @@ pub struct PrefabScene {
     #[serde(default)]
     pub entities: Vec<PrefabSceneEntity>,
 }
-
-impl Prefab for PrefabScene {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PrefabSceneEntity {
@@ -121,6 +118,7 @@ impl Default for PrefabSceneEntity {
     }
 }
 
+impl Prefab for PrefabScene {}
 impl Prefab for PrefabSceneEntity {}
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -306,7 +304,7 @@ impl PrefabManager {
             if let Some(factory) = self.component_factory.get_mut(key) {
                 factory(
                     &mut entity_builder,
-                    component_meta.clone(),
+                    component_meta,
                     named_entities,
                     state_token,
                 )?;

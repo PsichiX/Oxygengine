@@ -12,6 +12,7 @@ pub enum RenderTargetError {
     DuplicateId(String),
     DepthStencilAlreadyPresent(String),
     NoResources,
+    ColorTargetBufferDoesNotExists(usize),
     Internal(String),
 }
 
@@ -63,9 +64,9 @@ impl TargetBuffer {
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TargetBuffers {
     #[serde(default)]
-    pub(crate) depth_stencil: Option<String>,
+    pub depth_stencil: Option<String>,
     #[serde(default)]
-    pub(crate) colors: Vec<TargetBuffer>,
+    pub colors: Vec<TargetBuffer>,
 }
 
 impl TargetBuffers {
@@ -284,7 +285,7 @@ pub struct RenderTargetResources {
 
 pub type RenderTargetId = ID<RenderTarget>;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RenderTargetDetailedInfo {
     pub buffers: TargetBuffers,
     pub cached_width: usize,
@@ -506,8 +507,8 @@ impl RenderTarget {
         }
     }
 
-    pub fn resources<'a>(&self, _: &RenderStageResources<'a>) -> Option<&RenderTargetResources> {
-        self.resources.as_ref()
+    pub fn buffers(&self) -> &TargetBuffers {
+        &self.buffers
     }
 
     pub fn width(&self) -> usize {
@@ -520,6 +521,50 @@ impl RenderTarget {
 
     pub fn size(&self) -> (usize, usize) {
         (self.cached_width, self.cached_height)
+    }
+
+    pub fn resources<'a>(&self, _: &RenderStageResources<'a>) -> Option<&RenderTargetResources> {
+        self.resources.as_ref()
+    }
+
+    pub fn query_color_data(
+        &self,
+        index: usize,
+        context: &Context,
+    ) -> Result<Vec<u8>, RenderTargetError> {
+        let (channel_size, gl_type) = if self.backbuffer {
+            (std::mem::size_of::<u8>(), UNSIGNED_BYTE)
+        } else {
+            match self.buffers.colors.get(index) {
+                Some(target_buffer) => match target_buffer.value_type {
+                    TargetValueType::Color => (std::mem::size_of::<u8>(), UNSIGNED_BYTE),
+                    TargetValueType::FloatColor => (std::mem::size_of::<f32>(), FLOAT),
+                },
+                None => return Err(RenderTargetError::ColorTargetBufferDoesNotExists(index)),
+            }
+        };
+        let width = self.cached_width;
+        let height = self.cached_height;
+        let size = width * height * channel_size * 4;
+        let mut result = vec![0u8; size];
+        unsafe {
+            if !self.backbuffer {
+                context.read_buffer(COLOR_ATTACHMENT0 + index as u32);
+            }
+            context.read_pixels(
+                0,
+                0,
+                width as _,
+                height as _,
+                RGBA,
+                gl_type,
+                PixelPackData::Slice(&mut result),
+            );
+            if !self.backbuffer {
+                context.read_buffer(BACK);
+            }
+        }
+        Ok(result)
     }
 
     pub(crate) fn fragment_buffers<'a>(&'a self) -> impl Iterator<Item = &'a str> + '_ {

@@ -1,5 +1,5 @@
 use crate::{
-    curve::{Curved, CurvedDistance, CurvedOffset, CurvedTangent},
+    curve::{Curved, CurvedChange},
     phase::Phase,
     spline::Spline,
 };
@@ -10,7 +10,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 #[serde(bound = "T: Serialize + DeserializeOwned")]
 pub struct Animation<T>
 where
-    T: Default + Clone + Curved + CurvedOffset + CurvedDistance + CurvedTangent,
+    T: Default + Clone + Curved + CurvedChange,
 {
     pub value_spline: Spline<T>,
     #[serde(default)]
@@ -25,7 +25,7 @@ where
 
 impl<T> Animation<T>
 where
-    T: Default + Clone + Curved + CurvedOffset + CurvedDistance + CurvedTangent,
+    T: Default + Clone + Curved + CurvedChange,
 {
     pub fn new(value_spline: Spline<T>, time_phase: Phase) -> Self {
         Self {

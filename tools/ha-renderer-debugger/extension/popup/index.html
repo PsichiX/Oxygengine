@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="index.css">
+    <title>Oxygengine HARD</title>
+</head>
+
+<body>
+    <div>
+        <img src="/icons/16.png" alt="oxygengine-icon" />
+        <span>Oxygengine</span>
+    </div>
+    <div>Hardware Accelerated Renderer Debugger</div>
+    <fieldset>
+        <legend>Options</legend>
+        <div>
+            <label for="channel-name">Channel name:</label>
+            <input type="text" name="channel-name" id="channel-name" value="OxygengineHARD" />
+        </div>
+        <div>
+            <label for="start-with-snapshot">Start with snapshot:</label>
+            <input type="checkbox" name="start-with-snapshot" id="start-with-snapshot" />
+        </div>
+        <div>
+            <label for="start-with-filters-from-pipelines">Start with filters from pipelines:</label>
+            <input type="checkbox" name="start-with-filters-from-pipelines" id="start-with-filters-from-pipelines" />
+        </div>
+        <div>
+            <button id="reset">RESET TO DEFAULTS</button>
+        </div>
+    </fieldset>
+    <div>
+        <button id="run">DEBUG HARDWARE ACCELERATED RENDERER</button>
+    </div>
+    <script src="index.js"></script>
+</body>
+
+</html>

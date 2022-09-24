@@ -29,6 +29,10 @@ pub mod network {
 pub mod procedural {
     pub use oxygengine_procedural::*;
 }
+#[cfg(feature = "oxygengine-prototype")]
+pub mod prototype {
+    pub use oxygengine_prototype::*;
+}
 #[cfg(feature = "oxygengine-navigation")]
 pub mod navigation {
     pub use oxygengine_navigation::*;
@@ -71,9 +75,10 @@ pub mod integration_user_interface_ha_renderer {
 pub mod integration_visual_novel_user_interface {
     pub use oxygengine_integration_vn_ui::*;
 }
-#[cfg(feature = "oxygengine-script-flow")]
-pub mod script_flow {
-    pub use oxygengine_script_flow::*;
+#[cfg(feature = "oxygengine-ha-renderer")]
+#[cfg(feature = "oxygengine-ha-renderer-debugger")]
+pub mod ha_renderer_debugger {
+    pub use oxygengine_ha_renderer_debugger::*;
 }
 #[cfg(feature = "oxygengine-visual-novel")]
 pub mod visual_novel {
@@ -118,8 +123,13 @@ pub mod prelude {
     pub use oxygengine_core::{prelude::*, Scalar};
     #[cfg(feature = "oxygengine-editor-tools")]
     pub use oxygengine_editor_tools::prelude::*;
+    #[cfg(feature = "oxygengine-editor-tools-backend-web")]
+    pub use oxygengine_editor_tools_backend_web::prelude::*;
     #[cfg(feature = "oxygengine-ha-renderer")]
     pub use oxygengine_ha_renderer::prelude::*;
+    #[cfg(feature = "oxygengine-ha-renderer")]
+    #[cfg(feature = "oxygengine-ha-renderer-debugger")]
+    pub use oxygengine_ha_renderer_debugger::prelude::*;
     #[cfg(feature = "oxygengine-input")]
     pub use oxygengine_input::prelude::*;
     #[cfg(feature = "oxygengine-input-device-web")]
@@ -150,8 +160,8 @@ pub mod prelude {
     pub use oxygengine_physics_2d::prelude::*;
     #[cfg(feature = "oxygengine-procedural")]
     pub use oxygengine_procedural::prelude::*;
-    #[cfg(feature = "oxygengine-script-flow")]
-    pub use oxygengine_script_flow::prelude::*;
+    #[cfg(feature = "oxygengine-prototype")]
+    pub use oxygengine_prototype::prelude::*;
     #[cfg(feature = "oxygengine-user-interface")]
     pub use oxygengine_user_interface::prelude::*;
     pub use oxygengine_utils::prelude::*;

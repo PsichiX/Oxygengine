@@ -2,4 +2,20 @@ inject
 ```
 Player:
   level: %{ $LEVEL }%
+InputStackInstance:
+  Setup:
+    triggers:
+      pointer-action:
+        mappings:
+          - mouse-action
+          - touch-action
+    axes:
+      pointer:
+        channels:
+          - mappings:
+              mouse-x: 1
+              touch-x: 1
+          - mappings:
+              mouse-y: 1
+              touch-y: 1
 ```

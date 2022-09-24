@@ -10,7 +10,6 @@ pub type KeyboardMovementSystemResources<'a> = (
     WorldRef,
     &'a InputController,
     &'a AppLifeCycle,
-    &'a UserInterface,
     Comp<&'a Speed>,
     Comp<&'a mut KeyboardMovement>,
     Comp<&'a mut CompositeTransform>,
@@ -19,18 +18,16 @@ pub type KeyboardMovementSystemResources<'a> = (
 
 // system that moves tagged entities.
 pub fn keyboard_movement_system(universe: &mut Universe) {
-    let (world, input, lifecycle, ui, ..) =
+    let (world, inputs, lifecycle, ..) =
         universe.query_resources::<KeyboardMovementSystemResources>();
 
-    if ui.last_frame_captured() {
-        return;
-    }
-
     let dt = lifecycle.delta_time_seconds();
-    let hor = -input.axis_or_default("move-left") + input.axis_or_default("move-right");
-    let ver = -input.axis_or_default("move-up") + input.axis_or_default("move-down");
-    let diff = Vec2::new(hor, ver) * dt;
-    let is_moving = hor.abs() + ver.abs() > 0.01;
+    let diff = Vec2::from(
+        inputs
+            .mirror_multi_axis_or_default([("move-left", "move-right"), ("move-up", "move-down")]),
+    );
+    let is_moving = diff.sqr_magnitude() > 0.01;
+    let diff = diff * dt;
 
     for (_, (speed, keyboard_movement, transform, animation)) in world
         .query::<(
@@ -45,13 +42,13 @@ pub fn keyboard_movement_system(universe: &mut Universe) {
 
         let direction = if !is_moving {
             keyboard_movement.direction
-        } else if hor.abs() > 0.5 {
-            if hor < 0.5 {
+        } else if diff.x.abs() > 0.5 {
+            if diff.x < 0.5 {
                 Direction::West
             } else {
                 Direction::East
             }
-        } else if ver < 0.5 {
+        } else if diff.y < 0.5 {
             Direction::North
         } else {
             Direction::South

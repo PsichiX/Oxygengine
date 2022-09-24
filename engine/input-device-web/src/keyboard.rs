@@ -1,4 +1,5 @@
 use crate::input::device::InputDevice;
+use backend::closure::WebClosure;
 use core::Scalar;
 use std::{any::Any, cell::RefCell, collections::HashSet, rc::Rc};
 use wasm_bindgen::{prelude::*, JsCast};
@@ -12,6 +13,8 @@ pub struct WebKeyboardInputDevice {
     keys: Rc<RefCell<HashSet<String>>>,
     sequence: Rc<RefCell<Vec<KeyCode>>>,
     last_sequence: Vec<KeyCode>,
+    key_down_closure: WebClosure,
+    key_up_closure: WebClosure,
 }
 
 unsafe impl Send for WebKeyboardInputDevice {}
@@ -24,6 +27,8 @@ impl WebKeyboardInputDevice {
             keys: Default::default(),
             sequence: Rc::new(RefCell::new(Vec::with_capacity(128))),
             last_sequence: Vec::with_capacity(128),
+            key_down_closure: Default::default(),
+            key_up_closure: Default::default(),
         }
     }
 
@@ -56,7 +61,7 @@ impl InputDevice for WebKeyboardInputDevice {
             self.element
                 .add_event_listener_with_callback("keydown", closure.as_ref().unchecked_ref())
                 .unwrap();
-            closure.forget();
+            self.key_down_closure = WebClosure::acquire(closure);
         }
         {
             let keys = self.keys.clone();
@@ -66,12 +71,13 @@ impl InputDevice for WebKeyboardInputDevice {
             self.element
                 .add_event_listener_with_callback("keyup", closure.as_ref().unchecked_ref())
                 .unwrap();
-            closure.forget();
+            self.key_up_closure = WebClosure::acquire(closure);
         }
     }
 
     fn on_unregister(&mut self) {
-        // TODO: cache callbacks, remove events and kill callbacks here.
+        self.key_down_closure.release();
+        self.key_up_closure.release();
     }
 
     fn process(&mut self) {

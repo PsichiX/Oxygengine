@@ -19,5 +19,4 @@ impl Wallet {
 }
 
 impl Prefab for Wallet {}
-
 impl PrefabComponent for Wallet {}

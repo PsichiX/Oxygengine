@@ -13,7 +13,7 @@ impl State for LoadingState {
             if preloader.process(&mut assets).unwrap() {
                 // NOTE: web browsers require user input to be triggered before playing any audio.
                 let input = universe.expect_resource::<InputController>();
-                if input.trigger_or_default("pointer-action") == TriggerState::Pressed {
+                if input.trigger_or_default("pointer-action").is_pressed() {
                     return StateChange::Swap(Box::new(GameState::default()));
                 }
             }

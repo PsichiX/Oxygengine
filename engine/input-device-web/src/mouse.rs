@@ -1,4 +1,5 @@
 use crate::input::device::InputDevice;
+use backend::closure::WebClosure;
 use core::Scalar;
 use std::{any::Any, cell::Cell, rc::Rc};
 use wasm_bindgen::{prelude::*, JsCast};
@@ -10,6 +11,9 @@ pub struct WebMouseInputDevice {
     left_button: Rc<Cell<bool>>,
     right_button: Rc<Cell<bool>>,
     middle_button: Rc<Cell<bool>>,
+    mouse_down_closure: WebClosure,
+    mouse_up_closure: WebClosure,
+    mouse_move_closure: WebClosure,
 }
 
 unsafe impl Send for WebMouseInputDevice {}
@@ -23,6 +27,9 @@ impl WebMouseInputDevice {
             left_button: Default::default(),
             right_button: Default::default(),
             middle_button: Default::default(),
+            mouse_down_closure: Default::default(),
+            mouse_up_closure: Default::default(),
+            mouse_move_closure: Default::default(),
         }
     }
 }
@@ -46,7 +53,7 @@ impl InputDevice for WebMouseInputDevice {
             self.element
                 .add_event_listener_with_callback("mousedown", closure.as_ref().unchecked_ref())
                 .unwrap();
-            closure.forget();
+            self.mouse_down_closure = WebClosure::acquire(closure);
         }
         {
             let left_button = self.left_button.clone();
@@ -61,7 +68,7 @@ impl InputDevice for WebMouseInputDevice {
             self.element
                 .add_event_listener_with_callback("mouseup", closure.as_ref().unchecked_ref())
                 .unwrap();
-            closure.forget();
+            self.mouse_up_closure = WebClosure::acquire(closure);
         }
         {
             let position = self.position.clone();
@@ -71,12 +78,14 @@ impl InputDevice for WebMouseInputDevice {
             self.element
                 .add_event_listener_with_callback("mousemove", closure.as_ref().unchecked_ref())
                 .unwrap();
-            closure.forget();
+            self.mouse_move_closure = WebClosure::acquire(closure);
         }
     }
 
     fn on_unregister(&mut self) {
-        // TODO: cache callbacks, remove events and kill callbacks here.
+        self.mouse_down_closure.release();
+        self.mouse_up_closure.release();
+        self.mouse_move_closure.release();
     }
 
     fn process(&mut self) {}

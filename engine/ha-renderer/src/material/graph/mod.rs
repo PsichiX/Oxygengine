@@ -5,10 +5,11 @@ use crate::{
     material::{
         common::{
             BakedMaterialShaders, MaterialCompilationState, MaterialCompile, MaterialDataType,
-            MaterialShaderType, MaterialSignature, MaterialValue, MaterialValueType,
+            MaterialShaderType, MaterialSignature, MaterialValue, MaterialValueCategory,
+            MaterialValueType,
         },
         graph::{
-            function::MaterialFunctionInput,
+            function::{MaterialFunctionContent, MaterialFunctionInput},
             node::{
                 MaterialGraphInput, MaterialGraphNode, MaterialGraphNodeId, MaterialGraphOperation,
                 MaterialGraphOutput, MaterialGraphTransfer,
@@ -18,11 +19,54 @@ use crate::{
     },
     math::vek::*,
     resources::material_library::MaterialLibrary,
-    StringBuffer,
 };
-use core::Ignite;
+use core::{utils::StringBuffer, Ignite};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+
+pub enum MaterialGraphCombination<'a> {
+    Graph(&'a MaterialGraph),
+    Chain(Vec<Self>),
+}
+
+impl<'a> MaterialGraphCombination<'a> {
+    pub fn resolve(&self) -> MaterialGraph {
+        let mut result = Default::default();
+        self.resolve_inner(&mut result);
+        result
+    }
+
+    fn resolve_inner(&self, result: &mut MaterialGraph) {
+        match self {
+            Self::Graph(graph) => {
+                *result = result.combine_with(graph);
+            }
+            Self::Chain(children) => {
+                let mut graph = Default::default();
+                for child in children {
+                    child.resolve_inner(&mut graph);
+                }
+                *result = result.combine_with(&graph);
+            }
+        }
+    }
+}
+
+impl<'a> From<&'a MaterialGraph> for MaterialGraphCombination<'a> {
+    fn from(graph: &'a MaterialGraph) -> Self {
+        Self::Graph(graph)
+    }
+}
+
+impl<'a, T, I> From<T> for MaterialGraphCombination<'a>
+where
+    T: IntoIterator<Item = I>,
+    I: Into<Self>,
+{
+    fn from(graphs: T) -> Self {
+        Self::Chain(graphs.into_iter().map(|item| item.into()).collect())
+    }
+}
 
 #[derive(Ignite, Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MaterialGraph {
@@ -190,10 +234,14 @@ impl MaterialGraph {
     }
 
     pub fn validate(&self, library: &MaterialLibrary) -> Result<(), MaterialError> {
-        // does operations point to existing functions?
+        // does operations point to existing functions and they are valid?
         for (id, node) in &self.nodes {
             if let MaterialGraphNode::Operation(node) = node {
-                if !library.has_function(&node.name) {
+                if let Some(function) = library.function(&node.name) {
+                    if let MaterialFunctionContent::Graph(graph) = &function.content {
+                        graph.validate(library)?;
+                    }
+                } else {
                     return Err(MaterialError::FunctionNotFoundInLibrary {
                         node: *id,
                         name: node.name.to_owned(),
@@ -328,7 +376,7 @@ impl MaterialGraph {
         let mut visited = HashSet::with_capacity(self.nodes.len());
         for (id, node) in &self.nodes {
             if let MaterialGraphNode::Output(n) = node {
-                if n.shader_type == MaterialShaderType::Vertex {
+                if n.is_vertex_output() {
                     self.visit(node, *id, &mut visited);
                 }
             }
@@ -348,42 +396,94 @@ impl MaterialGraph {
         })
     }
 
-    pub fn combine(&self, other: &Self) -> Self {
-        let inputs_names = self
+    pub fn optimize(&mut self) {
+        let capacity = self
             .nodes
             .iter()
-            .chain(other.nodes.iter())
-            .filter_map(|(id, node)| {
+            .filter(|(_, node)| matches!(node, MaterialGraphNode::Value(_)))
+            .count();
+        let mut values = Vec::with_capacity(capacity);
+        let mut mappings = HashMap::with_capacity(capacity);
+        for (id, node) in &self.nodes {
+            if let MaterialGraphNode::Value(value) = node {
+                if let Some(index) = values.iter().position(|(v, _)| value == v) {
+                    mappings.insert(*id, index);
+                } else {
+                    mappings.insert(*id, values.len());
+                    values.push((value.to_owned(), *id));
+                }
+            }
+        }
+        for node in self.nodes.values_mut() {
+            match node {
+                MaterialGraphNode::Operation(node) => {
+                    for from in node.input_connections.values_mut() {
+                        if let Some(index) = mappings.get(from) {
+                            *from = values[*index].1;
+                        }
+                    }
+                }
+                MaterialGraphNode::Transfer(node) => {
+                    if let Some(from) = node.input_connection.as_mut() {
+                        if let Some(index) = mappings.get(from) {
+                            *from = values[*index].1;
+                        }
+                    }
+                }
+                MaterialGraphNode::Output(node) => {
+                    if let Some(from) = node.input_connection.as_mut() {
+                        if let Some(index) = mappings.get(from) {
+                            *from = values[*index].1;
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        self.nodes
+            .retain(|_, node| !matches!(node, MaterialGraphNode::Value(_)));
+        self.nodes.extend(
+            values
+                .into_iter()
+                .map(|(value, id)| (id, MaterialGraphNode::Value(value))),
+        );
+    }
+
+    pub fn combine_with(&self, other: &Self) -> Self {
+        if self.nodes.is_empty() {
+            return other.to_owned();
+        }
+        if other.nodes.is_empty() {
+            return self.to_owned();
+        }
+        let mut inputs_names = HashMap::<_, _>::default();
+        let mut named_outputs = HashMap::<_, _>::default();
+        let mut default_inputs = HashMap::<_, _>::default();
+        let mut unused_outputs = HashSet::<_>::default();
+        let mut nodes = HashMap::<_, _>::default();
+        for (graph, is_other) in [(self, false), (other, true)] {
+            inputs_names.extend(graph.nodes.iter().filter_map(|(id, node)| {
                 if let MaterialGraphNode::Input(node) = node {
-                    if node.data_type == MaterialDataType::Domain {
+                    if node.is_middleware_input() && (node.undirected || is_other) {
                         return Some((*id, node.name.to_owned()));
                     }
                 }
                 None
-            })
-            .collect::<HashMap<_, _>>();
-        let named_outputs = self
-            .nodes
-            .values()
-            .chain(other.nodes.values())
-            .filter_map(|node| {
+            }));
+            named_outputs.extend(graph.nodes.iter().filter_map(|(id, node)| {
                 if let MaterialGraphNode::Output(node) = node {
-                    if node.data_type == MaterialDataType::Domain {
+                    if node.is_middleware_output() && (node.undirected || !is_other) {
                         if let Some(from) = node.input_connection {
+                            unused_outputs.insert(*id);
                             return Some((node.name.to_owned(), from));
                         }
                     }
                 }
                 None
-            })
-            .collect::<HashMap<_, _>>();
-        let default_inputs = self
-            .nodes
-            .values()
-            .chain(other.nodes.values())
-            .filter_map(|node| {
+            }));
+            default_inputs.extend(graph.nodes.values().filter_map(|node| {
                 if let MaterialGraphNode::Input(node) = node {
-                    if node.data_type == MaterialDataType::Domain {
+                    if node.is_middleware_input() && (node.undirected || !is_other) {
                         if let Some(value) = &node.default_value {
                             let nid = MaterialGraphNodeId::new();
                             let n = MaterialGraphNode::Value(value.clone());
@@ -392,24 +492,16 @@ impl MaterialGraph {
                     }
                 }
                 None
-            })
-            .collect::<HashMap<_, _>>();
-        let mut nodes = self
-            .nodes
-            .iter()
-            .filter_map(|(id, node)| {
-                if node.is_domain() {
-                    return None;
+            }));
+            nodes.extend(graph.nodes.iter().filter_map(|(id, node)| {
+                if unused_outputs.contains(id) {
+                    None
+                } else {
+                    Some((*id, node.clone()))
                 }
-                Some((*id, node.clone()))
-            })
-            .chain(other.nodes.iter().filter_map(|(id, node)| {
-                if node.is_domain() {
-                    return None;
-                }
-                Some((*id, node.clone()))
-            }))
-            .collect::<HashMap<_, _>>();
+            }));
+            unused_outputs.clear();
+        }
         for node in nodes.values_mut() {
             match node {
                 MaterialGraphNode::Operation(node) => {
@@ -449,6 +541,16 @@ impl MaterialGraph {
             }
         }
         nodes.extend(default_inputs.into_iter().map(|(_, (id, node))| (id, node)));
+        let to_remove = nodes
+            .iter()
+            .filter(|(id, node)| {
+                !node.is_output() && !nodes.values().any(|node| node.has_input(**id))
+            })
+            .map(|(id, _)| *id)
+            .collect::<HashSet<_>>();
+        for id in to_remove {
+            nodes.remove(&id);
+        }
         Self { nodes }
     }
 
@@ -459,15 +561,24 @@ impl MaterialGraph {
         library: &MaterialLibrary,
         fragment_high_precision_support: bool,
     ) -> Result<Option<BakedMaterialShaders>, MaterialError> {
-        self.prevalidate()?;
-        let graph = if let Some(domain) = domain {
-            domain.prevalidate()?;
-            self.combine(domain)
-        } else {
-            self.clone()
-        };
+        let middlewares = signature
+            .middlewares()
+            .parts()
+            .map(|name| {
+                library
+                    .middleware(name)
+                    .map(MaterialGraphCombination::Graph)
+                    .ok_or_else(|| MaterialError::MiddlewareDoesNotExists(name.to_owned()))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let graph = MaterialGraphCombination::from([
+            MaterialGraphCombination::Chain(middlewares),
+            MaterialGraphCombination::from(std::iter::once(self).chain(domain)),
+        ])
+        .resolve();
+        graph.prevalidate()?;
         let targets = signature.targets().map(|(id, _)| id.to_owned()).collect();
-        let graph = match graph.subgraph(&targets) {
+        let mut graph = match graph.subgraph(&targets) {
             Some(graph) => graph,
             None => {
                 return Err(MaterialError::CouldNotBuildSubgraphForSignature(
@@ -475,6 +586,7 @@ impl MaterialGraph {
                 ))
             }
         };
+        graph.optimize();
         let sources = signature
             .sources()
             .map(|(id, _)| id.to_owned())
@@ -590,8 +702,9 @@ impl MaterialGraph {
                             name: node.name.to_owned(),
                         });
                     }
-                    if node.data_type == MaterialDataType::Domain && node.default_value.is_none() {
-                        return Err(MaterialError::DomainInputHasNoDefaultValue {
+                    if node.data_type == MaterialDataType::Attribute && node.default_value.is_none()
+                    {
+                        return Err(MaterialError::AttributeInputHasNoDefaultValue {
                             node: *id,
                             name: node.name.to_owned(),
                         });
@@ -646,16 +759,16 @@ impl MaterialGraph {
         let node = self.nodes.get(&input_id).unwrap();
         match node {
             MaterialGraphNode::Value(v) => {
-                self.validate_types_value(id, input_id, v, value_type)?;
+                self.validate_types_value(id, input_id, v, value_type, None)?;
             }
             MaterialGraphNode::Input(n) => {
-                self.validate_types_input(id, input_id, n, value_type)?;
+                self.validate_types_input(id, input_id, n, value_type, None)?;
             }
             MaterialGraphNode::Operation(n) => {
-                self.validate_types_operation(id, input_id, n, value_type, library)?;
+                self.validate_types_operation(id, input_id, n, value_type, None, library)?;
             }
             MaterialGraphNode::Transfer(n) => {
-                self.validate_types_transfer(input_id, n, value_type, library)?;
+                self.validate_types_transfer(input_id, n, value_type, None, library)?;
             }
             _ => unreachable!(),
         }
@@ -668,6 +781,7 @@ impl MaterialGraph {
         id: MaterialGraphNodeId,
         value: &MaterialValue,
         value_type: &MaterialValueType,
+        param_name: Option<&str>,
     ) -> Result<(), MaterialError> {
         let t = value.value_type();
         if &t != value_type {
@@ -676,7 +790,7 @@ impl MaterialGraph {
                 from_value_type: Some(t),
                 to: target_id,
                 to_value_type: Some(value_type.to_owned()),
-                param: None,
+                param: param_name.map(|n| n.to_owned()),
             });
         }
         Ok(())
@@ -688,6 +802,7 @@ impl MaterialGraph {
         id: MaterialGraphNodeId,
         node: &MaterialGraphInput,
         value_type: &MaterialValueType,
+        param_name: Option<&str>,
     ) -> Result<(), MaterialError> {
         if &node.value_type != value_type {
             return Err(MaterialError::MismatchingConnectionTypes {
@@ -695,7 +810,7 @@ impl MaterialGraph {
                 from_value_type: Some(node.value_type.to_owned()),
                 to: target_id,
                 to_value_type: Some(value_type.to_owned()),
-                param: None,
+                param: param_name.map(|n| n.to_owned()),
             });
         }
         Ok(())
@@ -707,6 +822,7 @@ impl MaterialGraph {
         id: MaterialGraphNodeId,
         node: &MaterialGraphOperation,
         value_type: &MaterialValueType,
+        param_name: Option<&str>,
         library: &MaterialLibrary,
     ) -> Result<(), MaterialError> {
         let function = library.function(&node.name).unwrap();
@@ -716,7 +832,7 @@ impl MaterialGraph {
                 from_value_type: Some(function.output.to_owned()),
                 to: target_id,
                 to_value_type: Some(value_type.to_owned()),
-                param: None,
+                param: param_name.map(|n| n.to_owned()),
             });
         }
         for input in &function.inputs {
@@ -737,16 +853,35 @@ impl MaterialGraph {
         let node = self.nodes.get(&param_id).unwrap();
         match node {
             MaterialGraphNode::Value(v) => {
-                self.validate_types_value(operation_id, param_id, v, value_type)?;
+                self.validate_types_value(
+                    operation_id,
+                    param_id,
+                    v,
+                    value_type,
+                    Some(&input.name),
+                )?;
             }
             MaterialGraphNode::Input(n) => {
-                self.validate_types_input(operation_id, param_id, n, value_type)?;
+                self.validate_types_input(
+                    operation_id,
+                    param_id,
+                    n,
+                    value_type,
+                    Some(&input.name),
+                )?;
             }
             MaterialGraphNode::Operation(n) => {
-                self.validate_types_operation(operation_id, param_id, n, value_type, library)?;
+                self.validate_types_operation(
+                    operation_id,
+                    param_id,
+                    n,
+                    value_type,
+                    Some(&input.name),
+                    library,
+                )?;
             }
             MaterialGraphNode::Transfer(n) => {
-                self.validate_types_transfer(param_id, n, value_type, library)?;
+                self.validate_types_transfer(param_id, n, value_type, Some(&input.name), library)?;
             }
             _ => unreachable!(),
         }
@@ -758,22 +893,23 @@ impl MaterialGraph {
         id: MaterialGraphNodeId,
         node: &MaterialGraphTransfer,
         value_type: &MaterialValueType,
+        param_name: Option<&str>,
         library: &MaterialLibrary,
     ) -> Result<(), MaterialError> {
         let from = node.input_connection.unwrap();
         let node = self.nodes.get(&id).unwrap();
         match node {
             MaterialGraphNode::Value(v) => {
-                self.validate_types_value(id, from, v, value_type)?;
+                self.validate_types_value(id, from, v, value_type, param_name)?;
             }
             MaterialGraphNode::Input(n) => {
-                self.validate_types_input(id, from, n, value_type)?;
+                self.validate_types_input(id, from, n, value_type, param_name)?;
             }
             MaterialGraphNode::Operation(n) => {
-                self.validate_types_operation(id, from, n, value_type, library)?;
+                self.validate_types_operation(id, from, n, value_type, param_name, library)?;
             }
             MaterialGraphNode::Transfer(n) => {
-                self.validate_types_transfer(from, n, value_type, library)?;
+                self.validate_types_transfer(from, n, value_type, param_name, library)?;
             }
             _ => unreachable!(),
         }
@@ -913,7 +1049,8 @@ impl MaterialGraph {
                                     output.write_space()?;
                                     output.write_str(&n.name)?;
                                 }
-                                output.write_str(";\n")?;
+                                output.write_str(";")?;
+                                output.write_new_line()?;
                             }
                             MaterialDataType::Uniform => {
                                 if let Some(default_value) = &n.default_value {
@@ -941,7 +1078,8 @@ impl MaterialGraph {
                                     output.write_space()?;
                                     output.write_str(&n.name)?;
                                 }
-                                output.write_str(";\n")?;
+                                output.write_str(";")?;
+                                output.write_new_line()?;
                             }
                             _ => {}
                         }
@@ -962,7 +1100,8 @@ impl MaterialGraph {
                             output.write_str(n.value_type.to_string())?;
                             output.write_space()?;
                             output.write_str(&n.name)?;
-                            output.write_str(";\n")?;
+                            output.write_str(";")?;
+                            output.write_new_line()?;
                         }
                     }
                     self.collect_transfer_types(node, &n.value_type, library, &mut transfers);
@@ -972,24 +1111,35 @@ impl MaterialGraph {
         }
         for (name, value_type) in transfers {
             match shader_type {
-                MaterialShaderType::Vertex => output.write_str("out ")?,
-                MaterialShaderType::Fragment => output.write_str("in ")?,
+                MaterialShaderType::Vertex => {
+                    if value_type.category() == MaterialValueCategory::Integer {
+                        output.write_str("flat ")?
+                    }
+                    output.write_str("out ")?
+                }
+                MaterialShaderType::Fragment => {
+                    if value_type.category() == MaterialValueCategory::Integer {
+                        output.write_str("flat ")?
+                    }
+                    output.write_str("in ")?
+                }
                 MaterialShaderType::Undefined => unreachable!(),
             }
-            output.write_str(value_type)?;
+            output.write_str(value_type.to_string())?;
             output.write_space()?;
             output.write_str(name)?;
-            output.write_str(";\n")?;
+            output.write_str(";")?;
+            output.write_new_line()?;
         }
         Ok(())
     }
 
-    fn collect_transfer_types(
-        &self,
-        node: &MaterialGraphNode,
-        value_type: &MaterialValueType,
-        library: &MaterialLibrary,
-        output: &mut HashMap<String, String>,
+    fn collect_transfer_types<'a>(
+        &'a self,
+        node: &'a MaterialGraphNode,
+        value_type: &'a MaterialValueType,
+        library: &'a MaterialLibrary,
+        output: &mut HashMap<String, &'a MaterialValueType>,
     ) {
         match node {
             MaterialGraphNode::Operation(n) => {
@@ -1005,7 +1155,7 @@ impl MaterialGraph {
                 }
             }
             MaterialGraphNode::Transfer(n) => {
-                output.insert(n.name.to_owned(), value_type.to_string());
+                output.insert(n.name.to_owned(), value_type);
             }
             MaterialGraphNode::Output(n) => {
                 if let Some(from) = n.input_connection {
@@ -1024,25 +1174,7 @@ impl MaterialGraph {
         library: &MaterialLibrary,
     ) -> std::io::Result<()> {
         let mut functions = HashSet::with_capacity(self.nodes.len());
-        for node in self.nodes.values() {
-            match node {
-                MaterialGraphNode::Transfer(node) => {
-                    if shader_type == MaterialShaderType::Vertex {
-                        if let Some(from) = node.input_connection {
-                            self.collect_functions(from, shader_type, &mut functions);
-                        }
-                    }
-                }
-                MaterialGraphNode::Output(node) => {
-                    if node.shader_type == shader_type {
-                        if let Some(from) = node.input_connection {
-                            self.collect_functions(from, shader_type, &mut functions);
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
+        self.collect_functions(shader_type, &mut functions, library);
         for name in &functions {
             if let Some(function) = library.function(name) {
                 if function.can_be_compiled() {
@@ -1054,7 +1186,10 @@ impl MaterialGraph {
             if let Some(function) = library.function(name) {
                 if function.can_be_compiled() {
                     output.write_new_line()?;
-                    function.compile_to(output, MaterialCompilationState::FunctionDefinition)?;
+                    function.compile_to(
+                        output,
+                        MaterialCompilationState::FunctionDefinition { library },
+                    )?;
                 }
             }
         }
@@ -1063,24 +1198,65 @@ impl MaterialGraph {
 
     fn collect_functions(
         &self,
+        shader_type: MaterialShaderType,
+        output: &mut HashSet<String>,
+        library: &MaterialLibrary,
+    ) {
+        for node in self.nodes.values() {
+            match node {
+                MaterialGraphNode::Transfer(node) => {
+                    if shader_type != MaterialShaderType::Fragment {
+                        if let Some(from) = node.input_connection {
+                            self.collect_node_functions(from, shader_type, output, library);
+                        }
+                    }
+                }
+                MaterialGraphNode::Output(node) => {
+                    if shader_type == MaterialShaderType::Undefined
+                        || node.shader_type == shader_type
+                    {
+                        if let Some(from) = node.input_connection {
+                            self.collect_node_functions(from, shader_type, output, library);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn collect_node_functions(
+        &self,
         id: MaterialGraphNodeId,
         shader_type: MaterialShaderType,
         output: &mut HashSet<String>,
+        library: &MaterialLibrary,
     ) {
         if let Some(node) = self.nodes.get(&id) {
             match node {
                 MaterialGraphNode::Operation(node) => {
-                    output.insert(node.name.to_owned());
+                    if !output.contains(&node.name) {
+                        if let Some(function) = library.function(&node.name) {
+                            output.insert(node.name.to_owned());
+                            if let MaterialFunctionContent::Graph(graph) = &function.content {
+                                graph.collect_functions(
+                                    MaterialShaderType::Undefined,
+                                    output,
+                                    library,
+                                );
+                            }
+                        }
+                    }
                 }
                 MaterialGraphNode::Transfer(_) => {
-                    if shader_type == MaterialShaderType::Fragment {
+                    if shader_type != MaterialShaderType::Vertex {
                         return;
                     }
                 }
                 _ => {}
             }
             for from in node.inputs() {
-                self.collect_functions(from, shader_type, output);
+                self.collect_node_functions(from, shader_type, output, library);
             }
         }
     }
@@ -1103,12 +1279,13 @@ impl MaterialGraph {
                 symbols
                     .entry(id)
                     .or_insert_with(|| format!("_node{}", count));
+                output.write_new_line()?;
                 output.write_str(node.value_type().to_string())?;
                 output.write_space()?;
                 output.write_str(symbols.get(&id).unwrap())?;
                 output.write_str(" = ")?;
                 output.write_str(node.to_string())?;
-                output.write_str(";\n")?;
+                output.write_str(";")?;
             }
             MaterialGraphNode::Input(node) => {
                 symbols.entry(id).or_insert_with(|| node.name.to_owned());
@@ -1124,11 +1301,12 @@ impl MaterialGraph {
                 symbols
                     .entry(id)
                     .or_insert_with(|| format!("_node{}", count));
+                output.write_new_line()?;
                 output.write_str(function.output.to_string())?;
                 output.write_space()?;
                 output.write_str(symbols.get(&id).unwrap())?;
                 output.write_str(" = ")?;
-                output.write_str(function.call_name().to_owned())?;
+                output.write_str(function.call_name())?;
                 output.write_str("(")?;
                 for (index, input) in function.inputs.iter().enumerate() {
                     if index > 0 {
@@ -1137,28 +1315,32 @@ impl MaterialGraph {
                     let from = node.input_connections.get(&input.name).unwrap();
                     output.write_str(symbols.get(from).unwrap())?;
                 }
-                output.write_str(");\n")?;
+                output.write_str(");")?;
             }
             MaterialGraphNode::Transfer(node) => {
                 let from = node.input_connection.unwrap();
                 let n = self.nodes.get(&from).unwrap();
-                self.compile_graph_node(from, n, shader_type, library, output, symbols)?;
+                if shader_type == MaterialShaderType::Vertex {
+                    self.compile_graph_node(from, n, shader_type, library, output, symbols)?;
+                }
                 symbols.entry(id).or_insert_with(|| node.name.to_owned());
                 if shader_type == MaterialShaderType::Vertex {
+                    output.write_new_line()?;
                     output.write_str(&node.name)?;
                     output.write_str(" = ")?;
                     output.write_str(symbols.get(&from).unwrap())?;
-                    output.write_str(";\n")?;
+                    output.write_str(";")?;
                 }
             }
             MaterialGraphNode::Output(node) => {
                 let from = node.input_connection.unwrap();
                 let n = self.nodes.get(&from).unwrap();
                 self.compile_graph_node(from, n, shader_type, library, output, symbols)?;
+                output.write_new_line()?;
                 output.write_str(&node.name)?;
                 output.write_str(" = ")?;
                 output.write_str(symbols.get(&from).unwrap())?;
-                output.write_str(";\n")?;
+                output.write_str(";")?;
             }
         }
         Ok(())
@@ -1178,22 +1360,28 @@ impl MaterialCompile<StringBuffer, String, MaterialCompilationState<'_>> for Mat
                 library,
                 fragment_high_precision_support,
             } => {
-                output.write_str("#version 300 es\n")?;
+                output.write_str("#version 300 es")?;
+                output.write_new_line()?;
                 match shader_type {
                     MaterialShaderType::Vertex => {
-                        output.write_str("precision highp float;\n")?;
+                        output.write_str("precision highp float;")?;
+                        output.write_new_line()?;
                     }
                     MaterialShaderType::Fragment => {
                         if fragment_high_precision_support {
-                            output.write_str("precision highp float;\n")?;
+                            output.write_str("precision highp float;")?;
+                            output.write_new_line()?;
                         } else {
-                            output.write_str("precision mediump float;\n")?;
+                            output.write_str("precision mediump float;")?;
+                            output.write_new_line()?;
                         }
                     }
                     _ => unreachable!(),
                 }
-                output.write_str("precision lowp sampler2DArray;\n")?;
-                output.write_str("precision lowp sampler3D;\n")?;
+                output.write_str("precision lowp sampler2DArray;")?;
+                output.write_new_line()?;
+                output.write_str("precision lowp sampler3D;")?;
+                output.write_new_line()?;
                 self.compile_inputs_outputs(
                     output,
                     shader_type,
@@ -1204,7 +1392,7 @@ impl MaterialCompile<StringBuffer, String, MaterialCompilationState<'_>> for Mat
                 output.write_new_line()?;
                 self.compile_functions(output, shader_type, library)?;
                 output.write_new_line()?;
-                output.write_str("void main() {\n")?;
+                output.write_str("void main() {")?;
                 self.compile_to(
                     output,
                     MaterialCompilationState::GraphBody {
@@ -1212,13 +1400,15 @@ impl MaterialCompile<StringBuffer, String, MaterialCompilationState<'_>> for Mat
                         library,
                     },
                 )?;
-                output.write_str("}\n")?;
+                output.write_str("}")?;
+                output.write_new_line()?;
             }
             MaterialCompilationState::GraphBody {
                 shader_type,
                 library,
             } => {
                 let mut symbols = HashMap::with_capacity(self.nodes.len());
+                output.push_level();
                 for (id, node) in &self.nodes {
                     match node {
                         MaterialGraphNode::Transfer(_) => {
@@ -1246,6 +1436,23 @@ impl MaterialCompile<StringBuffer, String, MaterialCompilationState<'_>> for Mat
                             }
                         }
                         _ => {}
+                    }
+                }
+                output.pop_level();
+                output.write_new_line()?;
+            }
+            MaterialCompilationState::FunctionBody { library } => {
+                let mut symbols = HashMap::with_capacity(self.nodes.len());
+                for (id, node) in &self.nodes {
+                    if matches!(node, MaterialGraphNode::Output(_)) {
+                        self.compile_graph_node(
+                            *id,
+                            node,
+                            MaterialShaderType::Undefined,
+                            library,
+                            output,
+                            &mut symbols,
+                        )?;
                     }
                 }
             }

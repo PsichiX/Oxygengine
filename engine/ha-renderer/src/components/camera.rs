@@ -287,6 +287,21 @@ pub struct HaCamera {
 }
 
 impl HaCamera {
+    pub fn with_projection(mut self, projection: HaCameraProjection) -> Self {
+        self.projection = projection;
+        self
+    }
+
+    pub fn with_viewport(mut self, viewport: RenderTargetViewport) -> Self {
+        self.viewport = viewport;
+        self
+    }
+
+    pub fn with_pipeline(mut self, pipeline: PipelineSource) -> Self {
+        self.pipeline = pipeline;
+        self
+    }
+
     pub fn pipeline_stage_info<'a, T: 'static>(
         &'a self,
         renderer: &'a HaRenderer,
@@ -397,12 +412,10 @@ impl HaCamera {
 }
 
 impl Prefab for HaCamera {}
-
 impl PrefabComponent for HaCamera {}
 
 #[derive(Ignite, Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct HaDefaultCamera;
 
 impl Prefab for HaDefaultCamera {}
-
 impl PrefabComponent for HaDefaultCamera {}

@@ -32,5 +32,4 @@ impl HaUserInterfaceSync {
 }
 
 impl Prefab for HaUserInterfaceSync {}
-
 impl PrefabComponent for HaUserInterfaceSync {}

@@ -35,8 +35,29 @@ impl EntityChanges {
         self.spawned.iter().copied()
     }
 
+    pub fn has_spawned(&self, entity: Entity) -> bool {
+        self.spawned.contains(&entity)
+    }
+
     pub fn despawned(&self) -> impl Iterator<Item = Entity> + '_ {
         self.despawned.iter().copied()
+    }
+
+    pub fn has_despawned(&self, entity: Entity) -> bool {
+        self.despawned.contains(&entity)
+    }
+
+    pub fn added_component_iter<T: 'static>(&self) -> impl Iterator<Item = Entity> + '_ {
+        let type_id = TypeId::of::<T>();
+        self.added_components
+            .iter()
+            .filter_map(move |(entity, types)| {
+                if types.contains(&type_id) {
+                    Some(*entity)
+                } else {
+                    None
+                }
+            })
     }
 
     pub fn added_components(&self, entity: Entity) -> Option<impl Iterator<Item = TypeId> + '_> {
@@ -49,8 +70,21 @@ impl EntityChanges {
         let type_id = TypeId::of::<T>();
         self.added_components
             .get(&entity)
-            .map(|types| types.iter().any(|t| t == &type_id))
+            .map(|types| types.contains(&type_id))
             .unwrap_or_default()
+    }
+
+    pub fn removed_component_iter<T: 'static>(&self) -> impl Iterator<Item = Entity> + '_ {
+        let type_id = TypeId::of::<T>();
+        self.removed_components
+            .iter()
+            .filter_map(move |(entity, types)| {
+                if types.contains(&type_id) {
+                    Some(*entity)
+                } else {
+                    None
+                }
+            })
     }
 
     pub fn removed_components(&self, entity: Entity) -> Option<impl Iterator<Item = TypeId> + '_> {
@@ -63,7 +97,7 @@ impl EntityChanges {
         let type_id = TypeId::of::<T>();
         self.removed_components
             .get(&entity)
-            .map(|types| types.iter().any(|t| t == &type_id))
+            .map(|types| types.contains(&type_id))
             .unwrap_or_default()
     }
 

@@ -6,7 +6,7 @@ use oxygengine::prelude::*;
 
 pub type PlayerMovementSystemResources<'a> = (
     WorldRef,
-    &'a InputController,
+    &'a InputStack,
     &'a Board,
     &'a HaBoardSettings,
     &'a CameraCache,
@@ -14,24 +14,30 @@ pub type PlayerMovementSystemResources<'a> = (
     Comp<&'a mut HaSpriteAnimationInstance>,
     Comp<&'a AvatarMovement>,
     Comp<&'a Player>,
+    Comp<&'a InputStackInstance>,
 );
 
 pub fn player_movement_system(universe: &mut Universe) {
-    let (world, input, board, settings, camera_cache, ..) =
+    let (world, input_stack, board, settings, camera_cache, ..) =
         universe.query_resources::<PlayerMovementSystemResources>();
 
-    let pointer_board_location =
-        input_pointer_to_board_location(&input, &camera_cache, &board, &settings);
-
-    for (_, (avatar, animation, movement)) in world
+    for (_, (avatar, animation, movement, input)) in world
         .query::<(
             &mut BoardAvatar,
             &mut HaSpriteAnimationInstance,
             &AvatarMovement,
+            &InputStackInstance,
         )>()
-        .with::<Player>()
+        .with::<&Player>()
         .iter()
     {
+        let input = match input_stack.listener_by_instance(input) {
+            Some(input) => input,
+            None => continue,
+        };
+
+        let pointer_board_location =
+            input_pointer_to_board_location(input, &camera_cache, &board, &settings);
         let token = match avatar.token() {
             Some(token) => token,
             None => continue,

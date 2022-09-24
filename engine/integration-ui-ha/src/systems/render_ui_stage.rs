@@ -307,7 +307,7 @@ fn render(
                         let _ = recorder.record(RenderCommand::OverrideUniform(
                             MAIN_IMAGE_NAME.into(),
                             MaterialValue::Sampler2d {
-                                reference: ImageInstanceReference::Id(image_id),
+                                reference: ImageReference::Id(image_id),
                                 filtering: sync.text_filtering,
                             },
                         ));
@@ -337,7 +337,7 @@ fn render(
                         let _ = recorder.record(RenderCommand::OverrideUniform(
                             MAIN_IMAGE_NAME.into(),
                             MaterialValue::Sampler2dArray {
-                                reference: ImageInstanceReference::Id(image_id),
+                                reference: ImageReference::Id(image_id),
                                 filtering: sync.text_filtering,
                             },
                         ));

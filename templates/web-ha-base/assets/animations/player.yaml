@@ -1,0 +1,22 @@
+default_state: idle
+speed: 0.05
+states:
+  idle:
+    frames:
+      - levels/atlases/Character.yaml@0x0
+    looping: true
+  walk:
+    frames:
+      - levels/atlases/Character.yaml@0x0
+      - levels/atlases/Character.yaml@1x0
+      - levels/atlases/Character.yaml@0x0
+      - levels/atlases/Character.yaml@2x0
+    looping: true
+rules:
+  - Single:
+      target_state: walk
+      conditions:
+          walk:
+            Bool: true
+  - Single:
+      target_state: idle

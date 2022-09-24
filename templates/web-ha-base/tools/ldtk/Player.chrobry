@@ -1,0 +1,23 @@
+inject
+```
+Player: ~
+InputStackInstance:
+  Setup:
+    triggers:
+      action:
+        mappings:
+          - mouse-action
+    axes:
+      move:
+        channels:
+          - mappings:
+              a: -1
+              d: 1
+              left: -1
+              right: 1
+          - mappings:
+              w: -1
+              s: 1
+              up: -1
+              down: 1
+```

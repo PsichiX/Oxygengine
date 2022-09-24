@@ -16,6 +16,8 @@ pub struct MaterialGraphInput {
     #[serde(default)]
     pub name: String,
     #[serde(default)]
+    pub undirected: bool,
+    #[serde(default)]
     pub data_precision: MaterialDataPrecision,
     #[serde(default)]
     pub data_type: MaterialDataType,
@@ -31,6 +33,7 @@ impl MaterialGraphInput {
     pub fn vs_vertex_id() -> Self {
         Self {
             name: "gl_VertexID".to_owned(),
+            undirected: false,
             data_precision: MaterialDataPrecision::Default,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Integer,
@@ -42,6 +45,7 @@ impl MaterialGraphInput {
     pub fn vs_instance_id() -> Self {
         Self {
             name: "gl_InstanceID".to_owned(),
+            undirected: false,
             data_precision: MaterialDataPrecision::Default,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Integer,
@@ -53,6 +57,7 @@ impl MaterialGraphInput {
     pub fn fs_frag_coord() -> Self {
         Self {
             name: "gl_FragCoord".to_owned(),
+            undirected: false,
             data_precision: MaterialDataPrecision::Default,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Vec4F,
@@ -64,6 +69,7 @@ impl MaterialGraphInput {
     pub fn fs_front_facing() -> Self {
         Self {
             name: "gl_FrontFacing".to_owned(),
+            undirected: false,
             data_precision: MaterialDataPrecision::Default,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Bool,
@@ -75,6 +81,7 @@ impl MaterialGraphInput {
     pub fn fs_point_coord() -> Self {
         Self {
             name: "gl_PointCoord".to_owned(),
+            undirected: false,
             data_precision: MaterialDataPrecision::Default,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Vec2F,
@@ -86,6 +93,7 @@ impl MaterialGraphInput {
     pub fn fs_clip_distance() -> Self {
         Self {
             name: "gl_ClipDistance".to_owned(),
+            undirected: false,
             data_precision: MaterialDataPrecision::Default,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Array(Box::new(MaterialValueType::Scalar), None),
@@ -97,6 +105,7 @@ impl MaterialGraphInput {
     pub fn fs_primitive_id() -> Self {
         Self {
             name: "gl_PrimitiveID".to_owned(),
+            undirected: false,
             data_precision: MaterialDataPrecision::Default,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Integer,
@@ -105,8 +114,8 @@ impl MaterialGraphInput {
         }
     }
 
-    pub fn is_domain(&self) -> bool {
-        self.data_type == MaterialDataType::Domain
+    pub fn is_middleware_input(&self) -> bool {
+        self.data_type == MaterialDataType::Attribute
     }
 
     pub fn is_vertex_input(&self) -> bool {
@@ -126,6 +135,8 @@ pub struct MaterialGraphOutput {
     #[serde(default)]
     pub name: String,
     #[serde(default)]
+    pub undirected: bool,
+    #[serde(default)]
     pub data_type: MaterialDataType,
     #[serde(default)]
     pub value_type: MaterialValueType,
@@ -138,12 +149,14 @@ pub struct MaterialGraphOutput {
 impl MaterialGraphOutput {
     pub fn new(
         name: String,
+        undirected: bool,
         data_type: MaterialDataType,
         value_type: MaterialValueType,
         shader_type: MaterialShaderType,
     ) -> Self {
         Self {
             name,
+            undirected,
             data_type,
             value_type,
             shader_type,
@@ -154,6 +167,7 @@ impl MaterialGraphOutput {
     pub fn vs_position() -> Self {
         Self {
             name: "gl_Position".to_owned(),
+            undirected: false,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Vec4F,
             shader_type: MaterialShaderType::Vertex,
@@ -164,6 +178,7 @@ impl MaterialGraphOutput {
     pub fn vs_point_size() -> Self {
         Self {
             name: "gl_PointSize".to_owned(),
+            undirected: false,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Scalar,
             shader_type: MaterialShaderType::Vertex,
@@ -174,6 +189,7 @@ impl MaterialGraphOutput {
     pub fn vs_clip_distance() -> Self {
         Self {
             name: "gl_ClipDistance".to_owned(),
+            undirected: false,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Array(Box::new(MaterialValueType::Scalar), None),
             shader_type: MaterialShaderType::Vertex,
@@ -184,6 +200,7 @@ impl MaterialGraphOutput {
     pub fn fs_frag_depth() -> Self {
         Self {
             name: "gl_FragDepth".to_owned(),
+            undirected: false,
             data_type: MaterialDataType::BuiltIn,
             value_type: MaterialValueType::Scalar,
             shader_type: MaterialShaderType::Fragment,
@@ -191,14 +208,23 @@ impl MaterialGraphOutput {
         }
     }
 
-    pub fn is_domain(&self) -> bool {
-        self.data_type == MaterialDataType::Domain
+    pub fn is_middleware_output(&self) -> bool {
+        self.data_type == MaterialDataType::BufferOutput
+    }
+
+    pub fn is_vertex_output(&self) -> bool {
+        self.shader_type == MaterialShaderType::Vertex
+            && self.data_type == MaterialDataType::BuiltIn
     }
 
     pub fn is_fragment_output(&self) -> bool {
         self.shader_type == MaterialShaderType::Fragment
             && self.value_type == MaterialValueType::Vec4F
             && self.data_type == MaterialDataType::BufferOutput
+    }
+
+    pub fn has_input(&self, id: MaterialGraphNodeId) -> bool {
+        self.input_connection == Some(id)
     }
 
     pub fn clone_unconnected(&self) -> Self {
@@ -235,6 +261,12 @@ impl MaterialGraphOperation {
         }
     }
 
+    pub fn has_input(&self, id: MaterialGraphNodeId) -> bool {
+        self.input_connections
+            .iter()
+            .any(|(_, connection)| *connection == id)
+    }
+
     pub fn clone_unconnected(&self) -> Self {
         Self {
             input_connections: Default::default(),
@@ -264,6 +296,10 @@ impl MaterialGraphTransfer {
             name,
             input_connection: Some(node),
         }
+    }
+
+    pub fn has_input(&self, id: MaterialGraphNodeId) -> bool {
+        self.input_connection == Some(id)
     }
 
     pub fn clone_unconnected(&self) -> Self {
@@ -310,10 +346,15 @@ impl MaterialGraphNode {
         }
     }
 
-    pub fn is_domain(&self) -> bool {
+    pub fn is_output(&self) -> bool {
+        matches!(self, Self::Output(_))
+    }
+
+    pub fn has_input(&self, id: MaterialGraphNodeId) -> bool {
         match self {
-            Self::Input(v) => v.is_domain(),
-            Self::Output(v) => v.is_domain(),
+            Self::Operation(node) => node.has_input(id),
+            Self::Transfer(node) => node.has_input(id),
+            Self::Output(node) => node.has_input(id),
             _ => false,
         }
     }

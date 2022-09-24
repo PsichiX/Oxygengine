@@ -11,5 +11,4 @@ pub struct HaPostProcess {
 }
 
 impl Prefab for HaPostProcess {}
-
 impl PrefabComponent for HaPostProcess {}

@@ -30,7 +30,7 @@ use crate::{
     resource::VnStoryManager,
     system::{vn_story_system, VnStorySystemCache, VnStorySystemResources},
 };
-use anim::curve::{Curved, CurvedDistance, CurvedOffset};
+use anim::curve::{Curved, CurvedChange};
 use core::{
     app::AppBuilder,
     assets::database::AssetsDatabase,
@@ -58,6 +58,18 @@ impl Curved for Position {
         Self(-self.0, -self.1)
     }
 
+    fn scale(&self, value: Scalar) -> Self {
+        Self(self.0 * value, self.1 * value)
+    }
+
+    fn inverse_scale(&self, value: Scalar) -> Self {
+        Self(self.0 / value, self.1 / value)
+    }
+
+    fn length(&self) -> Scalar {
+        (self.0 * self.0 + self.1 * self.1).sqrt()
+    }
+
     fn get_axis(&self, index: usize) -> Option<Scalar> {
         match index {
             0 => Some(self.0),
@@ -70,19 +82,23 @@ impl Curved for Position {
         let diff = *other - *self;
         diff * factor + *self
     }
-}
 
-impl CurvedDistance for Position {
-    fn curved_distance(&self, other: &Self) -> Scalar {
-        let diff0 = other.0 - self.0;
-        let diff1 = other.1 - self.1;
-        (diff0 * diff0 + diff1 * diff1).sqrt()
+    fn is_valid(&self) -> bool {
+        self.0.is_valid() && self.1.is_valid()
     }
 }
 
-impl CurvedOffset for Position {
-    fn curved_offset(&self, other: &Self) -> Self {
-        *self + *other
+impl CurvedChange for Position {
+    fn offset(&self, other: &Self) -> Self {
+        Self(self.0 + other.0, self.1 + other.1)
+    }
+
+    fn delta(&self, other: &Self) -> Self {
+        Self(other.0 - self.0, other.1 - self.1)
+    }
+
+    fn slope(&self, other: &Self) -> Scalar {
+        self.0 * other.0 + self.1 * other.1
     }
 }
 
@@ -138,6 +154,18 @@ impl Curved for Color {
         Self(-self.0, -self.1, -self.2)
     }
 
+    fn scale(&self, value: Scalar) -> Self {
+        Self(self.0 * value, self.1 * value, self.2 * value)
+    }
+
+    fn inverse_scale(&self, value: Scalar) -> Self {
+        Self(self.0 / value, self.1 / value, self.2 / value)
+    }
+
+    fn length(&self) -> Scalar {
+        (self.0 * self.0 + self.1 * self.1 + self.2 * self.2).sqrt()
+    }
+
     fn get_axis(&self, index: usize) -> Option<Scalar> {
         match index {
             0 => Some(self.0),
@@ -151,20 +179,23 @@ impl Curved for Color {
         let diff = *other - *self;
         diff * factor + *self
     }
-}
 
-impl CurvedDistance for Color {
-    fn curved_distance(&self, other: &Self) -> Scalar {
-        let diff0 = other.0 - self.0;
-        let diff1 = other.1 - self.1;
-        let diff2 = other.2 - self.2;
-        (diff0 * diff0 + diff1 * diff1 + diff2 * diff2).sqrt()
+    fn is_valid(&self) -> bool {
+        self.0.is_valid() && self.1.is_valid() && self.2.is_valid()
     }
 }
 
-impl CurvedOffset for Color {
-    fn curved_offset(&self, other: &Self) -> Self {
-        *self + *other
+impl CurvedChange for Color {
+    fn offset(&self, other: &Self) -> Self {
+        Self(self.0 + other.0, self.1 + other.1, self.2 + other.2)
+    }
+
+    fn delta(&self, other: &Self) -> Self {
+        Self(other.0 - self.0, other.1 - self.1, other.2 - self.2)
+    }
+
+    fn slope(&self, other: &Self) -> Scalar {
+        self.0 * other.0 + self.1 * other.1 + self.2 * other.2
     }
 }
 

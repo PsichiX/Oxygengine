@@ -4,6 +4,8 @@ pub mod immediate_batch;
 pub mod material_instance;
 pub mod mesh_instance;
 pub mod postprocess;
+pub mod skeletal_animation_instance;
+pub mod skeleton_instance;
 pub mod sprite_animation_instance;
 pub mod text_instance;
 pub mod tilemap_instance;

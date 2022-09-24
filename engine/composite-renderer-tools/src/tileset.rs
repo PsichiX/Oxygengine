@@ -7,11 +7,11 @@ pub(crate) struct TiledTile {
     pub image: PathBuf,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Deserialize)]
 pub(crate) struct TiledTileset {
-    #[serde(alias = "tilewidth")]
-    pub tile_width: usize,
-    #[serde(alias = "tileheight")]
-    pub tile_height: usize,
+    // #[serde(alias = "tilewidth")]
+    // pub tile_width: usize,
+    // #[serde(alias = "tileheight")]
+    // pub tile_height: usize,
     pub tiles: Vec<TiledTile>,
 }

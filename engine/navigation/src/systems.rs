@@ -29,7 +29,8 @@ pub fn nav_agent_maintain_system(universe: &mut Universe) {
                         }
                         NavAgentTarget::Entity(other) => {
                             if entity != other {
-                                if let Ok(other) = unsafe { world.get_unchecked::<NavAgent>(other) }
+                                if let Ok(other) =
+                                    unsafe { world.get_unchecked::<&NavAgent>(other) }
                                 {
                                     if let Some(path) = mesh.find_path(
                                         agent.position,
@@ -65,7 +66,7 @@ pub fn simple_nav_driver_system(universe: &mut Universe) {
     }
     for (_, agent) in world
         .query::<&mut NavAgent>()
-        .with::<SimpleNavDriverTag>()
+        .with::<&SimpleNavDriverTag>()
         .iter()
     {
         if let Some(path) = agent.path() {

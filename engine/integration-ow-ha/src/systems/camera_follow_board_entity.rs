@@ -38,7 +38,7 @@ pub fn ha_camera_follow_board_entity<T: 'static>(universe: &mut Universe) {
 
     for (me, (my_transform, follow)) in world
         .query::<(&mut HaTransform, &HaCameraFollowBoardEntity)>()
-        .with::<HaCamera>()
+        .with::<&HaCamera>()
         .iter()
     {
         if let Some(other) = follow
@@ -47,7 +47,7 @@ pub fn ha_camera_follow_board_entity<T: 'static>(universe: &mut Universe) {
             .and_then(|n| hierarchy.find(None, n.as_str()))
         {
             if me != other {
-                if let Ok(other_transform) = world.get::<HaTransform>(other) {
+                if let Ok(other_transform) = world.get::<&HaTransform>(other) {
                     let from = my_transform.get_translation();
                     let mut to = other_transform.get_translation();
                     let f = follow.strength_factor.map(|f| (f * dt).max(0.0).min(1.0));

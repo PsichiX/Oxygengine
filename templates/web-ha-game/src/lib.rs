@@ -71,7 +71,7 @@ pub fn main_js() -> Result<(), JsValue> {
             .unwrap()
             .with_bundle(
                 oxygengine::user_interface::bundle_installer::<_, &GameStateInfo>,
-                make_ui(),
+                UserInterface::new(ui::setup),
             )
             .unwrap()
             .with_bundle(
@@ -143,7 +143,7 @@ fn make_assets() -> (WebFetchEngine, impl FnMut(&mut AssetsDatabase)) {
         database.insert(Asset::new(
             "material",
             "@material/graph/surface/flat/avatar",
-            Box::new(MaterialAsset::Graph {
+            MaterialAsset::Graph {
                 default_values: {
                     let mut map = HashMap::with_capacity(1);
                     map.insert(
@@ -154,13 +154,13 @@ fn make_assets() -> (WebFetchEngine, impl FnMut(&mut AssetsDatabase)) {
                 },
                 draw_options: MaterialDrawOptions::transparent(),
                 content: avatar_material_graph(),
-            }),
+            },
         ));
 
         database.insert(Asset::new(
             "material",
             "@material/graph/surface/flat/virtual-uniform-avatar",
-            Box::new(MaterialAsset::Graph {
+            MaterialAsset::Graph {
                 default_values: {
                     let mut map = HashMap::with_capacity(1);
                     map.insert(
@@ -171,7 +171,7 @@ fn make_assets() -> (WebFetchEngine, impl FnMut(&mut AssetsDatabase)) {
                 },
                 draw_options: MaterialDrawOptions::transparent(),
                 content: virtual_uniform_avatar_material_graph(),
-            }),
+            },
         ));
     })
 }
@@ -182,6 +182,7 @@ fn make_prefabs() -> impl FnMut(&mut PrefabManager) {
             "HaVolumeOverlapEvent",
             prefabs,
         );
+        oxygengine::input::prefabs_installer(prefabs);
         oxygengine::ha_renderer::prefabs_installer(prefabs);
         oxygengine::ha_renderer::immediate_batch_prefab_installer::<SurfaceVertexPT>("PT", prefabs);
         oxygengine::user_interface::prefabs_installer(prefabs);
@@ -207,16 +208,12 @@ fn make_inputs() -> impl FnMut(&mut InputController) {
         input.register(WebKeyboardInputDevice::new(get_event_target_document()));
         input.register(WebMouseInputDevice::new(get_event_target_by_id("screen")));
         input.register(WebTouchInputDevice::new(get_event_target_by_id("screen")));
-        input.map_axis("pointer-x", "mouse", "x");
-        input.map_axis("pointer-y", "mouse", "y");
-        input.map_trigger("pointer-action", "mouse", "left");
+        input.map_axis("mouse-x", "mouse", "x");
+        input.map_axis("mouse-y", "mouse", "y");
+        input.map_trigger("mouse-action", "mouse", "left");
         input.map_axis("touch-x", "touch", "x");
         input.map_axis("touch-y", "touch", "y");
         input.map_trigger("touch-action", "touch", "touch");
-        // input.map_axis("move-up", "keyboard", "KeyW");
-        // input.map_axis("move-down", "keyboard", "KeyS");
-        // input.map_axis("move-left", "keyboard", "KeyA");
-        // input.map_axis("move-right", "keyboard", "KeyD");
     }
 }
 
@@ -281,15 +278,9 @@ fn make_renderer() -> Result<HaRendererBundleSetup, JsValue> {
 
     Ok(
         HaRendererBundleSetup::new(renderer).with_gizmos(Gizmos::new(HaMaterialInstance::new(
-            MaterialInstanceReference::Asset("@material/graph/gizmo/color".to_owned()),
+            MaterialReference::Asset("@material/graph/gizmo/color".to_owned()),
         ))),
     )
-}
-
-fn make_ui() -> UserInterface {
-    UserInterface::new(ui::setup)
-    // .with_pointer_axis("pointer-x", "pointer-y")
-    // .with_pointer_trigger("pointer-action", "pointer-context")
 }
 
 fn make_overworld() -> impl FnMut(

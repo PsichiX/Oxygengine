@@ -1,3 +1,4 @@
+extern crate oxygengine_backend_web as backend;
 extern crate oxygengine_core as core;
 extern crate oxygengine_input as input;
 

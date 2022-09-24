@@ -1,8 +1,12 @@
 pub mod render_queue;
 pub mod stage;
 
-use crate::{math::*, pipeline::stage::*, render_target::*, TagFilters};
-use core::id::ID;
+use crate::{
+    math::*,
+    pipeline::{render_queue::*, stage::*},
+    render_target::*,
+};
+use core::{id::ID, utils::TagFilters};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -56,7 +60,7 @@ impl PipelineDescriptor {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PipelineDetailedInfo {
     pub stages: Vec<StageDetailedInfo>,
     pub render_targets: HashMap<String, (RenderTargetDescriptor, RenderTargetId)>,
@@ -74,5 +78,23 @@ impl Pipeline {
             stages: self.stages.iter().map(|s| s.detailed_info()).collect(),
             render_targets: self.render_targets.clone(),
         }
+    }
+
+    pub fn render_targets(&self) -> impl Iterator<Item = RenderTargetId> + '_ {
+        self.render_targets.values().map(|(_, id)| *id)
+    }
+
+    pub fn stages_count(&self) -> usize {
+        self.stages.len()
+    }
+
+    pub fn cloned_stage_render_queue(&self, index: usize) -> Option<RenderQueue> {
+        self.stages.get(index).and_then(|stage| {
+            stage
+                .render_queue
+                .try_read()
+                .ok()
+                .map(|queue| queue.clone())
+        })
     }
 }

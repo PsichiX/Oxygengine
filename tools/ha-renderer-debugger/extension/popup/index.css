@@ -1,0 +1,50 @@
+body {
+    width: max-content;
+    color: orange;
+    background-color: rgb(32, 32, 32);
+    font-family: monospace;
+    font-size: large;
+}
+
+div {
+    margin: 4px;
+}
+
+span {
+    margin: 4px;
+}
+
+legend {
+    color: white;
+}
+
+button {
+    width: 100%;
+    height: auto;
+    outline: none;
+    padding: 8px;
+    border-style: solid;
+    border-color: rgb(253, 68, 0);
+    border-radius: 8px;
+    color: orange;
+    background-color: rgb(24, 24, 24);
+}
+
+button:hover {
+    color: yellow;
+    border-color: yellow;
+    background-color: rgb(48, 48, 48);
+}
+
+button:active {
+    color: white;
+    border-color: white;
+}
+
+input {
+    color: orange;
+    border-style: solid;
+    border-color: darkred;
+    border-radius: 4px;
+    background-color: rgb(20, 20, 20);
+}

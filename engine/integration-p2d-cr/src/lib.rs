@@ -37,8 +37,8 @@ pub fn apply_physics_2d_to_composite_transform_system(universe: &mut Universe) {
 
     for (_, (body, transform)) in world
         .query::<(&RigidBody2d, &mut CompositeTransform)>()
-        .without::<Parent>()
-        .with::<Physics2dSyncCompositeTransform>()
+        .without::<&Parent>()
+        .with::<&Physics2dSyncCompositeTransform>()
         .iter()
     {
         if let Some(handle) = body.handle() {

@@ -14,7 +14,7 @@ pub fn ha_apply_sprite_animation_to_material(universe: &mut Universe) {
         .query::<(&HaSpriteAnimationInstance, &mut HaVirtualImageUniforms)>()
         .iter()
     {
-        if let (true, Some(name)) = (sprite.frame_lately_changed(), sprite.active_frame()) {
+        if let (true, Some(name)) = (sprite.frame_lately_changed(), sprite.active_frame_name()) {
             uniforms.set(
                 "mainImage",
                 HaVirtualImageUniform {

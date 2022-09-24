@@ -2,7 +2,7 @@ use core::{
     prefab::{Prefab, PrefabComponent},
     Ignite,
 };
-use raui_core::PrefabValue;
+use raui_core::{widget::utils::Vec2, PrefabValue};
 use serde::{Deserialize, Serialize};
 
 #[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
@@ -14,15 +14,15 @@ pub struct UserInterfaceView {
     #[serde(default)]
     theme: Option<String>,
     #[serde(default)]
-    pub input_order: usize,
-    #[serde(default)]
-    pub capture_input: bool,
-    #[serde(default)]
     pub deselect_when_no_button_found: bool,
     #[serde(skip)]
     #[serde(default = "UserInterfaceView::default_dirty")]
     #[ignite(ignore)]
     pub(crate) dirty: bool,
+    #[serde(skip)]
+    #[serde(default)]
+    #[ignite(ignore)]
+    pub(crate) last_pointer_pos: Vec2,
 }
 
 impl Default for UserInterfaceView {
@@ -41,10 +41,9 @@ impl UserInterfaceView {
             app_id,
             root: Default::default(),
             theme: None,
-            input_order: 0,
-            capture_input: false,
             deselect_when_no_button_found: false,
-            dirty: true,
+            dirty: Self::default_dirty(),
+            last_pointer_pos: Default::default(),
         }
     }
 
@@ -67,6 +66,10 @@ impl UserInterfaceView {
 
     pub fn set_theme(&mut self, theme: Option<String>) {
         self.theme = theme;
+        self.dirty = true;
+    }
+
+    pub fn make_dirty(&mut self) {
         self.dirty = true;
     }
 }

@@ -146,5 +146,4 @@ impl Inventory {
 }
 
 impl Prefab for Inventory {}
-
 impl PrefabComponent for Inventory {}

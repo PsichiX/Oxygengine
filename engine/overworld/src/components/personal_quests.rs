@@ -142,5 +142,4 @@ impl PersonalQuests {
 }
 
 impl Prefab for PersonalQuests {}
-
 impl PrefabComponent for PersonalQuests {}

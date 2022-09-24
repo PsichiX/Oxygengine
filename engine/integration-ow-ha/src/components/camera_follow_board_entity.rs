@@ -14,7 +14,7 @@ impl Default for HaCameraFollowConstraints {
     }
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct HaCameraFollowBoardEntity {
     pub name: Option<String>,
     #[serde(default)]
@@ -25,17 +25,5 @@ pub struct HaCameraFollowBoardEntity {
     pub nth: usize,
 }
 
-impl Default for HaCameraFollowBoardEntity {
-    fn default() -> Self {
-        Self {
-            name: None,
-            strength_factor: None,
-            constraints: Default::default(),
-            nth: 0,
-        }
-    }
-}
-
 impl Prefab for HaCameraFollowBoardEntity {}
-
 impl PrefabComponent for HaCameraFollowBoardEntity {}

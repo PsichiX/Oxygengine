@@ -1,9 +1,10 @@
 use crate::assets::asset::{Asset, AssetId};
+use serde::{Deserialize, Serialize};
 use std::any::Any;
 
 pub type Meta = Option<Box<dyn Any + Send + Sync>>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AssetVariant {
     Id(AssetId),
     Path(String),

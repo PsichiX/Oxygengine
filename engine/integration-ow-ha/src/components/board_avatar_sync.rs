@@ -11,5 +11,4 @@ pub struct HaBoardAvatarSync {
 }
 
 impl Prefab for HaBoardAvatarSync {}
-
 impl PrefabComponent for HaBoardAvatarSync {}

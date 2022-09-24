@@ -1,14 +1,12 @@
-use crate::{
-    assets::protocol::{AssetLoadResult, AssetProtocol},
-    prefab::PrefabValue,
-};
+use crate::assets::protocol::{AssetLoadResult, AssetProtocol};
 use serde::de::DeserializeOwned;
+use serde_yaml::Value;
 use std::str::from_utf8;
 
-pub struct YamlAsset(PrefabValue);
+pub struct YamlAsset(Value);
 
 impl YamlAsset {
-    pub fn get(&self) -> &PrefabValue {
+    pub fn get(&self) -> &Value {
         &self.0
     }
 

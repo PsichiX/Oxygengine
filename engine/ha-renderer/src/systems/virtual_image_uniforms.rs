@@ -1,7 +1,7 @@
 use crate::{
     components::{material_instance::HaMaterialInstance, virtual_image_uniforms::*},
     ha_renderer::HaRenderer,
-    image::{ImageInstanceReference, ImageResourceMapping},
+    image::{ImageReference, ImageResourceMapping},
     material::common::MaterialValue,
     math::*,
 };
@@ -34,10 +34,7 @@ pub fn ha_virtual_image_uniforms(universe: &mut Universe) {
                             material.values.insert(
                                 key.to_owned(),
                                 MaterialValue::Sampler2d {
-                                    reference: ImageInstanceReference::VirtualId {
-                                        owner,
-                                        id: image,
-                                    },
+                                    reference: ImageReference::VirtualId { owner, id: image },
                                     filtering: data.filtering,
                                 },
                             );

@@ -1,7 +1,9 @@
 extern crate oxygengine_composite_renderer as renderer;
 #[macro_use]
 extern crate oxygengine_core as core;
+extern crate oxygengine_backend_web as backend;
 
+use backend::closure::WebClosure;
 use core::{
     assets::{asset::AssetId, database::AssetsDatabase},
     error::*,
@@ -13,7 +15,7 @@ use renderer::{
     jpg_image_asset_protocol::JpgImageAsset, math::*, png_image_asset_protocol::PngImageAsset,
     svg_image_asset_protocol::SvgImageAsset,
 };
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::*;
 
@@ -127,7 +129,7 @@ impl WebCompositeRenderer {
                     Renderable::Text(text) => {
                         let name = if let Some(name) = self.font_family_map.get(text.font.as_ref())
                         {
-                            &name
+                            name
                         } else {
                             text.font.as_ref()
                         };
@@ -598,7 +600,7 @@ impl WebCompositeRenderer {
                     Renderable::Text(text) => {
                         let name = if let Some(name) = self.font_family_map.get(text.font.as_ref())
                         {
-                            &name
+                            name
                         } else {
                             text.font.as_ref()
                         };
@@ -872,11 +874,14 @@ impl CompositeRenderer for WebCompositeRenderer {
                 .dyn_into::<CanvasRenderingContext2d>()
                 .unwrap();
             let elm2 = elm.clone();
+            let rc = Rc::new(RefCell::new(WebClosure::default()));
+            let rc2 = Rc::clone(&rc);
             let closure = Closure::wrap(Box::new(move |_: web_sys::Event| {
                 drop(context.draw_image_with_html_image_element(&elm2, 0.0, 0.0));
+                rc2.borrow_mut().release();
             }) as Box<dyn FnMut(_)>);
             elm.set_onload(Some(closure.as_ref().unchecked_ref()));
-            closure.forget();
+            *rc.borrow_mut() = WebClosure::acquire(closure);
             self.images_cache.insert(path.clone(), canvas);
             self.images_table.insert(id, path);
         }
@@ -921,11 +926,14 @@ impl CompositeRenderer for WebCompositeRenderer {
                 .dyn_into::<CanvasRenderingContext2d>()
                 .unwrap();
             let elm2 = elm.clone();
+            let rc = Rc::new(RefCell::new(WebClosure::default()));
+            let rc2 = Rc::clone(&rc);
             let closure = Closure::wrap(Box::new(move |_: web_sys::Event| {
                 drop(context.draw_image_with_html_image_element(&elm2, 0.0, 0.0));
+                rc2.borrow_mut().release();
             }) as Box<dyn FnMut(_)>);
             elm.set_onload(Some(closure.as_ref().unchecked_ref()));
-            closure.forget();
+            *rc.borrow_mut() = WebClosure::acquire(closure);
             self.images_cache.insert(path.clone(), canvas);
             self.images_table.insert(id, path);
         }
@@ -970,11 +978,14 @@ impl CompositeRenderer for WebCompositeRenderer {
                 .dyn_into::<CanvasRenderingContext2d>()
                 .unwrap();
             let elm2 = elm.clone();
+            let rc = Rc::new(RefCell::new(WebClosure::default()));
+            let rc2 = Rc::clone(&rc);
             let closure = Closure::wrap(Box::new(move |_: web_sys::Event| {
                 drop(context.draw_image_with_html_image_element(&elm2, 0.0, 0.0));
+                rc2.borrow_mut().release();
             }) as Box<dyn FnMut(_)>);
             elm.set_onload(Some(closure.as_ref().unchecked_ref()));
-            closure.forget();
+            *rc.borrow_mut() = WebClosure::acquire(closure);
             self.images_cache.insert(path.clone(), canvas);
             self.images_table.insert(id, path);
         }
