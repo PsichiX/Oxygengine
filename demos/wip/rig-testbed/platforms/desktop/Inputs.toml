@@ -1,0 +1,4 @@
+[triggers.keyboard]
+walk = "A"
+run = "S"
+watch = "D"

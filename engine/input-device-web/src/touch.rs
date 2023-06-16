@@ -1,6 +1,6 @@
-use crate::input::device::InputDevice;
 use backend::closure::WebClosure;
-use core::Scalar;
+use core::{ecs::Universe, Scalar};
+use input::device::InputDevice;
 use std::{
     any::Any,
     cell::{Ref, RefCell},
@@ -116,7 +116,7 @@ impl InputDevice for WebTouchInputDevice {
         self.touch_cancel_closure.release();
     }
 
-    fn process(&mut self) {
+    fn process(&mut self, _: &mut Universe) {
         let pointers = self.pointers.borrow();
         self.started.clear();
         self.started.reserve(pointers.len());

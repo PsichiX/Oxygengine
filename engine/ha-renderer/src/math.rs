@@ -1,4 +1,4 @@
-use core::{Ignite, Scalar};
+use core::Scalar;
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Deref, Sub};
 
@@ -54,7 +54,7 @@ pub fn mat4<T>(v: [[T; 4]; 4]) -> vek::Mat4<T> {
     vek::Mat4::<T>::from_col_arrays(v)
 }
 
-#[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Eulers {
     /// Z degrees
     #[serde(default)]
@@ -206,11 +206,10 @@ impl From<RotatorDef> for Rotator {
     }
 }
 
-#[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(from = "RotatorDef")]
 #[serde(into = "RotatorDef")]
 pub struct Rotator {
-    #[ignite(ignore)]
     quat: Quat,
     eulers: Eulers,
 }
@@ -382,7 +381,7 @@ impl From<Rotator> for Eulers {
     }
 }
 
-#[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BoundsVolume {
     pub origin: Vec3,
     radius: Scalar,

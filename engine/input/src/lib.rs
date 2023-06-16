@@ -14,6 +14,10 @@ pub mod prelude {
     };
 }
 
+pub mod __internal {
+    pub use toml;
+}
+
 use crate::{
     component::InputStackInstance,
     resources::{controller::InputController, stack::InputStack},
@@ -43,4 +47,19 @@ where
 
 pub fn prefabs_installer(prefabs: &mut PrefabManager) {
     prefabs.register_component_factory::<InputStackInstance>("InputStackInstance");
+}
+
+#[macro_export]
+macro_rules! include_input_mappings {
+    ($path:literal) => {
+        $crate::__internal::toml::from_str::<$crate::resources::controller::InputMappings>(
+            include_str!($path),
+        )
+        .unwrap_or_else(|error| {
+            panic!(
+                "Could not deserialize input bindings for: {}. Error: {}",
+                $path, error,
+            )
+        })
+    };
 }

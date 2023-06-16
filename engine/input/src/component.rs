@@ -1,11 +1,8 @@
 use crate::resources::stack::*;
-use core::{
-    prefab::{Prefab, PrefabComponent},
-    Ignite,
-};
+use core::prefab::{Prefab, PrefabComponent};
 use serde::{Deserialize, Serialize};
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum InputStackInstance {
     Setup(InputStackListener),
     #[serde(skip)]

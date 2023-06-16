@@ -1,11 +1,8 @@
 use crate::components::material_instance::HaMaterialInstance;
-use core::{
-    prefab::{Prefab, PrefabComponent},
-    Ignite,
-};
+use core::prefab::{Prefab, PrefabComponent};
 use serde::{Deserialize, Serialize};
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct HaPostProcess {
     pub stages: Vec<HaMaterialInstance>,
 }

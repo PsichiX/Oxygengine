@@ -3,7 +3,6 @@ use crate::{
     prefab::{Prefab, PrefabComponent, PrefabError, PrefabProxy},
     state::StateToken,
 };
-use oxygengine_ignite_derive::Ignite;
 use serde::{Deserialize, Serialize};
 use std::{
     borrow::Cow,
@@ -11,19 +10,19 @@ use std::{
     marker::PhantomData,
 };
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Tag(pub Cow<'static, str>);
 
 impl Prefab for Tag {}
 impl PrefabComponent for Tag {}
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Name(pub Cow<'static, str>);
 
 impl Prefab for Name {}
 impl PrefabComponent for Name {}
 
-#[derive(Ignite, Debug, Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct NonPersistent(pub StateToken);
 
 impl PrefabProxy<NonPersistentPrefabProxy> for NonPersistent {
@@ -41,16 +40,15 @@ pub struct NonPersistentPrefabProxy;
 
 impl Prefab for NonPersistentPrefabProxy {}
 
-#[derive(Ignite, Clone)]
+#[derive(Clone)]
 pub struct Events<T>
 where
     T: Send + Sync,
 {
-    #[ignite(ignore)]
     buffer: VecDeque<T>,
-    #[ignite(ignore)]
+
     capacity: Option<usize>,
-    #[ignite(ignore)]
+
     pub auto_clear: bool,
 }
 

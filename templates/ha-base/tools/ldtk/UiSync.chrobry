@@ -1,0 +1,28 @@
+inject
+```
+{
+  "HaUserInterfaceSync": {
+    "coords_mapping_scaling": {
+      "FitMaximum": [
+        %{ $SIZE }%,
+        %{ $SIZE }%
+      ]
+    },
+    "colored_material": {
+      "reference": {
+        "Asset": "%{ $COLORED_MATERIAL }%"
+      }
+    },
+    "image_material": {
+      "reference": {
+        "Asset": "%{ $IMAGE_MATERIAL }%"
+      }
+    },
+    "text_material": {
+      "reference": {
+        "Asset": "%{ $TEXT_MATERIAL }%"
+      }
+    }
+  }
+}
+```

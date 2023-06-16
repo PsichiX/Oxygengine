@@ -8,11 +8,10 @@ use crate::{
     prefab::{Prefab, PrefabError, PrefabProxy},
     state::StateToken,
 };
-use oxygengine_ignite_derive::Ignite;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
-#[derive(Ignite, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Parent(pub Entity);
 
 impl PrefabProxy<ParentPrefabProxy> for Parent {

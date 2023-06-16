@@ -1,25 +1,21 @@
 use crate::{image::ImageFiltering, math::*};
-use core::{
-    prefab::{Prefab, PrefabComponent},
-    Ignite,
-};
+use core::prefab::{Prefab, PrefabComponent};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct HaVirtualImageUniform {
     pub virtual_asset_name: String,
     #[serde(default)]
     pub filtering: ImageFiltering,
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct HaVirtualImageUniforms {
     /// { uniform name: uniform data }
     #[serde(flatten)]
     data: HashMap<String, HaVirtualImageUniform>,
     #[serde(skip)]
-    #[ignite(ignore)]
     pub(crate) dirty: bool,
 }
 

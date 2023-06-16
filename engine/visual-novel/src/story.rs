@@ -5,7 +5,7 @@ use crate::{
     scene::{ActiveScene, Scene},
     script::{Action, Chapter, LogType},
 };
-use core::{error, info, prefab::Prefab, warn, Ignite, Scalar};
+use core::{error, info, prefab::Prefab, warn, Scalar};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
@@ -44,7 +44,7 @@ pub struct StoryDebugState {
     pub is_complete: bool,
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Story {
     #[serde(default)]
     active_scene: ActiveScene,

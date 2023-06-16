@@ -14,6 +14,7 @@ use crate::{
     resources::material_library::MaterialLibrary,
 };
 use core::{
+    app::AppLifeCycle,
     assets::{asset::AssetId, database::AssetsDatabase},
     ecs::{components::Name, life_cycle::EntityChanges, Comp, Entity, Universe, World, WorldRef},
 };
@@ -30,6 +31,7 @@ pub struct HaRendererMaintenanceSystemCache {
 
 pub type HaRendererMaintenanceSystemResources<'a> = (
     WorldRef,
+    &'a AppLifeCycle,
     &'a EntityChanges,
     &'a mut HaRenderer,
     &'a AssetsDatabase,
@@ -48,6 +50,7 @@ pub type HaRendererMaintenanceSystemResources<'a> = (
 pub fn ha_renderer_maintenance_system(universe: &mut Universe) {
     let (
         world,
+        lifecycle,
         changes,
         mut renderer,
         assets,
@@ -64,6 +67,9 @@ pub fn ha_renderer_maintenance_system(universe: &mut Universe) {
             cache.fragment_high_precision_support =
                 Some(Material::query_is_high_precision_supported_in_fragment_shader(context));
         }
+    }
+    if !lifecycle.running {
+        renderer.interface_mut().lose_context();
     }
     renderer.maintain_platform_interface();
     image_mapping.maintain();

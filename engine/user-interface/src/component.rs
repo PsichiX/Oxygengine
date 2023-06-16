@@ -1,11 +1,8 @@
-use core::{
-    prefab::{Prefab, PrefabComponent},
-    Ignite,
-};
+use core::prefab::{Prefab, PrefabComponent};
 use raui_core::{widget::utils::Vec2, PrefabValue};
 use serde::{Deserialize, Serialize};
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserInterfaceView {
     #[serde(default)]
     app_id: String,
@@ -17,11 +14,9 @@ pub struct UserInterfaceView {
     pub deselect_when_no_button_found: bool,
     #[serde(skip)]
     #[serde(default = "UserInterfaceView::default_dirty")]
-    #[ignite(ignore)]
     pub(crate) dirty: bool,
     #[serde(skip)]
     #[serde(default)]
-    #[ignite(ignore)]
     pub(crate) last_pointer_pos: Vec2,
 }
 

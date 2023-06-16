@@ -1,0 +1,13 @@
+[triggers.mouse]
+mouse-action = "left"
+
+[axes.mouse]
+mouse-x = "x"
+mouse-y = "y"
+
+[triggers.touch]
+touch-action = "touch"
+
+[axes.touch]
+touch-x = "x"
+touch-y = "y"

@@ -1,6 +1,6 @@
-use crate::input::device::InputDevice;
 use backend::closure::WebClosure;
-use core::Scalar;
+use core::{ecs::Universe, Scalar};
+use input::device::InputDevice;
 use std::{any::Any, cell::RefCell, collections::HashSet, rc::Rc};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::*;
@@ -80,7 +80,7 @@ impl InputDevice for WebKeyboardInputDevice {
         self.key_up_closure.release();
     }
 
-    fn process(&mut self) {
+    fn process(&mut self, _: &mut Universe) {
         self.last_sequence.clear();
         self.last_sequence.append(&mut self.sequence.borrow_mut());
     }

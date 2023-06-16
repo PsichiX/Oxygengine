@@ -8,7 +8,7 @@ use crate::{
 };
 use core::{
     prefab::{Prefab, PrefabComponent},
-    Ignite, Scalar,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -16,7 +16,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-#[derive(Ignite, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum HaCameraOrtographicScaling {
     None,
     Stretch(Vec2),
@@ -32,7 +32,7 @@ impl Default for HaCameraOrtographicScaling {
     }
 }
 
-#[derive(Ignite, Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct HaCameraOrthographic {
     #[serde(default)]
     pub scaling: HaCameraOrtographicScaling,
@@ -94,7 +94,7 @@ impl HaCameraOrthographic {
     }
 }
 
-#[derive(Ignite, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct HaCameraPerspective {
     #[serde(default = "HaCameraPerspective::default_fov")]
     pub fov: Scalar,
@@ -139,7 +139,7 @@ impl HaCameraPerspective {
     }
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum HaCameraProjection {
     Orthographic(#[serde(default)] HaCameraOrthographic),
     Perspective(#[serde(default)] HaCameraPerspective),
@@ -273,7 +273,7 @@ impl HaStageCameraInfo {
     }
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct HaCamera {
     #[serde(default)]
     pub projection: HaCameraProjection,
@@ -281,7 +281,7 @@ pub struct HaCamera {
     pub viewport: RenderTargetViewport,
     #[serde(default)]
     pub pipeline: PipelineSource,
-    #[ignite(ignore)]
+
     #[serde(skip)]
     pub(crate) cached_pipeline: Option<PipelineId>,
 }
@@ -414,7 +414,7 @@ impl HaCamera {
 impl Prefab for HaCamera {}
 impl PrefabComponent for HaCamera {}
 
-#[derive(Ignite, Debug, Default, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct HaDefaultCamera;
 
 impl Prefab for HaDefaultCamera {}

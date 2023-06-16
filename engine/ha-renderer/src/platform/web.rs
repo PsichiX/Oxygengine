@@ -2,7 +2,6 @@
 
 use crate::platform::{HaPlatformInterface, HaPlatformInterfaceProcessResult};
 use glow::*;
-#[cfg(feature = "web")]
 use oxygengine_backend_web::closure::WebClosure;
 #[cfg(target_arch = "wasm32")]
 use std::collections::HashMap;
@@ -125,7 +124,6 @@ impl WebContextOptions {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct WebPlatformInterface {
     canvas: HtmlCanvasElement,
@@ -134,13 +132,13 @@ pub struct WebPlatformInterface {
     cached_screen_size: (usize, usize),
     context_lost: Rc<RefCell<bool>>,
     context_restored: Rc<RefCell<bool>>,
+    #[allow(dead_code)]
     webgl_context_lost_closure: WebClosure,
+    #[allow(dead_code)]
     webgl_context_restored_closure: WebClosure,
 }
 
-#[cfg(feature = "web")]
 unsafe impl Send for WebPlatformInterface {}
-#[cfg(feature = "web")]
 unsafe impl Sync for WebPlatformInterface {}
 
 impl WebPlatformInterface {
@@ -215,5 +213,9 @@ impl HaPlatformInterface for WebPlatformInterface {
             result.screen_resized = Some((cw, ch));
         }
         result
+    }
+
+    fn lose_context(&mut self) {
+        *self.context_lost.borrow_mut() = true;
     }
 }

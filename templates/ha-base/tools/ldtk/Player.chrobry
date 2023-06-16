@@ -1,0 +1,39 @@
+inject
+```
+{
+  "Player": null,
+  "InputStackInstance": {
+    "Setup": {
+      "triggers": {
+        "action": {
+          "mappings": [
+            "mouse-action"
+          ]
+        }
+      },
+      "axes": {
+        "move": {
+          "channels": [
+            {
+              "mappings": {
+                "a": -1.0,
+                "d": 1.0,
+                "left": -1.0,
+                "right": 1.0
+              }
+            },
+            {
+              "mappings": {
+                "w": -1.0,
+                "s": 1.0,
+                "up": -1.0,
+                "down": 1.0
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+```

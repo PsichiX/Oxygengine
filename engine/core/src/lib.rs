@@ -25,10 +25,7 @@ pub mod id {
     pub use typid::*;
 }
 
-pub mod ignite {
-    pub use oxygengine_ignite_types as types;
-}
-
+#[allow(ambiguous_glob_reexports)]
 pub mod prelude {
     pub use crate::{
         app::*,
@@ -39,7 +36,7 @@ pub mod prelude {
             database::*,
             protocol::*,
             protocols::{
-                binary::*, localization::*, pack::*, prefab::*, set::*, text::*, yaml::*, *,
+                binary::*, json::*, localization::*, pack::*, prefab::*, set::*, text::*, *,
             },
             system::*,
             *,
@@ -82,4 +79,3 @@ pub type Scalar = f64;
 pub type Scalar = f32;
 
 pub use hecs::Bundle;
-pub use oxygengine_ignite_derive::{ignite_proxy, Ignite};

@@ -1,7 +1,7 @@
 use crate::math::*;
 use core::{
     assets::protocol::{AssetLoadResult, AssetProtocol},
-    Ignite, Scalar,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::from_utf8};
@@ -10,7 +10,7 @@ fn default_speed() -> Scalar {
     1.0
 }
 
-#[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SpriteAnimationRegion {
     None,
     All,
@@ -38,7 +38,7 @@ impl SpriteAnimationRegion {
     }
 }
 
-#[derive(Ignite, Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum SpriteAnimationValue {
     Bool(bool),
     Integer(i32),
@@ -86,7 +86,7 @@ impl From<Scalar> for SpriteAnimationValue {
     }
 }
 
-#[derive(Ignite, Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum SpriteAnimationCondition {
     Bool(bool),
     IntegerEquals(i32),
@@ -126,13 +126,13 @@ impl SpriteAnimationCondition {
     }
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpriteAnimationBlendState {
     pub target_state: String,
     pub axis_values: Vec<Scalar>,
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SpriteAnimationRule {
     Single {
         target_state: String,
@@ -149,7 +149,7 @@ pub enum SpriteAnimationRule {
     },
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SpriteAnimationSignal {
     pub time: Scalar,
     pub id: String,
@@ -157,7 +157,7 @@ pub struct SpriteAnimationSignal {
     pub params: HashMap<String, SpriteAnimationValue>,
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SpriteAnimationState {
     pub frames: Vec<String>,
     #[serde(default)]
@@ -172,7 +172,7 @@ pub struct SpriteAnimationState {
     pub rules: Vec<SpriteAnimationRule>,
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SpriteAnimationAsset {
     #[serde(default)]
     pub default_state: Option<String>,
@@ -195,9 +195,6 @@ impl AssetProtocol for SpriteAnimationAssetProtocol {
         let data = if path.ends_with(".json") {
             let data = from_utf8(&data).unwrap();
             serde_json::from_str::<SpriteAnimationAsset>(data).unwrap()
-        } else if path.ends_with(".yaml") {
-            let data = from_utf8(&data).unwrap();
-            serde_yaml::from_str::<SpriteAnimationAsset>(data).unwrap()
         } else {
             bincode::deserialize::<SpriteAnimationAsset>(&data).unwrap()
         };

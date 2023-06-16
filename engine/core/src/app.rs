@@ -215,15 +215,11 @@ pub trait BackendAppRunner<E> {
 }
 
 #[derive(Default)]
-pub struct SyncAppRunner {
+pub struct StandardAppRunner {
     pub sleep_time: Option<Duration>,
 }
 
-impl SyncAppRunner {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
+impl StandardAppRunner {
     pub fn with_sleep_time(value: Duration) -> Self {
         Self {
             sleep_time: Some(value),
@@ -231,7 +227,7 @@ impl SyncAppRunner {
     }
 }
 
-impl BackendAppRunner<()> for SyncAppRunner {
+impl BackendAppRunner<()> for StandardAppRunner {
     fn run(&mut self, app: Rc<RefCell<App>>) -> Result<(), ()> {
         while app.borrow().multiverse.is_running() {
             app.borrow_mut().process();
@@ -537,6 +533,8 @@ mod tests {
             .with_resource(C)
             .build::<JobsPipelineEngine, _, _>(3, StandardAppTimer::default());
 
-        AppRunner::new(app).run(SyncAppRunner::new()).unwrap();
+        AppRunner::new(app)
+            .run(StandardAppRunner::default())
+            .unwrap();
     }
 }

@@ -43,7 +43,7 @@ pub struct AssetsDatabase {
     lately_loaded: Vec<(String, AssetId)>,
     lately_unloaded: Vec<(String, AssetId)>,
     error_reporters: HashMap<TypeId, Box<dyn AssetsDatabaseErrorReporter>>,
-    first_run: bool,
+    defer_lately_cleanup: bool,
 }
 
 impl AssetsDatabase {
@@ -62,7 +62,7 @@ impl AssetsDatabase {
             lately_loaded: vec![],
             lately_unloaded: vec![],
             error_reporters: Default::default(),
-            first_run: true,
+            defer_lately_cleanup: true,
         }
     }
 
@@ -348,9 +348,13 @@ impl AssetsDatabase {
         None
     }
 
+    pub fn defer_lately_cleanup(&mut self) {
+        self.defer_lately_cleanup = true;
+    }
+
     pub fn process(&mut self) {
-        if self.first_run {
-            self.first_run = false;
+        if self.defer_lately_cleanup {
+            self.defer_lately_cleanup = false;
         } else {
             self.lately_loaded.clear();
             self.lately_unloaded.clear();

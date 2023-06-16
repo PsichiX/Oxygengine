@@ -1,0 +1,24 @@
+inject
+```
+[package]
+name = "%{ $IGNITE_ID }%"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "%{ $IGNITE_ID }%"
+path = "../../src/desktop_main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+rand = "0.8"
+
+[dependencies.oxygengine]
+version = "0.30"
+features = [
+  "desktop-ha-game",
+  "oxygengine-overworld",
+  "oxygengine-integration-ow-ha",
+]
+```

@@ -1,4 +1,3 @@
-use crate::Ignite;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, io::Write};
 
@@ -101,7 +100,7 @@ impl<'a> StrSequence<'a> {
     }
 }
 
-#[derive(Ignite, Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TagFilters {
     #[serde(default)]
     inclusive: bool,

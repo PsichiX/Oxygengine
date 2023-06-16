@@ -1,5 +1,0 @@
-inject
-```
-AvatarMovement:
-  step_duration: %{ $STEP_DURATION }%
-```

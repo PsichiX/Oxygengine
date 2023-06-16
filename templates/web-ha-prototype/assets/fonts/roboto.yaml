@@ -3,7 +3,7 @@ line_height: 64
 line_base: 51
 sdf_resolution: 0
 pages:
-  - image: fonts/roboto.0.yaml
+  - image: fonts/roboto.0.json
     characters:
       ü:
         x: 325

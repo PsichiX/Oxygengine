@@ -20,7 +20,7 @@ use crate::{
     math::vek::*,
     resources::material_library::MaterialLibrary,
 };
-use core::{utils::StringBuffer, Ignite};
+use core::utils::StringBuffer;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -68,7 +68,7 @@ where
     }
 }
 
-#[derive(Ignite, Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MaterialGraph {
     nodes: HashMap<MaterialGraphNodeId, MaterialGraphNode>,
 }

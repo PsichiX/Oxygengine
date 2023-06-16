@@ -3,20 +3,17 @@ use crate::material::{
     graph::{function::MaterialFunction, MaterialGraph},
     MaterialDrawOptions,
 };
-use core::{
-    assets::protocol::{AssetLoadResult, AssetProtocol},
-    Ignite,
-};
+use core::assets::protocol::{AssetLoadResult, AssetProtocol};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::from_utf8};
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BakedMaterialAsset {
     pub signature: MaterialSignature,
     pub baked: BakedMaterialShaders,
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MaterialAsset {
     None,
     Graph {
@@ -54,9 +51,6 @@ impl AssetProtocol for MaterialAssetProtocol {
         let material = if path.ends_with(".json") {
             let data = from_utf8(&data).unwrap();
             serde_json::from_str::<MaterialAsset>(data).unwrap()
-        } else if path.ends_with(".yaml") {
-            let data = from_utf8(&data).unwrap();
-            serde_yaml::from_str::<MaterialAsset>(data).unwrap()
         } else {
             bincode::deserialize::<MaterialAsset>(&data).unwrap()
         };

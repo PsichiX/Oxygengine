@@ -2,7 +2,7 @@ use crate::{
     ha_renderer::RenderStageResources, image::ImageMipmap, pipeline::stage::ClearSettings,
     HasContextResources,
 };
-use core::{id::ID, Ignite, Scalar};
+use core::{id::ID, Scalar};
 use glow::*;
 use serde::{Deserialize, Serialize};
 
@@ -160,7 +160,7 @@ impl RenderTargetSizeValue {
     }
 }
 
-#[derive(Ignite, Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum RenderTargetViewport {
     Full,
     Anchors {
@@ -226,7 +226,7 @@ impl RenderTargetViewport {
     }
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RenderTargetDescriptor {
     Main,
     Custom {

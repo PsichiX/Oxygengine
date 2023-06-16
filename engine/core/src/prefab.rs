@@ -14,7 +14,7 @@ use hecs::*;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::collections::HashMap;
 
-pub use serde_intermediate::Intermediate as PrefabValue;
+pub use serde_json::Value as PrefabValue;
 
 type ComponentFactory = Box<
     dyn Fn(
@@ -36,7 +36,7 @@ pub enum PrefabError {
 
 pub trait Prefab: Serialize + DeserializeOwned + Sized {
     fn from_prefab(data: &PrefabValue) -> Result<Self, PrefabError> {
-        match serde_intermediate::from_intermediate(data) {
+        match serde_json::from_value(data.clone()) {
             Ok(result) => {
                 let mut result: Self = result;
                 result.post_from_prefab();
@@ -55,14 +55,14 @@ pub trait Prefab: Serialize + DeserializeOwned + Sized {
     }
 
     fn to_prefab(&self) -> Result<PrefabValue, PrefabError> {
-        match serde_intermediate::to_intermediate(self) {
+        match serde_json::to_value(self) {
             Ok(result) => Ok(result),
             Err(error) => Err(PrefabError::CouldNotDeserialize(error.to_string())),
         }
     }
 
     fn from_prefab_str(data: &str) -> Result<Self, PrefabError> {
-        match serde_yaml::from_str(data) {
+        match serde_json::from_str(data) {
             Ok(result) => {
                 let mut result: Self = result;
                 result.post_from_prefab();
@@ -73,7 +73,7 @@ pub trait Prefab: Serialize + DeserializeOwned + Sized {
     }
 
     fn to_prefab_string(&self) -> Result<String, PrefabError> {
-        match serde_yaml::to_string(self) {
+        match serde_json::to_string_pretty(self) {
             Ok(result) => Ok(result),
             Err(error) => Err(PrefabError::CouldNotSerialize(error.to_string())),
         }

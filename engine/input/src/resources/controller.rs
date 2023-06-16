@@ -1,7 +1,17 @@
 use crate::device::InputDevice;
-use core::Scalar;
+use core::{ecs::Universe, Scalar};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct InputMappings {
+    /// {device name: {name from: name to}}
+    #[serde(default)]
+    pub axes: HashMap<String, HashMap<String, String>>,
+    /// {device name: {name from: name to}}
+    #[serde(default)]
+    pub triggers: HashMap<String, HashMap<String, String>>,
+}
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TriggerState {
@@ -142,6 +152,19 @@ impl InputController {
         self.mapping_triggers
             .iter()
             .map(|(k, (a, b))| (k.as_str(), (a.as_str(), b.as_str())))
+    }
+
+    pub fn map_config(&mut self, config: InputMappings) {
+        for (device, mappings) in config.axes {
+            for (name_from, name_to) in mappings {
+                self.map_axis(&name_from, &device, &name_to);
+            }
+        }
+        for (device, mappings) in config.triggers {
+            for (name_from, name_to) in mappings {
+                self.map_trigger(&name_from, &device, &name_to);
+            }
+        }
     }
 
     pub fn map_axis(&mut self, name_from: &str, device: &str, name_to: &str) {
@@ -292,9 +315,9 @@ impl InputController {
         &self.text
     }
 
-    pub fn process(&mut self) {
+    pub fn process(&mut self, universe: &mut Universe) {
         for device in self.devices.values_mut() {
-            device.process();
+            device.process(universe);
         }
         self.text.clear();
         for device in self.devices.values() {

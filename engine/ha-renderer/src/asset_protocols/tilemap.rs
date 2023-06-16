@@ -1,14 +1,11 @@
 use crate::math::*;
-use core::{
-    assets::protocol::{AssetLoadResult, AssetProtocol},
-    Ignite,
-};
+use core::assets::protocol::{AssetLoadResult, AssetProtocol};
 use serde::{Deserialize, Serialize};
 use std::str::from_utf8;
 
 pub type TileMapCoord = (usize, usize);
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct TileMapAsset {
     #[serde(default)]
     pub x: isize,
@@ -49,9 +46,6 @@ impl AssetProtocol for TileMapAssetProtocol {
         let data = if path.ends_with(".json") {
             let data = from_utf8(&data).unwrap();
             serde_json::from_str::<TileMapAsset>(data).unwrap()
-        } else if path.ends_with(".yaml") {
-            let data = from_utf8(&data).unwrap();
-            serde_yaml::from_str::<TileMapAsset>(data).unwrap()
         } else {
             bincode::deserialize::<TileMapAsset>(&data).unwrap()
         };

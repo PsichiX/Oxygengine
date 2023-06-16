@@ -1,17 +1,34 @@
 #![cfg(not(feature = "web"))]
 
 use crate::fetch::{FetchCancelReason, FetchEngine, FetchProcess, FetchStatus};
-use std::path::{Path, PathBuf};
+use std::{
+    env::var,
+    path::{Path, PathBuf},
+};
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct FsFetchEngine {
     root_path: PathBuf,
+}
+
+impl Default for FsFetchEngine {
+    fn default() -> Self {
+        Self {
+            root_path: match var("OXY_FETCH_ENGINE_PATH") {
+                Ok(value) => value.into(),
+                Err(_) => Default::default(),
+            },
+        }
+    }
 }
 
 impl FsFetchEngine {
     pub fn new<S: AsRef<Path>>(root_path: &S) -> Self {
         Self {
-            root_path: root_path.as_ref().into(),
+            root_path: match var("OXY_FETCH_ENGINE_PATH") {
+                Ok(value) => value.into(),
+                Err(_) => root_path.as_ref().into(),
+            },
         }
     }
 }

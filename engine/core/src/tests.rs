@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use crate::{
-    app::{App, AppRunner, StandardAppTimer, SyncAppRunner},
+    app::{App, AppRunner, StandardAppRunner, StandardAppTimer},
     assets::{database::AssetsDatabase, protocols::prefab::PrefabAsset},
     ecs::{
         commands::{DespawnEntity, SpawnEntity, UniverseCommand},
@@ -29,7 +29,7 @@ impl State for ExamplePrefab {
         universe
             .resource_mut::<AssetsDatabase>()
             .unwrap()
-            .load("prefab://scene.yaml")
+            .load("prefab://scene.json")
             .unwrap();
     }
 
@@ -39,16 +39,16 @@ impl State for ExamplePrefab {
         } else {
             let (assets, mut prefabs) =
                 universe.query_resources::<(&AssetsDatabase, &mut PrefabManager)>();
-            if let Some(asset) = assets.asset_by_path("prefab://scene.yaml") {
+            if let Some(asset) = assets.asset_by_path("prefab://scene.json") {
                 self.0 = true;
                 let prefab = asset
                     .get::<PrefabAsset>()
-                    .expect("scene.yaml is not a prefab asset")
+                    .expect("scene.json is not a prefab asset")
                     .get();
                 let entities = prefabs.load_scene_from_prefab(prefab, universe).unwrap();
-                println!("scene.yaml asset finally loaded: {:?}", entities);
+                println!("scene.json asset finally loaded: {:?}", entities);
             } else {
-                println!("scene.yaml asset not loaded yet");
+                println!("scene.json asset not loaded yet");
             }
             StateChange::None
         }
@@ -90,7 +90,7 @@ fn test_prefabs() {
 
     let mut files = HashMap::new();
     files.insert(
-        "scene.yaml".to_owned(),
+        "scene.json".to_owned(),
         br#"
         entities:
           - Data:
@@ -114,7 +114,7 @@ fn test_prefabs() {
             StandardAppTimer::default(),
         );
 
-    let _ = AppRunner::new(app).run(SyncAppRunner::default());
+    let _ = AppRunner::new(app).run(StandardAppRunner::default());
 }
 
 #[test]

@@ -1,5 +1,7 @@
 // reexport core macros.
 pub use oxygengine_core::{debug, error, info, log, warn};
+#[cfg(feature = "oxygengine-input")]
+pub use oxygengine_input::include_input_mappings;
 #[cfg(feature = "oxygengine-user-interface")]
 pub use oxygengine_user_interface::{post_hooks, pre_hooks, unpack_named_slots, widget};
 
@@ -12,10 +14,6 @@ pub mod utils {
 #[cfg(feature = "oxygengine-input")]
 pub mod input {
     pub use oxygengine_input::*;
-}
-#[cfg(feature = "oxygengine-composite-renderer")]
-pub mod composite_renderer {
-    pub use oxygengine_composite_renderer::*;
 }
 #[cfg(feature = "oxygengine-ha-renderer")]
 pub mod ha_renderer {
@@ -50,18 +48,6 @@ pub mod physics_2d {
 #[cfg(feature = "oxygengine-integration-ow-ha")]
 pub mod integration_overworld_ha_renderer {
     pub use oxygengine_integration_ow_ha::*;
-}
-#[cfg(feature = "oxygengine-physics-2d")]
-#[cfg(feature = "oxygengine-composite-renderer")]
-#[cfg(feature = "oxygengine-integration-p2d-cr")]
-pub mod integration_physics_2d_composite_renderer {
-    pub use oxygengine_integration_p2d_cr::*;
-}
-#[cfg(feature = "oxygengine-user-interface")]
-#[cfg(feature = "oxygengine-composite-renderer")]
-#[cfg(feature = "oxygengine-integration-ui-cr")]
-pub mod integration_user_interface_composite_renderer {
-    pub use oxygengine_integration_ui_cr::*;
 }
 #[cfg(feature = "oxygengine-user-interface")]
 #[cfg(feature = "oxygengine-ha-renderer")]
@@ -105,6 +91,7 @@ pub mod editor_tools {
     pub use oxygengine_editor_tools::*;
 }
 
+#[allow(ambiguous_glob_reexports)]
 pub mod prelude {
     #[cfg(feature = "oxygengine-ai")]
     pub use oxygengine_ai::prelude::*;
@@ -114,12 +101,10 @@ pub mod prelude {
     pub use oxygengine_audio::prelude::*;
     #[cfg(feature = "oxygengine-audio-backend-web")]
     pub use oxygengine_audio_backend_web::prelude::*;
+    #[cfg(feature = "oxygengine-backend-desktop")]
+    pub use oxygengine_backend_desktop::prelude::*;
     #[cfg(feature = "oxygengine-backend-web")]
     pub use oxygengine_backend_web::prelude::*;
-    #[cfg(feature = "oxygengine-composite-renderer")]
-    pub use oxygengine_composite_renderer::prelude::*;
-    #[cfg(feature = "oxygengine-composite-renderer-backend-web")]
-    pub use oxygengine_composite_renderer_backend_web::prelude::*;
     pub use oxygengine_core::{prelude::*, Scalar};
     #[cfg(feature = "oxygengine-editor-tools")]
     pub use oxygengine_editor_tools::prelude::*;
@@ -132,6 +117,8 @@ pub mod prelude {
     pub use oxygengine_ha_renderer_debugger::prelude::*;
     #[cfg(feature = "oxygengine-input")]
     pub use oxygengine_input::prelude::*;
+    #[cfg(feature = "oxygengine-input-device-desktop")]
+    pub use oxygengine_input_device_desktop::prelude::*;
     #[cfg(feature = "oxygengine-input-device-web")]
     pub use oxygengine_input_device_web::prelude::*;
     #[cfg(feature = "oxygengine-integration-ow-ha")]

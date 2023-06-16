@@ -4,7 +4,7 @@ use core::{
         asset::{Asset, AssetId},
         protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
     },
-    Ignite, Scalar,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -12,7 +12,7 @@ use std::{
     str::from_utf8,
 };
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FontAssetSource {
     pub line_height: usize,
     pub line_base: usize,
@@ -22,13 +22,13 @@ pub struct FontAssetSource {
     pub filtering: ImageFiltering,
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FontAssetSourcePage {
     pub image: String,
     pub characters: HashMap<char, FontAssetSourceCharacter>,
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FontAssetSourceCharacter {
     pub x: usize,
     pub y: usize,
@@ -71,9 +71,6 @@ impl AssetProtocol for FontAssetProtocol {
         let source = if path.ends_with(".json") {
             let data = from_utf8(&data).unwrap();
             serde_json::from_str::<FontAssetSource>(data).unwrap()
-        } else if path.ends_with(".yaml") {
-            let data = from_utf8(&data).unwrap();
-            serde_yaml::from_str::<FontAssetSource>(data).unwrap()
         } else {
             bincode::deserialize::<FontAssetSource>(&data).unwrap()
         };

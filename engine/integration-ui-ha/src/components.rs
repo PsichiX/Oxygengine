@@ -3,7 +3,7 @@ use oxygengine_ha_renderer::prelude::*;
 use oxygengine_user_interface::raui::core::layout::CoordsMappingScaling;
 use serde::{Deserialize, Serialize};
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct HaUserInterfaceSync {
     #[serde(default)]
     pub coords_mapping_scaling: CoordsMappingScaling,

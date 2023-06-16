@@ -1,4 +1,4 @@
-use oxygengine_core::{id::ID, Ignite, Scalar};
+use oxygengine_core::{id::ID, Scalar};
 use oxygengine_navigation::resources::{
     Error as NavError, NavGrid, NavGridConnection, NavIslandPortal, NavIslands,
     NavIslandsConnection,
@@ -33,7 +33,7 @@ pub enum BoardError {
     IslandNotFoundInChunk(ChunkLocation),
 }
 
-#[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BoardDirection {
     North,
     NorthEast,
@@ -76,7 +76,7 @@ impl BoardDirection {
     }
 }
 
-#[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BoardCollision {
     #[serde(default)]
     pub token: Option<BoardToken>,
@@ -92,7 +92,7 @@ impl BoardCollision {
     }
 }
 
-#[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct BoardLocation {
     pub col: isize,
     pub row: isize,
@@ -120,7 +120,7 @@ impl From<[isize; 2]> for BoardLocation {
     }
 }
 
-#[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ChunkLocation {
     pub col: usize,
     pub row: usize,
@@ -148,7 +148,7 @@ impl From<[usize; 2]> for ChunkLocation {
     }
 }
 
-#[derive(Ignite, Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Location {
     pub world: BoardLocation,
     pub chunk: ChunkLocation,

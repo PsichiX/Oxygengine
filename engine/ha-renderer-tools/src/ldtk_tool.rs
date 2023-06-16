@@ -153,7 +153,7 @@ fn bake_project(
         image_bytes.insert(tileset.uid, image_bytes_name.to_owned());
 
         let image_name = format!(
-            "{}{}/{}.yaml",
+            "{}{}/{}.json",
             assets_path_prefix, image_folder_name, tileset.identifier
         );
         let asset = ImageAssetSource::Png {
@@ -163,11 +163,11 @@ fn bake_project(
         let image_path = output
             .join(image_folder_name)
             .join(&tileset.identifier)
-            .with_extension("yaml");
+            .with_extension("json");
         ensure_path(&image_path);
         write(
             &image_path,
-            serde_yaml::to_string(&asset).unwrap_or_else(|_| {
+            serde_json::to_string_pretty(&asset).unwrap_or_else(|_| {
                 panic!(
                     "Could not serialize image asset for tileset: {:?}",
                     tileset.identifier
@@ -178,7 +178,7 @@ fn bake_project(
         images.insert(tileset.uid, image_name.to_owned());
 
         let atlas_name = format!(
-            "{}{}/{}.yaml",
+            "{}{}/{}.json",
             assets_path_prefix, atlas_folder_name, tileset.identifier
         );
         let asset = AtlasAssetSource::TileSet({
@@ -200,11 +200,11 @@ fn bake_project(
         let atlas_path = output
             .join(atlas_folder_name)
             .join(&tileset.identifier)
-            .with_extension("yaml");
+            .with_extension("json");
         ensure_path(&atlas_path);
         write(
             &atlas_path,
-            serde_yaml::to_string(&asset).unwrap_or_else(|_| {
+            serde_json::to_string_pretty(&asset).unwrap_or_else(|_| {
                 panic!(
                     "Could not serialize image asset for tileset: {}",
                     tileset.identifier
@@ -352,10 +352,11 @@ fn bake_project(
                             .collect::<HashMap<_, _>>();
                         let components = process_macro(content, variables, name);
                         let components = ComponentsPrefab::from_prefab_str(&components)
-                            .unwrap_or_else(|_| {
+                            .unwrap_or_else(|error| {
                                 panic!(
-                                    "Could not deserialize components map string for level: {}",
-                                    level.identifier
+                                    "Could not deserialize components map string for level: {}. Error: {:#?}",
+                                    level.identifier,
+                                    error,
                                 )
                             });
                         for (name, data) in components.0 {
@@ -412,17 +413,17 @@ fn bake_project(
 
             if let Some(data_asset) = data_asset {
                 let data_name = format!(
-                    "{}{}/{}.yaml",
+                    "{}{}/{}.json",
                     assets_path_prefix, data_folder_name, level.identifier
                 );
                 let data_path = output
                     .join(data_folder_name)
                     .join(&level.identifier)
-                    .with_extension("yaml");
+                    .with_extension("json");
                 ensure_path(&data_path);
                 write(
                     &data_path,
-                    serde_yaml::to_string(&data_asset).unwrap_or_else(|_| {
+                    serde_json::to_string_pretty(&data_asset).unwrap_or_else(|_| {
                         panic!(
                             "Could not serialize tilemap data asset for level: {:?}",
                             level.identifier
@@ -521,11 +522,12 @@ fn bake_project(
                                 .collect::<HashMap<_, _>>();
                             let components = process_macro(content, variables, name);
                             let components = ComponentsPrefab::from_prefab_str(&components)
-                                .unwrap_or_else(|_| {
+                                .unwrap_or_else(|error| {
                                     panic!(
-                                    "Could not deserialize {} macro components map string for entity: {}",
+                                    "Could not deserialize {} macro components map string for entity: {}. Error: {:#?}",
                                     name,
-                                    entity.identifier
+                                    entity.identifier,
+                                    error,
                                 )
                                 });
                             for (name, data) in components.0 {
@@ -822,14 +824,14 @@ fn bake_project(
             }
 
             let prefab_name = format!(
-                "{}{}/{}.yaml",
+                "{}{}/{}.json",
                 assets_path_prefix, prefab_folder_name, level.identifier
             );
             assets_used.insert(format!("prefab://{}", prefab_name));
             let prefab_path = output
                 .join(prefab_folder_name)
                 .join(&level.identifier)
-                .with_extension("yaml");
+                .with_extension("json");
             ensure_path(&prefab_path);
             write(
                 &prefab_path,

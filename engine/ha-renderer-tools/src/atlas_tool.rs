@@ -110,10 +110,10 @@ fn main() -> Result<(), Error> {
                     bytes_paths: vec![format!("{}{}.{}.png", params.assets_path_prefix, name, i)],
                     descriptor: Default::default(),
                 };
-                let path = output.join(&name).with_extension(&format!("{}.yaml", i));
+                let path = output.join(&name).with_extension(&format!("{}.json", i));
                 write(
                     &path,
-                    serde_yaml::to_string(&asset).unwrap_or_else(|_| {
+                    serde_json::to_string_pretty(&asset).unwrap_or_else(|_| {
                         panic!(
                             "Could not serialize atlas: {:?} page: {} image asset",
                             name, i
@@ -145,16 +145,16 @@ fn main() -> Result<(), Error> {
                     })
                     .collect::<HashMap<_, _>>();
                 (
-                    format!("{}{}.{}.yaml", params.assets_path_prefix, name, i),
+                    format!("{}{}.{}.json", params.assets_path_prefix, name, i),
                     frames,
                 )
             })
             .collect::<HashMap<_, _>>();
         let asset = AtlasAssetSource::Raw(pages);
-        let path = output.join(&name).with_extension("yaml");
+        let path = output.join(&name).with_extension("json");
         write(
             &path,
-            serde_yaml::to_string(&asset)
+            serde_json::to_string_pretty(&asset)
                 .unwrap_or_else(|_| panic!("Could not serialize atlas: {:?} asset", name)),
         )
         .unwrap_or_else(|_| {

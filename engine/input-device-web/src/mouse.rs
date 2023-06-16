@@ -1,6 +1,6 @@
-use crate::input::device::InputDevice;
 use backend::closure::WebClosure;
-use core::Scalar;
+use core::{ecs::Universe, Scalar};
+use input::device::InputDevice;
 use std::{any::Any, cell::Cell, rc::Rc};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::*;
@@ -88,7 +88,7 @@ impl InputDevice for WebMouseInputDevice {
         self.mouse_move_closure.release();
     }
 
-    fn process(&mut self) {}
+    fn process(&mut self, _: &mut Universe) {}
 
     fn query_axis(&self, name: &str) -> Option<Scalar> {
         match name {

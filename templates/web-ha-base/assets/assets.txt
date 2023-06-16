@@ -1,2 +1,0 @@
-font://fonts/roboto.yaml
-set://levels/Level.txt

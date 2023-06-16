@@ -1,11 +1,10 @@
 use core::{
     prefab::{Prefab, PrefabComponent},
     utils::TagFilters,
-    Ignite,
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HaVolumeVisibilityMode {
     Sphere,
     Box,
@@ -17,7 +16,7 @@ impl Default for HaVolumeVisibilityMode {
     }
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct HaVolumeVisibility {
     #[serde(default)]
     pub filters: TagFilters,

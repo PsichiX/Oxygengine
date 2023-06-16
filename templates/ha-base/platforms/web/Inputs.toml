@@ -1,0 +1,12 @@
+[triggers.mouse]
+mouse-action = "left"
+
+[axes.keyboard]
+w = "KeyW"
+s = "KeyS"
+a = "KeyA"
+d = "KeyD"
+up = "ArrowUp"
+down = "ArrowDown"
+left = "ArrowLeft"
+right = "ArrowRight"

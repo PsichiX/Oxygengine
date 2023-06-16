@@ -1,0 +1,20 @@
+[package]
+name = "oxygengine-input-device-desktop"
+version = "0.40.0"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+edition = "2021"
+description = "Desktop input devices module for Oxygengine"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/PsichiX/oxygengine"
+repository = "https://github.com/PsichiX/oxygengine"
+documentation = "https://docs.rs/oxygengine-input-device-desktop"
+readme = "../../README.md"
+
+[features]
+scalar64 = ["oxygengine-core/scalar64", "oxygengine-input/scalar64"]
+
+[dependencies]
+oxygengine-core = { version = "0.40", path = "../core" }
+oxygengine-backend-desktop = { version = "0.40", path = "../backend-desktop" }
+oxygengine-input = { version = "0.40", path = "../input" }
+glutin = "0.28"

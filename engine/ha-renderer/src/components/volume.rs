@@ -1,11 +1,11 @@
 use crate::math::*;
 use core::{
     prefab::{Prefab, PrefabComponent},
-    Ignite, Scalar,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Ignite, Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum HaVolume {
     /// (radius)
     Sphere(Scalar),

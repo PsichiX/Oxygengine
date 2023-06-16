@@ -2,7 +2,7 @@ use crate::{component::InputStackInstance, resources::controller::*};
 use core::{
     ecs::{life_cycle::EntityChanges, Entity},
     id::ID,
-    Ignite, Scalar,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -11,7 +11,7 @@ pub type InputStackListenerId = ID<InputStackListener>;
 pub type InputStackMappings = HashSet<String>;
 pub type InputStackScaledMappings = HashMap<String, Scalar>;
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct InputStackTrigger {
     #[serde(default)]
     pub consume: bool,
@@ -39,7 +39,7 @@ impl InputStackTrigger {
     }
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct InputStackChannel {
     #[serde(default)]
     mappings: InputStackScaledMappings,
@@ -64,7 +64,7 @@ impl InputStackChannel {
     }
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct InputStackAxes {
     #[serde(default)]
     pub consume: bool,
@@ -107,7 +107,7 @@ impl InputStackAxes {
     }
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct InputStackText {
     pub consume: bool,
     state: String,
@@ -119,7 +119,7 @@ impl InputStackText {
     }
 }
 
-#[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum InputStackCombinationAction {
     Trigger(String),
     AxesMagnitude {
@@ -133,7 +133,7 @@ pub enum InputStackCombinationAction {
     },
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct InputStackCombination {
     #[serde(default)]
     pub continous: bool,
@@ -176,7 +176,7 @@ impl InputStackCombination {
     }
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InputStackListener {
     #[serde(default)]
     pub priority: usize,

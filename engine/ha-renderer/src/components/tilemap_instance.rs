@@ -1,18 +1,15 @@
 use crate::{components::HaChangeFrequency, image::ImageFiltering, math::*};
-use core::{
-    prefab::{Prefab, PrefabComponent},
-    Ignite,
-};
+use core::prefab::{Prefab, PrefabComponent};
 use serde::{Deserialize, Serialize};
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HaTileMapTile {
     pub col: usize,
     pub row: usize,
     pub atlas_item: String,
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HaTileMapInstance {
     #[serde(default)]
     pub filtering: ImageFiltering,
@@ -27,7 +24,6 @@ pub struct HaTileMapInstance {
     #[serde(default)]
     pivot: Vec2,
     #[serde(skip)]
-    #[ignite(ignore)]
     pub(crate) dirty: bool,
 }
 

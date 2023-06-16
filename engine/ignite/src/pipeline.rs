@@ -2,6 +2,8 @@ use crate::pack::pack_assets_and_write_to_file;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
+    env::set_current_dir,
+    fs::read_to_string,
     io::{Error, ErrorKind, Write},
     path::{Path, PathBuf},
     process::{Command, Stdio},
@@ -36,6 +38,50 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
+    pub fn load_and_execute(path: impl AsRef<Path>) -> std::io::Result<()> {
+        let mut path = path.as_ref().to_owned();
+        let contents = read_to_string(&path)?;
+        match serde_json::from_str::<Pipeline>(&contents) {
+            Ok(pipeline) => {
+                pipeline.verify_used_plugins();
+                if path.is_file() {
+                    path.pop();
+                }
+                set_current_dir(path)?;
+                pipeline.execute()?;
+            }
+            Err(error) => println!(
+                "Could not parse pipeline JSON config: {:?}. Error: {:?}",
+                path, error
+            ),
+        }
+        Ok(())
+    }
+
+    fn verify_used_plugins(&self) {
+        for command in &self.commands {
+            match command {
+                PipelineCommand::Plugin {
+                    name,
+                    do_not_verify: false,
+                    ..
+                } => {
+                    if which::which(name).is_err() {
+                        let plugin = name.rfind('-').map(|index| &name[0..index]).unwrap_or(name);
+                        let plugin = format!("{}-tools", plugin);
+                        println!(
+                            "Plugin not found: {}. Trying to install it: {}",
+                            name, plugin
+                        );
+                        let _ = Command::new("cargo").arg("install").arg(plugin).status();
+                    }
+                }
+                PipelineCommand::Pipeline(pipeline) => pipeline.verify_used_plugins(),
+                _ => {}
+            }
+        }
+    }
+
     pub fn execute(self) -> Result<(), Error> {
         if self.disabled {
             return Ok(());
@@ -143,12 +189,16 @@ impl Pipeline {
                         panic!("Could not complete sending data to plugin: {}", name)
                     });
                     drop(stdin);
-                    if !child
-                        .wait()
-                        .unwrap_or_else(|_| panic!("Could not wait for plugin: {}", name))
-                        .success()
-                    {
-                        panic!("Plugin run failed: {}", name);
+                    let output = child
+                        .wait_with_output()
+                        .unwrap_or_else(|_| panic!("Could not wait for plugin: {}", name));
+                    if !output.status.success() {
+                        panic!(
+                            "Plugin run failed: {}. Output: {}. Error: {}",
+                            name,
+                            String::from_utf8_lossy(&output.stdout),
+                            String::from_utf8_lossy(&output.stderr)
+                        );
                     }
                 }
                 PipelineCommand::Shell { disabled, command } => {
@@ -179,6 +229,9 @@ impl Pipeline {
                         self.destination.join(pipeline.destination)
                     };
                     pipeline.execute()?;
+                }
+                PipelineCommand::External(path) => {
+                    Self::load_and_execute(path)?;
                 }
             }
         }
@@ -229,4 +282,5 @@ pub enum PipelineCommand {
         command: String,
     },
     Pipeline(Pipeline),
+    External(PathBuf),
 }

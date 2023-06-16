@@ -1,11 +1,8 @@
 use crate::math::Rgba;
-use core::{
-    prefab::{Prefab, PrefabComponent},
-    Ignite,
-};
+use core::prefab::{Prefab, PrefabComponent};
 use serde::{Deserialize, Serialize};
 
-#[derive(Ignite, Debug, Default, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct HaGizmo {
     #[serde(default)]
     pub visible: bool,

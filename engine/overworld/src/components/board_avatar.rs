@@ -1,12 +1,12 @@
 use crate::resources::board::*;
 use oxygengine_core::{
     prefab::{Prefab, PrefabComponent},
-    Ignite, Scalar,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum BoardAvatarAction {
     Move {
         duration: Scalar,
@@ -42,7 +42,7 @@ impl BoardAvatarAction {
     }
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct BoardAvatar {
     pub(crate) location: Location,
     #[serde(default)]
@@ -51,10 +51,8 @@ pub struct BoardAvatar {
     pub(crate) actions_queue: VecDeque<BoardAvatarAction>,
     /// (action, time, completed)?
     #[serde(skip)]
-    #[ignite(ignore)]
     pub(crate) active_action: Option<(BoardAvatarAction, Scalar, bool)>,
     #[serde(skip)]
-    #[ignite(ignore)]
     pub(crate) token: Option<BoardToken>,
 }
 

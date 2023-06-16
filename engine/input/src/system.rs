@@ -24,6 +24,6 @@ pub fn input_system(universe: &mut Universe) {
         }
     }
 
-    controller.process();
+    controller.process(universe);
     stack.process(&controller, &entity_changes);
 }

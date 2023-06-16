@@ -486,6 +486,21 @@ impl MaterialLibrary {
             {fn product_ivec4(v: ivec4) -> int}
             { "return v.x * v.y * v.z * v.w;" }
         });
+        self.add_function(code_material_function! {
+            fn power_series_vec2(v: float) -> vec2 {
+                "return vec2(1.0, v);"
+            }
+        });
+        self.add_function(code_material_function! {
+            fn power_series_vec3(v: float) -> vec3 {
+                "return vec3(1.0, v, v * v);"
+            }
+        });
+        self.add_function(code_material_function! {
+            fn power_series_vec4(v: float) -> vec4 {
+                "return vec4(1.0, v, v * v, v * v * v);"
+            }
+        });
         self
     }
 
@@ -1394,7 +1409,7 @@ impl MaterialLibrary {
         self
     }
 
-    fn with_dethering(mut self) -> Self {
+    fn with_dithering(mut self) -> Self {
         self.add_function(graph_material_function! {
             fn dither_threshold(texture: sampler2D, coord: ivec2) -> float {
                 [size = (textureSize2d, sampler: texture, lod: {0})]
@@ -1520,6 +1535,122 @@ impl MaterialLibrary {
         );
         self
     }
+
+    fn with_deformer_middleware(mut self) -> Self {
+        self.add_function(code_material_function! {
+            fn deformer_sample_curve(bezier_matrix: mat4, t: float, control_points_x: vec4, control_points_y: vec4) -> vec2 {
+                "vec4 _power_series = vec4(1.0, t, t * t, t * t * t);
+                vec4 _result_x = _power_series * bezier_matrix * control_points_x;
+                vec4 _result_y = _power_series * bezier_matrix * control_points_y;
+                return vec2(
+                    _result_x.x + _result_x.y + _result_x.z + _result_x.w,
+                    _result_y.x + _result_y.y + _result_y.z + _result_y.w
+                );"
+            }
+        });
+        self.add_middleware(
+            "deformer".to_owned(),
+            material_graph! {
+                inputs {
+                    [vertex] in position as in_position: vec3 = {vec3(0.0, 0.0, 0.0)};
+                    [vertex] in curvesIndex: int = {0};
+
+                    [vertex] uniform bezierCurves: sampler2D;
+                    [vertex] in bezierMatrix: mat4 = {mat4([
+                        [1.0, -3.0,  3.0, -1.0],
+                        [0.0,  3.0, -6.0,  3.0],
+                        [0.0,  0.0,  3.0, -3.0],
+                        [0.0,  0.0,  0.0,  1.0],
+                    ])};
+                }
+
+                outputs {
+                    [vertex] out position as out_position: vec3;
+                }
+
+                [curve_top_x = (texelFetch2d,
+                    sampler: bezierCurves,
+                    coord: (make_ivec2, x: {0}, y: curvesIndex),
+                    lod: {0}
+                )]
+                [curve_top_y = (texelFetch2d,
+                    sampler: bezierCurves,
+                    coord: (make_ivec2, x: {1}, y: curvesIndex),
+                    lod: {0}
+                )]
+                [curve_bottom_x = (texelFetch2d,
+                    sampler: bezierCurves,
+                    coord: (make_ivec2, x: {2}, y: curvesIndex),
+                    lod: {0}
+                )]
+                [curve_bottom_y = (texelFetch2d,
+                    sampler: bezierCurves,
+                    coord: (make_ivec2, x: {3}, y: curvesIndex),
+                    lod: {0}
+                )]
+                [curve_left_x = (texelFetch2d,
+                    sampler: bezierCurves,
+                    coord: (make_ivec2, x: {4}, y: curvesIndex),
+                    lod: {0}
+                )]
+                [curve_left_y = (texelFetch2d,
+                    sampler: bezierCurves,
+                    coord: (make_ivec2, x: {5}, y: curvesIndex),
+                    lod: {0}
+                )]
+                [curve_right_x = (texelFetch2d,
+                    sampler: bezierCurves,
+                    coord: (make_ivec2, x: {6}, y: curvesIndex),
+                    lod: {0}
+                )]
+                [curve_right_y = (texelFetch2d,
+                    sampler: bezierCurves,
+                    coord: (make_ivec2, x: {7}, y: curvesIndex),
+                    lod: {0}
+                )]
+                [top = (deformer_sample_curve,
+                    bezier_matrix: bezierMatrix,
+                    t: (maskX_vec3, v: in_position),
+                    control_points_x: curve_top_x,
+                    control_points_y: curve_top_y
+                )]
+                [bottom = (deformer_sample_curve,
+                    bezier_matrix: bezierMatrix,
+                    t: (maskX_vec3, v: in_position),
+                    control_points_x: curve_bottom_x,
+                    control_points_y: curve_bottom_y
+                )]
+                [left = (deformer_sample_curve,
+                    bezier_matrix: bezierMatrix,
+                    t: (maskY_vec3, v: in_position),
+                    control_points_x: curve_left_x,
+                    control_points_y: curve_left_y
+                )]
+                [right = (deformer_sample_curve,
+                    bezier_matrix: bezierMatrix,
+                    t: (maskY_vec3, v: in_position),
+                    control_points_x: curve_right_x,
+                    control_points_y: curve_right_y
+                )]
+                [vertical = (mix_vec2,
+                    x: top,
+                    y: bottom,
+                    alpha: (fill_vec2, v: (maskY_vec3, v: in_position))
+                )]
+                [horizontal = (mix_vec2,
+                    x: left,
+                    y: right,
+                    alpha: (fill_vec2, v: (maskX_vec3, v: in_position))
+                )]
+
+                [(append_vec3,
+                    a: (mix_vec2, x: vertical, y: horizontal, alpha: {vec2(0.5, 0.5)}),
+                    b: (maskZ_vec3, v: in_position)
+                ) -> out_position]
+            },
+        );
+        self
+    }
 }
 
 impl Default for MaterialLibrary {
@@ -1544,8 +1675,9 @@ impl Default for MaterialLibrary {
         .with_mask_functions()
         .with_append_functions()
         .with_truncate_functions()
-        .with_dethering()
+        .with_dithering()
         .with_vertanim_middleware()
         .with_skinning_middleware()
+        .with_deformer_middleware()
     }
 }

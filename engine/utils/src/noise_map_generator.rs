@@ -1,5 +1,5 @@
 use crate::{grid_2d::Grid2d, Scalar};
-use noise::{NoiseFn, OpenSimplex, Seedable};
+use noise::{NoiseFn, OpenSimplex};
 use std::ops::Range;
 
 #[derive(Clone)]
@@ -16,7 +16,7 @@ impl NoiseMapGenerator {
             seed,
             chunk_size: chunk_size.max(1),
             zoom,
-            generator: OpenSimplex::new().set_seed(seed),
+            generator: OpenSimplex::new(seed),
         }
     }
 

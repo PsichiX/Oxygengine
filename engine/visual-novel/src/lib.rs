@@ -35,14 +35,14 @@ use core::{
     app::AppBuilder,
     assets::database::AssetsDatabase,
     ecs::pipeline::{PipelineBuilder, PipelineBuilderError},
-    Ignite, Scalar,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Mul, Sub};
 
 pub type Scale = Position;
 
-#[derive(Ignite, Debug, Default, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct Position(pub Scalar, pub Scalar);
 
 impl Curved for Position {
@@ -138,7 +138,7 @@ impl From<[Scalar; 2]> for Position {
     }
 }
 
-#[derive(Ignite, Debug, Default, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct Color(pub Scalar, pub Scalar, pub Scalar);
 
 impl Curved for Color {

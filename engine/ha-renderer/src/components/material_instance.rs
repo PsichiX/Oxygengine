@@ -4,14 +4,11 @@ use crate::{
         common::MaterialValue, MaterialDrawOptions, MaterialReference, MaterialResourceMapping,
     },
 };
-use core::{
-    prefab::{Prefab, PrefabComponent},
-    Ignite,
-};
+use core::prefab::{Prefab, PrefabComponent};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct HaMaterialInstance {
     #[serde(default)]
     pub reference: MaterialReference,

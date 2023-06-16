@@ -26,7 +26,6 @@ asset sources, you can easily make an asset pipeline tool for it.
 When using either HA renderer or composite renderer, you have to also install
 their asset pipeline tools for asset pipeline to be able to bake assets.
 These are:
-- `cargo install oxygengine-composite-renderer-tools`
 - `cargo install oxygengine-ha-renderer-tools`
 
 In general, if some engine module requires asset pipeline tools to work, there

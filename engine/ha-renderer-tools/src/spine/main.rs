@@ -7,11 +7,11 @@ use oxygengine_animation::{phase::*, spline::*};
 use oxygengine_build_tools::*;
 use oxygengine_core::{assets::protocol::*, Scalar};
 use oxygengine_ha_renderer::{
-    asset_protocols::{atlas::*, image::*, mesh::*, skeletal_animation::*, skeleton::*},
+    asset_protocols::{atlas::*, image::*, mesh::*, rig::*, rig_animation::*},
     components::transform::*,
-    material::domains::surface::skinned::sprite::*,
+    material::domains::surface::rig2d::*,
     math::*,
-    mesh::skeleton::*,
+    mesh::rig::skeleton::*,
 };
 use serde::Deserialize;
 use std::{
@@ -24,7 +24,7 @@ use std::{
 
 #[derive(Debug, Clone, Deserialize)]
 struct Params {
-    pub input_skeletons: Vec<PathBuf>,
+    pub input_documents: Vec<PathBuf>,
     #[serde(default)]
     pub output: PathBuf,
     #[serde(default)]
@@ -34,7 +34,7 @@ struct Params {
 impl ParamsFromArgs for Params {
     fn params_from_args(args: impl Iterator<Item = String>) -> Option<Self> {
         let mut args = StructuredArguments::new(args);
-        let input_skeletons = args.consume_default().map(|v| v.into()).collect();
+        let input_documents = args.consume_default().map(|v| v.into()).collect();
         let output = args
             .consume_many(&["o", "output"])
             .next()
@@ -45,7 +45,7 @@ impl ParamsFromArgs for Params {
             .last()
             .unwrap_or_default();
         Some(Self {
-            input_skeletons,
+            input_documents,
             output,
             assets_path_prefix,
         })
@@ -57,26 +57,26 @@ fn main() -> Result<(), Error> {
     let output = destination.join(&params.output);
     create_dir_all(&output)?;
 
-    for path in &params.input_skeletons {
+    for path in &params.input_documents {
         let mut assets_set = String::default();
-        let skeleton_path = source.join(path);
-        let meta_path = skeleton_path.with_extension("meta.json");
-        let atlas_path = skeleton_path.with_extension("atlas");
+        let document_path = source.join(path);
+        let meta_path = document_path.with_extension("meta.json");
+        let atlas_path = document_path.with_extension("atlas");
         if !atlas_path.exists() {
             println!(
-                "Atlas file: {:?} for skeleton: {:?} not found",
-                atlas_path, skeleton_path
+                "Atlas file: {:?} for document: {:?} not found",
+                atlas_path, document_path
             );
             continue;
         }
 
-        let name = skeleton_path.with_extension("");
+        let name = document_path.with_extension("");
         let name = name
             .file_name()
-            .unwrap_or_else(|| panic!("Could not get skeleton name: {:?}", skeleton_path))
+            .unwrap_or_else(|| panic!("Could not get document name: {:?}", document_path))
             .to_str()
             .unwrap();
-        let source_dir = skeleton_path
+        let source_dir = document_path
             .parent()
             .map(|p| p.to_path_buf())
             .unwrap_or_default();
@@ -97,85 +97,82 @@ fn main() -> Result<(), Error> {
             bytes_paths: vec![format!("{}{}/image.png", params.assets_path_prefix, name)],
             descriptor: Default::default(),
         };
-        let path = target_dir.join("image.yaml");
+        let path = target_dir.join("image.json");
         write(
             &path,
-            serde_yaml::to_string(&asset)
+            serde_json::to_string_pretty(&asset)
                 .unwrap_or_else(|_| panic!("Could not serialize atlas image asset: {:?}", path)),
         )
         .unwrap_or_else(|_| panic!("Could not write atlas image asset to file: {:?}", path));
 
         let asset = convert_atlas(&atlas, &params.assets_path_prefix, name);
-        let path = target_dir.join("atlas.yaml");
+        let path = target_dir.join("atlas.json");
         write(
             &path,
-            serde_yaml::to_string(&asset)
+            serde_json::to_string_pretty(&asset)
                 .unwrap_or_else(|_| panic!("Could not serialize atlas asset: {:?}", path)),
         )
         .unwrap_or_else(|_| panic!("Could not write atlas asset to file: {:?}", path));
         writeln!(
             assets_set,
-            "atlas://{}{}/atlas.yaml",
+            "atlas://{}{}/atlas.json",
             params.assets_path_prefix, name
         )
         .unwrap();
 
-        let document = serde_json::from_str::<Document>(&read_to_string(skeleton_path)?)?;
-        let path = target_dir.join("skeleton.yaml");
-        let asset = match convert_skeleton_to_skeleton(&document) {
-            Ok(skeleton) => skeleton,
-            Err(error) => panic!("Could not convert to skeleton asset: {:?}. {}", path, error),
+        let document = serde_json::from_str::<Document>(&read_to_string(document_path)?)?;
+        let path = target_dir.join("rig.json");
+        let asset = match convert_document_to_rig(&document) {
+            Ok(rig) => rig,
+            Err(error) => panic!("Could not convert to rig asset: {:?}. {}", path, error),
         };
         write(
             &path,
-            serde_yaml::to_string(&asset)
-                .unwrap_or_else(|_| panic!("Could not serialize skeleton asset: {:?}", path)),
+            serde_json::to_string_pretty(&asset)
+                .unwrap_or_else(|_| panic!("Could not serialize rig asset: {:?}", path)),
         )
-        .unwrap_or_else(|_| panic!("Could not write skeleton asset to file: {:?}", path));
+        .unwrap_or_else(|_| panic!("Could not write rig asset to file: {:?}", path));
         writeln!(
             assets_set,
-            "skeleton://{}{}/skeleton.yaml",
+            "rig://{}{}/rig.json",
             params.assets_path_prefix, name
         )
         .unwrap();
 
-        let path = target_dir.join("animation.yaml");
-        let asset = convert_skeleton_to_animation(&document, &meta);
+        let path = target_dir.join("animation.json");
+        let asset = convert_document_to_animation(&document, &meta);
         write(
             &path,
-            serde_yaml::to_string(&asset)
+            serde_json::to_string_pretty(&asset)
                 .unwrap_or_else(|_| panic!("Could not serialize animation asset: {:?}", path)),
         )
         .unwrap_or_else(|_| panic!("Could not write animation asset to file: {:?}", path));
         writeln!(
             assets_set,
-            "skelanim://{}{}/animation.yaml",
+            "riganim://{}{}/animation.json",
             params.assets_path_prefix, name
         )
         .unwrap();
 
-        let path = target_dir.join("mesh.yaml");
-        let asset = match convert_skeleton_to_mesh(
+        let path = target_dir.join("mesh.json");
+        let asset = match convert_document_to_mesh(
             &document,
             &atlas,
-            format!("{}{}/skeleton.yaml", params.assets_path_prefix, name),
+            format!("{}{}/rig.json", params.assets_path_prefix, name),
             &meta,
         ) {
             Ok(mesh) => mesh,
-            Err(error) => panic!(
-                "Could not convert to skeleton mesh asset: {:?}. {}",
-                path, error
-            ),
+            Err(error) => panic!("Could not convert to rig mesh asset: {:?}. {}", path, error),
         };
         write(
             &path,
-            serde_yaml::to_string(&asset)
-                .unwrap_or_else(|_| panic!("Could not serialize skeleton mesh asset: {:?}", path)),
+            serde_json::to_string_pretty(&asset)
+                .unwrap_or_else(|_| panic!("Could not serialize rig mesh asset: {:?}", path)),
         )
-        .unwrap_or_else(|_| panic!("Could not write skeleton mesh asset to file: {:?}", path));
+        .unwrap_or_else(|_| panic!("Could not write rig mesh asset to file: {:?}", path));
         writeln!(
             assets_set,
-            "mesh://{}{}/mesh.yaml",
+            "mesh://{}{}/mesh.json",
             params.assets_path_prefix, name
         )
         .unwrap();
@@ -187,7 +184,7 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn convert_skeleton_to_skeleton(document: &Document) -> Result<SkeletonAsset, String> {
+fn convert_document_to_rig(document: &Document) -> Result<RigAsset, String> {
     for bone in &document.bones {
         if bone.transform != TransformMode::Normal {
             return Err(format!(
@@ -220,7 +217,7 @@ fn convert_skeleton_to_skeleton(document: &Document) -> Result<SkeletonAsset, St
         }
     }
     match hierarchy.into_iter().next() {
-        Some((_, v)) => Ok(SkeletonAsset::new(v)),
+        Some((_, v)) => Ok(RigAsset::new(v, Default::default())),
         None => Err("Could not find root bone!".to_owned()),
     }
 }
@@ -283,10 +280,7 @@ macro_rules! extract_bone_animation {
     };
 }
 
-fn convert_skeleton_to_animation(
-    document: &Document,
-    meta: &AnimationMeta,
-) -> SkeletalAnimationAsset {
+fn convert_document_to_animation(document: &Document, meta: &AnimationMeta) -> RigAnimationAsset {
     let sequences = document
         .animations
         .iter()
@@ -314,7 +308,7 @@ fn convert_skeleton_to_animation(
                         .map(extract_phase);
                     let scale_y = extract_bone_animation!(sheet.scale, y, 4, bone.scale_y, 1.0)
                         .map(extract_phase);
-                    let sheet = SkeletalAnimationSequenceBoneSheet {
+                    let sheet = RigAnimationSequenceBoneSheet {
                         translation_x,
                         translation_y,
                         translation_z: None,
@@ -334,31 +328,28 @@ fn convert_skeleton_to_animation(
                 .map(|event| {
                     let mut params = HashMap::default();
                     if let Some(v) = event.int_value {
-                        params.insert("int".to_owned(), SkeletalAnimationValue::Integer(v as _));
+                        params.insert("int".to_owned(), RigAnimationValue::Integer(v as _));
                     }
                     if let Some(v) = event.float_value {
-                        params.insert("float".to_owned(), SkeletalAnimationValue::Scalar(v));
+                        params.insert("float".to_owned(), RigAnimationValue::Scalar(v));
                     }
                     if let Some(v) = &event.string_value {
-                        params.insert(
-                            "string".to_owned(),
-                            SkeletalAnimationValue::String(v.to_owned()),
-                        );
+                        params.insert("string".to_owned(), RigAnimationValue::String(v.to_owned()));
                     }
                     if let Some(v) = event.volume {
-                        params.insert("volume".to_owned(), SkeletalAnimationValue::Scalar(v));
+                        params.insert("volume".to_owned(), RigAnimationValue::Scalar(v));
                     }
                     if let Some(v) = event.balance {
-                        params.insert("balance".to_owned(), SkeletalAnimationValue::Scalar(v));
+                        params.insert("balance".to_owned(), RigAnimationValue::Scalar(v));
                     }
-                    SkeletalAnimationSignal {
+                    RigAnimationSignal {
                         time: event.time,
                         id: event.name.to_owned(),
                         params,
                     }
                 })
                 .collect();
-            let sequence = SkeletalAnimationSequence {
+            let sequence = RigAnimationSequence {
                 speed: 1.0,
                 looping: meta.loop_sequences.iter().any(|n| n == name),
                 bounce: meta.bounce_sequences.iter().any(|n| n == name),
@@ -375,24 +366,24 @@ fn convert_skeleton_to_animation(
             let target_state = format!("{}{}", meta.prefix, name);
             states.insert(
                 target_state.to_owned(),
-                SkeletalAnimationState {
-                    sequences: SkeletalAnimationStateSequences::Single(name.to_owned()),
+                RigAnimationState {
+                    sequences: RigAnimationStateSequences::Single(name.to_owned()),
                     rules: Default::default(),
                 },
             );
             let mut conditions = HashMap::default();
             conditions.insert(
                 meta.value_name.to_owned(),
-                SkeletalAnimationCondition::StringEquals(name.to_owned()),
+                RigAnimationCondition::StringEquals(name.to_owned()),
             );
-            rules.push(SkeletalAnimationRule::Single {
+            rules.push(RigAnimationRule::Single {
                 target_state,
                 conditions,
                 change_time: meta.change_time,
             });
         }
     }
-    SkeletalAnimationAsset {
+    RigAnimationAsset {
         default_state: meta.default_state.to_owned(),
         speed: 1.0,
         sequences,
@@ -401,10 +392,10 @@ fn convert_skeleton_to_animation(
     }
 }
 
-fn convert_skeleton_to_mesh(
+fn convert_document_to_mesh(
     document: &Document,
     atlas: &Atlas,
-    skeleton_path: String,
+    rig_path: String,
     meta: &AnimationMeta,
 ) -> Result<MeshAsset, String> {
     let skin = meta.skin.as_deref().unwrap_or("default");
@@ -412,7 +403,7 @@ fn convert_skeleton_to_mesh(
         Some(skin) => &skin.attachments,
         None => return Err(format!("Skin not found: {}", skin)),
     };
-    let sprites = document
+    let nodes = document
         .slots
         .iter()
         .enumerate()
@@ -421,13 +412,13 @@ fn convert_skeleton_to_mesh(
             let slot_attachments = attachments.get(&slot.name)?;
             let region = slot_attachments.get(attachment)?;
             Some(
-                SurfaceSkinnedSprite::new(
+                SurfaceRig2dNode::new(
                     &slot.bone,
-                    vek::Vec2::new(region.width as _, region.height as _),
+                    SurfaceRig2dSprite::new(vek::Vec2::new(region.width as _, region.height as _))
+                        .pivot(vek::Vec2::new(0.5, 0.5))
+                        .uvs_rect(atlas.uvs(attachment)?),
                 )
                 .depth(index as _)
-                .pivot(vek::Vec2::new(0.5, 0.5))
-                .uvs_rect(atlas.uvs(attachment)?)
                 .attachment_transform(HaTransform::new(
                     vec3(region.x, -region.y, 0.0),
                     Eulers::yaw(-region.rotation),
@@ -436,15 +427,16 @@ fn convert_skeleton_to_mesh(
             )
         })
         .collect();
-    Ok(MeshAsset::SkinnedSurface(SkinnedSurfaceMeshAsset {
-        vertex_data: SurfaceVertexData {
-            normal: false,
+    Ok(MeshAsset::Surface(SurfaceMeshAsset {
+        vertex_data: MeshVertexData {
+            deforming: false,
+            skinning: true,
             texture: true,
             color: false,
         },
-        factory: SkinnedSurfaceFactory::Sprite {
-            skeleton: AssetVariant::Path(skeleton_path),
-            factory: SurfaceSkinnedSpriteFactory { sprites },
+        factory: SurfaceFactory::Rig {
+            asset: AssetVariant::Path(rig_path),
+            factory: SurfaceRig2dFactory { nodes },
         },
     }))
 }
@@ -463,6 +455,6 @@ fn convert_atlas(atlas: &Atlas, assets_path_prefix: &str, name: &str) -> AtlasAs
         })
         .collect::<HashMap<_, _>>();
     let mut pages = HashMap::with_capacity(1);
-    pages.insert(format!("{}{}/image.yaml", assets_path_prefix, name), frames);
+    pages.insert(format!("{}{}/image.json", assets_path_prefix, name), frames);
     AtlasAssetSource::Raw(pages)
 }

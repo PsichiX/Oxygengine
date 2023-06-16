@@ -1,10 +1,12 @@
-pub mod skeleton;
+pub mod geometry;
+pub mod rig;
+pub mod transformers;
 pub mod vertex_factory;
 
 use crate::{
     ha_renderer::{RenderStageResources, RenderStats},
     math::*,
-    mesh::vertex_factory::VertexType,
+    mesh::{geometry::GeometryValueType, vertex_factory::VertexType},
     resources::resource_mapping::ResourceMapping,
     HasContextResources, ResourceReference,
 };
@@ -25,7 +27,7 @@ pub enum MeshError {
     ZeroSize,
     /// (provided, expected)
     InvalidSize(usize, usize),
-    /// (provided limit, expected limit)
+    /// (provided index, expected limit)
     OutOfBounds(usize, usize),
     NoResources,
     /// (provided index, buffers count)
@@ -38,6 +40,13 @@ pub enum MeshError {
     /// (source, target)
     IncompatibleDrawMode(MeshDrawMode, MeshDrawMode),
     NoAvailableFactory,
+    UnsupportedGeometryValueConversionType(String),
+    /// (provided, expected)
+    GeometryValueTypeMismatch(GeometryValueType, GeometryValueType),
+    GeometryAttributeNotFound(String),
+    GeometryIsNotTriangles,
+    GeometryIsNotLines,
+    GeometryIsNotPoints,
     Internal(String),
 }
 
@@ -136,16 +145,43 @@ impl VertexValueType {
         }
     }
 
-    pub fn single_bytesize(self) -> usize {
-        if self.is_integer() {
-            std::mem::size_of::<i32>()
-        } else {
-            std::mem::size_of::<f32>()
+    pub fn bytesize(self) -> usize {
+        match self {
+            Self::Scalar => std::mem::size_of::<f32>(),
+            Self::Vec2F => std::mem::size_of::<[f32; 2]>(),
+            Self::Vec3F => std::mem::size_of::<[f32; 3]>(),
+            Self::Vec4F => std::mem::size_of::<[f32; 4]>(),
+            Self::Mat2F => std::mem::size_of::<[f32; 4]>(),
+            Self::Mat3F => std::mem::size_of::<[f32; 9]>(),
+            Self::Mat4F => std::mem::size_of::<[f32; 16]>(),
+            Self::Integer => std::mem::size_of::<i32>(),
+            Self::Vec2I => std::mem::size_of::<[i32; 2]>(),
+            Self::Vec3I => std::mem::size_of::<[i32; 3]>(),
+            Self::Vec4I => std::mem::size_of::<[i32; 4]>(),
+            Self::Mat2I => std::mem::size_of::<[i32; 4]>(),
+            Self::Mat3I => std::mem::size_of::<[i32; 9]>(),
+            Self::Mat4I => std::mem::size_of::<[i32; 16]>(),
         }
     }
 
-    pub fn bytesize(self) -> usize {
-        self.count() * self.single_bytesize()
+    pub fn bytesize_aligned(self) -> usize {
+        self.count()
+            * match self {
+                Self::Scalar => std::mem::align_of::<f32>(),
+                Self::Vec2F => std::mem::align_of::<[f32; 2]>(),
+                Self::Vec3F => std::mem::align_of::<[f32; 3]>(),
+                Self::Vec4F => std::mem::align_of::<[f32; 4]>(),
+                Self::Mat2F => std::mem::align_of::<[f32; 4]>(),
+                Self::Mat3F => std::mem::align_of::<[f32; 9]>(),
+                Self::Mat4F => std::mem::align_of::<[f32; 16]>(),
+                Self::Integer => std::mem::align_of::<i32>(),
+                Self::Vec2I => std::mem::align_of::<[i32; 2]>(),
+                Self::Vec3I => std::mem::align_of::<[i32; 3]>(),
+                Self::Vec4I => std::mem::align_of::<[i32; 4]>(),
+                Self::Mat2I => std::mem::align_of::<[i32; 4]>(),
+                Self::Mat3I => std::mem::align_of::<[i32; 9]>(),
+                Self::Mat4I => std::mem::align_of::<[i32; 16]>(),
+            }
     }
 }
 
@@ -201,6 +237,10 @@ impl VertexAttribute {
     pub fn bytesize(&self) -> usize {
         self.count * self.value_type.bytesize()
     }
+
+    pub fn bytesize_aligned(&self) -> usize {
+        self.count * self.value_type.bytesize_aligned()
+    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -212,18 +252,27 @@ pub struct VertexBufferLayout {
 }
 
 impl VertexBufferLayout {
-    pub fn with(mut self, attribute: VertexAttribute) -> Result<Self, MeshError> {
+    pub fn add(&mut self, attribute: VertexAttribute) -> Result<(), MeshError> {
         if self.attributes.iter().any(|a| a.0.id == attribute.id) {
             return Err(MeshError::DuplicateId(attribute.id));
         }
         let offset = self.bytesize;
-        self.bytesize += attribute.bytesize();
+        self.bytesize += attribute.bytesize_aligned();
         self.attributes.push((attribute, offset));
+        Ok(())
+    }
+
+    pub fn with(mut self, attribute: VertexAttribute) -> Result<Self, MeshError> {
+        self.add(attribute)?;
         Ok(self)
     }
 
     pub fn bytesize(&self) -> usize {
         self.bytesize
+    }
+
+    fn attributes(&self) -> impl Iterator<Item = &VertexAttribute> + '_ {
+        self.attributes.iter().map(|(item, _)| item)
     }
 
     fn vertex_attribs<'a>(&'a self) -> impl Iterator<Item = (&'a str, VertexAttribChunk)> + '_ {
@@ -397,6 +446,10 @@ impl VertexLayout {
     #[inline]
     pub fn is_superset_of(&self, other: &Self) -> bool {
         other.is_subset_of(self)
+    }
+
+    pub fn attributes(&self) -> impl Iterator<Item = &VertexAttribute> + '_ {
+        self.buffers.iter().flat_map(|buffer| buffer.attributes())
     }
 
     pub fn vertex_attribs<'a>(

@@ -1,3 +1,5 @@
+#[cfg(feature = "desktop")]
+pub mod desktop;
 #[cfg(feature = "web")]
 pub mod web;
 
@@ -14,6 +16,7 @@ pub trait HaPlatformInterface {
     fn context(&self) -> Option<&Context>;
     fn screen_size(&self) -> (usize, usize);
     fn maintain(&mut self) -> HaPlatformInterfaceProcessResult;
+    fn lose_context(&mut self);
 }
 
 impl HaPlatformInterface for () {
@@ -28,4 +31,6 @@ impl HaPlatformInterface for () {
     fn maintain(&mut self) -> HaPlatformInterfaceProcessResult {
         Default::default()
     }
+
+    fn lose_context(&mut self) {}
 }

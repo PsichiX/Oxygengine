@@ -12,7 +12,7 @@ use crate::{
     resources::resource_mapping::ResourceMapping,
     HasContextResources, ResourceReference,
 };
-use core::{id::ID, Ignite};
+use core::id::ID;
 use glow::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -107,13 +107,13 @@ unsafe impl Sync for MaterialResourceHandles {}
 #[derive(Debug)]
 struct MaterialResources(HashMap<MaterialSignature, MaterialResourceHandles>);
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MaterialContent {
     Graph(MaterialGraph),
     Baked,
 }
 
-#[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MaterialBlending {
     None,
     Alpha,
@@ -126,7 +126,7 @@ impl Default for MaterialBlending {
     }
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MaterialDrawOptions {
     #[serde(default = "MaterialDrawOptions::default_color_mask")]
     pub color_mask: [bool; 4],

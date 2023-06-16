@@ -1,5 +1,5 @@
 use oxygengine_core::Scalar;
-use oxygengine_ha_renderer::asset_protocols::skeletal_animation::*;
+use oxygengine_ha_renderer::asset_protocols::rig_animation::*;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -32,11 +32,11 @@ pub struct AnimationMeta {
     #[serde(default)]
     pub skin: Option<String>,
     #[serde(default)]
-    pub states: HashMap<String, SkeletalAnimationState>,
+    pub states: HashMap<String, RigAnimationState>,
     #[serde(default)]
     pub default_state: Option<String>,
     #[serde(default)]
-    pub rules: Vec<SkeletalAnimationRule>,
+    pub rules: Vec<RigAnimationRule>,
     #[serde(default)]
     pub make_state_per_sequence: Option<AnimationMetaStatePerSequence>,
 }

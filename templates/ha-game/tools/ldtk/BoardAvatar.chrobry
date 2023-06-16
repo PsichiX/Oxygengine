@@ -1,0 +1,24 @@
+inject
+```
+{
+  "BoardAvatar": {
+    "location": {
+      "world": {
+        "col": %{ $level_world_col }%,
+        "row": %{ $level_world_row }%
+      },
+      "chunk": {
+        "col": %{ $entity_grid_col }%,
+        "row": %{ $entity_grid_row }%
+      }
+    }
+  },
+  "HaBoardAvatarSync": {
+    "offset": {
+      "x": %{ $entity_center_x }%,
+      "y": %{ $entity_center_y }%
+    },
+    "snap_to_pixel": true
+  }
+}
+```

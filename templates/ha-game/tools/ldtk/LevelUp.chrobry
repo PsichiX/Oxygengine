@@ -1,0 +1,6 @@
+inject
+```
+{
+  "LevelUp": %{ $VALUE }%
+}
+```

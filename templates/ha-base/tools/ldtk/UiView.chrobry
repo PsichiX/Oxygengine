@@ -1,0 +1,13 @@
+inject
+```
+{
+  "UserInterfaceView": {
+    "root": {
+      "Component": {
+        "type_name": "%{ $NAME }%",
+        "key": "%{ $NAME }%"
+      }
+    }
+  }
+}
+```

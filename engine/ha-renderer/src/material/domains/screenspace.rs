@@ -27,7 +27,7 @@ pub fn default_screenspace_color_material_graph() -> MaterialGraph {
 pub fn default_screenspace_texture_material_graph() -> MaterialGraph {
     material_graph! {
         inputs {
-            [vertex] in TextureCoord: vec2 = {vec2(0.0, 0.0)};
+            [vertex] inout TextureCoord: vec2 = {vec2(0.0, 0.0)};
 
             [fragment] uniform mainImage: sampler2D;
         }

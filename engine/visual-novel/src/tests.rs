@@ -5,7 +5,7 @@ use crate::{core::prefab::Prefab, story::Story};
 #[test]
 fn test_hello_story() {
     let content =
-        std::fs::read_to_string("scripts/hello_world.yaml").expect("Could not read story");
+        std::fs::read_to_string("scripts/hello_world.json").expect("Could not read story");
     let mut story = Story::from_prefab_str(&content).expect("Could not deserialize story");
     story
         .run_chapter("Main")

@@ -2,13 +2,25 @@
 
 use crate::storage::{StorageEngine, StorageError, StorageResult};
 use std::{
+    env::var,
     fs::{read, write},
     path::{Path, PathBuf},
 };
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct FsStorageEngine {
     pub root: PathBuf,
+}
+
+impl Default for FsStorageEngine {
+    fn default() -> Self {
+        Self {
+            root: match var("OXY_STORAGE_ENGINE_PATH") {
+                Ok(value) => value.into(),
+                Err(_) => Default::default(),
+            },
+        }
+    }
 }
 
 impl FsStorageEngine {
@@ -17,7 +29,10 @@ impl FsStorageEngine {
         P: AsRef<Path>,
     {
         Self {
-            root: path.as_ref().to_path_buf(),
+            root: match var("OXY_STORAGE_ENGINE_PATH") {
+                Ok(value) => value.into(),
+                Err(_) => path.as_ref().into(),
+            },
         }
     }
 }

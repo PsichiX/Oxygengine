@@ -4,7 +4,7 @@ use core::{
         asset::{Asset, AssetId},
         protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
     },
-    Ignite, Scalar,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -12,7 +12,7 @@ use std::{
     str::from_utf8,
 };
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TileSetPage {
     pub cols: usize,
     pub rows: usize,
@@ -26,13 +26,13 @@ pub struct TileSetPage {
     pub tile_margin: Vec2,
 }
 
-#[derive(Ignite, Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct AtlasRegion {
     pub rect: Rect,
     pub layer: usize,
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AtlasAssetSource {
     /// { page image asset: { region name: region data } }
     Raw(HashMap<String, HashMap<String, AtlasRegion>>),
@@ -83,9 +83,6 @@ impl AssetProtocol for AtlasAssetProtocol {
         let source = if path.ends_with(".json") {
             let data = from_utf8(&data).unwrap();
             serde_json::from_str::<AtlasAssetSource>(data).unwrap()
-        } else if path.ends_with(".yaml") {
-            let data = from_utf8(&data).unwrap();
-            serde_yaml::from_str::<AtlasAssetSource>(data).unwrap()
         } else {
             bincode::deserialize::<AtlasAssetSource>(&data).unwrap()
         };

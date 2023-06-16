@@ -5,10 +5,7 @@ use crate::{
     render_target::RenderTarget,
     resources::material_library::MaterialLibrary,
 };
-use core::{
-    utils::{StrSequence, StringSequence},
-    Ignite,
-};
+use core::utils::{StrSequence, StringSequence};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{hash_map::DefaultHasher, HashMap},
@@ -188,7 +185,7 @@ pub struct BakedMaterialShaders {
     pub samplers: Vec<String>,
 }
 
-#[derive(Ignite, Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum MaterialDataPrecision {
     Default,
     Low,
@@ -223,7 +220,7 @@ impl MaterialDataPrecision {
     }
 }
 
-#[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MaterialDataType {
     BuiltIn,
     Constant,
@@ -238,7 +235,7 @@ impl Default for MaterialDataType {
     }
 }
 
-#[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MaterialValueCategory {
     Bool,
     Float,
@@ -246,7 +243,7 @@ pub enum MaterialValueCategory {
     Sampler,
 }
 
-#[derive(Ignite, Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MaterialValueType {
     Bool,
     Vec2B,
@@ -348,7 +345,7 @@ impl ToString for MaterialValueType {
     }
 }
 
-#[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum MaterialValue {
     Bool(bool),
     Vec2B(Vec2<bool>),
@@ -625,7 +622,7 @@ impl_value_from! {
     Array(Vec<MaterialValue>),
 }
 
-#[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MaterialShaderType {
     Undefined,
     Vertex,

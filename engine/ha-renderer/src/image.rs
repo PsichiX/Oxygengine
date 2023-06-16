@@ -2,7 +2,7 @@ use crate::{
     ha_renderer::RenderStageResources, math::Rect, render_target::RenderTargetId,
     resources::resource_mapping::ResourceMapping, HasContextResources, ResourceReference,
 };
-use core::{id::ID, Ignite};
+use core::id::ID;
 use glow::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, hash::Hash};
@@ -20,7 +20,7 @@ pub type VirtualImageId = ID<VirtualImage>;
 pub type ImageReference = ResourceReference<ImageId, VirtualImageId>;
 pub type ImageResourceMapping = ResourceMapping<Image, VirtualImage>;
 
-#[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ImageMode {
     Image2d,
     Image2dArray,
@@ -43,7 +43,7 @@ impl ImageMode {
     }
 }
 
-#[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ImageFormat {
     RGBA,
     RGB,
@@ -102,7 +102,7 @@ impl ImageFormat {
     }
 }
 
-#[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ImageFiltering {
     Nearest,
     Linear,
@@ -125,7 +125,7 @@ impl ImageFiltering {
     }
 }
 
-#[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ImageMipmap {
     None,
     /// (maximum levels?)
@@ -138,7 +138,7 @@ impl Default for ImageMipmap {
     }
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ImageDescriptor {
     #[serde(default)]
     pub mode: ImageMode,

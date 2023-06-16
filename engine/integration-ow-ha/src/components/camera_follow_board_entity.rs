@@ -1,7 +1,7 @@
 use oxygengine_core::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Ignite, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HaCameraFollowConstraints {
     None,
     Chunk,
@@ -14,7 +14,7 @@ impl Default for HaCameraFollowConstraints {
     }
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct HaCameraFollowBoardEntity {
     pub name: Option<String>,
     #[serde(default)]

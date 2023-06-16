@@ -85,7 +85,8 @@ impl StreamingVertexFactory {
             );
         }
         for (ba, na, ca) in self.layout.vertex_attribs() {
-            let linesize = ca.channels() * 4; // 4 is for number of bytes, assuming both f32 and i32.
+            // 4 is for number of bytes, assuming both f32 and i32.
+            let linesize = ca.channels() * 4;
             let offset = self.layout.buffers()[ba].bytesize() * self.vertices;
             let oa = ca.offset();
             if let Some((bb, _, cb)) = factory.layout.vertex_attribs().find(|(_, nb, cb)| {
@@ -432,11 +433,22 @@ impl StaticVertexFactory {
     }
 
     /// # Safety
-    /// Writing to raw vertices may cause vertices not having wrong data layout.
-    pub unsafe fn access_raw_vertices(&mut self, buffer: usize) -> Option<&mut [u8]> {
+    /// Writing to raw bytes may cause underlying vertices having wrong data layout.
+    pub unsafe fn access_raw_bytes(&mut self, buffer: usize) -> Option<&mut [u8]> {
         self.buffers
             .get_mut(buffer)
             .map(|bytes| bytes.as_mut_slice())
+    }
+
+    /// # Safety
+    /// Writing to raw vertices of wrong type may cause underlying vertices having wrong data layout.
+    pub unsafe fn access_raw_vertices<T>(&mut self, buffer: usize) -> Option<&mut [T]>
+    where
+        T: VertexType,
+    {
+        self.buffers
+            .get_mut(buffer)
+            .map(|bytes| bytes.as_mut_slice().align_to_mut::<T>().1)
     }
 
     /// # Safety
@@ -635,6 +647,7 @@ macro_rules! vertex_type {
         }
     ) => {
         $( #[ $meta ] )*
+        #[repr(C)]
         $visibility struct $name {
             $(
                 $( #[ $field_meta ] )*
@@ -664,7 +677,7 @@ macro_rules! vertex_type {
                         }
                     )*
                     if let Some(buffer) = buffers.get_mut(&index) {
-                        *buffer = std::mem::take(buffer).with($crate::mesh::VertexAttribute {
+                        buffer.add($crate::mesh::VertexAttribute {
                             id: stringify!($field_mapping).to_owned(),
                             count: 1,
                             value_type: $crate::vertex_type!(@value $field_type),

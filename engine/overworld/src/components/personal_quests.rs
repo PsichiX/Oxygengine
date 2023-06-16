@@ -1,7 +1,7 @@
 use crate::resources::{market::Currency, quests::*};
 use oxygengine_core::{
     prefab::{Prefab, PrefabComponent},
-    Ignite, Scalar,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -15,7 +15,7 @@ pub enum PersonalQuestsError {
     ObjectiveDoesNotExists(ObjectiveId),
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct PersonalQuests {
     /// {quest id: {objective id: progress score}}
     active_quests: HashMap<QuestId, HashMap<ObjectiveId, Scalar>>,

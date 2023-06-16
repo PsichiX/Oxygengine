@@ -2,7 +2,7 @@ use core::{
     ecs::Entity,
     prefab::{Prefab, PrefabError, PrefabProxy},
     state::StateToken,
-    Ignite, Scalar,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -95,7 +95,7 @@ impl AudioSourceConfig {
 
 impl Prefab for AudioSourceConfig {}
 
-#[derive(Ignite, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct AudioSource {
     audio: Cow<'static, str>,
     streaming: bool,
@@ -104,9 +104,9 @@ pub struct AudioSource {
     volume: Scalar,
     play: bool,
     pub(crate) current_time: Option<Scalar>,
-    #[ignite(ignore)]
+
     pub(crate) ready: Arc<AtomicBool>,
-    #[ignite(ignore)]
+
     pub(crate) dirty: AudioSourceDirtyMode,
 }
 

@@ -96,18 +96,14 @@ impl<'a> Renderer<StreamingVertexFactory, Error> for RauiRenderer<'a> {
         );
         // TODO: dear gods, what an abommination - please consider taking data layout into the account.
         unsafe {
-            let stride = std::mem::size_of::<V>();
-            for (from, to) in vertices.iter().zip(
-                factory
-                    .access_raw_vertices(0)
-                    .unwrap()
-                    .chunks_exact_mut(stride),
-            ) {
-                let to = to.as_mut_ptr() as *mut V;
-                (*to).position = vec3(from.position.x, from.position.y, 0.0);
+            for (from, to) in vertices
+                .iter()
+                .zip(factory.access_raw_vertices::<V>(0).unwrap())
+            {
+                to.position = vec3(from.position.x, from.position.y, 0.0);
                 // TODO: page index should be put here.
-                (*to).texture_coord = vec3(from.tex_coord.x, from.tex_coord.y, 0.0);
-                (*to).color = vec4(from.color.r, from.color.g, from.color.b, from.color.a);
+                to.texture_coord = vec3(from.tex_coord.x, from.tex_coord.y, 0.0);
+                to.color = vec4(from.color.r, from.color.g, from.color.b, from.color.a);
             }
             factory.access_raw_indices().copy_from_slice(&indices);
         }

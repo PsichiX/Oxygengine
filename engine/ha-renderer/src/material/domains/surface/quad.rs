@@ -1,7 +1,11 @@
 use crate::{
     material::domains::surface::SurfaceDomain,
     math::*,
-    mesh::{vertex_factory::StaticVertexFactory, MeshDrawMode, MeshError},
+    mesh::{
+        geometry::{Geometry, GeometryPrimitives, GeometryVertices, GeometryVerticesColumn},
+        vertex_factory::StaticVertexFactory,
+        MeshError,
+    },
 };
 use serde::{Deserialize, Serialize};
 
@@ -23,63 +27,47 @@ impl Default for SurfaceQuadFactory {
 }
 
 impl SurfaceQuadFactory {
+    pub fn geometry(self) -> Result<Geometry, MeshError> {
+        let ox = -self.size.x * self.align.x;
+        let oy = -self.size.y * self.align.y;
+        Ok(Geometry::new(
+            GeometryVertices::default().with_columns([
+                GeometryVerticesColumn::new(
+                    "position",
+                    [
+                        vec2(ox, oy),
+                        vec2(ox + self.size.x, oy),
+                        vec2(ox + self.size.x, oy + self.size.y),
+                        vec2(ox, oy + self.size.y),
+                    ]
+                    .into_iter()
+                    .collect(),
+                ),
+                GeometryVerticesColumn::new(
+                    "textureCoord",
+                    [
+                        vec2(0.0, 0.0),
+                        vec2(1.0, 0.0),
+                        vec2(1.0, 1.0),
+                        vec2(0.0, 1.0),
+                    ]
+                    .into_iter()
+                    .collect(),
+                ),
+                GeometryVerticesColumn::new(
+                    "color",
+                    std::iter::repeat(self.color).take(4).collect(),
+                ),
+            ])?,
+            GeometryPrimitives::triangles(vec![[0, 1, 2].into(), [2, 3, 0].into()]),
+        ))
+    }
+
     pub fn factory<T>(self) -> Result<StaticVertexFactory, MeshError>
     where
         T: SurfaceDomain,
     {
-        let vertex_layout = T::vertex_layout()?;
-        if !T::has_attribute("position") {
-            return Err(MeshError::MissingRequiredLayoutAttribute(
-                vertex_layout,
-                "position".to_owned(),
-            ));
-        }
-        let mut result = StaticVertexFactory::new(vertex_layout, 4, 2, MeshDrawMode::Triangles);
-        let ox = -self.size.x * self.align.x;
-        let oy = -self.size.y * self.align.y;
-        result.vertices_vec3f(
-            "position",
-            &[
-                vec3(ox, oy, 0.0),
-                vec3(ox + self.size.x, oy, 0.0),
-                vec3(ox + self.size.x, oy + self.size.y, 0.0),
-                vec3(ox, oy + self.size.y, 0.0),
-            ],
-            None,
-        )?;
-        if T::has_attribute("normal") {
-            result.vertices_vec3f(
-                "normal",
-                &[
-                    vec3(0.0, 0.0, 1.0),
-                    vec3(0.0, 0.0, 1.0),
-                    vec3(0.0, 0.0, 1.0),
-                    vec3(0.0, 0.0, 1.0),
-                ],
-                None,
-            )?;
-        }
-        if T::has_attribute("textureCoord") {
-            result.vertices_vec3f(
-                "textureCoord",
-                &[
-                    vec3(0.0, 0.0, 0.0),
-                    vec3(1.0, 0.0, 0.0),
-                    vec3(1.0, 1.0, 0.0),
-                    vec3(0.0, 1.0, 0.0),
-                ],
-                None,
-            )?;
-        }
-        if T::has_attribute("color") {
-            result.vertices_vec4f(
-                "color",
-                &[self.color, self.color, self.color, self.color],
-                None,
-            )?;
-        }
-        result.triangles(&[(0, 1, 2), (2, 3, 0)], None)?;
-        Ok(result)
+        self.geometry()?.factory::<T>()
     }
 }
 

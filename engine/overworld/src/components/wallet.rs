@@ -1,14 +1,10 @@
 use crate::resources::bank::*;
-use oxygengine_core::{
-    prefab::{Prefab, PrefabComponent},
-    Ignite,
-};
+use oxygengine_core::prefab::{Prefab, PrefabComponent};
 use serde::{Deserialize, Serialize};
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Wallet {
     #[serde(skip)]
-    #[ignite(ignore)]
     pub(crate) account: Option<BankAccountId>,
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-prototype"
-version = "0.30.0"
+version = "0.40.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Prototyping utilities module for Oxygengine"
@@ -37,13 +37,13 @@ scalar64 = [
 ]
 
 [dependencies]
-oxygengine-core = { version = "0.30", path = "../core" }
-oxygengine-backend-web = { version = "0.30", path = "../backend-web", optional = true }
-oxygengine-audio = { version = "0.30", path = "../audio" }
-oxygengine-audio-backend-web = { version = "0.30", path = "../audio-backend-web", optional = true }
-oxygengine-input = { version = "0.30", path = "../input" }
-oxygengine-input-device-web = { version = "0.30", path = "../input-device-web", optional = true }
-oxygengine-ha-renderer = { version = "0.30", path = "../ha-renderer" }
-oxygengine-editor-tools-backend-web = { version = "0.30", path = "../editor-tools-backend-web" }
-oxygengine-ha-renderer-debugger = { version = "0.30", path = "../ha-renderer-debugger" }
+oxygengine-core = { version = "0.40", path = "../core" }
+oxygengine-backend-web = { version = "0.40", path = "../backend-web", optional = true }
+oxygengine-audio = { version = "0.40", path = "../audio" }
+oxygengine-audio-backend-web = { version = "0.40", path = "../audio-backend-web", optional = true }
+oxygengine-input = { version = "0.40", path = "../input" }
+oxygengine-input-device-web = { version = "0.40", path = "../input-device-web", optional = true }
+oxygengine-ha-renderer = { version = "0.40", path = "../ha-renderer" }
+oxygengine-editor-tools-backend-web = { version = "0.40", path = "../editor-tools-backend-web" }
+oxygengine-ha-renderer-debugger = { version = "0.40", path = "../ha-renderer-debugger" }
 serde = { version = "1", features = ["derive"] }

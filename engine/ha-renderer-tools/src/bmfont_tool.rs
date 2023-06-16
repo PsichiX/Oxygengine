@@ -220,10 +220,10 @@ fn generate_sdf_font(
             };
             let path = output
                 .join(&filename)
-                .with_extension(&format!("{}.yaml", i));
+                .with_extension(&format!("{}.json", i));
             write(
                 &path,
-                serde_yaml::to_string(&asset).unwrap_or_else(|_| {
+                serde_json::to_string_pretty(&asset).unwrap_or_else(|_| {
                     panic!(
                         "Could not serialize font: {:?} page: {} image asset",
                         descriptor, i
@@ -269,7 +269,7 @@ fn generate_sdf_font(
                 })
                 .collect();
             FontAssetSourcePage {
-                image: format!("{}{}.{}.yaml", assets_path_prefix, image_name, i),
+                image: format!("{}{}.{}.json", assets_path_prefix, image_name, i),
                 characters,
             }
         })
@@ -282,10 +282,10 @@ fn generate_sdf_font(
         pages,
         filtering: image_filtering,
     };
-    let path = output.join(&filename).with_extension("yaml");
+    let path = output.join(&filename).with_extension("json");
     write(
         &path,
-        serde_yaml::to_string(&asset)
+        serde_json::to_string_pretty(&asset)
             .unwrap_or_else(|_| panic!("Could not serialize font: {:?} asset", descriptor,)),
     )
     .unwrap_or_else(|_| {

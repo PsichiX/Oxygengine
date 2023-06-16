@@ -1,0 +1,15 @@
+inject
+```
+{
+  "HaVolumeOverlap": {
+    "filters": {
+      "inclusive": true,
+      "tags": [
+        "%{ $TAG }%"
+      ]
+    },
+    "delay": 1
+  },
+  "Events-HaVolumeOverlapEvent": {}
+}
+```

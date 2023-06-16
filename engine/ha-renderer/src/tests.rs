@@ -306,7 +306,21 @@ fn test_material_middlewares() {
     println!("* FS variant A:\n{}", baked.fragment);
 
     MaterialLibrary::assert_material_compilation(
+        &SurfaceVertexAP::vertex_layout().unwrap(),
+        RenderTargetDescriptor::Main,
+        &surface_flat_domain_graph(),
+        &default_surface_flat_color_material_graph(),
+    );
+
+    MaterialLibrary::assert_material_compilation(
         &SurfaceVertexSP::vertex_layout().unwrap(),
+        RenderTargetDescriptor::Main,
+        &surface_flat_domain_graph(),
+        &default_surface_flat_color_material_graph(),
+    );
+
+    MaterialLibrary::assert_material_compilation(
+        &SurfaceVertexDP::vertex_layout().unwrap(),
         RenderTargetDescriptor::Main,
         &surface_flat_domain_graph(),
         &default_surface_flat_color_material_graph(),

@@ -1,0 +1,21 @@
+{
+  "commands": [
+    {
+      "External": "../pipeline.json"
+    },
+    {
+      "Pipeline": {
+        "destination": "../assets-baked",
+        "commands": [
+          {
+            "Copy": {
+              "from": [
+                "../assets/index.html"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

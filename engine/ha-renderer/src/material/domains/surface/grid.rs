@@ -1,7 +1,14 @@
 use crate::{
     material::domains::surface::SurfaceDomain,
     math::*,
-    mesh::{vertex_factory::StaticVertexFactory, MeshDrawMode, MeshError},
+    mesh::{
+        geometry::{
+            Geometry, GeometryPrimitives, GeometryTriangle, GeometryVertices,
+            GeometryVerticesColumn,
+        },
+        vertex_factory::StaticVertexFactory,
+        MeshError,
+    },
 };
 use serde::{Deserialize, Serialize};
 
@@ -25,83 +32,72 @@ impl Default for SurfaceGridFactory {
 }
 
 impl SurfaceGridFactory {
-    pub fn factory<T>(self) -> Result<StaticVertexFactory, MeshError>
-    where
-        T: SurfaceDomain,
-    {
+    pub fn geometry(self, meta: bool) -> Result<Geometry, MeshError> {
         if self.cols == 0 || self.rows == 0 {
             return Err(MeshError::ZeroSize);
-        }
-        let vertex_layout = T::vertex_layout()?;
-        if !T::has_attribute("position") {
-            return Err(MeshError::MissingRequiredLayoutAttribute(
-                vertex_layout,
-                "position".to_owned(),
-            ));
         }
         let cols = self.cols + 1;
         let rows = self.rows + 1;
         let vertex_count = cols * rows;
-        let triangles_count = self.cols * self.rows * 2;
-        let mut result = StaticVertexFactory::new(
-            vertex_layout,
-            vertex_count,
-            triangles_count,
-            MeshDrawMode::Triangles,
-        );
-        let mut position = Vec::with_capacity(vertex_count);
-        for row in 0..rows {
-            for col in 0..cols {
-                position.push(vec3(
-                    self.cell_size.x * col as f32,
-                    self.cell_size.y * row as f32,
-                    0.0,
-                ));
-            }
-        }
-        result.vertices_vec3f("position", &position, None)?;
-        if T::has_attribute("normal") {
-            result.vertices_vec3f(
-                "normal",
-                &(0..vertex_count)
-                    .map(|_| vec3(0.0, 0.0, 1.0))
+        Ok(Geometry::new(
+            GeometryVertices::default().with_columns([
+                GeometryVerticesColumn::new(
+                    "position",
+                    (0..rows)
+                        .flat_map(|row| {
+                            (0..cols).map(move |col| {
+                                vec2(self.cell_size.x * col as f32, self.cell_size.y * row as f32)
+                            })
+                        })
+                        .collect(),
+                ),
+                GeometryVerticesColumn::new(
+                    "textureCoord",
+                    (0..rows)
+                        .flat_map(|row| {
+                            (0..cols).map(move |col| {
+                                vec2(
+                                    col as f32 / (cols - 1) as f32,
+                                    row as f32 / (rows - 1) as f32,
+                                )
+                            })
+                        })
+                        .collect(),
+                ),
+                GeometryVerticesColumn::new(
+                    "color",
+                    std::iter::repeat(self.color).take(vertex_count).collect(),
+                ),
+            ])?,
+            GeometryPrimitives::triangles(
+                (0..self.rows)
+                    .flat_map(|row| {
+                        (0..self.cols).flat_map(move |col| {
+                            let tl = Self::coord_to_index(col, row, cols);
+                            let tr = Self::coord_to_index(col + 1, row, cols);
+                            let br = Self::coord_to_index(col + 1, row + 1, cols);
+                            let bl = Self::coord_to_index(col, row + 1, cols);
+                            let mut a = GeometryTriangle::new([tl, tr, br]);
+                            let mut b = GeometryTriangle::new([br, bl, tl]);
+                            if meta {
+                                a.attributes.set("col", col as i32);
+                                b.attributes.set("col", col as i32);
+                                a.attributes.set("row", row as i32);
+                                b.attributes.set("row", row as i32);
+                            }
+                            [a, b]
+                        })
+                    })
                     .collect::<Vec<_>>(),
-                None,
-            )?;
-        }
-        if T::has_attribute("textureCoord") {
-            let mut texture_coord = Vec::with_capacity(vertex_count);
-            for row in 0..rows {
-                for col in 0..cols {
-                    texture_coord.push(vec3(
-                        col as f32 / cols as f32,
-                        row as f32 / rows as f32,
-                        0.0,
-                    ));
-                }
-            }
-            result.vertices_vec3f("textureCoord", &texture_coord, None)?;
-        }
-        if T::has_attribute("color") {
-            result.vertices_vec4f(
-                "color",
-                &(0..vertex_count).map(|_| self.color).collect::<Vec<_>>(),
-                None,
-            )?;
-        }
-        let mut triangles = Vec::with_capacity(triangles_count);
-        for row in 0..self.rows {
-            for col in 0..self.cols {
-                let tl = Self::coord_to_index(col, row, cols) as u32;
-                let tr = Self::coord_to_index(col + 1, row, cols) as u32;
-                let br = Self::coord_to_index(col + 1, row + 1, cols) as u32;
-                let bl = Self::coord_to_index(col, row + 1, cols) as u32;
-                triangles.push((tl, tr, br));
-                triangles.push((br, bl, tl));
-            }
-        }
-        result.triangles(&triangles, None)?;
-        Ok(result)
+            ),
+        ))
+    }
+
+    pub fn factory<T>(self) -> Result<StaticVertexFactory, MeshError>
+    where
+        T: SurfaceDomain,
+    {
+        self.geometry(false)?.factory::<T>()
     }
 
     fn coord_to_index(col: usize, row: usize, cols: usize) -> usize {

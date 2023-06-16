@@ -1,0 +1,8 @@
+inject
+```
+{
+  "AvatarCombat": {
+    "cooldown": %{ $COOLDOWN }%
+  }
+}
+```

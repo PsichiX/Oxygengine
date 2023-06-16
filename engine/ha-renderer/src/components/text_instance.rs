@@ -1,7 +1,7 @@
 use crate::{components::HaChangeFrequency, math::*};
 use core::{
     prefab::{Prefab, PrefabComponent},
-    Ignite, Scalar,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::str::Chars;
@@ -137,7 +137,7 @@ pub enum HaTextElement<'a> {
     },
 }
 
-#[derive(Ignite, Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HaTextFragmentParams {
     #[serde(default)]
     size: Option<Scalar>,
@@ -153,7 +153,7 @@ pub struct HaTextFragmentParams {
     wrapping: Option<HaTextWrapping>,
 }
 
-#[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum HaTextFragment {
     NewLine,
     Text {
@@ -193,7 +193,7 @@ impl HaTextFragment {
     }
 }
 
-#[derive(Ignite, Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HaTextContent(pub Vec<HaTextFragment>);
 
 impl HaTextContent {
@@ -227,7 +227,7 @@ where
     }
 }
 
-#[derive(Ignite, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HaTextWrapping {
     Character,
     Word,
@@ -250,7 +250,7 @@ impl HaTextWrapping {
     }
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HaTextInstance {
     font: String,
     content: HaTextContent,
@@ -279,7 +279,6 @@ pub struct HaTextInstance {
     #[serde(default)]
     lines_extra_space: Scalar,
     #[serde(skip)]
-    #[ignite(ignore)]
     pub(crate) dirty: bool,
 }
 

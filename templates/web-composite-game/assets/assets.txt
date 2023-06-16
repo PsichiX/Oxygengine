@@ -1,7 +1,0 @@
-audio://audio/ambient.ogg
-font://fonts/kato.ttf
-fontface://fonts/kato.json
-svg://images/logo.svg
-svg://ui/ui.svg
-prefab://prefabs/scene.yaml
-prefab://prefabs/instance.yaml

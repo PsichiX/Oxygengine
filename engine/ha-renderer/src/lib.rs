@@ -1,5 +1,6 @@
 extern crate oxygengine_animation as animation;
 extern crate oxygengine_core as core;
+extern crate oxygengine_utils as utils;
 
 #[cfg(test)]
 mod tests;
@@ -18,20 +19,23 @@ pub mod render_target;
 pub mod resources;
 pub mod systems;
 
+#[allow(ambiguous_glob_reexports)]
 pub mod prelude {
+    #[cfg(feature = "desktop")]
+    pub use crate::platform::desktop::*;
     #[cfg(feature = "web")]
     pub use crate::platform::web::*;
 
     pub use crate::{
         asset_protocols::{
-            atlas::*, font::*, image::*, material::*, mesh::*, skeletal_animation::*, skeleton::*,
+            atlas::*, font::*, image::*, material::*, mesh::*, rig::*, rig_animation::*,
             sprite_animation::*, tilemap::*, *,
         },
         builtin_material_function, builtin_material_functions, code_material_function,
         code_material_functions,
         components::{
             camera::*, gizmo::*, immediate_batch::*, material_instance::*, mesh_instance::*,
-            postprocess::*, skeletal_animation_instance::*, skeleton_instance::*,
+            postprocess::*, rig_animation_instance::*, rig_instance::*,
             sprite_animation_instance::*, text_instance::*, tilemap_instance::*, transform::*,
             virtual_image_uniforms::*, visibility::*, volume::*, volume_overlap::*,
             volume_visibility::*, *,
@@ -46,15 +50,8 @@ pub mod prelude {
                 gizmo::*,
                 screenspace::*,
                 surface::{
-                    circle::*,
-                    grid::*,
-                    immediate::*,
-                    quad::*,
-                    skinned::{sprite::*, *},
-                    text::*,
-                    tilemap::*,
-                    triangles2d::*,
-                    *,
+                    circle::*, grid::*, immediate::*, quad::*, rig2d::*, text::*, tilemap::*,
+                    triangles2d::*, *,
                 },
                 *,
             },
@@ -64,18 +61,23 @@ pub mod prelude {
         material_function, material_functions, material_graph, material_graph_input,
         material_graph_output, material_value_type,
         math::*,
-        mesh::{skeleton::*, vertex_factory::*, *},
+        mesh::{
+            geometry::*,
+            rig::{deformer::*, skeleton::*, *},
+            vertex_factory::*,
+            *,
+        },
         pipeline::{render_queue::*, stage::*, *},
         platform::*,
         render_target::*,
         resources::{camera_cache::*, gizmos::*, material_library::*, resource_mapping::*, *},
         rich_text,
         systems::{
-            apply_skeletal_animation::*, apply_sprite_animation_to_material::*, atlas::*,
+            apply_rig_animation::*, apply_sprite_animation_to_material::*, atlas::*,
             camera_cache::*, font::*, immediate_batch::*, mesh_bounds_gizmo::*,
             render_forward_stage::*, render_gizmo_stage::*, render_postprocess_stage::*,
-            renderer::*, skeletal_animation::*, skinning::*, sprite_animation::*, tilemap::*,
-            transform::*, virtual_image_uniforms::*, volume_overlap::*, volume_visibility::*, *,
+            renderer::*, rig_animation::*, sprite_animation::*, tilemap::*, transform::*,
+            virtual_image_uniforms::*, volume_overlap::*, volume_visibility::*, *,
         },
         Error, HaRendererBundleSetup, HasContextResources, ResourceReference, Resources,
     };
@@ -88,11 +90,11 @@ use crate::{
         image::{ImageAsset, ImageAssetProtocol},
         material::{MaterialAsset, MaterialAssetProtocol},
         mesh::{
-            MeshAsset, MeshAssetProtocol, ScreenSpaceMeshAsset, SurfaceFactory, SurfaceMeshAsset,
-            SurfaceVertexData,
+            MeshAsset, MeshAssetProtocol, MeshVertexData, ScreenSpaceMeshAsset, SurfaceFactory,
+            SurfaceMeshAsset,
         },
-        skeletal_animation::SkeletalAnimationAssetProtocol,
-        skeleton::SkeletonAssetProtocol,
+        rig::RigAssetProtocol,
+        rig_animation::RigAnimationAssetProtocol,
         sprite_animation::SpriteAnimationAssetProtocol,
         tilemap::TileMapAssetProtocol,
     },
@@ -103,8 +105,8 @@ use crate::{
         material_instance::HaMaterialInstance,
         mesh_instance::HaMeshInstance,
         postprocess::HaPostProcess,
-        skeletal_animation_instance::HaSkeletalAnimationInstance,
-        skeleton_instance::HaSkeletonInstance,
+        rig_animation_instance::HaRigAnimationInstance,
+        rig_instance::HaRigInstance,
         sprite_animation_instance::HaSpriteAnimationInstance,
         text_instance::HaTextInstance,
         tilemap_instance::HaTileMapInstance,
@@ -147,9 +149,7 @@ use crate::{
     render_target::{RenderTargetError, RenderTargetId},
     resources::{camera_cache::CameraCache, gizmos::Gizmos, material_library::MaterialLibrary},
     systems::{
-        apply_skeletal_animation::{
-            ha_apply_skeletal_animation, HaApplySkeletalAnimationSystemResources,
-        },
+        apply_rig_animation::{ha_apply_rig_animation, HaApplyRigAnimationSystemResources},
         apply_sprite_animation_to_material::{
             ha_apply_sprite_animation_to_material, HaApplySpriteAnimationToMaterialSystemResources,
         },
@@ -176,11 +176,10 @@ use crate::{
             HaRendererExecutionSystemResources, HaRendererMaintenanceSystemCache,
             HaRendererMaintenanceSystemResources,
         },
-        skeletal_animation::{
-            ha_skeletal_animation, HaSkeletalAnimationSystemCache,
-            HaSkeletalAnimationSystemResources,
+        rig::{ha_rig_system, HaRigSystemCache, HaRigSystemResources},
+        rig_animation::{
+            ha_rig_animation, HaRigAnimationSystemCache, HaRigAnimationSystemResources,
         },
-        skinning::{ha_skinning_system, HaSkinningSystemCache, HaSkinningSystemResources},
         sprite_animation::{
             ha_sprite_animation, HaSpriteAnimationSystemCache, HaSpriteAnimationSystemResources,
         },
@@ -207,7 +206,6 @@ use core::{
     },
     id::ID,
     prefab::PrefabManager,
-    Ignite,
 };
 use glow::HasContext;
 use serde::{Deserialize, Serialize};
@@ -224,7 +222,7 @@ where
     fn context_release(&mut self, context: &T) -> Result<(), Self::Error>;
 }
 
-#[derive(Ignite, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ResourceReference<ID, VID = ID> {
     None,
     Asset(String),
@@ -435,8 +433,8 @@ where
     builder.install_resource(HaFontSystemCache::default());
     builder.install_resource(HaTileMapSystemCache::default());
     builder.install_resource(HaSpriteAnimationSystemCache::default());
-    builder.install_resource(HaSkeletalAnimationSystemCache::default());
-    builder.install_resource(HaSkinningSystemCache::default());
+    builder.install_resource(HaRigAnimationSystemCache::default());
+    builder.install_resource(HaRigSystemCache::default());
     builder.install_resource(HaVolumeVisibilitySystemCache::default());
     builder.install_resource(HaVolumeOverlapSystemCache::default());
     builder.install_resource(HaRenderGizmoStageSystemCache::default());
@@ -494,15 +492,15 @@ where
     builder.install_system::<HaAtlasSystemResources>("atlas", ha_atlas_system, &[])?;
     builder.install_system::<HaFontSystemResources>("font", ha_font_system, &[])?;
     builder.install_system::<HaTileMapSystemResources>("tilemap", ha_tilemap_system, &[])?;
-    builder.install_system::<HaSkinningSystemResources>("skinning", ha_skinning_system, &[])?;
-    builder.install_system::<HaSkeletalAnimationSystemResources>(
+    builder.install_system::<HaRigSystemResources>("rig", ha_rig_system, &[])?;
+    builder.install_system::<HaRigAnimationSystemResources>(
         "skeletal-animation",
-        ha_skeletal_animation,
-        &["skinning"],
+        ha_rig_animation,
+        &["rig"],
     )?;
-    builder.install_system::<HaApplySkeletalAnimationSystemResources>(
+    builder.install_system::<HaApplyRigAnimationSystemResources>(
         "apply-skeletal-animation",
-        ha_apply_skeletal_animation,
+        ha_apply_rig_animation,
         &["skeletal-animation"],
     )?;
     builder.install_system::<HaSpriteAnimationSystemResources>(
@@ -562,30 +560,19 @@ pub fn protocols_installer(database: &mut AssetsDatabase) {
     database.register(MaterialAssetProtocol);
     database.register(MeshAssetProtocol);
     database.register(SpriteAnimationAssetProtocol);
-    database.register(SkeletalAnimationAssetProtocol);
-    database.register(SkeletonAssetProtocol);
+    database.register(RigAnimationAssetProtocol);
+    database.register(RigAssetProtocol);
     database.register(TileMapAssetProtocol);
 
     database.insert(Asset::new(
         "mesh",
         "@mesh/surface/quad/p",
         MeshAsset::Surface(SurfaceMeshAsset {
-            vertex_data: SurfaceVertexData {
-                normal: false,
+            vertex_data: MeshVertexData {
                 texture: false,
                 color: false,
-            },
-            factory: SurfaceFactory::Quad(SurfaceQuadFactory::default()),
-        }),
-    ));
-    database.insert(Asset::new(
-        "mesh",
-        "@mesh/surface/quad/pn",
-        MeshAsset::Surface(SurfaceMeshAsset {
-            vertex_data: SurfaceVertexData {
-                normal: true,
-                texture: false,
-                color: false,
+                skinning: false,
+                deforming: false,
             },
             factory: SurfaceFactory::Quad(SurfaceQuadFactory::default()),
         }),
@@ -594,22 +581,11 @@ pub fn protocols_installer(database: &mut AssetsDatabase) {
         "mesh",
         "@mesh/surface/quad/pt",
         MeshAsset::Surface(SurfaceMeshAsset {
-            vertex_data: SurfaceVertexData {
-                normal: false,
+            vertex_data: MeshVertexData {
                 texture: true,
                 color: false,
-            },
-            factory: SurfaceFactory::Quad(SurfaceQuadFactory::default()),
-        }),
-    ));
-    database.insert(Asset::new(
-        "mesh",
-        "@mesh/surface/quad/pnt",
-        MeshAsset::Surface(SurfaceMeshAsset {
-            vertex_data: SurfaceVertexData {
-                normal: true,
-                texture: true,
-                color: false,
+                skinning: false,
+                deforming: false,
             },
             factory: SurfaceFactory::Quad(SurfaceQuadFactory::default()),
         }),
@@ -618,22 +594,11 @@ pub fn protocols_installer(database: &mut AssetsDatabase) {
         "mesh",
         "@mesh/surface/quad/pc",
         MeshAsset::Surface(SurfaceMeshAsset {
-            vertex_data: SurfaceVertexData {
-                normal: false,
+            vertex_data: MeshVertexData {
                 texture: false,
                 color: true,
-            },
-            factory: SurfaceFactory::Quad(SurfaceQuadFactory::default()),
-        }),
-    ));
-    database.insert(Asset::new(
-        "mesh",
-        "@mesh/surface/quad/pnc",
-        MeshAsset::Surface(SurfaceMeshAsset {
-            vertex_data: SurfaceVertexData {
-                normal: true,
-                texture: false,
-                color: true,
+                skinning: false,
+                deforming: false,
             },
             factory: SurfaceFactory::Quad(SurfaceQuadFactory::default()),
         }),
@@ -642,22 +607,11 @@ pub fn protocols_installer(database: &mut AssetsDatabase) {
         "mesh",
         "@mesh/surface/quad/ptc",
         MeshAsset::Surface(SurfaceMeshAsset {
-            vertex_data: SurfaceVertexData {
-                normal: false,
+            vertex_data: MeshVertexData {
                 texture: true,
                 color: true,
-            },
-            factory: SurfaceFactory::Quad(SurfaceQuadFactory::default()),
-        }),
-    ));
-    database.insert(Asset::new(
-        "mesh",
-        "@mesh/surface/quad/pntc",
-        MeshAsset::Surface(SurfaceMeshAsset {
-            vertex_data: SurfaceVertexData {
-                normal: true,
-                texture: true,
-                color: true,
+                skinning: false,
+                deforming: false,
             },
             factory: SurfaceFactory::Quad(SurfaceQuadFactory::default()),
         }),
@@ -685,6 +639,30 @@ pub fn protocols_installer(database: &mut AssetsDatabase) {
     ));
     database.insert(Asset::new(
         "image",
+        "@image/checkerboard-2d",
+        ImageAsset::bytes(
+            2,
+            2,
+            vec![
+                0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 255,
+            ],
+            ImageMode::Image2d,
+        ),
+    ));
+    database.insert(Asset::new(
+        "image",
+        "@image/test-2d",
+        ImageAsset::bytes(
+            2,
+            2,
+            vec![
+                255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 127, 127, 127, 255,
+            ],
+            ImageMode::Image2d,
+        ),
+    ));
+    database.insert(Asset::new(
+        "image",
         "@image/empty-2d-array",
         ImageAsset::color([0, 0, 0, 0], ImageMode::Image2dArray),
     ));
@@ -697,6 +675,30 @@ pub fn protocols_installer(database: &mut AssetsDatabase) {
         "image",
         "@image/error-2d-array",
         ImageAsset::color([255, 0, 255, 255], ImageMode::Image2dArray),
+    ));
+    database.insert(Asset::new(
+        "image",
+        "@image/checkerboard-2d-array",
+        ImageAsset::bytes(
+            2,
+            2,
+            vec![
+                0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 255,
+            ],
+            ImageMode::Image2dArray,
+        ),
+    ));
+    database.insert(Asset::new(
+        "image",
+        "@image/test-2d-array",
+        ImageAsset::bytes(
+            2,
+            2,
+            vec![
+                255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 127, 127, 127, 255,
+            ],
+            ImageMode::Image2dArray,
+        ),
     ));
 
     database.insert(Asset::new(
@@ -852,15 +854,6 @@ pub fn protocols_installer(database: &mut AssetsDatabase) {
     ));
     database.insert(Asset::new(
         "material",
-        "@material/graph/screenspace/texture",
-        MaterialAsset::Graph {
-            default_values: Default::default(),
-            draw_options: Default::default(),
-            content: default_screenspace_texture_material_graph(),
-        },
-    ));
-    database.insert(Asset::new(
-        "material",
         "@material/graph/gizmo/color",
         MaterialAsset::Graph {
             default_values: Default::default(),
@@ -876,9 +869,8 @@ pub fn prefabs_installer(prefabs: &mut PrefabManager) {
     prefabs.register_component_factory::<HaMaterialInstance>("HaMaterialInstance");
     prefabs.register_component_factory::<HaMeshInstance>("HaMeshInstance");
     prefabs.register_component_factory::<HaSpriteAnimationInstance>("HaSpriteAnimationInstance");
-    prefabs
-        .register_component_factory::<HaSkeletalAnimationInstance>("HaSkeletalAnimationInstance");
-    prefabs.register_component_factory::<HaSkeletonInstance>("HaSkeletonInstance");
+    prefabs.register_component_factory::<HaRigAnimationInstance>("HaSkeletalAnimationInstance");
+    prefabs.register_component_factory::<HaRigInstance>("HaRigInstance");
     prefabs.register_component_factory::<HaTextInstance>("HaTextInstance");
     prefabs.register_component_factory::<HaTileMapInstance>("HaTileMapInstance");
     prefabs.register_component_factory::<HaTransform>("HaTransform");

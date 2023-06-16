@@ -2,7 +2,7 @@ pub mod circle;
 pub mod grid;
 pub mod immediate;
 pub mod quad;
-pub mod skinned;
+pub mod rig2d;
 pub mod text;
 pub mod tilemap;
 pub mod triangles2d;
@@ -399,6 +399,10 @@ fn default_animation_column() -> f32 {
     0.0
 }
 
+fn default_curves_index() -> i32 {
+    0
+}
+
 fn default_bone_indices() -> i32 {
     0
 }
@@ -411,6 +415,7 @@ pub trait SurfaceDomain: VertexType {}
 pub trait SurfaceColoredDomain: SurfaceDomain {}
 pub trait SurfaceTexturedDomain: SurfaceDomain {}
 pub trait SurfaceVertAnimDomain: SurfaceDomain {}
+pub trait SurfaceDeformerDomain: SurfaceDomain {}
 pub trait SurfaceSkinnedDomain: SurfaceDomain {}
 pub trait SurfaceTextDomain: SurfaceColoredDomain + SurfaceTexturedDomain {}
 pub trait SurfaceCompleteDomain: SurfaceColoredDomain + SurfaceTexturedDomain {}
@@ -421,6 +426,15 @@ vertex_type! {
     pub struct SurfaceVertAnimFragment {
         #[serde(default = "default_animation_column")]
         pub animation_column: float = animationColumn(0),
+    }
+}
+
+vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @middlewares(deformer)
+    pub struct SurfaceDeformerFragment {
+        #[serde(default = "default_curves_index")]
+        pub curves_index: int = curvesIndex(0),
     }
 }
 
@@ -806,6 +820,198 @@ compound_vertex_type! {
         pub vertex: SurfaceVertexPNTC,
         #[serde(default)]
         pub vert_anim: SurfaceVertAnimFragment,
+        #[serde(default)]
+        pub skinning: SurfaceSkinningFragment,
+    }
+}
+
+compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceDeformerDomain)
+    pub struct SurfaceVertexDP {
+        #[serde(default)]
+        pub vertex: SurfaceVertexP,
+        #[serde(default)]
+        pub deformer: SurfaceDeformerFragment,
+    }
+}
+
+compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceDeformerDomain)
+    pub struct SurfaceVertexDPN {
+        #[serde(default)]
+        pub vertex: SurfaceVertexPN,
+        #[serde(default)]
+        pub deformer: SurfaceDeformerFragment,
+    }
+}
+
+compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceDeformerDomain, SurfaceTexturedDomain)
+    pub struct SurfaceVertexDPT {
+        #[serde(default)]
+        pub vertex: SurfaceVertexPT,
+        #[serde(default)]
+        pub deformer: SurfaceDeformerFragment,
+    }
+}
+
+compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceDeformerDomain, SurfaceTexturedDomain)
+    pub struct SurfaceVertexDPNT {
+        #[serde(default)]
+        pub vertex: SurfaceVertexPNT,
+        #[serde(default)]
+        pub deformer: SurfaceDeformerFragment,
+    }
+}
+
+compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceDeformerDomain, SurfaceColoredDomain)
+    pub struct SurfaceVertexDPC {
+        #[serde(default)]
+        pub vertex: SurfaceVertexPC,
+        #[serde(default)]
+        pub deformer: SurfaceDeformerFragment,
+    }
+}
+
+compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceDeformerDomain, SurfaceColoredDomain)
+    pub struct SurfaceVertexDPNC {
+        #[serde(default)]
+        pub vertex: SurfaceVertexPNC,
+        #[serde(default)]
+        pub deformer: SurfaceDeformerFragment,
+    }
+}
+
+compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceDeformerDomain, SurfaceColoredDomain, SurfaceTexturedDomain, SurfaceCompleteDomain)
+    pub struct SurfaceVertexDPTC {
+        #[serde(default)]
+        pub vertex: SurfaceVertexPTC,
+        #[serde(default)]
+        pub deformer: SurfaceDeformerFragment,
+    }
+}
+
+compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceDeformerDomain, SurfaceColoredDomain, SurfaceTexturedDomain, SurfaceCompleteDomain)
+    pub struct SurfaceVertexDPNTC {
+        #[serde(default)]
+        pub vertex: SurfaceVertexPNTC,
+        #[serde(default)]
+        pub deformer: SurfaceDeformerFragment,
+    }
+}
+
+compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceDeformerDomain, SurfaceSkinnedDomain)
+    pub struct SurfaceVertexDSP {
+        #[serde(default)]
+        pub vertex: SurfaceVertexP,
+        #[serde(default)]
+        pub deformer: SurfaceDeformerFragment,
+        #[serde(default)]
+        pub skinning: SurfaceSkinningFragment,
+    }
+}
+
+compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceDeformerDomain, SurfaceSkinnedDomain)
+    pub struct SurfaceVertexDSPN {
+        #[serde(default)]
+        pub vertex: SurfaceVertexPN,
+        #[serde(default)]
+        pub deformer: SurfaceDeformerFragment,
+        #[serde(default)]
+        pub skinning: SurfaceSkinningFragment,
+    }
+}
+
+compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceDeformerDomain, SurfaceSkinnedDomain, SurfaceTexturedDomain)
+    pub struct SurfaceVertexDSPT {
+        #[serde(default)]
+        pub vertex: SurfaceVertexPT,
+        #[serde(default)]
+        pub deformer: SurfaceDeformerFragment,
+        #[serde(default)]
+        pub skinning: SurfaceSkinningFragment,
+    }
+}
+
+compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceDeformerDomain, SurfaceSkinnedDomain, SurfaceTexturedDomain)
+    pub struct SurfaceVertexDSPNT {
+        #[serde(default)]
+        pub vertex: SurfaceVertexPNT,
+        #[serde(default)]
+        pub deformer: SurfaceDeformerFragment,
+        #[serde(default)]
+        pub skinning: SurfaceSkinningFragment,
+    }
+}
+
+compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceDeformerDomain, SurfaceSkinnedDomain, SurfaceColoredDomain)
+    pub struct SurfaceVertexDSPC {
+        #[serde(default)]
+        pub vertex: SurfaceVertexPC,
+        #[serde(default)]
+        pub deformer: SurfaceDeformerFragment,
+        #[serde(default)]
+        pub skinning: SurfaceSkinningFragment,
+    }
+}
+
+compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceDeformerDomain, SurfaceSkinnedDomain, SurfaceColoredDomain)
+    pub struct SurfaceVertexDSPNC {
+        #[serde(default)]
+        pub vertex: SurfaceVertexPNC,
+        #[serde(default)]
+        pub deformer: SurfaceDeformerFragment,
+        #[serde(default)]
+        pub skinning: SurfaceSkinningFragment,
+    }
+}
+
+compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceDeformerDomain, SurfaceSkinnedDomain, SurfaceColoredDomain, SurfaceTexturedDomain, SurfaceCompleteDomain)
+    pub struct SurfaceVertexDSPTC {
+        #[serde(default)]
+        pub vertex: SurfaceVertexPTC,
+        #[serde(default)]
+        pub deformer: SurfaceDeformerFragment,
+        #[serde(default)]
+        pub skinning: SurfaceSkinningFragment,
+    }
+}
+
+compound_vertex_type! {
+    #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+    @tags(SurfaceDomain, SurfaceDeformerDomain, SurfaceSkinnedDomain, SurfaceColoredDomain, SurfaceTexturedDomain, SurfaceCompleteDomain)
+    pub struct SurfaceVertexDSPNTC {
+        #[serde(default)]
+        pub vertex: SurfaceVertexPNTC,
+        #[serde(default)]
+        pub deformer: SurfaceDeformerFragment,
         #[serde(default)]
         pub skinning: SurfaceSkinningFragment,
     }

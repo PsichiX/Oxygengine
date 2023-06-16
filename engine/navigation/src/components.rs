@@ -3,7 +3,7 @@ use core::{
     ecs::Entity,
     id::ID,
     prefab::{Prefab, PrefabComponent},
-    Ignite, Scalar,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 pub type NavAgentId = ID<NavAgent>;
 
 /// Simple nav driver component tag to mark entity to use simple movement on nav mesh.
-#[derive(Ignite, Debug, Default, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct SimpleNavDriverTag;
 
 impl Prefab for SimpleNavDriverTag {}
@@ -50,7 +50,7 @@ pub struct NavAgentDestination {
 }
 
 /// Nav agent component.
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NavAgent {
     id: NavAgentId,
     /// Current agent position in world space.
@@ -65,13 +65,10 @@ pub struct NavAgent {
     /// instant).
     pub min_target_distance: Scalar,
     #[serde(skip)]
-    #[ignite(ignore)]
     pub(crate) destination: Option<NavAgentDestination>,
     #[serde(skip)]
-    #[ignite(ignore)]
     pub(crate) path: Option<Vec<NavVec3>>,
     #[serde(skip)]
-    #[ignite(ignore)]
     pub(crate) dirty_path: bool,
 }
 

@@ -1,11 +1,11 @@
 use crate::math::*;
 use core::{
     prefab::{Prefab, PrefabComponent},
-    Ignite, Scalar,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HaTransformDef {
     #[serde(default)]
     pub translation: Vec3,
@@ -31,20 +31,20 @@ impl From<HaTransformDef> for HaTransform {
     }
 }
 
-#[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(from = "HaTransformDef")]
 #[serde(into = "HaTransformDef")]
 pub struct HaTransform {
     translation: Vec3,
     rotation: Rotator,
     scale: Vec3,
-    #[ignite(ignore)]
+
     cached_local_matrix: Mat4,
-    #[ignite(ignore)]
+
     cached_world_matrix: Mat4,
-    #[ignite(ignore)]
+
     cached_inverse_local_matrix: Mat4,
-    #[ignite(ignore)]
+
     cached_inverse_world_matrix: Mat4,
 }
 

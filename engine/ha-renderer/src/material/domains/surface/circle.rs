@@ -1,7 +1,14 @@
 use crate::{
     material::domains::surface::SurfaceDomain,
     math::*,
-    mesh::{vertex_factory::StaticVertexFactory, MeshDrawMode, MeshError},
+    mesh::{
+        geometry::{
+            Geometry, GeometryPrimitives, GeometryTriangle, GeometryVertices,
+            GeometryVerticesColumn,
+        },
+        vertex_factory::StaticVertexFactory,
+        MeshError,
+    },
 };
 use serde::{Deserialize, Serialize};
 
@@ -23,68 +30,57 @@ impl Default for SurfaceCircleFactory {
 }
 
 impl SurfaceCircleFactory {
-    pub fn factory<T>(self) -> Result<StaticVertexFactory, MeshError>
-    where
-        T: SurfaceDomain,
-    {
+    pub fn geometry(self) -> Result<Geometry, MeshError> {
         if self.level == 0 {
             return Err(MeshError::ZeroSize);
         }
-        let vertex_layout = T::vertex_layout()?;
-        if !T::has_attribute("position") {
-            return Err(MeshError::MissingRequiredLayoutAttribute(
-                vertex_layout,
-                "position".to_owned(),
-            ));
-        }
         let edges = 3 * self.level;
         let vertex_count = 1 + edges;
-        let mut result =
-            StaticVertexFactory::new(vertex_layout, vertex_count, edges, MeshDrawMode::Triangles);
         let tangents = (0..edges)
             .map(|index| {
                 let angle = std::f32::consts::PI * index as f32 / edges as f32;
                 angle.sin_cos()
             })
             .collect::<Vec<_>>();
-        let mut position = Vec::with_capacity(vertex_count);
-        position.push(vec3(0.0, 0.0, 0.0));
-        for (x, y) in &tangents {
-            position.push(vec3(*x * self.radius, *y * self.radius, 0.0));
-        }
-        result.vertices_vec3f("position", &position, None)?;
-        if T::has_attribute("normal") {
-            result.vertices_vec3f(
-                "normal",
-                &(0..vertex_count)
-                    .map(|_| vec3(0.0, 0.0, 1.0))
+        Ok(Geometry::new(
+            GeometryVertices::default().with_columns([
+                GeometryVerticesColumn::new(
+                    "position",
+                    std::iter::once(vec2(0.0, 0.0))
+                        .chain(
+                            tangents
+                                .iter()
+                                .map(|(x, y)| vec2(*x * self.radius, *y * self.radius)),
+                        )
+                        .collect(),
+                ),
+                GeometryVerticesColumn::new(
+                    "textureCoord",
+                    std::iter::once(vec2(0.5, 0.5))
+                        .chain(
+                            tangents
+                                .into_iter()
+                                .map(|(x, y)| vec2((x + 1.0) * 0.5, (y + 1.0) * 0.5)),
+                        )
+                        .collect(),
+                ),
+                GeometryVerticesColumn::new(
+                    "color",
+                    std::iter::repeat(self.color).take(vertex_count).collect(),
+                ),
+            ])?,
+            GeometryPrimitives::triangles(
+                (0..edges)
+                    .map(|index| GeometryTriangle::new([0, 1 + index, 1 + (index + 1) % edges]))
                     .collect::<Vec<_>>(),
-                None,
-            )?;
-        }
-        if T::has_attribute("textureCoord") {
-            result.vertices_vec3f(
-                "textureCoord",
-                &tangents
-                    .into_iter()
-                    .map(|(x, y)| vec3((x + 1.0) * 0.5, (y + 1.0) * 0.5, 0.0))
-                    .collect::<Vec<_>>(),
-                None,
-            )?;
-        }
-        if T::has_attribute("color") {
-            result.vertices_vec4f(
-                "color",
-                &(0..vertex_count).map(|_| self.color).collect::<Vec<_>>(),
-                None,
-            )?;
-        }
-        result.triangles(
-            &(0..edges)
-                .map(|index| (0, (1 + index) as u32, (1 + (index + 1) % edges) as u32))
-                .collect::<Vec<_>>(),
-            None,
-        )?;
-        Ok(result)
+            ),
+        ))
+    }
+
+    pub fn factory<T>(self) -> Result<StaticVertexFactory, MeshError>
+    where
+        T: SurfaceDomain,
+    {
+        self.geometry()?.factory::<T>()
     }
 }

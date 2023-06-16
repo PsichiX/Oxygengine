@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-network-backend-web"
-version = "0.30.0"
+version = "0.40.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Network Web backend module for Oxygengine"
@@ -19,16 +19,16 @@ byteorder = "1.3"
 js-sys = "0.3"
 
 [dependencies.oxygengine-core]
-version = "0.30"
+version = "0.40"
 path = "../core"
 features = ["web"]
 
 [dependencies.oxygengine-backend-web]
-version = "0.30"
+version = "0.40"
 path = "../backend-web"
 
 [dependencies.oxygengine-network]
-version = "0.30"
+version = "0.40"
 path = "../network"
 features = ["web"]
 

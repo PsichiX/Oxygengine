@@ -1,7 +1,7 @@
 use crate::resources::market::*;
 use oxygengine_core::{
     prefab::{Prefab, PrefabComponent},
-    Ignite, Scalar,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -19,7 +19,7 @@ pub enum InventoryError {
     CannotReceiveItem(MarketItemId, usize),
 }
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Inventory {
     capacity_weight: Option<Scalar>,
     items: HashMap<MarketItemId, usize>,

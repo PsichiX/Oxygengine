@@ -1,5 +1,5 @@
 use crate::{dialogue::Dialogue, Color, Position, Scale};
-use core::{prefab::Prefab, Ignite, Scalar};
+use core::{prefab::Prefab, Scalar};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
@@ -53,7 +53,7 @@ impl Default for Action {
 
 impl Prefab for Action {}
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Chapter {
     pub name: String,
     pub actions: Vec<Action>,

@@ -5,6 +5,7 @@ pub mod materials;
 pub mod resources;
 pub mod systems;
 
+#[allow(ambiguous_glob_reexports)]
 pub mod prelude {
     #[cfg(feature = "web")]
     pub use crate::app::web::*;

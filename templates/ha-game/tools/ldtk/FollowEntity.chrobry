@@ -1,0 +1,9 @@
+inject
+```
+{
+  "HaCameraFollowBoardEntity": {
+    "name": "%{ $NAME }%",
+    "constraints": "Region"
+  }
+}
+```

@@ -1,0 +1,11 @@
+inject
+```
+{
+  "HaTransform": {},
+  "HaMeshInstance": {
+    "reference": "None"
+  },
+  "HaImmediateBatch-PT": {},
+  "%{ $COMPONENT }%": null
+}
+```

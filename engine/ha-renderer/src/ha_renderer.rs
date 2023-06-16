@@ -9,7 +9,7 @@ use crate::{
     resources::material_library::*,
     Error, HasContextResources, Resources,
 };
-use core::{utils::StringSequence, Ignite};
+use core::utils::StringSequence;
 use glow::*;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -35,7 +35,7 @@ impl HaRendererErrorReporter for LoggerHaRendererErrorReporter {
     }
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PipelineSource {
     Registry(String),
     Descriptor(PipelineDescriptor),
@@ -288,6 +288,11 @@ impl HaRenderer {
     #[inline]
     pub fn interface(&self) -> &dyn HaPlatformInterface {
         &*self.platform_interface
+    }
+
+    #[inline]
+    pub fn interface_mut(&mut self) -> &mut dyn HaPlatformInterface {
+        &mut *self.platform_interface
     }
 
     #[inline]

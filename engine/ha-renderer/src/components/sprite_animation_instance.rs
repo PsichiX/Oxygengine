@@ -1,7 +1,7 @@
 use crate::{asset_protocols::sprite_animation::*, image::ImageFiltering, math::*};
 use core::{
     prefab::{Prefab, PrefabComponent},
-    Ignite, Scalar,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -14,7 +14,7 @@ pub(crate) struct Active {
     pub cached_frame: Option<String>,
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HaSpriteAnimationInstance {
     #[serde(default)]
     pub playing: bool,
@@ -27,13 +27,10 @@ pub struct HaSpriteAnimationInstance {
     #[serde(default)]
     pub(crate) animation: String,
     #[serde(skip)]
-    #[ignite(ignore)]
     pub(crate) active: Option<Active>,
     #[serde(skip)]
-    #[ignite(ignore)]
     pub(crate) frame_changed: bool,
     #[serde(skip)]
-    #[ignite(ignore)]
     pub(crate) signals: Vec<SpriteAnimationSignal>,
 }
 

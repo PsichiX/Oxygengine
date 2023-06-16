@@ -1,42 +1,19 @@
 list:
   just --list
 
-format-engine:
-  cargo fmt --all --manifest-path ./engine/Cargo.toml
-
-format-templates:
-  cargo fmt --manifest-path ./templates/desktop-headless-game/Cargo.toml
-  cargo fmt --manifest-path ./templates/web-composite-game/Cargo.toml
-  cargo fmt --manifest-path ./templates/web-composite-visual-novel-game/Cargo.toml
-  cargo fmt --manifest-path ./templates/web-ha-base/Cargo.toml
-  cargo fmt --manifest-path ./templates/web-ha-game/Cargo.toml
-  cargo fmt --manifest-path ./templates/web-ha-prototype/Cargo.toml
-
-format-demos-wip:
-  cargo fmt --manifest-path ./demos/wip/pokemon/Cargo.toml
-  cargo fmt --manifest-path ./demos/wip/skinning-testbed/Cargo.toml
-  
-format-demos:
-  just format-demos-wip
-  
 format:
-  just format-engine
-  just format-templates
-  just format-demos
+  cargo fmt --all --manifest-path ./Cargo.toml
 
 build-engine:
-  cargo build --all --manifest-path ./engine/Cargo.toml
+  cargo build --manifest-path ./Cargo.toml
 
 build-templates:
-  cd ./templates/desktop-headless-game/ && cargo build
-  cd ./templates/web-composite-game/ && cargo build
-  cd ./templates/web-composite-visual-novel-game/ && cargo build
-  cd ./templates/web-ha-base/ && cargo build
-  cd ./templates/web-ha-game/ && cargo build
+  cd ./templates/ha-base/ && cargo build --manifest-path ./platforms/desktop/Cargo.toml
+  cd ./templates/ha-game/ && cargo build --manifest-path ./platforms/desktop/Cargo.toml
+  # cd ./templates/web-ha-prototype/ && cargo build
 
 build-demos-wip:
-  cd ./demos/wip/pokemon/ && cargo build
-  cd ./demos/wip/skinning-testbed/ && cargo build
+  cd ./demos/wip/rig-testbed/ && cargo build --manifest-path ./platforms/desktop/Cargo.toml
 
 build-demos:
   just build-demos-wip
@@ -47,25 +24,21 @@ build:
   just build-demos
 
 test-engine:
-  cargo test --all --manifest-path ./engine/Cargo.toml
+  cargo test --manifest-path ./Cargo.toml
 
 test:
   just test-engine
 
 clippy-engine:
-  cargo clippy --all --manifest-path ./engine/Cargo.toml
+  cargo clippy --manifest-path ./Cargo.toml
 
 clippy-templates:
-  cd ./templates/desktop-headless-game/ && cargo clippy
-  cd ./templates/web-composite-game/ && cargo clippy
-  cd ./templates/web-composite-visual-novel-game/ && cargo clippy
-  cd ./templates/web-ha-base/ && cargo clippy
-  cd ./templates/web-ha-game/ && cargo clippy
+  cd ./templates/ha-base/ && cargo clippy --manifest-path ./platforms/desktop/Cargo.toml
+  cd ./templates/ha-game/ && cargo clippy --manifest-path ./platforms/desktop/Cargo.toml
   cd ./templates/web-ha-prototype/ && cargo clippy
 
 clippy-demos-wip:
-  cd ./demos/wip/pokemon/ && cargo clippy
-  cd ./demos/wip/skinning-testbed/ && cargo clippy
+  cd ./demos/wip/rig-testbed/ && cargo clippy --manifest-path ./platforms/desktop/Cargo.toml
 
 clippy-demos:
   just clippy-demos-wip
@@ -77,8 +50,8 @@ clippy:
 
 checks-engine:
   just build-engine
-  just test-engine
   just clippy-engine
+  just test-engine
 
 checks-templates:
   just build-templates
@@ -95,6 +68,7 @@ checks:
 
 clean:
   find . -name target -type d -exec rm -r {} +
+  just remove-lockfiles
 
 remove-lockfiles:
   find . -name Cargo.lock -type f -exec rm {} +
@@ -109,15 +83,11 @@ update-ignite-presets:
 install-ignite:
   cargo install --path ./engine/ignite
 
-install-tools-composite-renderer:
-  cargo install --path ./engine/composite-renderer-tools
-
 install-tools-ha-renderer:
   cargo install --path ./engine/ha-renderer-tools
 
 install-tools:
   just install-ignite
-  just install-tools-composite-renderer
   just install-tools-ha-renderer
 
 list-outdated:
@@ -128,19 +98,15 @@ book:
   mdbook test book -L ./target/debug/deps
 
 update-engine:
-  cargo update --manifest-path ./engine/Cargo.toml --workspace
+  cargo update --manifest-path ./Cargo.toml --workspace --aggressive
 
 update-templates:
-  cd ./templates/desktop-headless-game/ && cargo update
-  cd ./templates/web-composite-game/ && cargo update
-  cd ./templates/web-composite-visual-novel-game/ && cargo update
-  cd ./templates/web-ha-base/ && cargo update
-  cd ./templates/web-ha-game/ && cargo update
-  cd ./templates/web-ha-prototype/ && cargo update
+  cd ./templates/ha-base/ && cargo update --aggressive --manifest-path ./platforms/desktop/Cargo.toml
+  cd ./templates/ha-game/ && cargo update --aggressive --manifest-path ./platforms/desktop/Cargo.toml
+  cd ./templates/web-ha-prototype/ && cargo update --aggressive
 
 update-demos-wip:
-  cd ./demos/wip/pokemon/ && cargo update
-  cd ./demos/wip/skinning-testbed/ && cargo update
+  cd ./demos/wip/rig-testbed/ && cargo update --aggressive --manifest-path ./platforms/desktop/Cargo.toml
 
 update-demos:
   just update-demos-wip
@@ -151,80 +117,70 @@ update:
   just update-demos
 
 publish:
-  cargo publish --no-verify --manifest-path ./engine/ignite-types/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/ignite-derive/Cargo.toml
-  sleep 15
   cargo publish --no-verify --manifest-path ./engine/ignite/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/build-tools/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/core/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/backend-web/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/utils/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/ai/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/animation/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/audio/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/audio-backend-web/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/composite-renderer/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/composite-renderer-backend-web/Cargo.toml
-  sleep 15
-  cargo publish --no-verify --manifest-path ./engine/composite-renderer-tools/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/ha-renderer/Cargo.toml
   sleep 20
   cargo publish --no-verify --manifest-path ./engine/ha-renderer-tools/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/ha-renderer-debugger/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/editor-tools/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/editor-tools-backend-web/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/input/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/input-device-web/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/navigation/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/network/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/network-backend-desktop/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/network-backend-native/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/network-backend-web/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/physics-2d/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/procedural/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/user-interface/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/visual-novel/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/overworld/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/prototype/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/integration-ow-ha/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/integration-p2d-cr/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/integration-ui-cr/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/integration-ui-ha/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/integration-vn-ui/Cargo.toml
-  sleep 15
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/_/Cargo.toml
 
 new-project PATH NAME:

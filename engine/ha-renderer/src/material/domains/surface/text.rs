@@ -3,11 +3,18 @@ use crate::{
     components::text_instance::{HaTextElement, HaTextInstance},
     material::domains::surface::SurfaceTextDomain,
     math::*,
-    mesh::{vertex_factory::StaticVertexFactory, MeshDrawMode, MeshError},
+    mesh::{
+        geometry::{
+            Geometry, GeometryPrimitives, GeometryTriangle, GeometryVertices,
+            GeometryVerticesColumn,
+        },
+        vertex_factory::StaticVertexFactory,
+        MeshError,
+    },
 };
 
 struct TextGlyph {
-    // character: char,
+    character: char,
     page: usize,
     position: Vec2,
     uvs: Rect,
@@ -23,44 +30,11 @@ struct TextGlyph {
 pub struct SurfaceTextFactory;
 
 impl SurfaceTextFactory {
-    pub fn factory<T>(
+    pub fn geometry(
         text: &HaTextInstance,
         font: &FontAsset,
-    ) -> Result<StaticVertexFactory, MeshError>
-    where
-        T: SurfaceTextDomain,
-    {
-        let vertex_layout = T::vertex_layout()?;
-        if !T::has_attribute("position") {
-            return Err(MeshError::MissingRequiredLayoutAttribute(
-                vertex_layout,
-                "position".to_owned(),
-            ));
-        }
-        if !T::has_attribute("textureCoord") {
-            return Err(MeshError::MissingRequiredLayoutAttribute(
-                vertex_layout,
-                "textureCoord".to_owned(),
-            ));
-        }
-        if !T::has_attribute("color") {
-            return Err(MeshError::MissingRequiredLayoutAttribute(
-                vertex_layout,
-                "color".to_owned(),
-            ));
-        }
-        if !T::has_attribute("outline") {
-            return Err(MeshError::MissingRequiredLayoutAttribute(
-                vertex_layout,
-                "outline".to_owned(),
-            ));
-        }
-        if !T::has_attribute("thickness") {
-            return Err(MeshError::MissingRequiredLayoutAttribute(
-                vertex_layout,
-                "thickness".to_owned(),
-            ));
-        }
+        meta: bool,
+    ) -> Result<Geometry, MeshError> {
         let count = text.glyphs_count();
         let bounds_width = text.bounds_width().unwrap_or(f32::INFINITY);
         let bounds_height = text.bounds_height().unwrap_or(f32::INFINITY);
@@ -138,7 +112,7 @@ impl SurfaceTextFactory {
                             let cursive_shift = yadvance * cursive;
                             line_height = line_height.max(yadvance);
                             line_cache.push(TextGlyph {
-                                // character,
+                                character,
                                 page: c.page as _,
                                 position: Vec2::new(x, y) + offset,
                                 uvs: Rect::new(
@@ -175,85 +149,112 @@ impl SurfaceTextFactory {
                 glyph.position.y += yalign - ypivot;
             }
         }
-        let vertex_count = count * 4;
-        let triangle_count = count * 2;
-        let mut result = StaticVertexFactory::new(
-            T::vertex_layout()?,
-            vertex_count,
-            triangle_count,
-            MeshDrawMode::Triangles,
-        );
-        let mut positions = Vec::with_capacity(vertex_count);
-        for glyph in lines.iter().flat_map(|(_, glyphs)| glyphs) {
-            positions.push(Vec3::new(
-                glyph.position.x + glyph.cursive_shift,
-                glyph.position.y,
-                0.0,
-            ));
-            positions.push(Vec3::new(
-                glyph.position.x + glyph.size.x + glyph.cursive_shift,
-                glyph.position.y,
-                0.0,
-            ));
-            positions.push(Vec3::new(
-                glyph.position.x + glyph.size.x - glyph.cursive_shift,
-                glyph.position.y + glyph.size.y,
-                0.0,
-            ));
-            positions.push(Vec3::new(
-                glyph.position.x - glyph.cursive_shift,
-                glyph.position.y + glyph.size.y,
-                0.0,
-            ));
-        }
-        result.vertices_vec3f("position", &positions, None)?;
-        let mut texture_coords = Vec::with_capacity(vertex_count);
-        for glyph in lines.iter().flat_map(|(_, glyphs)| glyphs) {
-            texture_coords.push(Vec3::new(glyph.uvs.x, glyph.uvs.y, glyph.page as _));
-            texture_coords.push(Vec3::new(
-                glyph.uvs.x + glyph.uvs.w,
-                glyph.uvs.y,
-                glyph.page as _,
-            ));
-            texture_coords.push(Vec3::new(
-                glyph.uvs.x + glyph.uvs.w,
-                glyph.uvs.y + glyph.uvs.h,
-                glyph.page as _,
-            ));
-            texture_coords.push(Vec3::new(
-                glyph.uvs.x,
-                glyph.uvs.y + glyph.uvs.h,
-                glyph.page as _,
-            ));
-        }
-        result.vertices_vec3f("textureCoord", &texture_coords, None)?;
-        let mut colors = Vec::with_capacity(vertex_count);
-        for glyph in lines.iter().flat_map(|(_, glyphs)| glyphs) {
-            colors.push(glyph.color.into());
-            colors.push(glyph.color.into());
-            colors.push(glyph.color.into());
-            colors.push(glyph.color.into());
-        }
-        result.vertices_vec4f("color", &colors, None)?;
-        let mut outlines = Vec::with_capacity(vertex_count);
-        for glyph in lines.iter().flat_map(|(_, glyphs)| glyphs) {
-            outlines.push(glyph.outline.into());
-            outlines.push(glyph.outline.into());
-            outlines.push(glyph.outline.into());
-            outlines.push(glyph.outline.into());
-        }
-        result.vertices_vec4f("outline", &outlines, None)?;
-        let indices = (0..triangle_count)
-            .map(|index| {
-                let i = 4 * (index / 2) as u32;
-                if index % 2 == 0 {
-                    (i, i + 1, i + 2)
-                } else {
-                    (i + 2, i + 3, i)
-                }
-            })
-            .collect::<Vec<_>>();
-        result.triangles(&indices, None)?;
-        Ok(result)
+
+        Ok(Geometry::new(
+            GeometryVertices::default().with_columns([
+                GeometryVerticesColumn::new(
+                    "position",
+                    lines
+                        .iter()
+                        .flat_map(|(_, glyphs)| glyphs)
+                        .flat_map(|glyph| {
+                            [
+                                Vec2::new(glyph.position.x + glyph.cursive_shift, glyph.position.y),
+                                Vec2::new(
+                                    glyph.position.x + glyph.size.x + glyph.cursive_shift,
+                                    glyph.position.y,
+                                ),
+                                Vec2::new(
+                                    glyph.position.x + glyph.size.x - glyph.cursive_shift,
+                                    glyph.position.y + glyph.size.y,
+                                ),
+                                Vec2::new(
+                                    glyph.position.x - glyph.cursive_shift,
+                                    glyph.position.y + glyph.size.y,
+                                ),
+                            ]
+                        })
+                        .collect(),
+                ),
+                GeometryVerticesColumn::new(
+                    "textureCoord",
+                    lines
+                        .iter()
+                        .flat_map(|(_, glyphs)| glyphs)
+                        .flat_map(|glyph| {
+                            [
+                                Vec3::new(glyph.uvs.x, glyph.uvs.y, glyph.page as _),
+                                Vec3::new(glyph.uvs.x + glyph.uvs.w, glyph.uvs.y, glyph.page as _),
+                                Vec3::new(
+                                    glyph.uvs.x + glyph.uvs.w,
+                                    glyph.uvs.y + glyph.uvs.h,
+                                    glyph.page as _,
+                                ),
+                                Vec3::new(glyph.uvs.x, glyph.uvs.y + glyph.uvs.h, glyph.page as _),
+                            ]
+                        })
+                        .collect(),
+                ),
+                GeometryVerticesColumn::new(
+                    "color",
+                    lines
+                        .iter()
+                        .flat_map(|(_, glyphs)| glyphs)
+                        .flat_map(|glyph| {
+                            [
+                                Vec4::from(glyph.color),
+                                Vec4::from(glyph.color),
+                                Vec4::from(glyph.color),
+                                Vec4::from(glyph.color),
+                            ]
+                        })
+                        .collect(),
+                ),
+                GeometryVerticesColumn::new(
+                    "outline",
+                    lines
+                        .iter()
+                        .flat_map(|(_, glyphs)| glyphs)
+                        .flat_map(|glyph| {
+                            [
+                                Vec4::from(glyph.outline),
+                                Vec4::from(glyph.outline),
+                                Vec4::from(glyph.outline),
+                                Vec4::from(glyph.outline),
+                            ]
+                        })
+                        .collect(),
+                ),
+            ])?,
+            GeometryPrimitives::triangles(
+                lines
+                    .iter()
+                    .flat_map(|(_, glyphs)| glyphs)
+                    .enumerate()
+                    .flat_map(|(index, glyph)| {
+                        let i = index * 4;
+                        let mut a = GeometryTriangle::new([i, i + 1, i + 2]);
+                        let mut b = GeometryTriangle::new([i + 2, i + 3, i]);
+                        if meta {
+                            a.attributes.set("index", index as i32);
+                            b.attributes.set("index", index as i32);
+                            a.attributes.set("character", glyph.character.to_string());
+                            b.attributes.set("character", glyph.character.to_string());
+                        }
+                        [a, b]
+                    })
+                    .collect::<Vec<_>>(),
+            ),
+        ))
+    }
+
+    pub fn factory<T>(
+        text: &HaTextInstance,
+        font: &FontAsset,
+    ) -> Result<StaticVertexFactory, MeshError>
+    where
+        T: SurfaceTextDomain,
+    {
+        Self::geometry(text, font, false)?.factory::<T>()
     }
 }

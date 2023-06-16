@@ -1,0 +1,6 @@
+[triggers.mouse]
+mouse-action = "left"
+
+[axes.mouse]
+mouse-x = "x"
+mouse-y = "y"

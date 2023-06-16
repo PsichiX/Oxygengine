@@ -1,4 +1,4 @@
-pub mod apply_skeletal_animation;
+pub mod apply_rig_animation;
 pub mod apply_sprite_animation_to_material;
 pub mod atlas;
 pub mod camera_cache;
@@ -9,8 +9,8 @@ pub mod render_forward_stage;
 pub mod render_gizmo_stage;
 pub mod render_postprocess_stage;
 pub mod renderer;
-pub mod skeletal_animation;
-pub mod skinning;
+pub mod rig;
+pub mod rig_animation;
 pub mod sprite_animation;
 pub mod tilemap;
 pub mod transform;

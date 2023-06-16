@@ -42,10 +42,10 @@ pub struct WebLogger;
 impl Logger for WebLogger {
     fn log(&mut self, mode: Log, message: String) {
         match mode {
-            Log::Info => console_log(&format!("[{}] {}", "INFO", message)),
-            Log::Warning => console_warn(&format!("[{}] {}", "WARNING", message)),
-            Log::Error => console_error(&format!("[{}] {}", "ERROR", message)),
-            Log::Debug => console_debug(&format!("[{}] {}", "DEBUG", message)),
+            Log::Info => console_log(&format!("[INFO] {}", message)),
+            Log::Warning => console_warn(&format!("[WARNING] {}", message)),
+            Log::Error => console_error(&format!("[ERROR] {}", message)),
+            Log::Debug => console_debug(&format!("[DEBUG] {}", message)),
         }
     }
 }

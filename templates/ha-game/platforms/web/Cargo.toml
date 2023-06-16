@@ -1,0 +1,29 @@
+[package]
+name = "ha-game"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+path = "../../src/web_lib.rs"
+
+[profile.release]
+opt-level = "s"
+
+[features]
+default = ["console_error_panic_hook"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+console_error_panic_hook = { version = "0.1", optional = true }
+serde = { version = "1", features = ["derive"] }
+rand = "0.8"
+
+[dependencies.oxygengine]
+version = "0.40"
+features = [
+  "web-ha-game",
+  "oxygengine-overworld",
+  "oxygengine-integration-ow-ha",
+]

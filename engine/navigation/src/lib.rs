@@ -27,29 +27,8 @@ use core::{
     app::AppBuilder,
     assets::database::AssetsDatabase,
     ecs::pipeline::{PipelineBuilder, PipelineBuilderError},
-    ignite_proxy,
     prefab::PrefabManager,
 };
-
-ignite_proxy! {
-    struct NavAgentId {}
-}
-
-ignite_proxy! {
-    struct NavVec3 {
-        pub x: Scalar,
-        pub y: Scalar,
-        pub z: Scalar,
-    }
-}
-
-ignite_proxy! {
-    struct NavTriangle {
-        pub first: u32,
-        pub second: u32,
-        pub third: u32,
-    }
-}
 
 pub fn bundle_installer<PB>(builder: &mut AppBuilder<PB>, _: ()) -> Result<(), PipelineBuilderError>
 where

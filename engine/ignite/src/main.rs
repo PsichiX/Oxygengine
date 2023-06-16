@@ -1,105 +1,190 @@
 mod build;
 mod pack;
 mod pipeline;
-mod test;
 
 use crate::{
-    build::{build_project, BuildProfile},
+    build::build_project,
     pack::pack_assets_and_write_to_file,
     pipeline::{Pipeline, PipelineCommand},
-    test::{test_project, TestProfile},
 };
 use cargo_metadata::MetadataCommand;
-use clap::{Arg, Command as App};
+use clap::{Parser, Subcommand};
 use dirs::home_dir;
 use hotwatch::{Event, Hotwatch};
-use oxygengine_ignite_types::IgniteTypeDefinition;
 use serde::Deserialize;
 use std::{
-    collections::{HashMap, HashSet},
-    env::{current_dir, current_exe, set_current_dir, vars},
+    collections::HashMap,
+    env::{current_dir, current_exe, set_current_dir},
     fs::{copy, create_dir_all, read_dir, read_to_string, remove_dir_all, remove_file, write},
     io::{Error, ErrorKind, Result},
     path::{Path, PathBuf},
-    process::{Command, Stdio},
-    sync::mpsc::channel,
+    process::Command,
+    sync::{Arc, Condvar, Mutex},
     thread::spawn,
     time::Instant,
 };
 
-enum ActionType {
-    PreCreate,
-    PostCreate,
-    PreBuild,
-    PostBuild,
+#[derive(Debug, Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
 }
 
-#[derive(Default, Deserialize)]
-struct PresetManifest {
-    #[serde(default)]
-    pub notes: Actions,
-    #[serde(default)]
-    pub scripts: Actions,
+#[derive(Debug, Subcommand)]
+enum Commands {
+    /// Create new project.
+    New {
+        /// Project ID.
+        #[arg(value_name = "ID")]
+        id: String,
+        /// Project destination path.
+        #[arg(short, long, value_name = "PATH", default_value = "./")]
+        destination: PathBuf,
+        /// Project preset.
+        #[arg(short, long, value_name = "NAME", default_value = "ha-base")]
+        preset: String,
+    },
+    /// Pack assets.
+    Pack {
+        /// Assets root folder.
+        #[arg(short, long, value_name = "PATH")]
+        input: Vec<PathBuf>,
+        /// Assets pack output file.
+        #[arg(short, long, value_name = "PATH")]
+        output: PathBuf,
+    },
+    /// Execute project pipeline.
+    Pipeline {
+        /// Pipeline JSON descriptor file.
+        #[arg(value_name = "PATH", default_value = "./pipeline.json")]
+        config: PathBuf,
+        /// Create and save pipeline template.
+        #[arg(short, long)]
+        template: bool,
+    },
+    /// Build project.
+    Build {
+        /// Project build profile. Possible values: debug, release.
+        #[arg(short, long, value_name = "NAME", default_value = "debug")]
+        profile: String,
+        /// Project crate directory.
+        #[arg(short, long, value_name = "PATH", default_value = "./")]
+        crate_dir: PathBuf,
+        /// Binaries output directory relative to crate directory.
+        #[arg(short, long, value_name = "PATH", default_value = "./bin/")]
+        out_dir: PathBuf,
+        /// Platform name to pack assets for.
+        #[arg(value_name = "NAME")]
+        platform: String,
+        /// Run WASM build instead of cargo build.
+        #[arg(short, long)]
+        wasm: bool,
+        /// Extra arguments passed to build executable.
+        #[arg(last = true)]
+        extras: Vec<String>,
+    },
+    /// Serve project binary and baked asset files to browsers.
+    Serve {
+        /// HTTP server port number.
+        #[arg(short, long, value_name = "NUMBER", default_value = "8080")]
+        port: u16,
+        /// Path to binaries folder.
+        #[arg(short, long, value_name = "PATH", default_value = "./bin/")]
+        binaries: PathBuf,
+        /// Path to baked assets folder.
+        #[arg(short, long, value_name = "PATH", default_value = "./assets-baked/")]
+        assets: PathBuf,
+        /// Open URL in the browser.
+        #[arg(short, long)]
+        open: bool,
+    },
+    /// Serve directory files to browsers.
+    ServeDir {
+        /// HTTP server port number.
+        #[arg(short, long, value_name = "NUMBER", default_value = "8080")]
+        port: u16,
+        /// Path to root folder.
+        #[arg(short, long, value_name = "PATH", default_value = "./")]
+        root: PathBuf,
+        /// Open URL in the browser.
+        #[arg(short, long)]
+        open: bool,
+    },
+    /// Listen for changes in binary and asset sources and rebuild them when they change.
+    Live {
+        /// Project build profile. Possible values: debug, release.
+        #[arg(short, long, value_name = "NAME", default_value = "debug")]
+        profile: String,
+        /// Path to source code folder.
+        #[arg(short, long, value_name = "PATH", default_value = "./src/")]
+        sources: Vec<PathBuf>,
+        /// Path to source assets folder.
+        #[arg(short, long, value_name = "PATH", default_value = "./assets/")]
+        assets: Vec<PathBuf>,
+        /// Project crate directory.
+        #[arg(short, long, value_name = "PATH", default_value = "./")]
+        crate_dir: PathBuf,
+        /// Platform name to pack assets for.
+        #[arg(value_name = "NAME")]
+        platform: String,
+        /// Run WASM build instead of cargo build.
+        #[arg(short, long)]
+        wasm: bool,
+        /// Optional additional command to run.
+        command: Option<String>,
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+    /// Make distribution package of the project.
+    Package {
+        /// Project build profile. Possible values: debug, release.
+        #[arg(short, long, value_name = "NAME", default_value = "release")]
+        profile: String,
+        /// Path to baked assets folder.
+        #[arg(short, long, value_name = "PATH", default_value = "./assets-baked/")]
+        assets: PathBuf,
+        /// Project crate directory.
+        #[arg(short, long, value_name = "PATH", default_value = "./")]
+        crate_dir: PathBuf,
+        /// Artifacts output directory relative to crate directory.
+        #[arg(short, long, value_name = "PATH", default_value = "./dist/")]
+        out_dir: PathBuf,
+        /// Platform name to pack assets for.
+        #[arg(value_name = "NAME")]
+        platform: String,
+        /// Run WASM build instead of cargo build.
+        #[arg(short, long)]
+        wasm: bool,
+    },
 }
 
-impl PresetManifest {
-    pub fn print_note(&self, action: ActionType) {
-        if let Some(text) = self.notes.format(action) {
-            println!("{}", text);
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Profile {
+    Debug,
+    Release,
+}
+
+impl Default for Profile {
+    fn default() -> Self {
+        Self::Debug
+    }
+}
+
+impl Profile {
+    pub fn from_str(value: &str) -> Option<Self> {
+        match value {
+            "debug" => Some(Self::Debug),
+            "release" => Some(Self::Release),
+            _ => None,
         }
     }
 
-    pub fn execute_script(&self, action: ActionType, wkdir: &Path) -> Result<()> {
-        if let Some(mut text) = self.scripts.format(action) {
-            for (key, value) in vars() {
-                text = text.replace(&format!("~${}$~", key), &value);
-            }
-            let parts = text
-                .split("<|>")
-                .map(|part| part.trim())
-                .collect::<Vec<_>>();
-            let output = Command::new(parts[0])
-                .args(&parts[1..])
-                .envs(vars().map(|(k, v)| (k, v)))
-                .current_dir(wkdir)
-                .stdin(Stdio::inherit())
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .output();
-            println!("{}", parts.join(" "));
-            output?;
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Debug => "debug",
+            Self::Release => "release",
         }
-        Ok(())
-    }
-}
-
-#[derive(Default, Deserialize)]
-struct Actions {
-    pub precreate: Option<String>,
-    pub postcreate: Option<String>,
-    pub prebuild: Option<String>,
-    pub postbuild: Option<String>,
-    #[serde(skip)]
-    pub dictionary: HashMap<String, String>,
-}
-
-impl Actions {
-    pub fn format(&self, action: ActionType) -> Option<String> {
-        let text = match action {
-            ActionType::PreCreate => &self.precreate,
-            ActionType::PostCreate => &self.postcreate,
-            ActionType::PreBuild => &self.prebuild,
-            ActionType::PostBuild => &self.postbuild,
-        };
-        let mut text = if let Some(text) = text {
-            text.clone()
-        } else {
-            return None;
-        };
-        for (key, value) in &self.dictionary {
-            text = text.replace(&format!("~%{}%~", key), value);
-        }
-        Some(text)
     }
 }
 
@@ -224,799 +309,283 @@ async fn main() -> Result<()> {
         std::env::set_var("SCCACHE_DIR", path.to_str().unwrap());
     }
 
-    let matches = App::new(env!("CARGO_PKG_NAME"))
-        .version(env!("CARGO_PKG_VERSION"))
-        .author(env!("CARGO_PKG_AUTHORS"))
-        .about(env!("CARGO_PKG_DESCRIPTION"))
-        .subcommand(
-            App::new("new")
-                .about("Create new project")
-                .arg(
-                    Arg::new("id")
-                        .value_name("ID")
-                        .help("Project ID")
-                        .takes_value(true)
-                        .required(true),
-                )
-                .arg(
-                    Arg::new("destination")
-                        .short('d')
-                        .long("destination")
-                        .value_name("PATH")
-                        .help("Project destination path")
-                        .takes_value(true)
-                        .required(false),
-                )
-                .arg(
-                    Arg::new("preset")
-                        .short('p')
-                        .long("preset")
-                        .help(&*format!("Project preset ({})", presets_list.join(", ")))
-                        .takes_value(false)
-                        .required(false)
-                        .default_value("web-ha-base"),
-                )
-                .arg(
-                    Arg::new("dont-build")
-                        .long("dont-build")
-                        .help("Prepare project and exit without building it")
-                        .takes_value(false)
-                        .required(false),
-                )
-        )
-        .subcommand(
-            App::new("pack")
-                .about("Pack assets")
-                .arg(
-                    Arg::new("input")
-                        .short('i')
-                        .long("input")
-                        .value_name("PATH")
-                        .help("Assets root folder")
-                        .takes_value(true)
-                        .required(true),
-                )
-                .arg(
-                    Arg::new("output")
-                        .short('o')
-                        .long("output")
-                        .value_name("PATH")
-                        .help("Asset pack output file")
-                        .takes_value(true)
-                        .required(true),
-                )
-        )
-        .subcommand(
-            App::new("pipeline")
-                .about("Execute project pipeline")
-                .arg(
-                    Arg::new("config")
-                        .short('c')
-                        .long("config")
-                        .value_name("PATH")
-                        .help("Pipeline JSON descriptor file")
-                        .takes_value(true)
-                        .required(false)
-                        .default_value("./pipeline.json")
-                )
-                .arg(
-                    Arg::new("template")
-                        .short('t')
-                        .long("template")
-                        .help("Create and save pipeline template")
-                        .takes_value(false)
-                        .required(false),
-                )
-        )
-        .subcommand(
-            App::new("build")
-                .about("Build project")
-                .arg(
-                    Arg::new("profile")
-                        .short('p')
-                        .long("profile")
-                        .value_name("PROFILE")
-                        .help("Project build profile. Possible values: debug, release")
-                        .takes_value(true)
-                        .required(false)
-                        .default_value("debug"),
-                )
-                .arg(
-                    Arg::new("crate_dir")
-                        .short('c')
-                        .long("crate_dir")
-                        .value_name("PATH")
-                        .help("Project crate directory")
-                        .takes_value(true)
-                        .required(false),
-                )
-                .arg(
-                    Arg::new("out_dir")
-                        .short('o')
-                        .long("out_dir")
-                        .value_name("PATH")
-                        .help("Binaries output directory relative to crate directory")
-                        .takes_value(true)
-                        .required(false),
-                )
-                .arg(
-                    Arg::new("extras")
-                        .last(true)
-                        .allow_hyphen_values(true)
-                        .multiple_values(true)
-                ),
-        )
-        .subcommand(
-            App::new("test")
-                .about("Test project")
-                .arg(
-                    Arg::new("profile")
-                        .short('p')
-                        .long("profile")
-                        .value_name("PROFILE")
-                        .help("Project build profile. Possible values: debug, release")
-                        .takes_value(true)
-                        .required(false)
-                        .default_value("debug"),
-                )
-                .arg(
-                    Arg::new("crate_dir")
-                        .short('c')
-                        .long("crate_dir")
-                        .value_name("PATH")
-                        .help("Project crate directory")
-                        .takes_value(true)
-                        .required(false),
-                )
-                .arg(
-                    Arg::new("extras")
-                        .last(true)
-                        .allow_hyphen_values(true)
-                        .multiple_values(true)
-                ),
-        )
-        .subcommand(
-            App::new("serve")
-                .about("Serve project binary and baked asset files to browsers")
-                .arg(
-                    Arg::new("port")
-                        .short('p')
-                        .long("port")
-                        .value_name("NUMBER")
-                        .help("HTTP server port")
-                        .takes_value(true)
-                        .required(false)
-                        .default_value("8080")
-                )
-                .arg(
-                    Arg::new("binaries")
-                        .short('b')
-                        .long("binaries")
-                        .value_name("PATH")
-                        .help("Path to the binaries folder")
-                        .takes_value(true)
-                        .required(false)
-                        .default_value("./bin/")
-                )
-                .arg(
-                    Arg::new("assets")
-                        .short('a')
-                        .long("assets")
-                        .value_name("PATH")
-                        .help("Path to the baked assets folder")
-                        .takes_value(true)
-                        .required(false)
-                        .default_value("./assets-baked/")
-                )
-                .arg(
-                    Arg::new("open")
-                        .short('o')
-                        .long("open")
-                        .help("Open URL in the browser")
-                        .required(false)
-                )
-        )
-        .subcommand(
-            App::new("serve-dir")
-                .about("Serve directory files to browsers")
-                .arg(
-                    Arg::new("port")
-                        .short('p')
-                        .long("port")
-                        .value_name("NUMBER")
-                        .help("HTTP server port")
-                        .takes_value(true)
-                        .required(false)
-                        .default_value("8080")
-                )
-                .arg(
-                    Arg::new("root")
-                        .short('r')
-                        .long("root")
-                        .value_name("PATH")
-                        .help("Path to the root folder")
-                        .takes_value(true)
-                        .required(false)
-                        .default_value("./")
-                )
-                .arg(
-                    Arg::new("open")
-                        .short('o')
-                        .long("open")
-                        .help("Open URL in the browser")
-                        .required(false)
-                )
-        )
-        .subcommand(
-            App::new("live")
-                .about("Listen for changes in binary and asset sources and rebuild them when they change")
-                .arg(
-                    Arg::new("profile")
-                        .short('r')
-                        .long("profile")
-                        .value_name("PROFILE")
-                        .help("Project build profile. Possible values: debug, release")
-                        .takes_value(true)
-                        .required(false)
-                        .default_value("debug"),
-                )
-                .arg(
-                    Arg::new("binaries")
-                        .short('b')
-                        .long("binaries")
-                        .value_name("PATH")
-                        .help("Path to the binaries source folders (Rust or JS code)")
-                        .takes_value(true)
-                        .required(false)
-                        .multiple_values(true)
-                )
-                .arg(
-                    Arg::new("assets")
-                        .short('a')
-                        .long("assets")
-                        .value_name("PATH")
-                        .help("Path to the assets sources folders")
-                        .takes_value(true)
-                        .required(false)
-                        .multiple_values(true)
-                )
-                .arg(
-                    Arg::new("crate_dir")
-                        .short('c')
-                        .long("crate_dir")
-                        .value_name("PATH")
-                        .help("Project crate directory")
-                        .takes_value(true)
-                        .required(false)
-                        .default_value("./")
-                )
-                .arg(
-                    Arg::new("pipeline")
-                        .short('p')
-                        .long("pipeline")
-                        .value_name("PATH")
-                        .help("Pipeline JSON descriptor file")
-                        .takes_value(true)
-                        .required(false)
-                        .default_value("./pipeline.json")
-                )
-                .arg(
-                    Arg::new("extras")
-                        .last(true)
-                        .allow_hyphen_values(true)
-                        .multiple_values(true)
-                )
-        )
-        .subcommand(
-            App::new("package")
-                .about("Make distribution package of the project")
-                .arg(
-                    Arg::new("debug")
-                        .short('d')
-                        .long("debug")
-                        .help("Package with debug profile")
-                        .takes_value(false)
-                        .required(false)
-                )
-                .arg(
-                    Arg::new("crate_dir")
-                        .short('c')
-                        .long("crate_dir")
-                        .value_name("PATH")
-                        .help("Crate directory")
-                        .takes_value(true)
-                        .required(false)
-                        .default_value("./")
-                )
-                .arg(
-                    Arg::new("pipeline")
-                        .short('p')
-                        .long("pipeline")
-                        .value_name("PATH")
-                        .help("Assets pipeline config file")
-                        .takes_value(true)
-                        .required(false)
-                        .default_value("./pipeline.json")
-                )
-                .arg(
-                    Arg::new("assets")
-                        .short('a')
-                        .long("assets")
-                        .value_name("PATH")
-                        .help("Baked assets directory")
-                        .takes_value(true)
-                        .required(false)
-                        .default_value("./assets-baked/")
-                )
-                .arg(
-                    Arg::new("out_dir")
-                        .short('o')
-                        .long("out_dir")
-                        .value_name("PATH")
-                        .help("Output directory relative to crate directory")
-                        .takes_value(true)
-                        .required(false)
-                        .default_value("./dist/")
-                )
-        )
-        .subcommand(
-            App::new("types")
-                .about("Performs operation on ignite type definitions")
-                .subcommand(
-                    App::new("validate")
-                        .about("Validate types")
-                        .arg(
-                            Arg::new("path")
-                                .short('p')
-                                .long("path")
-                                .value_name("PATH")
-                                .help("Path to the crate root directory")
-                                .takes_value(true)
-                                .required(false)
-                        )
-                        .arg(
-                            Arg::new("ignore")
-                                .short('i')
-                                .long("ignore")
-                                .value_name("NAME")
-                                .help("Names of types to ignore in report")
-                                .takes_value(true)
-                                .required(false)
-                                .multiple_values(true)
-                        )
-                        .arg(
-                            Arg::new("ignore-file")
-                                .short('f')
-                                .long("ignore-file")
-                                .value_name("PATH")
-                                .help("Path to list of type names to ignore in report")
-                                .takes_value(true)
-                                .required(false)
-                        )
-                )
-        )
-        .get_matches();
-
-    if let Some(matches) = matches.subcommand_matches("new") {
-        let id = matches.value_of("id").unwrap();
-        let destination = matches.value_of("destination");
-        let preset = matches.value_of("preset").unwrap();
-        let dont_build = matches.is_present("dont-build");
-        let preset_path = presets_path.join(preset);
-        if !preset_path.exists() {
-            return Err(Error::new(
-                ErrorKind::NotFound,
-                format!("Preset not found: {} (in path: {:?})", preset, preset_path),
-            ));
-        }
-        let mut destination_path = if let Some(destination) = destination {
-            destination.into()
-        } else {
-            current_dir()?
-        };
-        destination_path.push(id);
-        if let Err(err) = create_dir_all(&destination_path) {
-            if err.kind() != ErrorKind::AlreadyExists {
+    let cli = Cli::parse();
+    match cli.command {
+        Commands::New {
+            id,
+            mut destination,
+            preset,
+        } => {
+            let preset_path = presets_path.join(&preset);
+            if !preset_path.exists() {
                 return Err(Error::new(
-                    ErrorKind::Other,
-                    format!("Could not create directory: {:?}", destination_path),
+                    ErrorKind::NotFound,
+                    format!("Preset not found: {} (in path: {:?})", preset, preset_path),
                 ));
             }
-        }
-
-        let preset_manifest_path = presets_path.join(format!("{}.toml", preset));
-        let preset_manifest = if preset_manifest_path.exists() {
-            let contents = read_to_string(&preset_manifest_path)?;
-            if let Ok(mut manifest) = toml::from_str::<PresetManifest>(&contents) {
-                manifest.notes.dictionary.insert(
-                    "IGNITE_DESTINATION_PATH".to_owned(),
-                    destination_path.to_str().unwrap().to_owned(),
-                );
-                manifest.scripts.dictionary = manifest.notes.dictionary.clone();
-                Some(manifest)
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-
-        println!("Make project: {:?}", &destination_path);
-        if let Some(preset_manifest) = &preset_manifest {
-            preset_manifest.print_note(ActionType::PreCreate);
-        }
-        println!("* Prepare project structure...");
-        if let Some(preset_manifest) = &preset_manifest {
-            preset_manifest.execute_script(ActionType::PreCreate, &destination_path)?;
-        }
-        copy_dir(&preset_path, &destination_path, id)?;
-        if let Some(preset_manifest) = &preset_manifest {
-            preset_manifest.execute_script(ActionType::PostCreate, &destination_path)?;
-        }
-        println!("Done!");
-        if let Some(preset_manifest) = &preset_manifest {
-            preset_manifest.print_note(ActionType::PostCreate);
-        }
-        if !dont_build {
-            if let Some(preset_manifest) = &preset_manifest {
-                preset_manifest.print_note(ActionType::PreBuild);
-            }
-            println!("* Build rust project...");
-            if let Some(preset_manifest) = &preset_manifest {
-                preset_manifest.execute_script(ActionType::PreBuild, &destination_path)?;
-            }
-            Command::new("cargo")
-                .arg("build")
-                .current_dir(&destination_path)
-                .output()?;
-            if let Some(preset_manifest) = &preset_manifest {
-                preset_manifest.execute_script(ActionType::PostBuild, &destination_path)?;
-            }
-            println!("Done!");
-            if let Some(preset_manifest) = &preset_manifest {
-                preset_manifest.print_note(ActionType::PostBuild);
-            }
-        }
-    } else if let Some(matches) = matches.subcommand_matches("pack") {
-        let input = matches.values_of("input").unwrap().collect::<Vec<_>>();
-        let output = matches.value_of("output").unwrap();
-        pack_assets_and_write_to_file(&input, output)?;
-    } else if let Some(matches) = matches.subcommand_matches("pipeline") {
-        let config = matches.value_of("config").unwrap();
-        let mut config = Path::new(&config).to_owned();
-        let template = matches.is_present("template");
-        if template {
-            let pipeline = Pipeline {
-                source: "static".into(),
-                destination: "static".into(),
-                commands: vec![
-                    PipelineCommand::Pipeline(Pipeline {
-                        disabled: false,
-                        destination: "assets-generated".into(),
-                        clear_destination: true,
-                        ..Default::default()
-                    }),
-                    PipelineCommand::Pipeline(Pipeline {
-                        disabled: false,
-                        source: "assets-source".into(),
-                        destination: "assets-generated".into(),
-                        commands: vec![PipelineCommand::Copy {
-                            disabled: false,
-                            from: vec!["assets.txt".into()],
-                            to: "".into(),
-                        }],
-                        ..Default::default()
-                    }),
-                    PipelineCommand::Pack {
-                        disabled: false,
-                        paths: vec!["assets-generated".into()],
-                        output: "assets.pack".into(),
-                    },
-                ],
-                ..Default::default()
-            };
-            let contents = match serde_json::to_string_pretty(&pipeline) {
-                Ok(contents) => contents,
-                Err(error) => {
+            destination.push(&id);
+            if let Err(err) = create_dir_all(&destination) {
+                if err.kind() != ErrorKind::AlreadyExists {
                     return Err(Error::new(
                         ErrorKind::Other,
-                        format!(
-                            "Could not stringify pipeline JSON config: {:?}. Error: {:?}",
-                            config, error
-                        ),
+                        format!("Could not create directory: {:?}", destination),
+                    ));
+                }
+            }
+
+            println!("Make project: {:?}", &destination);
+            println!("* Prepare project structure...");
+            copy_dir(&preset_path, &destination, &id)?;
+            println!("Done!");
+        }
+        Commands::Pack { input, output } => {
+            pack_assets_and_write_to_file(&input, output)?;
+        }
+        Commands::Pipeline { config, template } => {
+            if template {
+                let pipeline = Pipeline {
+                    source: "static".into(),
+                    destination: "static".into(),
+                    commands: vec![
+                        PipelineCommand::Pipeline(Pipeline {
+                            disabled: false,
+                            destination: "assets-generated".into(),
+                            clear_destination: true,
+                            ..Default::default()
+                        }),
+                        PipelineCommand::Pipeline(Pipeline {
+                            disabled: false,
+                            source: "assets-source".into(),
+                            destination: "assets-generated".into(),
+                            commands: vec![PipelineCommand::Copy {
+                                disabled: false,
+                                from: vec!["assets.txt".into()],
+                                to: "".into(),
+                            }],
+                            ..Default::default()
+                        }),
+                        PipelineCommand::Pack {
+                            disabled: false,
+                            paths: vec!["assets-generated".into()],
+                            output: "assets.pack".into(),
+                        },
+                    ],
+                    ..Default::default()
+                };
+                let contents = match serde_json::to_string_pretty(&pipeline) {
+                    Ok(contents) => contents,
+                    Err(error) => {
+                        return Err(Error::new(
+                            ErrorKind::Other,
+                            format!(
+                                "Could not stringify pipeline JSON config: {:?}. Error: {:?}",
+                                config, error
+                            ),
+                        ))
+                    }
+                };
+                write(config, &contents)?;
+            } else if config.exists() {
+                Pipeline::load_and_execute(config)?;
+            } else {
+                println!("Could not find pipeline config file: {:?}", config);
+            }
+        }
+        Commands::Build {
+            profile,
+            crate_dir,
+            out_dir,
+            platform,
+            wasm,
+            extras,
+        } => {
+            let profile = match Profile::from_str(profile.as_str()) {
+                Some(profile) => profile,
+                None => {
+                    return Err(Error::new(
+                        ErrorKind::NotFound,
+                        format!("Unknown build profile: {}", profile),
                     ))
                 }
             };
-            write(config, &contents)?;
-        } else if config.exists() {
-            let contents = read_to_string(&config)?;
-            match serde_json::from_str::<Pipeline>(&contents) {
-                Ok(pipeline) => {
-                    verify_used_plugins(&pipeline);
-                    if config.is_file() {
-                        config.pop();
-                    }
-                    set_current_dir(config)?;
-                    pipeline.execute()?;
-                }
-                Err(error) => println!(
-                    "Could not parse pipeline JSON config: {:?}. Error: {:?}",
-                    config, error
-                ),
-            }
-        } else {
-            println!("Could not find pipeline config file: {:?}", config);
+            build_project(profile, crate_dir, out_dir, platform, wasm, extras)?;
         }
-    } else if let Some(matches) = matches.subcommand_matches("build") {
-        let profile = match matches.value_of("profile").unwrap() {
-            "debug" => BuildProfile::Debug,
-            "release" => BuildProfile::Release,
-            profile => {
-                return Err(Error::new(
-                    ErrorKind::NotFound,
-                    format!("Unknown build profile: {}", profile),
-                ))
+        Commands::Serve {
+            port,
+            binaries,
+            assets,
+            open,
+        } => {
+            if open {
+                open::that(format!("http://localhost:{}", port))
+                    .expect("Could not open URL in the browser");
             }
-        };
-        let crate_dir = matches.value_of("crate_dir").map(|v| v.to_owned());
-        let out_dir = matches.value_of("out_dir").map(|v| v.to_owned());
-        let extras = matches
-            .values_of("extras")
-            .map(|iter| iter.map(|arg| arg.to_owned()).collect::<Vec<_>>())
-            .unwrap_or_default();
-        build_project(profile, crate_dir, out_dir, extras)?;
-    } else if let Some(matches) = matches.subcommand_matches("test") {
-        let profile = match matches.value_of("profile").unwrap() {
-            "debug" => TestProfile::Debug,
-            "release" => TestProfile::Release,
-            profile => {
-                return Err(Error::new(
-                    ErrorKind::NotFound,
-                    format!("Unknown build profile: {}", profile),
-                ))
+            serve_files(port, binaries, assets).await;
+        }
+        Commands::ServeDir { port, root, open } => {
+            if open {
+                open::that(format!("http://localhost:{}", port))
+                    .expect("Could not open URL in the browser");
             }
-        };
-        let crate_dir = matches.value_of("crate_dir").map(|v| v.to_owned());
-        let extras = matches
-            .values_of("extras")
-            .map(|iter| iter.map(|arg| arg.to_owned()).collect::<Vec<_>>())
-            .unwrap_or_default();
-        test_project(profile, crate_dir, extras)?;
-    } else if let Some(matches) = matches.subcommand_matches("serve") {
-        let port = matches
-            .value_of("port")
-            .unwrap()
-            .parse::<u16>()
-            .expect("Could not parse port number");
-        let binaries = matches.value_of("binaries").unwrap().to_owned();
-        let assets = matches.value_of("assets").unwrap().to_owned();
-        if matches.is_present("open") {
-            open::that(format!("http://localhost:{}", port))
-                .expect("Could not open URL in the browser");
+            serve_dir(port, root).await;
         }
-        serve_files(port, binaries, assets).await;
-    } else if let Some(matches) = matches.subcommand_matches("serve-dir") {
-        let port = matches
-            .value_of("port")
-            .unwrap()
-            .parse::<u16>()
-            .expect("Could not parse port number");
-        let root = matches.value_of("root").unwrap().to_owned();
-        if matches.is_present("open") {
-            open::that(format!("http://localhost:{}", port))
-                .expect("Could not open URL in the browser");
-        }
-        serve_dir(port, root).await;
-    } else if let Some(matches) = matches.subcommand_matches("live") {
-        let profile = matches.value_of("profile").unwrap().to_owned();
-        let binaries = matches
-            .values_of("binaries")
-            .map(|v| v.collect::<Vec<_>>())
-            .unwrap_or_else(|| vec!["./src"]);
-        let assets = matches
-            .values_of("assets")
-            .map(|v| v.collect::<Vec<_>>())
-            .unwrap_or_else(|| vec!["./assets"]);
-        let crate_dir = matches.value_of("crate_dir").unwrap().to_owned();
-        let pipeline = matches.value_of("pipeline").unwrap().to_owned();
-        let extras = matches
-            .values_of("extras")
-            .map(|iter| iter.map(|arg| arg.to_owned()).collect::<Vec<_>>());
-        let mut watcher = Hotwatch::new().expect("Could not start files watcher");
-        let (build_sender, build_receiver) = channel();
-        let (pipeline_sender, pipeline_receiver) = channel();
-        build_sender
-            .send(())
-            .expect("Cannot send build run command");
-        pipeline_sender
-            .send(())
-            .expect("Cannot send pipeline run command");
-        for path in binaries {
-            let build_sender = build_sender.clone();
-            watcher
-                .watch(&path, move |event| match event {
-                    Event::Create(_) | Event::Write(_) | Event::Remove(_) => {
-                        if build_sender.send(()).is_ok() {
-                            println!("* Rebuild project binaries");
+        Commands::Live {
+            profile,
+            sources,
+            assets,
+            crate_dir,
+            platform,
+            wasm,
+            command,
+            args,
+        } => {
+            let mut watcher = Hotwatch::new().expect("Could not start files watcher");
+            let build_notifier = Arc::new((Mutex::new(()), Condvar::new()));
+            let pipeline_notifier = Arc::new((Mutex::new(()), Condvar::new()));
+            for path in &sources {
+                let build_notifier = build_notifier.clone();
+                watcher
+                    .watch(&path, move |event| match event {
+                        Event::Create(_) | Event::Write(_) | Event::Remove(_) => {
+                            build_notifier.1.notify_all();
                         }
-                    }
-                    _ => {}
-                })
-                .unwrap_or_else(|_| panic!("Could not watch for binaries sources: {:?}", path));
-            println!("* Watching binaries sources: {:?}", path);
-        }
-        for path in assets {
-            let pipeline_sender = pipeline_sender.clone();
-            watcher
-                .watch(&path, move |event| match event {
-                    Event::Create(_) | Event::Write(_) | Event::Remove(_) => {
-                        if pipeline_sender.send(()).is_ok() {
-                            println!("* Rebake project assets");
+                        _ => {}
+                    })
+                    .unwrap_or_else(|_| panic!("Could not watch for sources: {:?}", path));
+                println!("* Watching sources: {:?}", path);
+            }
+            for path in &assets {
+                let pipeline_notifier = pipeline_notifier.clone();
+                watcher
+                    .watch(&path, move |event| match event {
+                        Event::Create(_) | Event::Write(_) | Event::Remove(_) => {
+                            pipeline_notifier.1.notify_all();
                         }
+                        _ => {}
+                    })
+                    .unwrap_or_else(|_| panic!("Could not watch for assets: {:?}", path));
+                println!("* Watching assets: {:?}", path);
+            }
+            let platform2 = platform.to_owned();
+            let builds = spawn(move || {
+                let exe = current_exe().expect("Could not get path to the running executable");
+                loop {
+                    let mut command = Command::new(&exe);
+                    command.arg("build");
+                    command.arg("--profile");
+                    command.arg(&profile);
+                    command.arg("--crate-dir");
+                    command.arg(&crate_dir);
+                    command.arg(&platform2);
+                    if wasm {
+                        command.arg("--wasm");
                     }
-                    _ => {}
-                })
-                .unwrap_or_else(|_| panic!("Could not watch for assets sources: {:?}", path));
-            println!("* Watching assets sources: {:?}", path);
+                    if let Err(error) = command.status() {
+                        println!("Error during build process execution: {:#?}", error);
+                    } else {
+                        println!("* Done building binaries!");
+                    }
+                    let guard = build_notifier
+                        .0
+                        .lock()
+                        .expect("Could not lock build notifier");
+                    drop(
+                        build_notifier
+                            .1
+                            .wait(guard)
+                            .expect("Could not wait for build notifier"),
+                    );
+                }
+            });
+            let pipelines = spawn(move || {
+                let pipeline = format!("platforms/{}/pipeline.json", platform);
+                let exe = current_exe().expect("Could not get path to the running executable");
+                loop {
+                    if let Err(error) = Command::new(&exe).arg("pipeline").arg(&pipeline).status() {
+                        println!("* Error during pipeline process execution: {:#?}", error);
+                    } else {
+                        println!("* Done baking assets!");
+                    }
+                    let guard = pipeline_notifier
+                        .0
+                        .lock()
+                        .expect("Could not lock pipeline notifier");
+                    drop(
+                        pipeline_notifier
+                            .1
+                            .wait(guard)
+                            .expect("Could not wait for pipeline notifier"),
+                    );
+                }
+            });
+            if let Some(command) = command {
+                let exe = current_exe().expect("Could not get path to the running executable");
+                Command::new(exe)
+                    .arg(command)
+                    .args(args)
+                    .status()
+                    .expect("Could not serve binary and asset files");
+            }
+            let _ = builds.join();
+            let _ = pipelines.join();
         }
-        let builds = spawn(move || {
+        Commands::Package {
+            profile,
+            assets,
+            crate_dir,
+            out_dir,
+            platform,
+            wasm,
+        } => {
+            let current_path = current_dir()?;
             let exe = current_exe().expect("Could not get path to the running executable");
-            while build_receiver.recv().is_ok() {
-                if let Err(error) = Command::new(&exe)
-                    .arg("build")
-                    .arg("--profile")
-                    .arg(&profile)
-                    .arg("--crate_dir")
-                    .arg(&crate_dir)
-                    .status()
-                {
-                    println!("Error during build process execution: {:#?}", error);
-                } else {
-                    println!("* Done building binaries!");
-                }
+            let timer = Instant::now();
+            create_dir_all(&out_dir)?;
+            println!("* Packaging application in {} mode", profile);
+            let mut command = Command::new(&exe);
+            command.arg("build");
+            command.arg("--profile");
+            command.arg(&profile);
+            command.arg("--crate-dir");
+            command.arg(&crate_dir);
+            command.arg("--out-dir");
+            command.arg(&out_dir);
+            command.arg(&platform);
+            if wasm {
+                command.arg("--wasm");
             }
-        });
-        let pipelines = spawn(move || {
-            let exe = current_exe().expect("Could not get path to the running executable");
-            while pipeline_receiver.recv().is_ok() {
-                if let Err(error) = Command::new(&exe)
-                    .arg("pipeline")
-                    .arg("--config")
-                    .arg(&pipeline)
-                    .status()
-                {
-                    println!("* Error during pipeline process execution: {:#?}", error);
-                } else {
-                    println!("* Done baking assets!");
-                }
-            }
-        });
-        let exe = current_exe().expect("Could not get path to the running executable");
-        if let Some(extras) = extras {
-            Command::new(exe)
-                .arg("serve")
-                .args(extras)
+            command
                 .status()
-                .expect("Could not run HTTP server");
-        }
-        let _ = builds.join();
-        let _ = pipelines.join();
-    } else if let Some(matches) = matches.subcommand_matches("package") {
-        let debug = matches.is_present("debug");
-        let crate_dir = matches.value_of("crate_dir").unwrap();
-        let pipeline = matches.value_of("pipeline").unwrap();
-        let assets = Path::new(matches.value_of("assets").unwrap());
-        let out_dir = matches.value_of("out_dir").unwrap();
-        let exe = current_exe().expect("Could not get path to the running executable");
-        let timer = Instant::now();
-        let mode = if debug { "debug" } else { "release" };
-        println!("* Packaging application in {} mode", mode);
-        Command::new(&exe)
-            .arg("build")
-            .arg("--profile")
-            .arg(mode)
-            .arg("--crate_dir")
-            .arg(crate_dir)
-            .arg("--out_dir")
-            .arg(out_dir)
-            .status()
-            .unwrap_or_else(|_| panic!("Could not run build in {} mode", mode));
-        let out_dir = Path::new(crate_dir).join(out_dir);
-        if remove_file(out_dir.join(".gitignore")).is_err() {
-            println!("Could not remove .gitignore file");
-        }
-        if remove_file(out_dir.join("package.json")).is_err() {
-            println!("Could not remove package.json file");
-        }
-        println!("* Executing assets pipeline");
-        Command::new(exe)
-            .arg("pipeline")
-            .arg("--config")
-            .arg(pipeline)
-            .status()
-            .expect("Could not run assets pipeline");
-        println!("* Copying assets to output directory");
-        copy_dir(assets, &out_dir, "").expect("Could not copy baked assets to output directory");
-        println!("* Done in: {:?}", timer.elapsed());
-    } else if let Some(matches) = matches.subcommand_matches("types") {
-        if let Some(matches) = matches.subcommand_matches("validate") {
-            let path = if let Some(path) = matches.value_of("path") {
-                Path::new(path).to_owned()
-            } else {
-                std::env::current_dir().unwrap()
-            };
-            let path = path.join("target").join("ignite").join("types");
-            if !path.is_dir() {
-                panic!("Ignite types directory does not exists: {:?}", path);
-            }
-            let mut ignore = if let Some(ignore) = matches.values_of("ignore") {
-                ignore.map(|item| item.to_owned()).collect::<Vec<_>>()
-            } else {
-                vec![]
-            };
-            if let Some(path) = matches.value_of("ignore-file") {
-                let contents = read_to_string(path).expect("Could not read ignored types file");
-                for line in contents.lines() {
-                    let line = line.trim();
-                    if !line.is_empty() {
-                        ignore.push(line.to_owned());
-                    }
+                .unwrap_or_else(|_| panic!("Could not run build in {} mode", profile));
+            set_current_dir(current_path.join(&crate_dir))?;
+            let out_dir = Path::new(&crate_dir).join(&out_dir);
+            if wasm {
+                if remove_file(out_dir.join(".gitignore")).is_err() {
+                    println!("Could not remove .gitignore file");
+                }
+                if remove_file(out_dir.join("package.json")).is_err() {
+                    println!("Could not remove package.json file");
                 }
             }
-            let types = path
-                .read_dir()
-                .expect("Could not scan ignite types directory")
-                .filter_map(|entry| {
-                    if let Ok(entry) = entry {
-                        let path = entry.path();
-                        if path.is_file() {
-                            let extension = path
-                                .extension()
-                                .unwrap_or_else(|| panic!("Unknown file type: {:?}", path));
-                            let extension = extension.to_str().unwrap_or_else(|| {
-                                panic!("Could not parse file extension: {:?}", path)
-                            });
-                            let definition = {
-                                match extension {
-                                    "json" => {
-                                        let contents = read_to_string(&path).unwrap_or_else(|_| {
-                                            panic!("Could not read ignite type file: {:?}", path)
-                                        });
-                                        serde_json::from_str::<IgniteTypeDefinition>(&contents)
-                                            .expect("Could not parse YAML type definition file")
-                                    }
-                                    extension => panic!("Unsupported file type: {:?}", extension),
-                                }
-                            };
-                            let key = definition.name();
-                            let value = definition.referenced();
-                            return Some((key, value));
-                        }
-                    }
-                    None
-                })
-                .collect::<HashMap<_, _>>();
-            let referenced = types.values().flatten().cloned().collect::<HashSet<_>>();
-            let type_names = types.keys().cloned().collect::<HashSet<_>>();
-            let mut diff = referenced.difference(&type_names).collect::<Vec<_>>();
-            diff.sort();
-            println!("* Referenced types without definition:");
-            for name in diff {
-                if !ignore.contains(name) {
-                    println!("{}:", name);
-                    for (n, item) in &types {
-                        if item.contains(name) {
-                            println!("- {}", n);
-                        }
-                    }
-                }
-            }
+            println!("* Executing assets pipeline");
+            let pipeline = format!("platforms/{}/pipeline.json", platform);
+            Command::new(exe)
+                .arg("pipeline")
+                .arg(pipeline)
+                .status()
+                .expect("Could not run assets pipeline");
+            set_current_dir(current_path.join(crate_dir))?;
+            println!("* Copying assets to output directory");
+            copy_dir(&assets, &out_dir, "")
+                .expect("Could not copy baked assets to output directory");
+            println!("* Done in: {:?}", timer.elapsed());
         }
     }
+
     Ok(())
 }
 
-async fn serve_files(port: u16, binaries: String, assets: String) {
+async fn serve_files(port: u16, binaries: PathBuf, assets: PathBuf) {
     println!("* Serve project files at: localhost:{}", port);
     println!("- binaries:\t{:?}", binaries);
     println!("- assets:\t{:?}", assets);
@@ -1027,7 +596,7 @@ async fn serve_files(port: u16, binaries: String, assets: String) {
     warp::serve(routes).run(([127, 0, 0, 1], port)).await;
 }
 
-async fn serve_dir(port: u16, root: String) {
+async fn serve_dir(port: u16, root: PathBuf) {
     println!("* Serve directory files at: localhost:{}", port);
     println!("- root:\t{:?}", root);
     use warp::Filter;
@@ -1075,26 +644,43 @@ fn copy_dir(from: &Path, to: &Path, id: &str) -> Result<()> {
     Ok(())
 }
 
-fn verify_used_plugins(pipeline: &Pipeline) {
-    for command in &pipeline.commands {
-        match command {
-            PipelineCommand::Plugin {
-                name,
-                do_not_verify: false,
-                ..
-            } => {
-                if which::which(name).is_err() {
-                    let plugin = name.rfind('-').map(|index| &name[0..index]).unwrap_or(name);
-                    let plugin = format!("{}-tools", plugin);
-                    println!(
-                        "Plugin not found: {}. Trying to install it: {}",
-                        name, plugin
-                    );
-                    let _ = Command::new("cargo").arg("install").arg(plugin).status();
-                }
-            }
-            PipelineCommand::Pipeline(pipeline) => verify_used_plugins(pipeline),
-            _ => {}
+pub fn binary_artifacts_paths(profile: &str, config: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
+    let meta = match MetadataCommand::new().manifest_path(config.as_ref()).exec() {
+        Ok(meta) => meta,
+        Err(error) => return Err(Error::new(ErrorKind::Other, error)),
+    };
+    let package = match meta.root_package() {
+        Some(package) => package,
+        None => {
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Could not get project metadata root package",
+            ))
         }
+    };
+    let target = match package.targets.first() {
+        Some(target) => target,
+        None => {
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Could not get project metadata root package target",
+            ))
+        }
+    };
+    if cfg!(target_os = "windows") {
+        let binary = format!("{}.exe", target.name);
+        let symbols = format!("{}.pdb", target.name.replace('-', "_"));
+        Ok(vec![
+            meta.target_directory.join(profile).join(binary).into(),
+            meta.target_directory.join(profile).join(symbols).into(),
+        ])
+    } else if cfg!(target_os = "linux") {
+        Ok(vec![meta
+            .target_directory
+            .join(profile)
+            .join(&target.name)
+            .into()])
+    } else {
+        Ok(vec![])
     }
 }

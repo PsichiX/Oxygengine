@@ -1,0 +1,149 @@
+{
+  "default_state": "idle-down",
+  "speed": 8,
+  "states": {
+    "idle-down": {
+      "frames": [
+        "levels/atlases/Characters.json@0x0"
+      ],
+      "looping": true
+    },
+    "idle-right": {
+      "frames": [
+        "levels/atlases/Characters.json@0x1"
+      ],
+      "looping": true
+    },
+    "idle-up": {
+      "frames": [
+        "levels/atlases/Characters.json@0x2"
+      ],
+      "looping": true
+    },
+    "idle-left": {
+      "frames": [
+        "levels/atlases/Characters.json@0x3"
+      ],
+      "looping": true
+    },
+    "walk-down": {
+      "frames": [
+        "levels/atlases/Characters.json@0x0",
+        "levels/atlases/Characters.json@1x0",
+        "levels/atlases/Characters.json@2x0",
+        "levels/atlases/Characters.json@3x0"
+      ],
+      "looping": true
+    },
+    "walk-right": {
+      "frames": [
+        "levels/atlases/Characters.json@0x1",
+        "levels/atlases/Characters.json@1x1",
+        "levels/atlases/Characters.json@2x1",
+        "levels/atlases/Characters.json@3x1"
+      ],
+      "looping": true
+    },
+    "walk-up": {
+      "frames": [
+        "levels/atlases/Characters.json@0x2",
+        "levels/atlases/Characters.json@1x2",
+        "levels/atlases/Characters.json@2x2",
+        "levels/atlases/Characters.json@3x2"
+      ],
+      "looping": true
+    },
+    "walk-left": {
+      "frames": [
+        "levels/atlases/Characters.json@0x3",
+        "levels/atlases/Characters.json@1x3",
+        "levels/atlases/Characters.json@2x3",
+        "levels/atlases/Characters.json@3x3"
+      ],
+      "looping": true
+    }
+  },
+  "rules": [
+    {
+      "BlendSpace": {
+        "conditions": {
+          "walk": {
+            "Bool": true
+          }
+        },
+        "axis_scalars": [
+          "dir-x",
+          "dir-y"
+        ],
+        "blend_states": [
+          {
+            "target_state": "walk-down",
+            "axis_values": [
+              0,
+              1
+            ]
+          },
+          {
+            "target_state": "walk-right",
+            "axis_values": [
+              1,
+              0
+            ]
+          },
+          {
+            "target_state": "walk-up",
+            "axis_values": [
+              0,
+              -1
+            ]
+          },
+          {
+            "target_state": "walk-left",
+            "axis_values": [
+              -1,
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "BlendSpace": {
+        "axis_scalars": [
+          "dir-x",
+          "dir-y"
+        ],
+        "blend_states": [
+          {
+            "target_state": "idle-down",
+            "axis_values": [
+              0,
+              1
+            ]
+          },
+          {
+            "target_state": "idle-right",
+            "axis_values": [
+              1,
+              0
+            ]
+          },
+          {
+            "target_state": "idle-up",
+            "axis_values": [
+              0,
+              -1
+            ]
+          },
+          {
+            "target_state": "idle-left",
+            "axis_values": [
+              -1,
+              0
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -7,10 +7,10 @@ use crate::{
     math::vek::*,
     resources::material_library::MaterialLibrary,
 };
-use core::{utils::StringBuffer, Ignite};
+use core::utils::StringBuffer;
 use serde::{Deserialize, Serialize};
 
-#[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum MaterialFunctionContent {
     Graph(MaterialGraph),
     Code(String),
@@ -23,7 +23,7 @@ impl Default for MaterialFunctionContent {
     }
 }
 
-#[derive(Ignite, Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MaterialFunctionInput {
     #[serde(default)]
     pub name: String,
@@ -31,7 +31,7 @@ pub struct MaterialFunctionInput {
     pub value_type: MaterialValueType,
 }
 
-#[derive(Ignite, Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MaterialFunction {
     #[serde(default)]
     pub name: String,

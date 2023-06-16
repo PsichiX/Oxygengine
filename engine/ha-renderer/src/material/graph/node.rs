@@ -5,13 +5,13 @@ use crate::{
     },
     math::vek::*,
 };
-use core::{id::ID, Ignite};
+use core::id::ID;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
 pub type MaterialGraphNodeId = ID<MaterialGraphNode>;
 
-#[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MaterialGraphInput {
     #[serde(default)]
     pub name: String,
@@ -130,7 +130,7 @@ impl MaterialGraphInput {
     }
 }
 
-#[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MaterialGraphOutput {
     #[serde(default)]
     pub name: String,
@@ -235,7 +235,7 @@ impl MaterialGraphOutput {
     }
 }
 
-#[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MaterialGraphOperation {
     #[serde(default)]
     pub name: String,
@@ -275,7 +275,7 @@ impl MaterialGraphOperation {
     }
 }
 
-#[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MaterialGraphTransfer {
     #[serde(default)]
     pub name: String,
@@ -310,7 +310,7 @@ impl MaterialGraphTransfer {
     }
 }
 
-#[derive(Ignite, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum MaterialGraphNode {
     Value(MaterialValue),
     Input(MaterialGraphInput),

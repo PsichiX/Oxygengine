@@ -1,0 +1,38 @@
+inject
+```
+{
+  "Player": {
+    "level": %{ $LEVEL }%
+  },
+  "InputStackInstance": {
+    "Setup": {
+      "triggers": {
+        "pointer-action": {
+          "mappings": [
+            "mouse-action",
+            "touch-action"
+          ]
+        }
+      },
+      "axes": {
+        "pointer": {
+          "channels": [
+            {
+              "mappings": {
+                "mouse-x": 1.0,
+                "touch-x": 1.0
+              }
+            },
+            {
+              "mappings": {
+                "mouse-y": 1.0,
+                "touch-y": 1.0
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+```

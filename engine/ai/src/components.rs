@@ -3,11 +3,11 @@ use emergent::prelude::*;
 use oxygengine_core::{
     ecs::Component,
     prefab::{Prefab, PrefabComponent},
-    Ignite, Scalar,
+    Scalar,
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Ignite, Default, Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct AiInstance<C>
 where
     C: Component,
@@ -16,10 +16,8 @@ where
     #[serde(default)]
     pub decide_delay: Scalar,
     #[serde(skip)]
-    #[ignite(ignore)]
     pub(crate) decide_phase: Scalar,
     #[serde(skip)]
-    #[ignite(ignore)]
     pub(crate) decision_maker: Option<Box<dyn DecisionMakingTask<AiBehaviorMemory<C>>>>,
 }
 

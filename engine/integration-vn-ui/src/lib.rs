@@ -12,7 +12,6 @@ use oxygengine_core::{
         AccessType, Comp, ResQuery, Universe, WorldRef,
     },
     prefab::{Prefab as CorePrefab, PrefabComponent, PrefabManager},
-    Ignite,
 };
 use oxygengine_user_interface::{
     component::UserInterfaceView,
@@ -37,7 +36,7 @@ fn make_true() -> bool {
 }
 
 /// (story ID)
-#[derive(Ignite, Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct VisualNovelSyncUserInterface(#[serde(default)] pub String);
 
 impl CorePrefab for VisualNovelSyncUserInterface {}

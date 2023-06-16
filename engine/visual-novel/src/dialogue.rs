@@ -1,5 +1,5 @@
 use anim::transition::{SwitchTransition, Transition};
-use core::{prefab::Prefab, Ignite, Scalar};
+use core::{prefab::Prefab, Scalar};
 use serde::{Deserialize, Serialize};
 
 pub type ActiveDialogue = Transition<Option<Dialogue>>;
@@ -46,7 +46,7 @@ impl DialogueOption {
     }
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DialogueAction {
     None,
     JumpToLabel(String),

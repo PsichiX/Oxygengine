@@ -1,4 +1,0 @@
-inject
-```
-Health: %{ $VALUE }%
-```

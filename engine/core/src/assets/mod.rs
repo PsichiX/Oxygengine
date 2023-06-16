@@ -11,9 +11,9 @@ use crate::{
     assets::{
         database::AssetsDatabase,
         protocols::{
-            binary::BinaryAssetProtocol, localization::LocalizationAssetProtocol,
-            pack::PackAssetProtocol, prefab::PrefabAssetProtocol, set::SetAssetProtocol,
-            text::TextAssetProtocol, yaml::YamlAssetProtocol,
+            binary::BinaryAssetProtocol, json::JsonAssetProtocol,
+            localization::LocalizationAssetProtocol, pack::PackAssetProtocol,
+            prefab::PrefabAssetProtocol, set::SetAssetProtocol, text::TextAssetProtocol,
         },
         system::{assets_system, AssetsSystemResources},
     },
@@ -34,7 +34,7 @@ where
     database.register(PackAssetProtocol);
     database.register(BinaryAssetProtocol);
     database.register(TextAssetProtocol);
-    database.register(YamlAssetProtocol);
+    database.register(JsonAssetProtocol);
     database.register(SetAssetProtocol);
     database.register(PrefabAssetProtocol);
     database.register(LocalizationAssetProtocol);

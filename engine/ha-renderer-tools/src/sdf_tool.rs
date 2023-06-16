@@ -86,10 +86,10 @@ fn main() -> Result<(), Error> {
             bytes_paths: vec![format!("{}{}.png", params.assets_path_prefix, image_name)],
             descriptor: Default::default(),
         };
-        let path = output.join(format!("{}.yaml", image_name));
+        let path = output.join(format!("{}.json", image_name));
         write(
             &path,
-            serde_yaml::to_string(&asset).expect("Could not serialize image asset"),
+            serde_json::to_string_pretty(&asset).expect("Could not serialize image asset"),
         )
         .unwrap_or_else(|_| panic!("Could not write image asset to file: {:?}", path));
     }

@@ -1,7 +1,0 @@
-Png:
-  descriptor:
-    mode: Image2d
-    format: Luminance
-    mipmap: None
-  bytes_paths:
-    - images/dither.png

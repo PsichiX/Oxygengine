@@ -275,14 +275,14 @@ macro_rules! message {
     ($id:literal, $text:expr, $binary:expr) => {
         SimpMessage::new(
             SimpMessageId::new($id, VERSION),
-            serde_json::to_string($text).unwrap(),
+            serde_json::to_string_pretty($text).unwrap(),
             $binary,
         )
     };
     ($id:literal, $text:expr) => {
         SimpMessage::text(
             SimpMessageId::new($id, VERSION),
-            serde_json::to_string($text).unwrap(),
+            serde_json::to_string_pretty($text).unwrap(),
         )
     };
     ($id:literal) => {

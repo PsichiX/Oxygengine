@@ -1,2 +1,6 @@
 [build]
 target-dir = "target"
+
+[patch.crates-io]
+oxygengine = { path = "engine/_"}
+oxygengine-procedural = { path = "engine/procedural"}

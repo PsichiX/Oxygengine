@@ -1,11 +1,8 @@
 use crate::image::{ImageDescriptor, ImageFormat, ImageMipmap, ImageMode};
-use core::{
-    assets::{
-        asset::{Asset, AssetId},
-        protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
-        protocols::binary::BinaryAsset,
-    },
-    Ignite,
+use core::assets::{
+    asset::{Asset, AssetId},
+    protocol::{AssetLoadResult, AssetProtocol, AssetVariant, Meta},
+    protocols::binary::BinaryAsset,
 };
 use serde::{Deserialize, Serialize};
 use std::str::from_utf8;
@@ -14,7 +11,7 @@ fn default_depth() -> usize {
     1
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImageAssetSourceRawPixels {
     pub width: usize,
     pub height: usize,
@@ -23,7 +20,7 @@ pub struct ImageAssetSourceRawPixels {
     pub bytes: Vec<u8>,
 }
 
-#[derive(Ignite, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ImageAssetSource {
     Color {
         descriptor: ImageDescriptor,
@@ -88,6 +85,21 @@ impl ImageAsset {
             content_assets: vec![],
         }
     }
+
+    pub fn bytes(width: usize, height: usize, bytes: Vec<u8>, mode: ImageMode) -> Self {
+        Self {
+            descriptor: ImageDescriptor {
+                mode,
+                format: ImageFormat::RGBA,
+                mipmap: ImageMipmap::None,
+            },
+            width,
+            height,
+            depth: 1,
+            bytes,
+            content_assets: vec![],
+        }
+    }
 }
 
 pub struct ImageAssetProtocol;
@@ -99,7 +111,7 @@ impl AssetProtocol for ImageAssetProtocol {
 
     fn on_load(&mut self, data: Vec<u8>) -> AssetLoadResult {
         let data = from_utf8(&data).unwrap();
-        match serde_yaml::from_str(data).unwrap() {
+        match serde_json::from_str(data).unwrap() {
             ImageAssetSource::Color {
                 descriptor,
                 width,

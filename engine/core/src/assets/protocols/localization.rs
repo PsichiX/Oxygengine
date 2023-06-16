@@ -1,11 +1,8 @@
-use crate::{
-    assets::protocol::{AssetLoadResult, AssetProtocol},
-    Ignite,
-};
+use crate::assets::protocol::{AssetLoadResult, AssetProtocol};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::from_utf8};
 
-#[derive(Ignite, Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct LocalizationAsset {
     pub language: String,
     pub dictionary: HashMap<String, String>,
@@ -20,7 +17,7 @@ impl AssetProtocol for LocalizationAssetProtocol {
 
     fn on_load(&mut self, data: Vec<u8>) -> AssetLoadResult {
         let data = from_utf8(&data).unwrap();
-        match serde_yaml::from_str::<LocalizationAsset>(data) {
+        match serde_json::from_str::<LocalizationAsset>(data) {
             Ok(result) => AssetLoadResult::Data(Box::new(result)),
             Err(error) => {
                 AssetLoadResult::Error(format!("Error loading localization asset: {:?}", error))
