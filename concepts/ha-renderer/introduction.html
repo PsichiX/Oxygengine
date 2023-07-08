@@ -4,8 +4,10 @@
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
         <title>Hardware Accelerated rendering - Oxygengine Essentials Book</title>
+
+
         <!-- Custom HTML head -->
-        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
@@ -16,25 +18,29 @@
         <link rel="stylesheet" href="../../css/general.css">
         <link rel="stylesheet" href="../../css/chrome.css">
         <link rel="stylesheet" href="../../css/print.css" media="print">
+
         <!-- Fonts -->
         <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
         <link rel="stylesheet" href="../../fonts/fonts.css">
+
         <!-- Highlight.js Stylesheets -->
         <link rel="stylesheet" href="../../highlight.css">
         <link rel="stylesheet" href="../../tomorrow-night.css">
         <link rel="stylesheet" href="../../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+
     </head>
     <body>
+    <div id="body-container">
         <!-- Provide site root to javascript -->
-        <script type="text/javascript">
+        <script>
             var path_to_root = "../../";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "ayu";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
-        <script type="text/javascript">
+        <script>
             try {
                 var theme = localStorage.getItem('mdbook-theme');
                 var sidebar = localStorage.getItem('mdbook-sidebar');
@@ -50,7 +56,7 @@
         </script>
 
         <!-- Set the theme before any content is loaded, prevents flash -->
-        <script type="text/javascript">
+        <script>
             var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
@@ -62,12 +68,14 @@
         </script>
 
         <!-- Hide / unhide sidebar before it is displayed -->
-        <script type="text/javascript">
+        <script>
             var html = document.querySelector('html');
-            var sidebar = 'hidden';
+            var sidebar = null;
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
             }
             html.classList.remove('sidebar-visible');
             html.classList.add("sidebar-" + sidebar);
@@ -80,11 +88,33 @@
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
         <div id="page-wrapper" class="page-wrapper">
 
             <div class="page">
-                <div id="menu-bar-hover-placeholder"></div>
-                <div id="menu-bar" class="menu-bar sticky bordered">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
                     <div class="left-buttons">
                         <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
                             <i class="fa fa-bars"></i>
@@ -97,7 +127,7 @@
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
                         <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
@@ -110,6 +140,7 @@
                         <a href="../../print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
+
                     </div>
                 </div>
 
@@ -123,8 +154,9 @@
                         </ul>
                     </div>
                 </div>
+
                 <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
-                <script type="text/javascript">
+                <script>
                     document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
                     document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
                     Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
@@ -225,8 +257,7 @@ representation of the material domain/graph):</p>
     [screen_position -&gt; ScreenPosition]
     [screen_position -&gt; gl_Position]
     [BaseColor -&gt; finalColor]
-}
-</code></pre>
+}</code></pre>
 <p>In this snippet we can see that this particular material domain expects model +
 view + projection uniforms, as well as position + color vertex inputs, and it
 writes data to gl_Position vertex output and finalColor target output. This
@@ -252,8 +283,7 @@ shader variant.</p>
     }
 
     [[TintColor =&gt; vColor] -&gt; BaseColor]
-}
-</code></pre>
+}</code></pre>
 <p>Here in this material graph we can see we only use domain interface and just move
 input color from vertex shader stage to fragment shader stage and send it back to
 material domain to let it store properly for its render target outputs - when user
@@ -272,8 +302,7 @@ rather converts ScreenPosition into BaseColor:</p>
     }
 
     [[ScreenPosition =&gt; vColor] -&gt; BaseColor]
-}
-</code></pre>
+}</code></pre>
 <p>This material graph when combined with our previously defined material domain,
 will bake shader with nodes that only use screen position calculated in domain
 graph and not include color vertex data in the shader at all since this shader
@@ -292,8 +321,7 @@ way to &quot;inject&quot; other material graphs as material input preprocessor.<
         #[serde(default = &quot;default_texture_coord&quot;)]
         pub texture_coord: vec3 = textureCoord(0),
     }
-}
-</code></pre>
+}</code></pre>
 <p>It is used to render for example regular entity sprites. Now you want to make
 these sprites animated with skinning. Normally you would need to duplicate all
 material domains that has to work with skinning which makes future changes and
@@ -309,8 +337,7 @@ can avoid that problem entirely using material middlewares!</p>
         #[serde(default = &quot;default_bone_weights&quot;)]
         pub bone_weights: vec4 = boneWeights(0),
     }
-}
-</code></pre>
+}</code></pre>
 <p>As you can see, we have marked this vertex format to use skinning middleware.
 We also define compound vertex format that will make that sprite vertex format
 mixed with skinned vertex format:</p>
@@ -323,8 +350,7 @@ mixed with skinned vertex format:</p>
         #[serde(default)]
         pub skinning: SurfaceSkinningFragment,
     }
-}
-</code></pre>
+}</code></pre>
 <p>Now we have to add skinning middleware material graph to Material Library resource:</p>
 <pre><code class="language-rust ignore"><span class="boring">library.add_function(graph_material_function! {
 </span><span class="boring">   fn skinning_fetch_bone_matrix(texture: sampler2D, index: int) -&gt; mat4 {
@@ -389,8 +415,7 @@ mixed with skinned vertex format:</p>
 </span><span class="boring">       [result := (add_vec4, a: result, b: weighted)]
 </span><span class="boring">       [(truncate_vec4, v: result) -&gt; out_position]
 </span>    },
-);
-</code></pre>
+);</code></pre>
 <p>What is important there, material middlewares has to define in and out pins that
 it injects in between, so in case of skinning we essentially tell material
 compiler we want to inject skinning before vertex position data gets passed to
@@ -400,8 +425,7 @@ actual material - we are making skinning middleware as vertex input preprocessor
 }
 outputs {
   [vertex] out position as out_position: vec3;
-}
-</code></pre>
+}</code></pre>
 <p>Now whenever we want to render mesh with <code>SurfaceVertexSPT</code> vertex format (skinned
 position texcoord), for every material that has to use it, there will be compiled
 shader variant with skinning injected - no more duplicating materials with extra
@@ -420,9 +444,11 @@ the complexity of shader creation and management to bare minimum.</p>
                             <a rel="prev" href="../../cli/asset-pipeline.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
+
                             <a rel="next" href="../../concepts/ha-renderer/render-pipeline.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
+
                         <div style="clear: both"></div>
                     </nav>
                 </div>
@@ -432,6 +458,7 @@ the complexity of shader creation and management to bare minimum.</p>
                     <a rel="prev" href="../../cli/asset-pipeline.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
+
                     <a rel="next" href="../../concepts/ha-renderer/render-pipeline.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
@@ -439,16 +466,25 @@ the complexity of shader creation and management to bare minimum.</p>
 
         </div>
 
-        <script type="text/javascript">
+
+
+
+        <script>
             window.playground_copyable = true;
         </script>
-        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
+
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
 
         <!-- Custom JS scripts -->
+
+
+    </div>
     </body>
 </html>
