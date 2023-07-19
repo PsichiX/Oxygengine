@@ -218,31 +218,31 @@ Ignite CLI tool that will govern most vital operations on your game project
 development:</p>
 <pre><code class="language-bash">cargo install oxygengine-ignite
 </code></pre>
+<p>Additionally it's encouraged to install <code>just</code> CLI too:</p>
+<pre><code class="language-bash">cargo install just
+</code></pre>
+<p>Each created game project contains <code>justfile</code> with set of handy shortcut
+commands for common day-to-day operations useful when developing a game.
+Once in game project root directory, run <code>just list</code> to see list of commands.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="creating-new-project"><a class="header" href="#creating-new-project">Creating new project</a></h1>
 <p>Oxygengine uses a concept called &quot;Game Templates&quot; where instead of starting from
 blank page, you create your new project from one of existing game templates:</p>
 <ul>
-<li><code>desktop-headless-game</code> - used mostly for game servers logic, it doesn not
-provide access to any of rendering or audio features, but gives you all the
-features needed to create a game server logic.</li>
-<li><code>web-composite-game</code> - used for making visually simple games that uses Web
-Canvas rendering.</li>
-<li><code>web-composite-visual-novel</code> - used to jumpstart working on a completely
-asset-driven Visual Novel game.</li>
-<li><code>web-ha-game</code> - used to make visually more demanding games that needs to render
-greater number of entities, manipulate and enhance game visuals with shaders.</li>
+<li><code>ha-base</code> - contains barebones setup for the simplest game example.</li>
+<li><code>ha-game</code> - used to make visually more demanding games that needs to render
+greater number of entities, manipulate and enhance game visuals with materials.</li>
 </ul>
-<p><strong>Create new game project with default (<code>web-ha-game</code>) game template:</strong></p>
+<p><strong>Create new game project with default (<code>ha-game</code>) game template:</strong></p>
 <pre><code class="language-bash">oxygengine-ignite new &lt;project-name&gt;
 </code></pre>
 <p>for example:</p>
 <pre><code class="language-bash">oxygengine-ignite new dream-game
 </code></pre>
-<p><strong>Create new game with specified game template to use:</strong></p>
+<p><strong>Create new game project with specified game template to use:</strong></p>
 <pre><code class="language-bash">oxygengine-ignite new &lt;project-name&gt; -p &lt;game-template-name&gt;
 </code></pre>
 <p>for example:</p>
-<pre><code class="language-bash">oxygengine-ignite new dream-game-server -p desktop-headless-game
+<pre><code class="language-bash">oxygengine-ignite new dream-game -p ha-game
 </code></pre>
 <p><strong>Create new game project in specified path:</strong></p>
 <pre><code class="language-bash">oxygengine-ignite new &lt;project-name&gt; -d &lt;path-to-parent-directory&gt;
@@ -338,7 +338,6 @@ When using either HA renderer or composite renderer, you have to also install
 their asset pipeline tools for asset pipeline to be able to bake assets.
 These are:</p>
 <ul>
-<li><code>cargo install oxygengine-composite-renderer-tools</code></li>
 <li><code>cargo install oxygengine-ha-renderer-tools</code></li>
 </ul>
 <p>In general, if some engine module requires asset pipeline tools to work, there
