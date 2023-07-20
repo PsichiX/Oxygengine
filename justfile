@@ -128,6 +128,8 @@ publish:
   sleep 1
   cargo publish --no-verify --manifest-path ./engine/backend-web/Cargo.toml
   sleep 1
+  cargo publish --no-verify --manifest-path ./engine/backend-desktop/Cargo.toml
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/utils/Cargo.toml
   sleep 1
   cargo publish --no-verify --manifest-path ./engine/ai/Cargo.toml
@@ -152,6 +154,8 @@ publish:
   sleep 1
   cargo publish --no-verify --manifest-path ./engine/input-device-web/Cargo.toml
   sleep 1
+  cargo publish --no-verify --manifest-path ./engine/input-device-desktop/Cargo.toml
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/navigation/Cargo.toml
   sleep 1
   cargo publish --no-verify --manifest-path ./engine/network/Cargo.toml
@@ -175,10 +179,6 @@ publish:
   cargo publish --no-verify --manifest-path ./engine/prototype/Cargo.toml
   sleep 1
   cargo publish --no-verify --manifest-path ./engine/integration-ow-ha/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/integration-p2d-cr/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/integration-ui-cr/Cargo.toml
   sleep 1
   cargo publish --no-verify --manifest-path ./engine/integration-ui-ha/Cargo.toml
   sleep 1
