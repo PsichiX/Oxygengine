@@ -96,7 +96,7 @@ fn main() -> Result<(), Error> {
             .iter()
             .enumerate()
             .map(|(i, page)| {
-                let path = output.join(&name).with_extension(&format!("{}.png", i));
+                let path = output.join(name).with_extension(format!("{}.png", i));
                 ImageExporter::export(page)
                     .unwrap_or_else(|_| panic!("Could not export atlas: {:?} page: {}", name, i))
                     .save_with_format(&path, image::ImageFormat::Png)
@@ -110,7 +110,7 @@ fn main() -> Result<(), Error> {
                     bytes_paths: vec![format!("{}{}.{}.png", params.assets_path_prefix, name, i)],
                     descriptor: Default::default(),
                 };
-                let path = output.join(&name).with_extension(&format!("{}.json", i));
+                let path = output.join(name).with_extension(format!("{}.json", i));
                 write(
                     &path,
                     serde_json::to_string_pretty(&asset).unwrap_or_else(|_| {
@@ -151,7 +151,7 @@ fn main() -> Result<(), Error> {
             })
             .collect::<HashMap<_, _>>();
         let asset = AtlasAssetSource::Raw(pages);
-        let path = output.join(&name).with_extension("json");
+        let path = output.join(name).with_extension("json");
         write(
             &path,
             serde_json::to_string_pretty(&asset)

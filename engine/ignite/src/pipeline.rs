@@ -209,7 +209,7 @@ impl Pipeline {
                         .replace("<source>", self.source.to_str().unwrap())
                         .replace("<destination>", self.destination.to_str().unwrap());
                     let parts = command.split(char::is_whitespace).collect::<Vec<_>>();
-                    let mut command = Command::new(&parts[0]);
+                    let mut command = Command::new(parts[0]);
                     for part in &parts[1..] {
                         command.arg(part);
                     }

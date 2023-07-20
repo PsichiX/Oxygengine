@@ -42,7 +42,7 @@ pub fn ha_camera_cache_system(universe: &mut Universe) {
                 (
                     entity,
                     type_id,
-                    name.map(|name| name.0.to_owned().into()),
+                    name.map(|name| name.0.clone().into()),
                     info,
                 )
             }));

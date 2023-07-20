@@ -194,7 +194,7 @@ fn render(
         } else {
             cache.dirty = true;
         }
-        let mut ui = match ui.get_mut(view.app_id()) {
+        let ui = match ui.get_mut(view.app_id()) {
             Some(ui) => ui,
             None => continue,
         };

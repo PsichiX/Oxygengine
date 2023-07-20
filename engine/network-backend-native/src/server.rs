@@ -6,7 +6,6 @@ use network::{
 use std::{
     collections::{HashMap, VecDeque},
     io::ErrorKind,
-    mem::replace,
     net::TcpListener,
     ops::Range,
     sync::{Arc, RwLock},
@@ -38,8 +37,7 @@ impl NativeServer {
         if let Ok(mut state) = self.state.write() {
             *state = ServerState::Closed;
         }
-        let thread = replace(&mut self.thread, None);
-        if let Some(thread) = thread {
+        if let Some(thread) = self.thread.take() {
             thread.join().unwrap();
         }
     }

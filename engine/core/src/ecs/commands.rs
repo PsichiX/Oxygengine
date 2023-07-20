@@ -24,6 +24,7 @@ impl UniverseCommand for ClosureUniverseCommand {
 
 pub struct SpawnEntity {
     pub entity_builder: EntityBuilder,
+    #[allow(clippy::type_complexity)]
     on_complete: Option<Box<dyn FnMut(&mut Universe, Entity) + Send + Sync>>,
 }
 
@@ -90,6 +91,7 @@ where
 {
     pub entity: Entity,
     component: Option<C>,
+    #[allow(clippy::type_complexity)]
     on_complete: Option<Box<dyn FnMut(&mut Universe, Entity) + Send + Sync>>,
 }
 
@@ -141,6 +143,7 @@ where
     C: Component,
 {
     pub entity: Entity,
+    #[allow(clippy::type_complexity)]
     on_complete: Option<Box<dyn FnMut(&mut Universe, Entity) + Send + Sync>>,
     _phantom: PhantomData<fn() -> C>,
 }

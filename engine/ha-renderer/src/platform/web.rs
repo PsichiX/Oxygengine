@@ -180,7 +180,7 @@ impl HaPlatformInterface for WebPlatformInterface {
         self.cached_screen_size
     }
 
-    fn maintain<'a>(&'a mut self) -> HaPlatformInterfaceProcessResult<'a> {
+    fn maintain(&mut self) -> HaPlatformInterfaceProcessResult<'_> {
         let mut result = HaPlatformInterfaceProcessResult::default();
         let context_lost = { *self.context_lost.borrow() };
         let context_restored = { *self.context_restored.borrow() || self.context.is_none() };

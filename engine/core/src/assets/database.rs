@@ -93,7 +93,7 @@ impl AssetsDatabase {
     }
 
     pub fn loaded_ids(&self) -> Vec<AssetId> {
-        self.assets.iter().map(|(id, _)| *id).collect()
+        self.assets.keys().copied().collect()
     }
 
     pub fn loading_count(&self) -> usize {

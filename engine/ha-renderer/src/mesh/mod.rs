@@ -33,8 +33,8 @@ pub enum MeshError {
     /// (provided index, buffers count)
     NoBuffer(usize, usize),
     /// (provided, expected)
-    LayoutsMismatch(VertexLayout, VertexLayout),
-    LayoutIsNotCompact(VertexLayout),
+    LayoutsMismatch(Box<VertexLayout>, Box<VertexLayout>),
+    LayoutIsNotCompact(Box<VertexLayout>),
     /// (layout, attribute name)
     MissingRequiredLayoutAttribute(VertexLayout, String),
     /// (source, target)
@@ -275,7 +275,7 @@ impl VertexBufferLayout {
         self.attributes.iter().map(|(item, _)| item)
     }
 
-    fn vertex_attribs<'a>(&'a self) -> impl Iterator<Item = (&'a str, VertexAttribChunk)> + '_ {
+    fn vertex_attribs(&self) -> impl Iterator<Item = (&'_ str, VertexAttribChunk)> + '_ {
         let stride = self.bytesize;
         let mut base_location = self.base_location;
         self.attributes
@@ -452,9 +452,7 @@ impl VertexLayout {
         self.buffers.iter().flat_map(|buffer| buffer.attributes())
     }
 
-    pub fn vertex_attribs<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = (usize, &'a str, VertexAttribChunk)> + '_ {
+    pub fn vertex_attribs(&self) -> impl Iterator<Item = (usize, &'_ str, VertexAttribChunk)> + '_ {
         self.buffers.iter().enumerate().flat_map(|(index, buffer)| {
             buffer
                 .vertex_attribs()
@@ -873,10 +871,13 @@ impl Mesh {
     {
         let layout = T::vertex_layout()?;
         if self.layout != layout {
-            return Err(MeshError::LayoutsMismatch(layout, self.layout.to_owned()));
+            return Err(MeshError::LayoutsMismatch(
+                Box::new(layout),
+                Box::new(self.layout.to_owned()),
+            ));
         }
         if !layout.is_compact() {
-            return Err(MeshError::LayoutIsNotCompact(layout));
+            return Err(MeshError::LayoutIsNotCompact(Box::new(layout)));
         }
         self.with_vertices(0, |data| f(unsafe { data.align_to_mut::<T>().1 }))
     }
@@ -889,7 +890,7 @@ impl Mesh {
         self.index_data.2 = true;
     }
 
-    pub fn resources<'a>(&self, _: &RenderStageResources<'a>) -> Option<&MeshResources> {
+    pub fn resources(&self, _: &RenderStageResources<'_>) -> Option<&MeshResources> {
         self.resources.as_ref()
     }
 

@@ -150,7 +150,7 @@ pub fn hierarchy_system(universe: &mut Universe) {
             list.insert(child);
         }
         if let Some(name) = name {
-            let name: String = name.0.to_owned().into();
+            let name: String = name.0.clone().into();
             hierarchy.entity_names_map.insert(child, name.to_owned());
             hierarchy.name_entities_map.insert(name, child);
         }

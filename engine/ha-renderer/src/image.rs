@@ -324,7 +324,7 @@ impl Image {
         }
     }
 
-    pub fn resources<'a>(&self, _: &RenderStageResources<'a>) -> Option<&ImageResources> {
+    pub fn resources(&self, _: &RenderStageResources<'_>) -> Option<&ImageResources> {
         self.resources.as_ref()
     }
 

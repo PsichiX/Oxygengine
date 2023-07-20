@@ -74,8 +74,8 @@ impl StreamingVertexFactory {
         }
         if !self.layout.is_superset_of(&factory.layout) {
             return Err(MeshError::LayoutsMismatch(
-                factory.layout.to_owned(),
-                factory.layout.to_owned(),
+                Box::new(factory.layout.to_owned()),
+                Box::new(factory.layout.to_owned()),
             ));
         }
         for (buffer, layout_buffer) in self.buffers.iter_mut().zip(self.layout.buffers()) {
@@ -117,8 +117,8 @@ impl StreamingVertexFactory {
     pub fn write_into(&self, mesh: &mut Mesh) -> Result<(), MeshError> {
         if mesh.layout != self.layout {
             return Err(MeshError::LayoutsMismatch(
-                self.layout.to_owned(),
-                mesh.layout.to_owned(),
+                Box::new(self.layout.to_owned()),
+                Box::new(mesh.layout.to_owned()),
             ));
         }
         for (index, data) in self.buffers.iter().enumerate() {
@@ -131,8 +131,8 @@ impl StreamingVertexFactory {
     pub fn consume_write_into(self, mesh: &mut Mesh) -> Result<(), MeshError> {
         if mesh.layout != self.layout {
             return Err(MeshError::LayoutsMismatch(
-                self.layout,
-                mesh.layout.to_owned(),
+                Box::new(self.layout),
+                Box::new(mesh.layout.to_owned()),
             ));
         }
         for (index, data) in self.buffers.into_iter().enumerate() {
@@ -262,7 +262,10 @@ impl StaticVertexFactory {
     {
         let layout = T::vertex_layout()?;
         if self.layout != layout {
-            return Err(MeshError::LayoutsMismatch(layout, self.layout.to_owned()));
+            return Err(MeshError::LayoutsMismatch(
+                Box::new(layout),
+                Box::new(self.layout.to_owned()),
+            ));
         }
         if layout.is_compact() {
             self.buffers[0] = unsafe { data.align_to::<u8>().1.to_owned() };
@@ -460,8 +463,8 @@ impl StaticVertexFactory {
     pub fn write_into(&self, mesh: &mut Mesh) -> Result<(), MeshError> {
         if mesh.layout != self.layout {
             return Err(MeshError::LayoutsMismatch(
-                self.layout.to_owned(),
-                mesh.layout.to_owned(),
+                Box::new(self.layout.to_owned()),
+                Box::new(mesh.layout.to_owned()),
             ));
         }
         for (index, data) in self.buffers.iter().enumerate() {
@@ -474,8 +477,8 @@ impl StaticVertexFactory {
     pub fn consume_write_into(self, mesh: &mut Mesh) -> Result<(), MeshError> {
         if mesh.layout != self.layout {
             return Err(MeshError::LayoutsMismatch(
-                self.layout,
-                mesh.layout.to_owned(),
+                Box::new(self.layout),
+                Box::new(mesh.layout.to_owned()),
             ));
         }
         for (index, data) in self.buffers.into_iter().enumerate() {

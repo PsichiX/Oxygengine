@@ -16,7 +16,6 @@ use network::{
 use std::{
     collections::{HashMap, VecDeque},
     io::{Cursor, Read, Write},
-    mem::replace,
     ops::Range,
     sync::{Arc, RwLock},
     thread::{spawn, JoinHandle},
@@ -101,8 +100,7 @@ impl DesktopServer {
                 *ws = None;
             }
         }
-        let thread = replace(&mut self.thread, None);
-        if let Some(thread) = thread {
+        if let Some(thread) = self.thread.take() {
             thread.join().unwrap();
         }
     }

@@ -16,8 +16,8 @@ pub enum RenderQueueError {
     QueueLimitReached(usize),
     MaterialDoesNotExist(MaterialId),
     MeshDoesNotExist(MeshId),
-    Mesh(MeshId, MeshError),
-    Material(MaterialId, MaterialError),
+    Mesh(MeshId, Box<MeshError>),
+    Material(MaterialId, Box<MaterialError>),
     NoMeshActive,
     NoMaterialActive,
 }
@@ -168,10 +168,10 @@ impl RenderQueue {
         self.commands.clear();
     }
 
-    pub fn execute<'a>(
+    pub fn execute(
         &mut self,
         context: &Context,
-        resources: &RenderStageResources<'a>,
+        resources: &RenderStageResources<'_>,
         stats: &mut RenderStats,
     ) -> Result<(), RenderQueueError> {
         let result = self.execute_inner(context, resources, stats);
@@ -181,10 +181,10 @@ impl RenderQueue {
         result
     }
 
-    fn execute_inner<'a>(
+    fn execute_inner(
         &mut self,
         context: &Context,
-        resources: &RenderStageResources<'a>,
+        resources: &RenderStageResources<'_>,
         stats: &mut RenderStats,
     ) -> Result<(), RenderQueueError> {
         let mut current_material = None;
@@ -213,7 +213,9 @@ impl RenderQueue {
                                     last_uniforms.clear();
                                     current_material = Some((id, signature, material));
                                 }
-                                Err(error) => return Err(RenderQueueError::Material(*id, error)),
+                                Err(error) => {
+                                    return Err(RenderQueueError::Material(*id, Box::new(error)))
+                                }
                             }
                         }
                         None => return Err(RenderQueueError::MaterialDoesNotExist(*id)),
@@ -238,7 +240,7 @@ impl RenderQueue {
                     match resources.meshes.get(*id) {
                         Some(mesh) => match mesh.activate(context, stats) {
                             Ok(_) => current_mesh = Some((id, mesh)),
-                            Err(error) => return Err(RenderQueueError::Mesh(*id, error)),
+                            Err(error) => return Err(RenderQueueError::Mesh(*id, Box::new(error))),
                         },
                         None => return Err(RenderQueueError::MeshDoesNotExist(*id)),
                     }
@@ -266,7 +268,10 @@ impl RenderQueue {
                                 resources,
                                 stats,
                             ) {
-                                return Err(RenderQueueError::Material(*material_id, error));
+                                return Err(RenderQueueError::Material(
+                                    *material_id,
+                                    Box::new(error),
+                                ));
                             }
                         }
                     }
@@ -282,13 +287,16 @@ impl RenderQueue {
                                     resources,
                                     stats,
                                 ) {
-                                    return Err(RenderQueueError::Material(*material_id, error));
+                                    return Err(RenderQueueError::Material(
+                                        *material_id,
+                                        Box::new(error),
+                                    ));
                                 }
                             }
                         }
                     }
                     if let Err(error) = mesh.draw(draw_range.clone(), context, stats) {
-                        return Err(RenderQueueError::Mesh(*mesh_id, error));
+                        return Err(RenderQueueError::Mesh(*mesh_id, Box::new(error)));
                     }
                     last_uniforms.clear();
                     last_uniforms.reserve(current_uniforms.len());

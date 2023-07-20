@@ -40,7 +40,7 @@ impl FsStorageEngine {
 impl StorageEngine for FsStorageEngine {
     fn load(&mut self, path: &str) -> StorageResult<Vec<u8>> {
         let path = self.root.join(path);
-        match read(&path) {
+        match read(path) {
             Ok(data) => Ok(data),
             Err(error) => Err(StorageError::CouldNotLoadData(error.to_string())),
         }
@@ -48,7 +48,7 @@ impl StorageEngine for FsStorageEngine {
 
     fn store(&mut self, path: &str, data: &[u8]) -> StorageResult<()> {
         let path = self.root.join(path);
-        match write(&path, data) {
+        match write(path, data) {
             Ok(_) => Ok(()),
             Err(error) => Err(StorageError::CouldNotStoreData(error.to_string())),
         }

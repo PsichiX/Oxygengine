@@ -294,6 +294,10 @@ impl GeometryValues {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn get(&self, index: usize) -> Option<GeometryValue> {
         match self {
             Self::Bool(items) => items.get(index).map(|value| value.into()),
@@ -506,7 +510,7 @@ impl From<()> for GeometryTriangles {
 
 impl From<&[GeometryTriangle]> for GeometryTriangles {
     fn from(items: &[GeometryTriangle]) -> Self {
-        items.into_iter().cloned().collect()
+        items.iter().cloned().collect()
     }
 }
 
@@ -580,7 +584,7 @@ impl From<()> for GeometryLines {
 
 impl From<&[GeometryLine]> for GeometryLines {
     fn from(items: &[GeometryLine]) -> Self {
-        items.into_iter().cloned().collect()
+        items.iter().cloned().collect()
     }
 }
 
@@ -654,7 +658,7 @@ impl From<()> for GeometryPoints {
 
 impl From<&[GeometryPoint]> for GeometryPoints {
     fn from(items: &[GeometryPoint]) -> Self {
-        items.into_iter().cloned().collect()
+        items.iter().cloned().collect()
     }
 }
 
@@ -961,6 +965,10 @@ impl GeometryVertices {
 
     pub fn len(&self) -> usize {
         self.count
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.count == 0
     }
 
     pub fn remove_column(&mut self, name: &str) {
@@ -1623,17 +1631,17 @@ impl Geometry {
                 match values {
                     GeometryValues::Bool(_) | GeometryValues::String(_) => {}
                     GeometryValues::Scalar(items) => {
-                        result.vertices_scalar(&attribute.id, &items, None)?;
+                        result.vertices_scalar(&attribute.id, items, None)?;
                     }
                     GeometryValues::Vec2F(items) => match attribute.value_type {
                         VertexValueType::Vec2F => {
-                            result.vertices_vec2f(&attribute.id, &items, None)?;
+                            result.vertices_vec2f(&attribute.id, items, None)?;
                         }
                         VertexValueType::Vec3F => {
                             result.vertices_vec3f(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
@@ -1643,7 +1651,7 @@ impl Geometry {
                             result.vertices_vec4f(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
@@ -1656,20 +1664,20 @@ impl Geometry {
                             result.vertices_vec2f(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
                             )?;
                         }
                         VertexValueType::Vec3F => {
-                            result.vertices_vec3f(&attribute.id, &items, None)?;
+                            result.vertices_vec3f(&attribute.id, items, None)?;
                         }
                         VertexValueType::Vec4F => {
                             result.vertices_vec4f(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
@@ -1682,7 +1690,7 @@ impl Geometry {
                             result.vertices_vec2f(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
@@ -1692,26 +1700,26 @@ impl Geometry {
                             result.vertices_vec3f(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
                             )?;
                         }
                         VertexValueType::Vec4F => {
-                            result.vertices_vec4f(&attribute.id, &items, None)?;
+                            result.vertices_vec4f(&attribute.id, items, None)?;
                         }
                         _ => {}
                     },
                     GeometryValues::Mat2F(items) => match attribute.value_type {
                         VertexValueType::Mat2F => {
-                            result.vertices_mat2f(&attribute.id, &items, None)?;
+                            result.vertices_mat2f(&attribute.id, items, None)?;
                         }
                         VertexValueType::Mat3F => {
                             result.vertices_mat3f(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
@@ -1721,7 +1729,7 @@ impl Geometry {
                             result.vertices_mat4f(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
@@ -1734,20 +1742,20 @@ impl Geometry {
                             result.vertices_mat2f(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
                             )?;
                         }
                         VertexValueType::Mat3F => {
-                            result.vertices_mat3f(&attribute.id, &items, None)?;
+                            result.vertices_mat3f(&attribute.id, items, None)?;
                         }
                         VertexValueType::Mat4F => {
                             result.vertices_mat4f(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
@@ -1760,7 +1768,7 @@ impl Geometry {
                             result.vertices_mat2f(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
@@ -1770,29 +1778,29 @@ impl Geometry {
                             result.vertices_mat3f(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
                             )?;
                         }
                         VertexValueType::Mat4F => {
-                            result.vertices_mat4f(&attribute.id, &items, None)?;
+                            result.vertices_mat4f(&attribute.id, items, None)?;
                         }
                         _ => {}
                     },
                     GeometryValues::Integer(items) => {
-                        result.vertices_integer(&attribute.id, &items, None)?;
+                        result.vertices_integer(&attribute.id, items, None)?;
                     }
                     GeometryValues::Vec2I(items) => match attribute.value_type {
                         VertexValueType::Vec2I => {
-                            result.vertices_vec2i(&attribute.id, &items, None)?;
+                            result.vertices_vec2i(&attribute.id, items, None)?;
                         }
                         VertexValueType::Vec3I => {
                             result.vertices_vec3i(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
@@ -1802,7 +1810,7 @@ impl Geometry {
                             result.vertices_vec4i(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
@@ -1815,20 +1823,20 @@ impl Geometry {
                             result.vertices_vec2i(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
                             )?;
                         }
                         VertexValueType::Vec3I => {
-                            result.vertices_vec3i(&attribute.id, &items, None)?;
+                            result.vertices_vec3i(&attribute.id, items, None)?;
                         }
                         VertexValueType::Vec4I => {
                             result.vertices_vec4i(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
@@ -1841,7 +1849,7 @@ impl Geometry {
                             result.vertices_vec2i(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
@@ -1851,26 +1859,26 @@ impl Geometry {
                             result.vertices_vec3i(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
                             )?;
                         }
                         VertexValueType::Vec4I => {
-                            result.vertices_vec4i(&attribute.id, &items, None)?;
+                            result.vertices_vec4i(&attribute.id, items, None)?;
                         }
                         _ => {}
                     },
                     GeometryValues::Mat2I(items) => match attribute.value_type {
                         VertexValueType::Mat2I => {
-                            result.vertices_mat2i(&attribute.id, &items, None)?;
+                            result.vertices_mat2i(&attribute.id, items, None)?;
                         }
                         VertexValueType::Mat3I => {
                             result.vertices_mat3i(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
@@ -1880,7 +1888,7 @@ impl Geometry {
                             result.vertices_mat4i(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
@@ -1893,20 +1901,20 @@ impl Geometry {
                             result.vertices_mat2i(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
                             )?;
                         }
                         VertexValueType::Mat3I => {
-                            result.vertices_mat3i(&attribute.id, &items, None)?;
+                            result.vertices_mat3i(&attribute.id, items, None)?;
                         }
                         VertexValueType::Mat4I => {
                             result.vertices_mat4i(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
@@ -1919,7 +1927,7 @@ impl Geometry {
                             result.vertices_mat2i(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
@@ -1929,14 +1937,14 @@ impl Geometry {
                             result.vertices_mat3i(
                                 &attribute.id,
                                 &items
-                                    .into_iter()
+                                    .iter()
                                     .map(|value| (*value).into())
                                     .collect::<Vec<_>>(),
                                 None,
                             )?;
                         }
                         VertexValueType::Mat4I => {
-                            result.vertices_mat4i(&attribute.id, &items, None)?;
+                            result.vertices_mat4i(&attribute.id, items, None)?;
                         }
                         _ => {}
                     },

@@ -35,7 +35,7 @@ pub fn ha_volume_overlap_system(universe: &mut Universe) {
 
     let dt = lifecycle.delta_time_seconds();
 
-    for (entity_a, (transform_a, volume_a, mut overlap, events)) in world
+    for (entity_a, (transform_a, volume_a, overlap, events)) in world
         .query::<(
             &HaTransform,
             Option<&HaVolume>,

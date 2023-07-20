@@ -40,7 +40,7 @@ impl HaPlatformInterface for DesktopPlatformInterface {
         (size.width as _, size.height as _)
     }
 
-    fn maintain<'a>(&'a mut self) -> HaPlatformInterfaceProcessResult<'a> {
+    fn maintain(&mut self) -> HaPlatformInterfaceProcessResult<'_> {
         let mut result = HaPlatformInterfaceProcessResult::default();
         if self.context_lost {
             result.context_lost = std::mem::take(&mut self.context);

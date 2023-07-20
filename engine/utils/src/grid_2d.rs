@@ -587,11 +587,11 @@ where
         })
     }
 
-    pub fn iter_sample<'a>(
-        &'a self,
+    pub fn iter_sample(
+        &self,
         mut range: Range<(usize, usize)>,
         margin: usize,
-    ) -> impl DoubleEndedIterator<Item = (usize, usize, Grid2d<&T>)> + 'a {
+    ) -> impl DoubleEndedIterator<Item = (usize, usize, Grid2d<&T>)> + '_ {
         range.end.0 = range.end.0.min(self.cols);
         range.end.1 = range.end.1.min(self.rows);
         range.start.0 = range.start.0.min(range.end.0);

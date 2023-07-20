@@ -172,6 +172,7 @@ impl Default for Profile {
 }
 
 impl Profile {
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(value: &str) -> Option<Self> {
         match value {
             "debug" => Some(Self::Debug),
@@ -384,7 +385,7 @@ async fn main() -> Result<()> {
                         ))
                     }
                 };
-                write(config, &contents)?;
+                write(config, contents)?;
             } else if config.exists() {
                 Pipeline::load_and_execute(config)?;
             } else {
@@ -445,7 +446,7 @@ async fn main() -> Result<()> {
             for path in &sources {
                 let build_notifier = build_notifier.clone();
                 watcher
-                    .watch(&path, move |event| match event {
+                    .watch(path, move |event| match event {
                         Event::Create(_) | Event::Write(_) | Event::Remove(_) => {
                             build_notifier.1.notify_all();
                         }
@@ -457,7 +458,7 @@ async fn main() -> Result<()> {
             for path in &assets {
                 let pipeline_notifier = pipeline_notifier.clone();
                 watcher
-                    .watch(&path, move |event| match event {
+                    .watch(path, move |event| match event {
                         Event::Create(_) | Event::Write(_) | Event::Remove(_) => {
                             pipeline_notifier.1.notify_all();
                         }

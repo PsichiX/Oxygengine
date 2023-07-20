@@ -137,7 +137,9 @@ impl MaterialLibrary {
         let render_target = match render_target {
             RenderTargetDescriptor::Main => match RenderTarget::main() {
                 Ok(render_target) => render_target,
-                Err(error) => return Err(MaterialError::CouldNotCreateRenderTarget(error)),
+                Err(error) => {
+                    return Err(MaterialError::CouldNotCreateRenderTarget(Box::new(error)))
+                }
             },
             RenderTargetDescriptor::Custom {
                 buffers,

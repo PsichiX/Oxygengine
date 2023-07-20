@@ -176,8 +176,8 @@ impl AssetProtocol for AtlasAssetProtocol {
                 .get::<AtlasAsset>()
                 .unwrap()
                 .pages_image_assets
-                .iter()
-                .map(|(_, id)| AssetVariant::Id(id.1))
+                .values()
+                .map(|id| AssetVariant::Id(id.1))
                 .collect(),
         )
     }

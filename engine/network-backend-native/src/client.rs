@@ -4,7 +4,6 @@ use network::client::{Client, ClientId, ClientState, MessageId};
 use std::{
     collections::VecDeque,
     io::{Cursor, ErrorKind, Read, Write},
-    mem::replace,
     net::{Shutdown, TcpStream},
     ops::Range,
     sync::{
@@ -48,8 +47,7 @@ impl NativeClient {
         if let Ok(mut state) = self.state.write() {
             *state = ClientState::Closed;
         }
-        let thread = replace(&mut self.thread, None);
-        if let Some(thread) = thread {
+        if let Some(thread) = self.thread.take() {
             thread.join().unwrap();
         }
     }

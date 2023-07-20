@@ -523,7 +523,7 @@ impl RenderTarget {
         (self.cached_width, self.cached_height)
     }
 
-    pub fn resources<'a>(&self, _: &RenderStageResources<'a>) -> Option<&RenderTargetResources> {
+    pub fn resources(&self, _: &RenderStageResources<'_>) -> Option<&RenderTargetResources> {
         self.resources.as_ref()
     }
 
@@ -567,7 +567,7 @@ impl RenderTarget {
         Ok(result)
     }
 
-    pub(crate) fn fragment_buffers<'a>(&'a self) -> impl Iterator<Item = &'a str> + '_ {
+    pub(crate) fn fragment_buffers(&self) -> impl Iterator<Item = &'_ str> + '_ {
         self.buffers.colors.iter().map(|buffer| buffer.id.as_str())
     }
 

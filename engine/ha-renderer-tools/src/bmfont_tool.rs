@@ -199,7 +199,7 @@ fn generate_sdf_font(
         .iter()
         .enumerate()
         .map(|(i, page)| {
-            let path = output.join(&filename).with_extension(&format!("{}.png", i));
+            let path = output.join(filename).with_extension(format!("{}.png", i));
             ImageExporter::export(page)
                 .unwrap_or_else(|_| panic!("Could not export font: {:?} page: {}", descriptor, i))
                 .save_with_format(&path, image::ImageFormat::Png)
@@ -218,9 +218,7 @@ fn generate_sdf_font(
                 },
                 bytes_paths: vec![format!("{}{}.{}.png", assets_path_prefix, image_name, i)],
             };
-            let path = output
-                .join(&filename)
-                .with_extension(&format!("{}.json", i));
+            let path = output.join(filename).with_extension(format!("{}.json", i));
             write(
                 &path,
                 serde_json::to_string_pretty(&asset).unwrap_or_else(|_| {
@@ -282,7 +280,7 @@ fn generate_sdf_font(
         pages,
         filtering: image_filtering,
     };
-    let path = output.join(&filename).with_extension("json");
+    let path = output.join(filename).with_extension("json");
     write(
         &path,
         serde_json::to_string_pretty(&asset)

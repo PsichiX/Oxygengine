@@ -80,7 +80,7 @@ fn main() -> Result<(), Error> {
             .parent()
             .map(|p| p.to_path_buf())
             .unwrap_or_default();
-        let target_dir = output.join(&name);
+        let target_dir = output.join(name);
         create_dir_all(&target_dir)?;
         let meta = if meta_path.exists() {
             serde_json::from_str::<AnimationMeta>(&read_to_string(meta_path)?)?

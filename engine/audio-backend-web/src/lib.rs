@@ -124,8 +124,8 @@ impl Audio for WebAudio {
                     .expect("Could not connect gain with audio output");
                 audio.set_buffer(Some(&buff));
                 audio.set_loop(looped);
-                audio.playback_rate().set_value(playback_rate as f32);
-                gain.gain().set_value(volume as f32);
+                audio.playback_rate().set_value(playback_rate);
+                gain.gain().set_value(volume);
                 if play {
                     if context.state() != AudioContextState::Running {
                         drop(context.resume());
@@ -178,8 +178,8 @@ impl Audio for WebAudio {
                 AudioCache::Buffered(audio, (gain, _, _)) => {
                     if audio.buffer().is_some() {
                         audio.set_loop(looped);
-                        audio.playback_rate().set_value(playback_rate as f32);
-                        gain.gain().set_value(volume as f32);
+                        audio.playback_rate().set_value(playback_rate);
+                        gain.gain().set_value(volume);
                         if let Some(play) = play {
                             if play {
                                 audio.start().expect("Could not start audio source");

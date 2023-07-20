@@ -581,9 +581,9 @@ impl MaterialGraph {
         let mut graph = match graph.subgraph(&targets) {
             Some(graph) => graph,
             None => {
-                return Err(MaterialError::CouldNotBuildSubgraphForSignature(
+                return Err(MaterialError::CouldNotBuildSubgraphForSignature(Box::new(
                     signature.to_owned(),
-                ))
+                )))
             }
         };
         graph.optimize();
@@ -604,7 +604,7 @@ impl MaterialGraph {
         if !inputs.is_subset(&sources) {
             return Err(MaterialError::SubgraphInputsDoesNotMatchSignature(
                 inputs,
-                signature.to_owned(),
+                Box::new(signature.to_owned()),
             ));
         }
         if let Err(error) = graph.validate(library) {

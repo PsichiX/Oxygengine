@@ -38,7 +38,7 @@ impl RigAsset {
                 .skeleton
                 .to_owned()
                 .try_into()
-                .map_err(|error| RigAssetError::Skeleton(error))?,
+                .map_err(RigAssetError::Skeleton)?,
             deformer: self.deformer.to_owned(),
         })
     }

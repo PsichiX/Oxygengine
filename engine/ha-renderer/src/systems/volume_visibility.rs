@@ -49,7 +49,7 @@ pub fn ha_volume_visibility_system(universe: &mut Universe) {
             }),
     );
 
-    for (_, (mut visibility, transform, volume, mesh)) in world
+    for (_, (visibility, transform, volume, mesh)) in world
         .query::<(
             &mut HaVisibility,
             &HaTransform,

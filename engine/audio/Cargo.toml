@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-audio"
-version = "0.40.0"
+version = "0.40.1"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Audio module for Oxygengine"

@@ -25,10 +25,10 @@ pub fn desktop_app_params() -> AppParams {
         if let Some(value) = arg.strip_prefix("--") {
             key = Some(value.to_owned());
             result.insert(value.to_owned(), Default::default());
-        } else if let Some(value) = arg.strip_prefix("-") {
+        } else if let Some(value) = arg.strip_prefix('-') {
             key = Some(value.to_owned());
             result.insert(value.to_owned(), Default::default());
-        } else if let Some(value) = arg.strip_prefix("/") {
+        } else if let Some(value) = arg.strip_prefix('/') {
             key = Some(value.to_owned());
             result.insert(value.to_owned(), Default::default());
         } else if let Some(key) = key.take() {

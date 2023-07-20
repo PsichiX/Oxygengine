@@ -398,7 +398,7 @@ impl Story {
         if let Some(dialogue) = self.active_dialogue.to_mut() {
             dialogue.process(delta_time);
         }
-        if let Some(action) = std::mem::replace(&mut self.dialogue_action_selected, None) {
+        if let Some(action) = self.dialogue_action_selected.take() {
             match action {
                 DialogueAction::JumpToLabel(name) => self.jump_to_label(&name)?,
                 DialogueAction::JumpToChapter(name) => self.run_chapter(&name)?,
@@ -408,8 +408,7 @@ impl Story {
             self.active_dialogue.playing = true;
         }
         if !self.in_progress() {
-            if let Some((chapter_name, index)) = std::mem::replace(&mut self.current_chapter, None)
-            {
+            if let Some((chapter_name, index)) = self.current_chapter.take() {
                 let meta = if let Some(chapter) = self.chapters.get(&chapter_name) {
                     chapter
                         .actions

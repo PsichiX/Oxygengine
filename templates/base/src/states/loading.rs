@@ -11,7 +11,7 @@ impl State for LoadingState {
         let mut assets = universe.expect_resource_mut::<AssetsDatabase>();
         if let Some(preloader) = &mut self.preloader {
             if preloader.process(&mut assets).unwrap() {
-                return StateChange::Swap(Box::new(GameState::default()));
+                return StateChange::Swap(Box::<GameState>::default());
             }
         } else {
             self.preloader = Some(

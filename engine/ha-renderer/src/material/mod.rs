@@ -81,12 +81,12 @@ pub enum MaterialError {
     CouldNotCompileFragmentShader(String),
     FunctionOutputHasNoNode,
     FunctionInputHasNoNode(String),
-    NoShaderVersion(MaterialSignature),
+    NoShaderVersion(Box<MaterialSignature>),
     InvalidUniformTypeToSubmit(MaterialValueType),
-    CouldNotBuildSubgraphForSignature(MaterialSignature),
-    SubgraphInputsDoesNotMatchSignature(HashSet<String>, MaterialSignature),
+    CouldNotBuildSubgraphForSignature(Box<MaterialSignature>),
+    SubgraphInputsDoesNotMatchSignature(HashSet<String>, Box<MaterialSignature>),
     Baking(MaterialGraph, Box<MaterialError>),
-    CouldNotCreateRenderTarget(RenderTargetError),
+    CouldNotCreateRenderTarget(Box<RenderTargetError>),
     FunctionIsNotValidMiddleware(String),
     FunctionDoesNotExists(String),
     MiddlewareDoesNotExists(String),
@@ -310,10 +310,10 @@ impl Material {
         self.versions.keys()
     }
 
-    pub fn resources<'a>(
+    pub fn resources(
         &self,
         signature: &MaterialSignature,
-        _: &RenderStageResources<'a>,
+        _: &RenderStageResources<'_>,
     ) -> Option<&MaterialResourceHandles> {
         match &self.resources {
             Some(resources) => resources.0.get(signature),
@@ -321,11 +321,11 @@ impl Material {
         }
     }
 
-    pub(crate) fn activate<'a>(
+    pub(crate) fn activate(
         &self,
         signature: &MaterialSignature,
         context: &Context,
-        render_stage_resources: &RenderStageResources<'a>,
+        render_stage_resources: &RenderStageResources<'_>,
         render_stats: &mut RenderStats,
     ) -> Result<(), MaterialError> {
         let resources = match &self.resources {
@@ -334,7 +334,11 @@ impl Material {
         };
         let handles = match resources.0.get(signature) {
             Some(handles) => handles,
-            None => return Err(MaterialError::NoShaderVersion(signature.to_owned())),
+            None => {
+                return Err(MaterialError::NoShaderVersion(Box::new(
+                    signature.to_owned(),
+                )))
+            }
         };
         self.draw_options.apply(context, render_stats);
         unsafe {
@@ -366,7 +370,11 @@ impl Material {
         };
         let handles = match resources.0.get(signature) {
             Some(handles) => handles,
-            None => return Err(MaterialError::NoShaderVersion(signature.to_owned())),
+            None => {
+                return Err(MaterialError::NoShaderVersion(Box::new(
+                    signature.to_owned(),
+                )))
+            }
         };
         if let Some((_, a)) = handles.uniforms.get(name) {
             Ok(value_type.map(|b| a == b).unwrap_or(true))
@@ -375,13 +383,13 @@ impl Material {
         }
     }
 
-    pub(crate) fn submit_uniform<'a>(
+    pub(crate) fn submit_uniform(
         &self,
         signature: &MaterialSignature,
         name: &str,
         value: &MaterialValue,
         context: &Context,
-        render_stage_resources: &RenderStageResources<'a>,
+        render_stage_resources: &RenderStageResources<'_>,
         render_stats: &mut RenderStats,
     ) -> Result<(), MaterialError> {
         let resources = match &self.resources {
@@ -393,7 +401,9 @@ impl Material {
         let handles = match resources.0.get(signature) {
             Some(handles) => handles,
             None => {
-                return Err(MaterialError::NoShaderVersion(signature.to_owned()));
+                return Err(MaterialError::NoShaderVersion(Box::new(
+                    signature.to_owned(),
+                )));
             }
         };
         let (handle, value_type) = match handles.uniforms.get(name) {

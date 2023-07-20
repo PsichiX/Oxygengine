@@ -324,7 +324,7 @@ impl Universe {
                         panic!("{}: {}", std::any::type_name::<T>(), error)
                     }))
                 },
-                _phantom: PhantomData::default(),
+                _phantom: PhantomData,
             });
         }
         None
@@ -341,7 +341,7 @@ impl Universe {
                         panic!("{}: {}", std::any::type_name::<T>(), error)
                     }))
                 },
-                _phantom: PhantomData::default(),
+                _phantom: PhantomData,
             });
         }
         None
