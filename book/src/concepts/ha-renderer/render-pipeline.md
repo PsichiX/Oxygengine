@@ -202,7 +202,7 @@ that, here we show Render Gizmo Stage for the sake of simplified explanation.
 
 After all render stage systems complete recording commands into queues, renderer
 is now ready to go through all active render pipelines and execute their render
-queues.
+queues full of previously made records.
 
 You can remember that when we were talking about recording to Render Queues, we
 have been mentioning auto ordered recordings of commands - but what does that

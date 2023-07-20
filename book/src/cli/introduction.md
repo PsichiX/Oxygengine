@@ -7,7 +7,7 @@ development:
 cargo install oxygengine-ignite
 ```
 
-Additionally it's encouraged to install `just` CLI too:
+Additionally it's encouraged to install `just` CLI tool:
 ```bash
 cargo install just
 ```

@@ -1,10 +1,18 @@
+#[cfg(feature = "desktop")]
+pub mod desktop;
 #[cfg(feature = "web")]
 pub mod web;
 
 use oxygengine_core::prelude::*;
 use oxygengine_ha_renderer::prelude::*;
+use oxygengine_input::prelude::*;
 
 pub trait PrototypeApp {
+    fn clear_color(self, value: Rgba) -> Self;
+    fn sprite_filtering(self, value: ImageFiltering) -> Self;
+    fn view_size(self, value: Scalar) -> Self;
+    fn preload_asset(self, path: impl ToString) -> Self;
+    fn input_mappings(self, mappings: InputMappings) -> Self;
     fn run(self);
 }
 

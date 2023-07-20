@@ -1,0 +1,12 @@
+[triggers.mouse]
+mouse-action = "left"
+
+[axes.mouse]
+mouse-x = "x"
+mouse-y = "y"
+
+[axes.keyboard]
+move-up = "W"
+move-down = "S"
+move-left = "A"
+move-right = "D"

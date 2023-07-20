@@ -18,4 +18,4 @@ Best use case for gamejams and quick feature prototypes.
 
 From now on you will have to wait for full long engine build only once, for any
 other new game project you create, it will perform first compilation in matter
-of minute, not 20.
+of minute or less, not in minutes or more.

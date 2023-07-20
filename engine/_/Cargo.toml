@@ -50,9 +50,20 @@ web-ha-renderer-debugger = [
   "oxygengine-ha-renderer-debugger",
   "oxygengine-editor-tools-backend-web/web",
 ]
+desktop-ha-prototype = [
+  "oxygengine-prototype/desktop",
+  "oxygengine-backend-desktop",
+  "oxygengine-audio",
+  # "oxygengine-audio-backend-desktop",
+  "oxygengine-ha-renderer/desktop",
+  "oxygengine-input",
+  "oxygengine-input-device-desktop",
+]
 web-ha-prototype = [
   "oxygengine-prototype/web",
   "oxygengine-backend-web",
+  "oxygengine-audio",
+  "oxygengine-audio-backend-web",
   "oxygengine-core/web",
   "oxygengine-ha-renderer/web",
   "oxygengine-input",

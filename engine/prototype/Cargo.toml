@@ -19,6 +19,14 @@ web = [
   "oxygengine-audio-backend-web",
   "oxygengine-input/web",
   "oxygengine-input-device-web",
+  "oxygengine-editor-tools-backend-web",
+  "oxygengine-ha-renderer-debugger",
+]
+desktop = [
+  "oxygengine-backend-desktop",
+  "oxygengine-ha-renderer/desktop",
+  # "oxygengine-audio-backend-desktop",
+  "oxygengine-input-device-desktop",
 ]
 parallel = [
   "oxygengine-core/parallel",
@@ -39,11 +47,14 @@ scalar64 = [
 [dependencies]
 oxygengine-core = { version = "0.40", path = "../core" }
 oxygengine-backend-web = { version = "0.40", path = "../backend-web", optional = true }
+oxygengine-backend-desktop = { version = "0.40", path = "../backend-desktop", optional = true }
 oxygengine-audio = { version = "0.40", path = "../audio" }
 oxygengine-audio-backend-web = { version = "0.40", path = "../audio-backend-web", optional = true }
+# oxygengine-audio-backend-desktop = { version = "0.40", path = "../audio-backend-desktop", optional = true }
 oxygengine-input = { version = "0.40", path = "../input" }
 oxygengine-input-device-web = { version = "0.40", path = "../input-device-web", optional = true }
+oxygengine-input-device-desktop = { version = "0.40", path = "../input-device-desktop", optional = true }
 oxygengine-ha-renderer = { version = "0.40", path = "../ha-renderer" }
-oxygengine-editor-tools-backend-web = { version = "0.40", path = "../editor-tools-backend-web" }
-oxygengine-ha-renderer-debugger = { version = "0.40", path = "../ha-renderer-debugger" }
+oxygengine-editor-tools-backend-web = { version = "0.40", path = "../editor-tools-backend-web", optional = true }
+oxygengine-ha-renderer-debugger = { version = "0.40", path = "../ha-renderer-debugger", optional = true }
 serde = { version = "1", features = ["derive"] }

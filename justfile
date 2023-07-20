@@ -8,9 +8,9 @@ build-engine:
   cargo build --manifest-path ./Cargo.toml
 
 build-templates:
-  cd ./templates/ha-base/ && cargo build --manifest-path ./platforms/desktop/Cargo.toml
-  cd ./templates/ha-game/ && cargo build --manifest-path ./platforms/desktop/Cargo.toml
-  # cd ./templates/web-ha-prototype/ && cargo build
+  cd ./templates/base/ && cargo build --manifest-path ./platforms/desktop/Cargo.toml
+  cd ./templates/game/ && cargo build --manifest-path ./platforms/desktop/Cargo.toml
+  cd ./templates/prototype/ && cargo build --manifest-path ./platforms/desktop/Cargo.toml
 
 build-demos-wip:
   cd ./demos/wip/rig-testbed/ && cargo build --manifest-path ./platforms/desktop/Cargo.toml
@@ -33,9 +33,9 @@ clippy-engine:
   cargo clippy --manifest-path ./Cargo.toml
 
 clippy-templates:
-  cd ./templates/ha-base/ && cargo clippy --manifest-path ./platforms/desktop/Cargo.toml
-  cd ./templates/ha-game/ && cargo clippy --manifest-path ./platforms/desktop/Cargo.toml
-  cd ./templates/web-ha-prototype/ && cargo clippy
+  cd ./templates/base/ && cargo clippy --manifest-path ./platforms/desktop/Cargo.toml
+  cd ./templates/game/ && cargo clippy --manifest-path ./platforms/desktop/Cargo.toml
+  cd ./templates/prototype/ && cargo clippy --manifest-path ./platforms/desktop/Cargo.toml
 
 clippy-demos-wip:
   cd ./demos/wip/rig-testbed/ && cargo clippy --manifest-path ./platforms/desktop/Cargo.toml
@@ -97,13 +97,16 @@ book:
   mdbook build book
   mdbook test book -L ./target/debug/deps
 
+book-live:
+  mdbook serve book -o
+
 update-engine:
   cargo update --manifest-path ./Cargo.toml --workspace --aggressive
 
 update-templates:
-  cd ./templates/ha-base/ && cargo update --aggressive --manifest-path ./platforms/desktop/Cargo.toml
-  cd ./templates/ha-game/ && cargo update --aggressive --manifest-path ./platforms/desktop/Cargo.toml
-  cd ./templates/web-ha-prototype/ && cargo update --aggressive
+  cd ./templates/base/ && cargo update --aggressive --manifest-path ./platforms/desktop/Cargo.toml
+  cd ./templates/game/ && cargo update --aggressive --manifest-path ./platforms/desktop/Cargo.toml
+  cd ./templates/prototype/ && cargo update --aggressive --manifest-path ./platforms/desktop/Cargo.toml
 
 update-demos-wip:
   cd ./demos/wip/rig-testbed/ && cargo update --aggressive --manifest-path ./platforms/desktop/Cargo.toml

@@ -32,7 +32,7 @@ are gonna be used in rendering.
 
 Material domain and material graphs always work in tandem, material domain job is
 to preprocess vertex and uniform data and send it to material graph (via specific
-interface that given domain defines) for it to post process that data and send it
+interface that given domain defines) for it to postprocess that data and send it
 back for material domain to store it properly in target outputs.
 
 The reason for them being separate units is because HA renderer aims for in case
@@ -40,23 +40,24 @@ of user wanting to do some different visuals than default ones provided by the
 engine, to focus only on the effect and don't bother writing additional logic just
 to meet specialized vertex format and render target requirements. Another benefit
 we get from this approach is that now user can make his frontend material once and
-renderer will bake at runtime all variants needed all pairs of domain and graph
-materials. This basically means that user can now get his material graph working
-without any additional work with any vertex format and target format that renderer
-find compatible at runtime. In even simpler words: imagine you have a material
-graph that has to add outlines to the image, in that case no matter if you render
-your entity for example in forward or deferred renderer, it will work for both by
-default as long as both use material domains which provide domain node that your
-outline material uses.
+renderer will bake at runtime all variants needed by all pairs of domain and graph
+materials.
 
-**IMPORTANT:** all shader variants for given material are considered unique as
+This basically means that user can now get his material graph working without any
+additional work with any vertex format and target format that renderer find
+compatible at runtime. In even simpler words: imagine you have a material graph
+that has to add outlines to the image, in that case no matter if you render your
+entity for example in forward or deferred renderer, it will work for both by default
+as long as both use material domains which provide domain node that your outline
+material uses.
+
+**IMPORTANT:** All shader variants for given material are considered unique as
 long as they have different Material Signatures:
-- Material Signature is defined by Material Mesh Signature + Material Render
-  Target Signature + Domain name + Vertex Middlewares used
+- Material Signature is defined by Material Mesh Signature + Material Render Target
+  Signature + Domain name + Vertex Middlewares used.
 - Material Mesh Signature is defined by unique Vertex Layout (vertex layouts are
-  defined by meshes, to be more precise by the vertex format given mesh data uses)
-- Material Render Target Signature is defined by set of render target output
-  names.
+  defined by meshes, to be more precise by the vertex format given mesh data uses).
+- Material Render Target Signature is defined by set of render target output names.
 
 ## 1 picture say more than 1000 words
 
@@ -100,31 +101,30 @@ material_graph! {
 }
 ```
 
-In this snippet we can see that this particular material domain expects model +
-view + projection uniforms, as well as position + color vertex inputs, and it
-writes data to gl_Position vertex output and finalColor target output. This
-basically means that this material domain will work with stage that writes to
-finalColor target output and position + color vertex format. It also will bake
-shader variants for any material graph that **might read** TintColor and/or
-ScreenPosition domain input, and **might write** BaseColor domain output.
+In this snippet we can see that this particular material domain expects `model` +
+`view` + `projection` uniforms, as well as `position` + `color` vertex inputs,
+and it writes data to `gl_Position` vertex output and `finalColor` target output.
+This basically means that this material domain will work with stage that writes
+to `finalColor` target output and `position` + `color` vertex format. It also
+will bake shader variants for any material graph that **might read** `TintColor`
+and/or `ScreenPosition` domain input, and **might write** `BaseColor` domain output.
 
 Consider domain input/outputs to be purely an optional interface between material
-domain and material graph. You might ask now: "why domain interface is
-optional?" - well, this is where this approach shines: you see, when material
-domain gets combined with material graph, it will bake shader only from nodes
-that leads directly from target outputs to vertex inputs, with all required
-nodes along the way, every nod not used in that path won't get compiled into GLSL
-shader variant.
+domain and material graph. You might ask now: "why domain interface is optional?"
+well, this is where this approach shines: you see, when material domain gets
+combined with material graph, it will bake shader only from nodes that leads
+directly from target outputs to vertex inputs, with all required nodes along the
+way, every node not used in that path won't get compiled into shader variant.
 
 Now let's take a look at the simplest material graph:
 ```rust,ignore
 material_graph! {
     inputs {
-        [vertex] input TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+        [vertex] inout TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
     }
 
     outputs {
-        [fragment] input BaseColor: vec4;
+        [fragment] inout BaseColor: vec4;
     }
 
     [[TintColor => vColor] -> BaseColor]
@@ -134,9 +134,9 @@ material_graph! {
 Here in this material graph we can see we only use domain interface and just move
 input color from vertex shader stage to fragment shader stage and send it back to
 material domain to let it store properly for its render target outputs - when user
-is making material graph, he doesn't have to care about how to write to targets,
-he can only care how to process domain inputs into domain outputs and domain takes
-care of properly storing data into target outputs.
+is making material graph, (s)he doesn't have to care about how to write to targets,
+(s)he can only care how to process domain inputs into domain outputs and domain
+takes care of properly storing data into target outputs.
 
 Now imagine user wants to create material graph that do not use TintColor at all,
 rather converts ScreenPosition into BaseColor:
@@ -144,11 +144,11 @@ rather converts ScreenPosition into BaseColor:
 ```rust,ignore
 material_graph! {
     inputs {
-        [vertex] input ScreenPosition: vec4 = {vec4(0.0, 0.0, 0.0, 0.0)};
+        [vertex] inout ScreenPosition: vec4 = {vec4(0.0, 0.0, 0.0, 0.0)};
     }
 
     outputs {
-        [fragment] input BaseColor: vec4;
+        [fragment] inout BaseColor: vec4;
     }
 
     [[ScreenPosition => vColor] -> BaseColor]
@@ -159,14 +159,16 @@ This material graph when combined with our previously defined material domain,
 will bake shader with nodes that only use screen position calculated in domain
 graph and not include color vertex data in the shader at all since this shader
 variant does not use it. Now, do you also see the benefits of this over usual
-`#ifdef`-ed raw shaders?
+`#ifdef`-ed raw shaders? You can focus on what effect you want to achieve
+without caring about engine internals you work with, trying to define or even
+limit yourself with effects.
 
 ## Material middlewares
 
 Another concept used with material graphs is material middlewares - an ergonomic
 way to "inject" other material graphs as material input preprocessor.
 
-Consider you have a vertex format such as:
+Consider you have a vertex format like this:
 ```rust,ignore
 vertex_type! {
     #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]

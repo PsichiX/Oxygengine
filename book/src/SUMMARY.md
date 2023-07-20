@@ -3,7 +3,7 @@
 - [Introduction](./introduction.md)
 - [Oxygengine Ignite CLI tool](./cli/introduction.md)
   - [Creating new project](./cli/new-project.md)
-  - [Building your project](./cli/build-project.md)
+  - [Managing your project](./cli/manage-project.md)
   - [Update engine version used in your game project](./cli/update.md)
   - [Speed up compilation times for new projects](./cli/faster-compilation-times.md)
   - [Asset pipeline and its tools](./cli/asset-pipeline.md)

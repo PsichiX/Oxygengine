@@ -9,14 +9,14 @@ dev-build PLATFORM = "desktop":
 
 dev-test PLATFORM = "desktop":
     OXY_ROOT_PATH="$(pwd)/" \
-    OXY_FETCH_ENGINE_PATH="$(pwd)/assets-baked/" \
+    OXY_FETCH_ENGINE_PATH="$(pwd)/assets/" \
     OXY_STORAGE_ENGINE_PATH="$(pwd)/bin/" \
     cargo test --manifest-path ./platforms/{{PLATFORM}}/Cargo.toml
 
 dev-run PLATFORM = "desktop":
     RUST_BACKTRACE=1 \
     OXY_ROOT_PATH="$(pwd)/" \
-    OXY_FETCH_ENGINE_PATH="$(pwd)/assets-baked/" \
+    OXY_FETCH_ENGINE_PATH="$(pwd)/assets/" \
     OXY_STORAGE_ENGINE_PATH="$(pwd)/bin/" \
     cargo run --manifest-path ./platforms/{{PLATFORM}}/Cargo.toml
 
@@ -28,12 +28,10 @@ prod-build PROFILE PLATFORM = "desktop":
 
 prod-package PROFILE PLATFORM = "desktop":
     oxygengine-ignite package {{PLATFORM}} -p {{PROFILE}}
+    cp -rf ./assets/* ./dist/
 
 prod OPERATION PROFILE PLATFORM = "desktop":
     just prod-{{OPERATION}} {{PROFILE}} {{PLATFORM}}
-
-bake PLATFORM = "desktop":
-    oxygengine-ignite pipeline ./platforms/{{PLATFORM}}/pipeline.json
 
 live-desktop:
     oxygengine-ignite live desktop

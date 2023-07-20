@@ -42,7 +42,7 @@ enum Commands {
         #[arg(short, long, value_name = "PATH", default_value = "./")]
         destination: PathBuf,
         /// Project preset.
-        #[arg(short, long, value_name = "NAME", default_value = "ha-base")]
+        #[arg(short, long, value_name = "NAME", default_value = "base")]
         preset: String,
     },
     /// Pack assets.

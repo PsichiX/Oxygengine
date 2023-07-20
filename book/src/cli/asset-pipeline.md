@@ -1,4 +1,5 @@
 # Asset pipeline and its tools
+
 Since Oxygengine is highly data-driven, we put most if not all data into assets,
 that's where the idea of asset pipeline was born. Asset pipeline is used to take
 source files such as images, levels, sounds, basically every file that contains
@@ -17,14 +18,14 @@ a LDtk asset pipeline tool that takes LDtk project files and bakes images from
 tilesets, prefabs with entities from level layers and additional data assets from
 used grid layer values.
 
-Asset pipelien tools are just CLI binaries that uses `oxygengine-build-tools`
+Asset pipeline tools are just CLI binaries that uses `oxygengine-build-tools`
 crate types to read input data passed to your tool, and your tool job is to write
 new files to given path. That means, if you need to have support for custom/additional
 asset sources, you can easily make an asset pipeline tool for it.
 
 **IMPORTANT:**
-When using either HA renderer or composite renderer, you have to also install
-their asset pipeline tools for asset pipeline to be able to bake assets.
+When using HA renderer, you have to also install their asset pipeline tools for
+asset pipeline to be able to bake assets.
 These are:
 - `cargo install oxygengine-ha-renderer-tools`
 

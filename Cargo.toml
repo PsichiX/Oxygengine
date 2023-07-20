@@ -3,7 +3,6 @@ members = [
   "./engine/*",
   "./demos/wip/*/platforms/desktop",
   "./templates/*/platforms/desktop",
-  "./templates/web-ha-prototype",
 ]
 default-members = [
   "./engine/*",

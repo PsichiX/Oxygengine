@@ -7,6 +7,8 @@ pub mod systems;
 
 #[allow(ambiguous_glob_reexports)]
 pub mod prelude {
+    #[cfg(feature = "desktop")]
+    pub use crate::app::desktop::*;
     #[cfg(feature = "web")]
     pub use crate::app::web::*;
 

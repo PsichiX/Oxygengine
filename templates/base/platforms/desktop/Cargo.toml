@@ -1,0 +1,16 @@
+[package]
+name = "base"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "base"
+path = "../../src/desktop_main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+
+[dependencies.oxygengine]
+version = "0.40"
+features = ["desktop-ha-game"]

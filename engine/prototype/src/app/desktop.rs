@@ -1,16 +1,14 @@
 use crate::{app::*, materials::*, systems::render_prototype_stage::*};
-use oxygengine_audio_backend_web::prelude::*;
-use oxygengine_backend_web::prelude::*;
+// use oxygengine_audio_backend_desktop::prelude::*;
+use oxygengine_backend_desktop::prelude::*;
 use oxygengine_core::prelude::*;
-use oxygengine_editor_tools_backend_web::prelude::*;
 use oxygengine_ha_renderer::prelude::*;
 use oxygengine_input::prelude::*;
-use oxygengine_input_device_web::prelude::*;
-use std::collections::HashSet;
+use oxygengine_input_device_desktop::prelude::*;
+use std::{collections::HashSet, sync::Arc};
 
-pub struct WebPrototypeApp {
+pub struct DesktopPrototypeApp {
     pub initial_state: Box<dyn State>,
-    pub canvas_id: String,
     pub clear_color: Rgba,
     pub sprite_filtering: ImageFiltering,
     pub view_size: Scalar,
@@ -18,11 +16,10 @@ pub struct WebPrototypeApp {
     pub input_mappings: InputMappings,
 }
 
-impl WebPrototypeApp {
+impl DesktopPrototypeApp {
     pub fn new(initial_state: impl State + 'static) -> Self {
         Self {
             initial_state: Box::new(initial_state),
-            canvas_id: "screen".to_owned(),
             clear_color: Rgba::gray(0.2),
             sprite_filtering: Default::default(),
             view_size: 1024.0,
@@ -30,14 +27,9 @@ impl WebPrototypeApp {
             input_mappings: Default::default(),
         }
     }
-
-    pub fn canvas_id(mut self, value: impl ToString) -> Self {
-        self.canvas_id = value.to_string();
-        self
-    }
 }
 
-impl PrototypeApp for WebPrototypeApp {
+impl PrototypeApp for DesktopPrototypeApp {
     fn clear_color(mut self, value: Rgba) -> Self {
         self.clear_color = value;
         self
@@ -64,13 +56,10 @@ impl PrototypeApp for WebPrototypeApp {
     }
 
     fn run(self) {
-        #[cfg(feature = "console_error_panic_hook")]
         #[cfg(debug_assertions)]
-        console_error_panic_hook::set_once();
+        logger_setup(DefaultLogger);
 
-        #[cfg(debug_assertions)]
-        logger_setup(WebLogger);
-
+        let runner = DesktopAppRunner::new(DesktopAppConfig::default());
         let app = App::build::<LinearPipelineBuilder>()
             .with_bundle(
                 oxygengine_core::assets::bundle_installer,
@@ -79,43 +68,37 @@ impl PrototypeApp for WebPrototypeApp {
             .unwrap()
             .with_bundle(
                 oxygengine_input::bundle_installer,
-                make_inputs(&self.canvas_id, &self.input_mappings),
+                make_inputs(&self.input_mappings),
             )
             .unwrap()
             .with_bundle(
                 oxygengine_ha_renderer::bundle_installer,
-                make_renderer(&self.canvas_id, self.clear_color),
+                make_renderer(runner.context_wrapper(), self.clear_color),
             )
             .unwrap()
-            .with_bundle(
-                oxygengine_ha_renderer_debugger::bundle_installer,
-                WebBroadcastChannel::new("OxygengineHARD"),
-            )
-            .unwrap()
-            .with_bundle(oxygengine_audio::bundle_installer, WebAudio::default())
-            .unwrap()
+            // .with_bundle(oxygengine_audio::bundle_installer, DesktopAudio::default())
+            // .unwrap()
             .with_bundle(crate::bundle_installer, |renderables, camera| {
                 renderables.sprite_filtering = self.sprite_filtering;
                 camera.view_size = self.view_size;
             })
             .unwrap()
-            .with_resource(WebStorageEngine)
+            .with_resource(FsStorageEngine::default())
+            .with_resource(DesktopAppEvents::default())
             .build::<SequencePipelineEngine, _, _>(
                 BootState {
                     next_state: Some(self.initial_state),
                     view_size: self.view_size,
                 },
-                WebAppTimer::default(),
+                StandardAppTimer::default(),
             );
 
-        AppRunner::new(app).run(WebAppRunner).unwrap();
+        AppRunner::new(app).run(runner).unwrap();
     }
 }
 
-fn make_assets(
-    preload: &HashSet<String>,
-) -> (WebFetchEngine, impl FnMut(&mut AssetsDatabase) + '_) {
-    (WebFetchEngine::default(), move |database| {
+fn make_assets(preload: &HashSet<String>) -> (FsFetchEngine, impl FnMut(&mut AssetsDatabase) + '_) {
+    (FsFetchEngine::default(), move |database| {
         #[cfg(debug_assertions)]
         database.register_error_reporter(LoggerAssetsDatabaseErrorReporter);
         oxygengine_ha_renderer::protocols_installer(database);
@@ -137,18 +120,19 @@ fn make_assets(
     })
 }
 
-fn make_inputs(canvas_id: &str, mappings: &InputMappings) -> impl FnMut(&mut InputController) + '_ {
+fn make_inputs(mappings: &InputMappings) -> impl FnMut(&mut InputController) + '_ {
     |input| {
-        input.register(WebKeyboardInputDevice::new(get_event_target_document()));
-        input.register(WebMouseInputDevice::new(get_event_target_by_id(canvas_id)));
-        input.register(WebTouchInputDevice::new(get_event_target_by_id(canvas_id)));
+        input.register(DesktopKeyboardInputDevice::default());
+        input.register(DesktopMouseInputDevice::default());
         input.map_config(mappings.to_owned());
     }
 }
 
-fn make_renderer(canvas_id: &str, clear_color: Rgba) -> HaRendererBundleSetup {
-    let interface =
-        WebPlatformInterface::with_canvas_id(canvas_id, WebContextOptions::default()).unwrap();
+fn make_renderer(
+    context_wrapper: Arc<DesktopContextWrapper>,
+    clear_color: Rgba,
+) -> HaRendererBundleSetup {
+    let interface = DesktopPlatformInterface::with_context_wrapper(context_wrapper);
     let mut renderer = HaRenderer::new(interface)
         .with_stage::<RenderPrototypeStage>("prototype")
         .with_pipeline(
