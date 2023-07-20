@@ -12,8 +12,20 @@ jobs:
         with:
           toolchain: stable
           target: wasm32-unknown-unknown
+      - name: Set up cargo cache
+        uses: actions/cache@v3
+        continue-on-error: false
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/            
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
       - name: Install Just
-        run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | sudo bash -s -- --to /usr/local/bin
+        run: cargo install just
       - name: Build
         run: just build
       # - name: Test
@@ -28,4 +40,4 @@ jobs:
         run: OXY_UPDATE_PRESETS=1 oxygengine-ignite new test
       - name: Build test project
         if: github.ref == 'refs/heads/master'
-        run: cd test && ls -al && cat Cargo.toml && oxygengine-ignite package
+        run: cd test && ls -al && oxygengine-ignite package
