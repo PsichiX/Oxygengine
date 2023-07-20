@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../../introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="../../cli/introduction.html"><strong aria-hidden="true">2.</strong> Oxygengine Ignite CLI tool</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../cli/new-project.html"><strong aria-hidden="true">2.1.</strong> Creating new project</a></li><li class="chapter-item expanded "><a href="../../cli/build-project.html"><strong aria-hidden="true">2.2.</strong> Building your project</a></li><li class="chapter-item expanded "><a href="../../cli/update.html"><strong aria-hidden="true">2.3.</strong> Update engine version used in your game project</a></li><li class="chapter-item expanded "><a href="../../cli/faster-compilation-times.html"><strong aria-hidden="true">2.4.</strong> Speed up compilation times for new projects</a></li><li class="chapter-item expanded "><a href="../../cli/asset-pipeline.html"><strong aria-hidden="true">2.5.</strong> Asset pipeline and its tools</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Concepts explained</div></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../concepts/ha-renderer/introduction.html" class="active"><strong aria-hidden="true">3.1.</strong> Hardware Accelerated rendering</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../concepts/ha-renderer/render-pipeline.html"><strong aria-hidden="true">3.1.1.</strong> Render Pipeline</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.2.</strong> Camera</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.3.</strong> Render Target</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.4.</strong> Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.5.</strong> Virtual Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.6.</strong> Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.7.</strong> Virtual Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.8.</strong> Material</div></li></ol></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Tutorials</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">4.1.</strong> RPG game using Overworld module</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> VN game using Visual Novel module</div></li></ol></li><li class="chapter-item expanded "><a href="../../more.html"><strong aria-hidden="true">5.</strong> More...</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../../introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="../../cli/introduction.html"><strong aria-hidden="true">2.</strong> Oxygengine Ignite CLI tool</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../cli/new-project.html"><strong aria-hidden="true">2.1.</strong> Creating new project</a></li><li class="chapter-item expanded "><a href="../../cli/manage-project.html"><strong aria-hidden="true">2.2.</strong> Managing your project</a></li><li class="chapter-item expanded "><a href="../../cli/update.html"><strong aria-hidden="true">2.3.</strong> Update engine version used in your game project</a></li><li class="chapter-item expanded "><a href="../../cli/faster-compilation-times.html"><strong aria-hidden="true">2.4.</strong> Speed up compilation times for new projects</a></li><li class="chapter-item expanded "><a href="../../cli/asset-pipeline.html"><strong aria-hidden="true">2.5.</strong> Asset pipeline and its tools</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Concepts explained</div></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../concepts/ha-renderer/introduction.html" class="active"><strong aria-hidden="true">3.1.</strong> Hardware Accelerated rendering</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../concepts/ha-renderer/render-pipeline.html"><strong aria-hidden="true">3.1.1.</strong> Render Pipeline</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.2.</strong> Camera</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.3.</strong> Render Target</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.4.</strong> Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.5.</strong> Virtual Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.6.</strong> Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.7.</strong> Virtual Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.8.</strong> Material</div></li></ol></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Tutorials</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">4.1.</strong> RPG game using Overworld module</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> VN game using Visual Novel module</div></li></ol></li><li class="chapter-item expanded "><a href="../../more.html"><strong aria-hidden="true">5.</strong> More...</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -195,30 +195,30 @@ finds that certain pair of material domain (backend) and material graph (fronten
 are gonna be used in rendering.</p>
 <p>Material domain and material graphs always work in tandem, material domain job is
 to preprocess vertex and uniform data and send it to material graph (via specific
-interface that given domain defines) for it to post process that data and send it
+interface that given domain defines) for it to postprocess that data and send it
 back for material domain to store it properly in target outputs.</p>
 <p>The reason for them being separate units is because HA renderer aims for in case
 of user wanting to do some different visuals than default ones provided by the
 engine, to focus only on the effect and don't bother writing additional logic just
 to meet specialized vertex format and render target requirements. Another benefit
 we get from this approach is that now user can make his frontend material once and
-renderer will bake at runtime all variants needed all pairs of domain and graph
-materials. This basically means that user can now get his material graph working
-without any additional work with any vertex format and target format that renderer
-find compatible at runtime. In even simpler words: imagine you have a material
-graph that has to add outlines to the image, in that case no matter if you render
-your entity for example in forward or deferred renderer, it will work for both by
-default as long as both use material domains which provide domain node that your
-outline material uses.</p>
-<p><strong>IMPORTANT:</strong> all shader variants for given material are considered unique as
+renderer will bake at runtime all variants needed by all pairs of domain and graph
+materials.</p>
+<p>This basically means that user can now get his material graph working without any
+additional work with any vertex format and target format that renderer find
+compatible at runtime. In even simpler words: imagine you have a material graph
+that has to add outlines to the image, in that case no matter if you render your
+entity for example in forward or deferred renderer, it will work for both by default
+as long as both use material domains which provide domain node that your outline
+material uses.</p>
+<p><strong>IMPORTANT:</strong> All shader variants for given material are considered unique as
 long as they have different Material Signatures:</p>
 <ul>
-<li>Material Signature is defined by Material Mesh Signature + Material Render
-Target Signature + Domain name + Vertex Middlewares used</li>
+<li>Material Signature is defined by Material Mesh Signature + Material Render Target
+Signature + Domain name + Vertex Middlewares used.</li>
 <li>Material Mesh Signature is defined by unique Vertex Layout (vertex layouts are
-defined by meshes, to be more precise by the vertex format given mesh data uses)</li>
-<li>Material Render Target Signature is defined by set of render target output
-names.</li>
+defined by meshes, to be more precise by the vertex format given mesh data uses).</li>
+<li>Material Render Target Signature is defined by set of render target output names.</li>
 </ul>
 <h2 id="1-picture-say-more-than-1000-words"><a class="header" href="#1-picture-say-more-than-1000-words">1 picture say more than 1000 words</a></h2>
 <p>Let's take a look at the simplest material domain (this is code-side
@@ -258,28 +258,27 @@ representation of the material domain/graph):</p>
     [screen_position -&gt; gl_Position]
     [BaseColor -&gt; finalColor]
 }</code></pre>
-<p>In this snippet we can see that this particular material domain expects model +
-view + projection uniforms, as well as position + color vertex inputs, and it
-writes data to gl_Position vertex output and finalColor target output. This
-basically means that this material domain will work with stage that writes to
-finalColor target output and position + color vertex format. It also will bake
-shader variants for any material graph that <strong>might read</strong> TintColor and/or
-ScreenPosition domain input, and <strong>might write</strong> BaseColor domain output.</p>
+<p>In this snippet we can see that this particular material domain expects <code>model</code> +
+<code>view</code> + <code>projection</code> uniforms, as well as <code>position</code> + <code>color</code> vertex inputs,
+and it writes data to <code>gl_Position</code> vertex output and <code>finalColor</code> target output.
+This basically means that this material domain will work with stage that writes
+to <code>finalColor</code> target output and <code>position</code> + <code>color</code> vertex format. It also
+will bake shader variants for any material graph that <strong>might read</strong> <code>TintColor</code>
+and/or <code>ScreenPosition</code> domain input, and <strong>might write</strong> <code>BaseColor</code> domain output.</p>
 <p>Consider domain input/outputs to be purely an optional interface between material
-domain and material graph. You might ask now: &quot;why domain interface is
-optional?&quot; - well, this is where this approach shines: you see, when material
-domain gets combined with material graph, it will bake shader only from nodes
-that leads directly from target outputs to vertex inputs, with all required
-nodes along the way, every nod not used in that path won't get compiled into GLSL
-shader variant.</p>
+domain and material graph. You might ask now: &quot;why domain interface is optional?&quot;
+well, this is where this approach shines: you see, when material domain gets
+combined with material graph, it will bake shader only from nodes that leads
+directly from target outputs to vertex inputs, with all required nodes along the
+way, every node not used in that path won't get compiled into shader variant.</p>
 <p>Now let's take a look at the simplest material graph:</p>
 <pre><code class="language-rust ignore">material_graph! {
     inputs {
-        [vertex] input TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+        [vertex] inout TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
     }
 
     outputs {
-        [fragment] input BaseColor: vec4;
+        [fragment] inout BaseColor: vec4;
     }
 
     [[TintColor =&gt; vColor] -&gt; BaseColor]
@@ -287,18 +286,18 @@ shader variant.</p>
 <p>Here in this material graph we can see we only use domain interface and just move
 input color from vertex shader stage to fragment shader stage and send it back to
 material domain to let it store properly for its render target outputs - when user
-is making material graph, he doesn't have to care about how to write to targets,
-he can only care how to process domain inputs into domain outputs and domain takes
-care of properly storing data into target outputs.</p>
+is making material graph, (s)he doesn't have to care about how to write to targets,
+(s)he can only care how to process domain inputs into domain outputs and domain
+takes care of properly storing data into target outputs.</p>
 <p>Now imagine user wants to create material graph that do not use TintColor at all,
 rather converts ScreenPosition into BaseColor:</p>
 <pre><code class="language-rust ignore">material_graph! {
     inputs {
-        [vertex] input ScreenPosition: vec4 = {vec4(0.0, 0.0, 0.0, 0.0)};
+        [vertex] inout ScreenPosition: vec4 = {vec4(0.0, 0.0, 0.0, 0.0)};
     }
 
     outputs {
-        [fragment] input BaseColor: vec4;
+        [fragment] inout BaseColor: vec4;
     }
 
     [[ScreenPosition =&gt; vColor] -&gt; BaseColor]
@@ -307,11 +306,13 @@ rather converts ScreenPosition into BaseColor:</p>
 will bake shader with nodes that only use screen position calculated in domain
 graph and not include color vertex data in the shader at all since this shader
 variant does not use it. Now, do you also see the benefits of this over usual
-<code>#ifdef</code>-ed raw shaders?</p>
+<code>#ifdef</code>-ed raw shaders? You can focus on what effect you want to achieve
+without caring about engine internals you work with, trying to define or even
+limit yourself with effects.</p>
 <h2 id="material-middlewares"><a class="header" href="#material-middlewares">Material middlewares</a></h2>
 <p>Another concept used with material graphs is material middlewares - an ergonomic
 way to &quot;inject&quot; other material graphs as material input preprocessor.</p>
-<p>Consider you have a vertex format such as:</p>
+<p>Consider you have a vertex format like this:</p>
 <pre><code class="language-rust ignore">vertex_type! {
     #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
     @tags(SurfaceDomain, SurfaceTexturedDomain)

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Building your project - Oxygengine Essentials Book</title>
+        <title>Managing your project - Oxygengine Essentials Book</title>
 
 
         <!-- Custom HTML head -->
@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="../cli/introduction.html"><strong aria-hidden="true">2.</strong> Oxygengine Ignite CLI tool</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../cli/new-project.html"><strong aria-hidden="true">2.1.</strong> Creating new project</a></li><li class="chapter-item expanded "><a href="../cli/build-project.html" class="active"><strong aria-hidden="true">2.2.</strong> Building your project</a></li><li class="chapter-item expanded "><a href="../cli/update.html"><strong aria-hidden="true">2.3.</strong> Update engine version used in your game project</a></li><li class="chapter-item expanded "><a href="../cli/faster-compilation-times.html"><strong aria-hidden="true">2.4.</strong> Speed up compilation times for new projects</a></li><li class="chapter-item expanded "><a href="../cli/asset-pipeline.html"><strong aria-hidden="true">2.5.</strong> Asset pipeline and its tools</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Concepts explained</div></li><li><ol class="section"><li class="chapter-item expanded "><a href="../concepts/ha-renderer/introduction.html"><strong aria-hidden="true">3.1.</strong> Hardware Accelerated rendering</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../concepts/ha-renderer/render-pipeline.html"><strong aria-hidden="true">3.1.1.</strong> Render Pipeline</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.2.</strong> Camera</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.3.</strong> Render Target</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.4.</strong> Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.5.</strong> Virtual Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.6.</strong> Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.7.</strong> Virtual Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.8.</strong> Material</div></li></ol></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Tutorials</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">4.1.</strong> RPG game using Overworld module</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> VN game using Visual Novel module</div></li></ol></li><li class="chapter-item expanded "><a href="../more.html"><strong aria-hidden="true">5.</strong> More...</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="../cli/introduction.html"><strong aria-hidden="true">2.</strong> Oxygengine Ignite CLI tool</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../cli/new-project.html"><strong aria-hidden="true">2.1.</strong> Creating new project</a></li><li class="chapter-item expanded "><a href="../cli/manage-project.html" class="active"><strong aria-hidden="true">2.2.</strong> Managing your project</a></li><li class="chapter-item expanded "><a href="../cli/update.html"><strong aria-hidden="true">2.3.</strong> Update engine version used in your game project</a></li><li class="chapter-item expanded "><a href="../cli/faster-compilation-times.html"><strong aria-hidden="true">2.4.</strong> Speed up compilation times for new projects</a></li><li class="chapter-item expanded "><a href="../cli/asset-pipeline.html"><strong aria-hidden="true">2.5.</strong> Asset pipeline and its tools</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Concepts explained</div></li><li><ol class="section"><li class="chapter-item expanded "><a href="../concepts/ha-renderer/introduction.html"><strong aria-hidden="true">3.1.</strong> Hardware Accelerated rendering</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../concepts/ha-renderer/render-pipeline.html"><strong aria-hidden="true">3.1.1.</strong> Render Pipeline</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.2.</strong> Camera</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.3.</strong> Render Target</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.4.</strong> Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.5.</strong> Virtual Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.6.</strong> Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.7.</strong> Virtual Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.8.</strong> Material</div></li></ol></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Tutorials</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">4.1.</strong> RPG game using Overworld module</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> VN game using Visual Novel module</div></li></ol></li><li class="chapter-item expanded "><a href="../more.html"><strong aria-hidden="true">5.</strong> More...</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -166,34 +166,51 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="building-your-project"><a class="header" href="#building-your-project">Building your project</a></h1>
-<h3 id="launch-live-development"><a class="header" href="#launch-live-development">Launch live development</a></h3>
-<p>With active code recompilation and assets baking in the background on change:</p>
-<pre><code class="language-bash">oxygengine-ignite live
+                        <h1 id="managing-your-project"><a class="header" href="#managing-your-project">Managing your project</a></h1>
+<p>Once you've created your project, there is set of commands to run.</p>
+<blockquote>
+<p><strong>NOTE:</strong> Each game template contains setup for multiple platforms,
+although for day-to-day development you might want to use <strong>desktop</strong>
+platform commands.</p>
+</blockquote>
+<p>We encourage to use <code>just</code> commands with configured <code>oxygengine-ignite</code>
+calls for best experience.</p>
+<p>Each of these <code>just</code> commands can have an optional last parameter specifying
+platform to run command for (defaults to <code>desktop</code> when ommitted).</p>
+<h3 id="day-to-day-development"><a class="header" href="#day-to-day-development">Day-to-day development</a></h3>
+<p>Bake project assets into asset packs for development cycle to use:</p>
+<pre><code class="language-bash">just bake
 </code></pre>
-<p>Additionally to allow it to start http server to serve your build files in the
-browser, run:</p>
-<pre><code class="language-bash">oxygengine-ignite live -- -p 8080
+<p>Format project code:</p>
+<pre><code class="language-bash">just format
 </code></pre>
-<p>files will be served from: http://localhost:8080.</p>
-<h3 id="build-binaries-in-debug-or-release-mode"><a class="header" href="#build-binaries-in-debug-or-release-mode">Build binaries in debug or release mode</a></h3>
-<p>Binaries will be put in <code>/bin</code> folder.</p>
-<p>With debug symbols:</p>
-<pre><code class="language-bash">oxygengine-ignite build
+<p>Compile project:</p>
+<pre><code class="language-bash">just dev build
 </code></pre>
-<p>Optimized release mode:</p>
-<pre><code class="language-bash">oxygengine-ignite build -p release
+<p>Run project (best to run only for <code>desktop</code> platform, because <code>web</code> is not
+configured here at all):</p>
+<pre><code class="language-bash">just dev run
 </code></pre>
-<h3 id="build-only-the-crate"><a class="header" href="#build-only-the-crate">Build only the crate</a></h3>
-<pre><code class="language-bash">cargo build
+<p>Test project (best to run only for <code>desktop</code> platform, because <code>web</code> might
+not be configured here properly):</p>
+<pre><code class="language-bash">just dev test
 </code></pre>
-<h3 id="package-application-build-with-assets-ready-for-distribution"><a class="header" href="#package-application-build-with-assets-ready-for-distribution">Package application build with assets ready for distribution</a></h3>
-<p>Package files will be put in <code>/dist</code> folder:</p>
-<pre><code class="language-bash">oxygengine-ignite package
+<p>Live development with code recompilation and assets re-baking on change:</p>
+<pre><code class="language-bash">just live
 </code></pre>
-<p>this command will run release build, assets pipeline and bundle package.</p>
-<p>To produce a debug mode package you have to run:</p>
-<pre><code class="language-bash">oxygengine-ignite package -d
+<p>Files will be served from: http://localhost:8080.</p>
+<h3 id="production-distribution"><a class="header" href="#production-distribution">Production distribution</a></h3>
+<p>Build game binaries in debug mode:</p>
+<pre><code class="language-bash">just prod build debug
+</code></pre>
+<p>Build game binaries in release mode:</p>
+<pre><code class="language-bash">just prod build release
+</code></pre>
+<p>Package game distribution in debug mode:</p>
+<pre><code class="language-bash">just prod package debug
+</code></pre>
+<p>Package game distribution in release mode:</p>
+<pre><code class="language-bash">just prod package release
 </code></pre>
 
                     </main>

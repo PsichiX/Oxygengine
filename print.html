@@ -84,7 +84,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="cli/introduction.html"><strong aria-hidden="true">2.</strong> Oxygengine Ignite CLI tool</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="cli/new-project.html"><strong aria-hidden="true">2.1.</strong> Creating new project</a></li><li class="chapter-item expanded "><a href="cli/build-project.html"><strong aria-hidden="true">2.2.</strong> Building your project</a></li><li class="chapter-item expanded "><a href="cli/update.html"><strong aria-hidden="true">2.3.</strong> Update engine version used in your game project</a></li><li class="chapter-item expanded "><a href="cli/faster-compilation-times.html"><strong aria-hidden="true">2.4.</strong> Speed up compilation times for new projects</a></li><li class="chapter-item expanded "><a href="cli/asset-pipeline.html"><strong aria-hidden="true">2.5.</strong> Asset pipeline and its tools</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Concepts explained</div></li><li><ol class="section"><li class="chapter-item expanded "><a href="concepts/ha-renderer/introduction.html"><strong aria-hidden="true">3.1.</strong> Hardware Accelerated rendering</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="concepts/ha-renderer/render-pipeline.html"><strong aria-hidden="true">3.1.1.</strong> Render Pipeline</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.2.</strong> Camera</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.3.</strong> Render Target</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.4.</strong> Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.5.</strong> Virtual Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.6.</strong> Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.7.</strong> Virtual Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.8.</strong> Material</div></li></ol></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Tutorials</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">4.1.</strong> RPG game using Overworld module</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> VN game using Visual Novel module</div></li></ol></li><li class="chapter-item expanded "><a href="more.html"><strong aria-hidden="true">5.</strong> More...</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="cli/introduction.html"><strong aria-hidden="true">2.</strong> Oxygengine Ignite CLI tool</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="cli/new-project.html"><strong aria-hidden="true">2.1.</strong> Creating new project</a></li><li class="chapter-item expanded "><a href="cli/manage-project.html"><strong aria-hidden="true">2.2.</strong> Managing your project</a></li><li class="chapter-item expanded "><a href="cli/update.html"><strong aria-hidden="true">2.3.</strong> Update engine version used in your game project</a></li><li class="chapter-item expanded "><a href="cli/faster-compilation-times.html"><strong aria-hidden="true">2.4.</strong> Speed up compilation times for new projects</a></li><li class="chapter-item expanded "><a href="cli/asset-pipeline.html"><strong aria-hidden="true">2.5.</strong> Asset pipeline and its tools</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Concepts explained</div></li><li><ol class="section"><li class="chapter-item expanded "><a href="concepts/ha-renderer/introduction.html"><strong aria-hidden="true">3.1.</strong> Hardware Accelerated rendering</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="concepts/ha-renderer/render-pipeline.html"><strong aria-hidden="true">3.1.1.</strong> Render Pipeline</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.2.</strong> Camera</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.3.</strong> Render Target</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.4.</strong> Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.5.</strong> Virtual Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.6.</strong> Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.7.</strong> Virtual Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.8.</strong> Material</div></li></ol></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Tutorials</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">4.1.</strong> RPG game using Overworld module</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> VN game using Visual Novel module</div></li></ol></li><li class="chapter-item expanded "><a href="more.html"><strong aria-hidden="true">5.</strong> More...</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -172,12 +172,13 @@
 That being said, we should explain first what Oxygengine is, what it aims to be
 and what's definitely not made for.</p>
 <h2 id="the-goal"><a class="header" href="#the-goal">The goal</a></h2>
-<p>Oxygengine is an all-batteries-included kind of engine, focused on being Web-first.
+<p>Oxygengine is an all-batteries-included kind of engine, focused on being Web-first
+but slowly moving more into more platforms such as desktops and consoles.
 The <strong>goal</strong> is for it to be a Rust version of Unreal Engine for 2D games, which
 made us take a very important decision from the beggining, for it being a completely
-asset-driven game engine with game editor dedicated mostly for <strong>Game Designers</strong>
-to use. That means, all architecture decisions are made to ease interacting with
-all parts of the engine from game editor with next to none use of code.</p>
+asset-driven game engine with game editor dedicated mostly for <strong>Game Designers</strong> and
+<strong>Artists</strong> to use. That means, all architecture decisions are made to ease interacting
+with all parts of the engine from game editor with next to none use of code.</p>
 <p>This also means that while Oxygengine is a general purpose 2D game engine, it aims
 to provide specialized modules to ease work on specific game genres. At the moment
 we already have specialized game modules for these kind of games:</p>
@@ -188,37 +189,38 @@ we already have specialized game modules for these kind of games:</p>
 <h2 id="where-we-are-now"><a class="header" href="#where-we-are-now">Where we are now</a></h2>
 <p>At this point Oxygengine is near its stable version from the code architecture
 point of view, but <strong>does not have</strong> a game editor ready to use yet, although
-editor is still work in progress and it might be released in 2022, not yet decided
-on any particular month.</p>
+editor is still work in progress and it might be released in 2024, not yet decided
+on any particular time - we already have moved from web-based to desktop-based editor.</p>
 <h2 id="where-could-i-use-oxygengine"><a class="header" href="#where-could-i-use-oxygengine">Where could i use Oxygengine</a></h2>
-<p>Since this engine is Web-first and 2D-focused and it aims to give you a specific
-games genre solutions to let you just make a game, you most likely would want to
-use it if you aim for making one of these kind of games:</p>
+<p>Since this engine is Web-first (and desktop/console-second) 2D-focused and it aims to
+give you a specific games genre solutions to let you just make a game and not reinvent
+the wheel, you most likely would want to use it if you aim for making one of these kind
+of games:</p>
 <ul>
-<li>Visual Novels</li>
 <li>RPGs</li>
+<li>Visual Novels</li>
 </ul>
 <p>Genres we will cover soon in new specialized engine modules:</p>
 <ul>
-<li>Platformers</li>
 <li>Shooters</li>
+<li>Platformers</li>
+<li>Puzzle</li>
 </ul>
-<p>Every other genres, although they are possible to make, we do not provide or
-rather not yet plan to provide a specialized engine module.</p>
+<p>Every other genres, although they are possible to make, we do not provide or rather not
+yet plan to provide a specialized engine module.</p>
 <h2 id="where-i-cant-use-oxygengine"><a class="header" href="#where-i-cant-use-oxygengine">Where i can't use Oxygengine</a></h2>
-<p>This engine is basically useless (yet) for any kind of 3D game (maybe except
-original Doom-like games, but these would require heavy hammering).
-Also definitely do not use it (yet) to make desktop or gaming console titles
-(but there are plans for desktop/steam platforms and if we get lucky to sign a
-partnership with gaming console producents, we might provide a private dedicated
-engine modules).</p>
+<p>This engine is basically useless (yet) for any kind of 3D games (maybe except original
+Doom-like games, but these would require heavy hammering). Also definitely do not use
+it (yet) to make gaming console titles (although there are plans for these platforms
+and if we get lucky to sign a partnership with gaming console producents, we might
+provide private dedicated engine modules and game templates).</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="oxygengine-ignite-cli-tool"><a class="header" href="#oxygengine-ignite-cli-tool">Oxygengine Ignite CLI tool</a></h1>
 <p>Although Oxygengine can be used like any other crate, it's better to install
 Ignite CLI tool that will govern most vital operations on your game project
 development:</p>
 <pre><code class="language-bash">cargo install oxygengine-ignite
 </code></pre>
-<p>Additionally it's encouraged to install <code>just</code> CLI too:</p>
+<p>Additionally it's encouraged to install <code>just</code> CLI tool:</p>
 <pre><code class="language-bash">cargo install just
 </code></pre>
 <p>Each created game project contains <code>justfile</code> with set of handy shortcut
@@ -226,13 +228,16 @@ commands for common day-to-day operations useful when developing a game.
 Once in game project root directory, run <code>just list</code> to see list of commands.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="creating-new-project"><a class="header" href="#creating-new-project">Creating new project</a></h1>
 <p>Oxygengine uses a concept called &quot;Game Templates&quot; where instead of starting from
-blank page, you create your new project from one of existing game templates:</p>
+scratch, you create your new project from one of few existing game templates:</p>
 <ul>
-<li><code>ha-base</code> - contains barebones setup for the simplest game example.</li>
-<li><code>ha-game</code> - used to make visually more demanding games that needs to render
-greater number of entities, manipulate and enhance game visuals with materials.</li>
+<li><code>base</code> - Contains barebones setup for the simplest game example.
+Use it create &quot;blank project&quot; to later configure with more modules.</li>
+<li><code>game</code> - Contains more complex setup with modules you would use in production-level
+games. Use it if you decided to get deep into developing your dream game.</li>
+<li><code>prototype</code> - Contains ergonomic framework for quick and dirty game prototypes
+with more imperative than data-driven approach.</li>
 </ul>
-<p><strong>Create new game project with default (<code>ha-game</code>) game template:</strong></p>
+<p><strong>Create new game project with default (<code>game</code>) game template:</strong></p>
 <pre><code class="language-bash">oxygengine-ignite new &lt;project-name&gt;
 </code></pre>
 <p>for example:</p>
@@ -242,7 +247,7 @@ greater number of entities, manipulate and enhance game visuals with materials.<
 <pre><code class="language-bash">oxygengine-ignite new &lt;project-name&gt; -p &lt;game-template-name&gt;
 </code></pre>
 <p>for example:</p>
-<pre><code class="language-bash">oxygengine-ignite new dream-game -p ha-game
+<pre><code class="language-bash">oxygengine-ignite new dream-game -p game
 </code></pre>
 <p><strong>Create new game project in specified path:</strong></p>
 <pre><code class="language-bash">oxygengine-ignite new &lt;project-name&gt; -d &lt;path-to-parent-directory&gt;
@@ -250,34 +255,51 @@ greater number of entities, manipulate and enhance game visuals with materials.<
 <p>for example:</p>
 <pre><code class="language-bash">oxygengine-ignite new dream-game -d ~/game-projects/
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="building-your-project"><a class="header" href="#building-your-project">Building your project</a></h1>
-<h3 id="launch-live-development"><a class="header" href="#launch-live-development">Launch live development</a></h3>
-<p>With active code recompilation and assets baking in the background on change:</p>
-<pre><code class="language-bash">oxygengine-ignite live
+<div style="break-before: page; page-break-before: always;"></div><h1 id="managing-your-project"><a class="header" href="#managing-your-project">Managing your project</a></h1>
+<p>Once you've created your project, there is set of commands to run.</p>
+<blockquote>
+<p><strong>NOTE:</strong> Each game template contains setup for multiple platforms,
+although for day-to-day development you might want to use <strong>desktop</strong>
+platform commands.</p>
+</blockquote>
+<p>We encourage to use <code>just</code> commands with configured <code>oxygengine-ignite</code>
+calls for best experience.</p>
+<p>Each of these <code>just</code> commands can have an optional last parameter specifying
+platform to run command for (defaults to <code>desktop</code> when ommitted).</p>
+<h3 id="day-to-day-development"><a class="header" href="#day-to-day-development">Day-to-day development</a></h3>
+<p>Bake project assets into asset packs for development cycle to use:</p>
+<pre><code class="language-bash">just bake
 </code></pre>
-<p>Additionally to allow it to start http server to serve your build files in the
-browser, run:</p>
-<pre><code class="language-bash">oxygengine-ignite live -- -p 8080
+<p>Format project code:</p>
+<pre><code class="language-bash">just format
 </code></pre>
-<p>files will be served from: http://localhost:8080.</p>
-<h3 id="build-binaries-in-debug-or-release-mode"><a class="header" href="#build-binaries-in-debug-or-release-mode">Build binaries in debug or release mode</a></h3>
-<p>Binaries will be put in <code>/bin</code> folder.</p>
-<p>With debug symbols:</p>
-<pre><code class="language-bash">oxygengine-ignite build
+<p>Compile project:</p>
+<pre><code class="language-bash">just dev build
 </code></pre>
-<p>Optimized release mode:</p>
-<pre><code class="language-bash">oxygengine-ignite build -p release
+<p>Run project (best to run only for <code>desktop</code> platform, because <code>web</code> is not
+configured here at all):</p>
+<pre><code class="language-bash">just dev run
 </code></pre>
-<h3 id="build-only-the-crate"><a class="header" href="#build-only-the-crate">Build only the crate</a></h3>
-<pre><code class="language-bash">cargo build
+<p>Test project (best to run only for <code>desktop</code> platform, because <code>web</code> might
+not be configured here properly):</p>
+<pre><code class="language-bash">just dev test
 </code></pre>
-<h3 id="package-application-build-with-assets-ready-for-distribution"><a class="header" href="#package-application-build-with-assets-ready-for-distribution">Package application build with assets ready for distribution</a></h3>
-<p>Package files will be put in <code>/dist</code> folder:</p>
-<pre><code class="language-bash">oxygengine-ignite package
+<p>Live development with code recompilation and assets re-baking on change:</p>
+<pre><code class="language-bash">just live
 </code></pre>
-<p>this command will run release build, assets pipeline and bundle package.</p>
-<p>To produce a debug mode package you have to run:</p>
-<pre><code class="language-bash">oxygengine-ignite package -d
+<p>Files will be served from: http://localhost:8080.</p>
+<h3 id="production-distribution"><a class="header" href="#production-distribution">Production distribution</a></h3>
+<p>Build game binaries in debug mode:</p>
+<pre><code class="language-bash">just prod build debug
+</code></pre>
+<p>Build game binaries in release mode:</p>
+<pre><code class="language-bash">just prod build release
+</code></pre>
+<p>Package game distribution in debug mode:</p>
+<pre><code class="language-bash">just prod package debug
+</code></pre>
+<p>Package game distribution in release mode:</p>
+<pre><code class="language-bash">just prod package release
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="update-engine-version-used-in-your-game-project"><a class="header" href="#update-engine-version-used-in-your-game-project">Update engine version used in your game project</a></h1>
 <ul>
@@ -286,12 +308,7 @@ browser, run:</p>
 OXY_UPDATE_PRESETS=1 oxygengine-ignite --help
 </code></pre>
 </li>
-<li>update <code>oxygengine</code> version either in <code>Cargo.toml</code> or by calling: <code>cargo update</code></li>
-<li>upgrading from versions before 0.12.0 requires to create new project with
-latest ignite tool, then copy by hand your source files to the new project
-sources, as well as put assets from old project <code>/static/assets</code> directory
-into new project <code>/assets</code> directory, preferably using new way of assets
-directory structure (so you won't have to modify <code>pipeline.json</code> file to much).</li>
+<li>update <code>oxygengine</code> dependency version in <code>Cargo.toml</code> to point to the latest engine version.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="speed-up-compilation-times-for-new-projects"><a class="header" href="#speed-up-compilation-times-for-new-projects">Speed up compilation times for new projects</a></h1>
 <p>Best use case for gamejams and quick feature prototypes.</p>
@@ -312,7 +329,7 @@ sccache_dir = &quot;D:\\sccache&quot;
 </ul>
 <p>From now on you will have to wait for full long engine build only once, for any
 other new game project you create, it will perform first compilation in matter
-of minute, not 20.</p>
+of minute or less, not in minutes or more.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="asset-pipeline-and-its-tools"><a class="header" href="#asset-pipeline-and-its-tools">Asset pipeline and its tools</a></h1>
 <p>Since Oxygengine is highly data-driven, we put most if not all data into assets,
 that's where the idea of asset pipeline was born. Asset pipeline is used to take
@@ -329,13 +346,13 @@ rasterization software. For game levels we use free LDtk level editor so we have
 a LDtk asset pipeline tool that takes LDtk project files and bakes images from
 tilesets, prefabs with entities from level layers and additional data assets from
 used grid layer values.</p>
-<p>Asset pipelien tools are just CLI binaries that uses <code>oxygengine-build-tools</code>
+<p>Asset pipeline tools are just CLI binaries that uses <code>oxygengine-build-tools</code>
 crate types to read input data passed to your tool, and your tool job is to write
 new files to given path. That means, if you need to have support for custom/additional
 asset sources, you can easily make an asset pipeline tool for it.</p>
 <p><strong>IMPORTANT:</strong>
-When using either HA renderer or composite renderer, you have to also install
-their asset pipeline tools for asset pipeline to be able to bake assets.
+When using HA renderer, you have to also install their asset pipeline tools for
+asset pipeline to be able to bake assets.
 These are:</p>
 <ul>
 <li><code>cargo install oxygengine-ha-renderer-tools</code></li>
@@ -371,30 +388,30 @@ finds that certain pair of material domain (backend) and material graph (fronten
 are gonna be used in rendering.</p>
 <p>Material domain and material graphs always work in tandem, material domain job is
 to preprocess vertex and uniform data and send it to material graph (via specific
-interface that given domain defines) for it to post process that data and send it
+interface that given domain defines) for it to postprocess that data and send it
 back for material domain to store it properly in target outputs.</p>
 <p>The reason for them being separate units is because HA renderer aims for in case
 of user wanting to do some different visuals than default ones provided by the
 engine, to focus only on the effect and don't bother writing additional logic just
 to meet specialized vertex format and render target requirements. Another benefit
 we get from this approach is that now user can make his frontend material once and
-renderer will bake at runtime all variants needed all pairs of domain and graph
-materials. This basically means that user can now get his material graph working
-without any additional work with any vertex format and target format that renderer
-find compatible at runtime. In even simpler words: imagine you have a material
-graph that has to add outlines to the image, in that case no matter if you render
-your entity for example in forward or deferred renderer, it will work for both by
-default as long as both use material domains which provide domain node that your
-outline material uses.</p>
-<p><strong>IMPORTANT:</strong> all shader variants for given material are considered unique as
+renderer will bake at runtime all variants needed by all pairs of domain and graph
+materials.</p>
+<p>This basically means that user can now get his material graph working without any
+additional work with any vertex format and target format that renderer find
+compatible at runtime. In even simpler words: imagine you have a material graph
+that has to add outlines to the image, in that case no matter if you render your
+entity for example in forward or deferred renderer, it will work for both by default
+as long as both use material domains which provide domain node that your outline
+material uses.</p>
+<p><strong>IMPORTANT:</strong> All shader variants for given material are considered unique as
 long as they have different Material Signatures:</p>
 <ul>
-<li>Material Signature is defined by Material Mesh Signature + Material Render
-Target Signature + Domain name + Vertex Middlewares used</li>
+<li>Material Signature is defined by Material Mesh Signature + Material Render Target
+Signature + Domain name + Vertex Middlewares used.</li>
 <li>Material Mesh Signature is defined by unique Vertex Layout (vertex layouts are
-defined by meshes, to be more precise by the vertex format given mesh data uses)</li>
-<li>Material Render Target Signature is defined by set of render target output
-names.</li>
+defined by meshes, to be more precise by the vertex format given mesh data uses).</li>
+<li>Material Render Target Signature is defined by set of render target output names.</li>
 </ul>
 <h2 id="1-picture-say-more-than-1000-words"><a class="header" href="#1-picture-say-more-than-1000-words">1 picture say more than 1000 words</a></h2>
 <p>Let's take a look at the simplest material domain (this is code-side
@@ -434,28 +451,27 @@ representation of the material domain/graph):</p>
     [screen_position -&gt; gl_Position]
     [BaseColor -&gt; finalColor]
 }</code></pre>
-<p>In this snippet we can see that this particular material domain expects model +
-view + projection uniforms, as well as position + color vertex inputs, and it
-writes data to gl_Position vertex output and finalColor target output. This
-basically means that this material domain will work with stage that writes to
-finalColor target output and position + color vertex format. It also will bake
-shader variants for any material graph that <strong>might read</strong> TintColor and/or
-ScreenPosition domain input, and <strong>might write</strong> BaseColor domain output.</p>
+<p>In this snippet we can see that this particular material domain expects <code>model</code> +
+<code>view</code> + <code>projection</code> uniforms, as well as <code>position</code> + <code>color</code> vertex inputs,
+and it writes data to <code>gl_Position</code> vertex output and <code>finalColor</code> target output.
+This basically means that this material domain will work with stage that writes
+to <code>finalColor</code> target output and <code>position</code> + <code>color</code> vertex format. It also
+will bake shader variants for any material graph that <strong>might read</strong> <code>TintColor</code>
+and/or <code>ScreenPosition</code> domain input, and <strong>might write</strong> <code>BaseColor</code> domain output.</p>
 <p>Consider domain input/outputs to be purely an optional interface between material
-domain and material graph. You might ask now: &quot;why domain interface is
-optional?&quot; - well, this is where this approach shines: you see, when material
-domain gets combined with material graph, it will bake shader only from nodes
-that leads directly from target outputs to vertex inputs, with all required
-nodes along the way, every nod not used in that path won't get compiled into GLSL
-shader variant.</p>
+domain and material graph. You might ask now: &quot;why domain interface is optional?&quot;
+well, this is where this approach shines: you see, when material domain gets
+combined with material graph, it will bake shader only from nodes that leads
+directly from target outputs to vertex inputs, with all required nodes along the
+way, every node not used in that path won't get compiled into shader variant.</p>
 <p>Now let's take a look at the simplest material graph:</p>
 <pre><code class="language-rust ignore">material_graph! {
     inputs {
-        [vertex] input TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
+        [vertex] inout TintColor: vec4 = {vec4(1.0, 1.0, 1.0, 1.0)};
     }
 
     outputs {
-        [fragment] input BaseColor: vec4;
+        [fragment] inout BaseColor: vec4;
     }
 
     [[TintColor =&gt; vColor] -&gt; BaseColor]
@@ -463,18 +479,18 @@ shader variant.</p>
 <p>Here in this material graph we can see we only use domain interface and just move
 input color from vertex shader stage to fragment shader stage and send it back to
 material domain to let it store properly for its render target outputs - when user
-is making material graph, he doesn't have to care about how to write to targets,
-he can only care how to process domain inputs into domain outputs and domain takes
-care of properly storing data into target outputs.</p>
+is making material graph, (s)he doesn't have to care about how to write to targets,
+(s)he can only care how to process domain inputs into domain outputs and domain
+takes care of properly storing data into target outputs.</p>
 <p>Now imagine user wants to create material graph that do not use TintColor at all,
 rather converts ScreenPosition into BaseColor:</p>
 <pre><code class="language-rust ignore">material_graph! {
     inputs {
-        [vertex] input ScreenPosition: vec4 = {vec4(0.0, 0.0, 0.0, 0.0)};
+        [vertex] inout ScreenPosition: vec4 = {vec4(0.0, 0.0, 0.0, 0.0)};
     }
 
     outputs {
-        [fragment] input BaseColor: vec4;
+        [fragment] inout BaseColor: vec4;
     }
 
     [[ScreenPosition =&gt; vColor] -&gt; BaseColor]
@@ -483,11 +499,13 @@ rather converts ScreenPosition into BaseColor:</p>
 will bake shader with nodes that only use screen position calculated in domain
 graph and not include color vertex data in the shader at all since this shader
 variant does not use it. Now, do you also see the benefits of this over usual
-<code>#ifdef</code>-ed raw shaders?</p>
+<code>#ifdef</code>-ed raw shaders? You can focus on what effect you want to achieve
+without caring about engine internals you work with, trying to define or even
+limit yourself with effects.</p>
 <h2 id="material-middlewares"><a class="header" href="#material-middlewares">Material middlewares</a></h2>
 <p>Another concept used with material graphs is material middlewares - an ergonomic
 way to &quot;inject&quot; other material graphs as material input preprocessor.</p>
-<p>Consider you have a vertex format such as:</p>
+<p>Consider you have a vertex format like this:</p>
 <pre><code class="language-rust ignore">vertex_type! {
     #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
     @tags(SurfaceDomain, SurfaceTexturedDomain)
@@ -801,7 +819,7 @@ that, here we show Render Gizmo Stage for the sake of simplified explanation.</p
 <h4 id="execution-of-render-queues"><a class="header" href="#execution-of-render-queues">Execution of render queues</a></h4>
 <p>After all render stage systems complete recording commands into queues, renderer
 is now ready to go through all active render pipelines and execute their render
-queues.</p>
+queues full of previously made records.</p>
 <p>You can remember that when we were talking about recording to Render Queues, we
 have been mentioning auto ordered recordings of commands - but what does that
 means? Well, sometimes your render stage system might require its commands to be
@@ -825,9 +843,8 @@ making both game and editor worlds embeded in one application host and game worl
 sending its recorded queues to editor world which then renders game view in its
 rendering context.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="more"><a class="header" href="#more">More...</a></h1>
-<p>If you need an explanation of some Oxygengine related topic, consider creating
-an issue on GitHub explaining what are you trying to achieve.</p>
-<p>You can create new issue here: <a href="https://github.com/PsichiX/Oxygengine/issues/new">https://github.com/PsichiX/Oxygengine/issues/new</a></p>
+<p>If you need an explanation of some Oxygengine related topic, share your thoughts, ideas, games, consider creating a post on GitHub Discussions explaining what are you trying to achieve.</p>
+<p>You can create new post here: <a href="https://github.com/PsichiX/Oxygengine/discussions">https://github.com/PsichiX/Oxygengine/discussions</a></p>
 
                     </main>
 

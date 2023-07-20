@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html" class="active"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="cli/introduction.html"><strong aria-hidden="true">2.</strong> Oxygengine Ignite CLI tool</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="cli/new-project.html"><strong aria-hidden="true">2.1.</strong> Creating new project</a></li><li class="chapter-item expanded "><a href="cli/build-project.html"><strong aria-hidden="true">2.2.</strong> Building your project</a></li><li class="chapter-item expanded "><a href="cli/update.html"><strong aria-hidden="true">2.3.</strong> Update engine version used in your game project</a></li><li class="chapter-item expanded "><a href="cli/faster-compilation-times.html"><strong aria-hidden="true">2.4.</strong> Speed up compilation times for new projects</a></li><li class="chapter-item expanded "><a href="cli/asset-pipeline.html"><strong aria-hidden="true">2.5.</strong> Asset pipeline and its tools</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Concepts explained</div></li><li><ol class="section"><li class="chapter-item expanded "><a href="concepts/ha-renderer/introduction.html"><strong aria-hidden="true">3.1.</strong> Hardware Accelerated rendering</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="concepts/ha-renderer/render-pipeline.html"><strong aria-hidden="true">3.1.1.</strong> Render Pipeline</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.2.</strong> Camera</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.3.</strong> Render Target</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.4.</strong> Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.5.</strong> Virtual Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.6.</strong> Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.7.</strong> Virtual Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.8.</strong> Material</div></li></ol></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Tutorials</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">4.1.</strong> RPG game using Overworld module</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> VN game using Visual Novel module</div></li></ol></li><li class="chapter-item expanded "><a href="more.html"><strong aria-hidden="true">5.</strong> More...</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html" class="active"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="cli/introduction.html"><strong aria-hidden="true">2.</strong> Oxygengine Ignite CLI tool</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="cli/new-project.html"><strong aria-hidden="true">2.1.</strong> Creating new project</a></li><li class="chapter-item expanded "><a href="cli/manage-project.html"><strong aria-hidden="true">2.2.</strong> Managing your project</a></li><li class="chapter-item expanded "><a href="cli/update.html"><strong aria-hidden="true">2.3.</strong> Update engine version used in your game project</a></li><li class="chapter-item expanded "><a href="cli/faster-compilation-times.html"><strong aria-hidden="true">2.4.</strong> Speed up compilation times for new projects</a></li><li class="chapter-item expanded "><a href="cli/asset-pipeline.html"><strong aria-hidden="true">2.5.</strong> Asset pipeline and its tools</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Concepts explained</div></li><li><ol class="section"><li class="chapter-item expanded "><a href="concepts/ha-renderer/introduction.html"><strong aria-hidden="true">3.1.</strong> Hardware Accelerated rendering</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="concepts/ha-renderer/render-pipeline.html"><strong aria-hidden="true">3.1.1.</strong> Render Pipeline</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.2.</strong> Camera</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.3.</strong> Render Target</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.4.</strong> Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.5.</strong> Virtual Image</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.6.</strong> Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.7.</strong> Virtual Mesh</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.1.8.</strong> Material</div></li></ol></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> Tutorials</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">4.1.</strong> RPG game using Overworld module</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.2.</strong> VN game using Visual Novel module</div></li></ol></li><li class="chapter-item expanded "><a href="more.html"><strong aria-hidden="true">5.</strong> More...</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -171,12 +171,13 @@
 That being said, we should explain first what Oxygengine is, what it aims to be
 and what's definitely not made for.</p>
 <h2 id="the-goal"><a class="header" href="#the-goal">The goal</a></h2>
-<p>Oxygengine is an all-batteries-included kind of engine, focused on being Web-first.
+<p>Oxygengine is an all-batteries-included kind of engine, focused on being Web-first
+but slowly moving more into more platforms such as desktops and consoles.
 The <strong>goal</strong> is for it to be a Rust version of Unreal Engine for 2D games, which
 made us take a very important decision from the beggining, for it being a completely
-asset-driven game engine with game editor dedicated mostly for <strong>Game Designers</strong>
-to use. That means, all architecture decisions are made to ease interacting with
-all parts of the engine from game editor with next to none use of code.</p>
+asset-driven game engine with game editor dedicated mostly for <strong>Game Designers</strong> and
+<strong>Artists</strong> to use. That means, all architecture decisions are made to ease interacting
+with all parts of the engine from game editor with next to none use of code.</p>
 <p>This also means that while Oxygengine is a general purpose 2D game engine, it aims
 to provide specialized modules to ease work on specific game genres. At the moment
 we already have specialized game modules for these kind of games:</p>
@@ -187,30 +188,31 @@ we already have specialized game modules for these kind of games:</p>
 <h2 id="where-we-are-now"><a class="header" href="#where-we-are-now">Where we are now</a></h2>
 <p>At this point Oxygengine is near its stable version from the code architecture
 point of view, but <strong>does not have</strong> a game editor ready to use yet, although
-editor is still work in progress and it might be released in 2022, not yet decided
-on any particular month.</p>
+editor is still work in progress and it might be released in 2024, not yet decided
+on any particular time - we already have moved from web-based to desktop-based editor.</p>
 <h2 id="where-could-i-use-oxygengine"><a class="header" href="#where-could-i-use-oxygengine">Where could i use Oxygengine</a></h2>
-<p>Since this engine is Web-first and 2D-focused and it aims to give you a specific
-games genre solutions to let you just make a game, you most likely would want to
-use it if you aim for making one of these kind of games:</p>
+<p>Since this engine is Web-first (and desktop/console-second) 2D-focused and it aims to
+give you a specific games genre solutions to let you just make a game and not reinvent
+the wheel, you most likely would want to use it if you aim for making one of these kind
+of games:</p>
 <ul>
-<li>Visual Novels</li>
 <li>RPGs</li>
+<li>Visual Novels</li>
 </ul>
 <p>Genres we will cover soon in new specialized engine modules:</p>
 <ul>
-<li>Platformers</li>
 <li>Shooters</li>
+<li>Platformers</li>
+<li>Puzzle</li>
 </ul>
-<p>Every other genres, although they are possible to make, we do not provide or
-rather not yet plan to provide a specialized engine module.</p>
+<p>Every other genres, although they are possible to make, we do not provide or rather not
+yet plan to provide a specialized engine module.</p>
 <h2 id="where-i-cant-use-oxygengine"><a class="header" href="#where-i-cant-use-oxygengine">Where i can't use Oxygengine</a></h2>
-<p>This engine is basically useless (yet) for any kind of 3D game (maybe except
-original Doom-like games, but these would require heavy hammering).
-Also definitely do not use it (yet) to make desktop or gaming console titles
-(but there are plans for desktop/steam platforms and if we get lucky to sign a
-partnership with gaming console producents, we might provide a private dedicated
-engine modules).</p>
+<p>This engine is basically useless (yet) for any kind of 3D games (maybe except original
+Doom-like games, but these would require heavy hammering). Also definitely do not use
+it (yet) to make gaming console titles (although there are plans for these platforms
+and if we get lucky to sign a partnership with gaming console producents, we might
+provide private dedicated engine modules and game templates).</p>
 
                     </main>
 
