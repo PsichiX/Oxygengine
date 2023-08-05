@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-input-device-desktop"
-version = "0.40.1"
+version = "0.41.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Desktop input devices module for Oxygengine"
@@ -14,7 +14,7 @@ readme = "../../README.md"
 scalar64 = ["oxygengine-core/scalar64", "oxygengine-input/scalar64"]
 
 [dependencies]
-oxygengine-core = { version = "0.40", path = "../core" }
-oxygengine-backend-desktop = { version = "0.40", path = "../backend-desktop" }
-oxygengine-input = { version = "0.40", path = "../input" }
+oxygengine-core = { version = "0.41", path = "../core" }
+oxygengine-backend-desktop = { version = "0.41", path = "../backend-desktop" }
+oxygengine-input = { version = "0.41", path = "../input" }
 glutin = "0.28"

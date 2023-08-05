@@ -3,9 +3,8 @@ mod pack;
 mod pipeline;
 
 use crate::{
-    build::build_project,
-    pack::pack_assets_and_write_to_file,
-    pipeline::{Pipeline, PipelineCommand},
+    build::build_project, pack::pack_assets_and_write_to_file, pipeline::AssetInput,
+    pipeline::AssetPhase,
 };
 use cargo_metadata::MetadataCommand;
 use clap::{Parser, Subcommand};
@@ -54,14 +53,20 @@ enum Commands {
         #[arg(short, long, value_name = "PATH")]
         output: PathBuf,
     },
-    /// Execute project pipeline.
+    /// Execute asset pipeline.
     Pipeline {
-        /// Pipeline JSON descriptor file.
-        #[arg(value_name = "PATH", default_value = "./pipeline.json")]
-        config: PathBuf,
-        /// Create and save pipeline template.
-        #[arg(short, long)]
-        template: bool,
+        /// Source asset descriptor file or directory that contains assets descriptors.
+        #[arg(value_name = "PATH", default_value = "./assets")]
+        source: PathBuf,
+        /// Intermediate assets cache directory.
+        #[arg(value_name = "PATH", default_value = "./assets-intermediate")]
+        intermediate: PathBuf,
+        /// Baked assets directory.
+        #[arg(value_name = "PATH", default_value = "./assets-baked")]
+        baked: PathBuf,
+        /// Tags to use for assets being processed.
+        #[arg(short, long, value_name = "NAME")]
+        tag: Vec<String>,
     },
     /// Build project.
     Build {
@@ -342,55 +347,30 @@ async fn main() -> Result<()> {
         Commands::Pack { input, output } => {
             pack_assets_and_write_to_file(&input, output)?;
         }
-        Commands::Pipeline { config, template } => {
-            if template {
-                let pipeline = Pipeline {
-                    source: "static".into(),
-                    destination: "static".into(),
-                    commands: vec![
-                        PipelineCommand::Pipeline(Pipeline {
-                            disabled: false,
-                            destination: "assets-generated".into(),
-                            clear_destination: true,
-                            ..Default::default()
-                        }),
-                        PipelineCommand::Pipeline(Pipeline {
-                            disabled: false,
-                            source: "assets-source".into(),
-                            destination: "assets-generated".into(),
-                            commands: vec![PipelineCommand::Copy {
-                                disabled: false,
-                                from: vec!["assets.txt".into()],
-                                to: "".into(),
-                            }],
-                            ..Default::default()
-                        }),
-                        PipelineCommand::Pack {
-                            disabled: false,
-                            paths: vec!["assets-generated".into()],
-                            output: "assets.pack".into(),
-                        },
-                    ],
-                    ..Default::default()
-                };
-                let contents = match serde_json::to_string_pretty(&pipeline) {
-                    Ok(contents) => contents,
-                    Err(error) => {
-                        return Err(Error::new(
-                            ErrorKind::Other,
-                            format!(
-                                "Could not stringify pipeline JSON config: {:?}. Error: {:?}",
-                                config, error
-                            ),
-                        ))
-                    }
-                };
-                write(config, contents)?;
-            } else if config.exists() {
-                Pipeline::load_and_execute(config)?;
-            } else {
-                println!("Could not find pipeline config file: {:?}", config);
-            }
+        Commands::Pipeline {
+            source,
+            intermediate,
+            baked,
+            tag,
+        } => {
+            let _ = remove_dir_all(&intermediate);
+            let _ = remove_dir_all(&baked);
+            AssetInput::load_and_execute(
+                AssetPhase::SourceToIntermediate,
+                &source,
+                &intermediate,
+                "",
+                &tag,
+            )?;
+            AssetInput::bake_assets_list(&intermediate, "")?;
+            AssetInput::load_and_execute(
+                AssetPhase::IntermediateToBaked,
+                &intermediate,
+                &baked,
+                "",
+                &tag,
+            )?;
+            AssetInput::load_and_execute(AssetPhase::SourceToBaked, &source, &baked, "", &tag)?;
         }
         Commands::Build {
             profile,
@@ -569,10 +549,10 @@ async fn main() -> Result<()> {
                 }
             }
             println!("* Executing assets pipeline");
-            let pipeline = format!("platforms/{}/pipeline.json", platform);
             Command::new(exe)
                 .arg("pipeline")
-                .arg(pipeline)
+                .arg("--tag")
+                .arg(format!("platform-{}", platform))
                 .status()
                 .expect("Could not run assets pipeline");
             set_current_dir(current_path.join(crate_dir))?;

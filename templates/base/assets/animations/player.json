@@ -4,16 +4,16 @@
     "states": {
         "idle": {
             "frames": [
-                "levels/atlases/Character.json@0x0"
+                "levels/world/atlases/Character.json@0x0"
             ],
             "looping": true
         },
         "walk": {
             "frames": [
-                "levels/atlases/Character.json@0x0",
-                "levels/atlases/Character.json@1x0",
-                "levels/atlases/Character.json@0x0",
-                "levels/atlases/Character.json@2x0"
+                "levels/world/atlases/Character.json@0x0",
+                "levels/world/atlases/Character.json@1x0",
+                "levels/world/atlases/Character.json@0x0",
+                "levels/world/atlases/Character.json@2x0"
             ],
             "looping": true
         }

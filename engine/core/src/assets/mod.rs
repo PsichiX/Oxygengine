@@ -12,8 +12,9 @@ use crate::{
         database::AssetsDatabase,
         protocols::{
             binary::BinaryAssetProtocol, json::JsonAssetProtocol,
-            localization::LocalizationAssetProtocol, pack::PackAssetProtocol,
-            prefab::PrefabAssetProtocol, set::SetAssetProtocol, text::TextAssetProtocol,
+            localization::LocalizationAssetProtocol, meta::MetaAssetProtocol,
+            pack::PackAssetProtocol, prefab::PrefabAssetProtocol, text::TextAssetProtocol,
+            toml::TomlAssetProtocol,
         },
         system::{assets_system, AssetsSystemResources},
     },
@@ -35,9 +36,10 @@ where
     database.register(BinaryAssetProtocol);
     database.register(TextAssetProtocol);
     database.register(JsonAssetProtocol);
-    database.register(SetAssetProtocol);
+    database.register(TomlAssetProtocol);
     database.register(PrefabAssetProtocol);
     database.register(LocalizationAssetProtocol);
+    database.register(MetaAssetProtocol);
     assets_database_setup(&mut database);
     builder.install_resource(database);
     builder.install_system::<AssetsSystemResources>("assets", assets_system, &[])?;

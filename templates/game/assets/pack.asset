@@ -1,0 +1,11 @@
+{
+    "pipeline": {
+        "Generate": {
+            "source": ["./"],
+            "phase": "IntermediateToBaked",
+            "pipeline": {
+                "Pack": {}
+            }
+        }
+    }
+}

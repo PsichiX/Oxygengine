@@ -1,0 +1,81 @@
+{
+    "source": ["world.ldtk"],
+    "pipeline": {
+        "Plugin": {
+            "name": "oxygengine-ha-renderer-ldtk",
+            "params": {
+                "image_filtering": "Nearest",
+                "tile_margin": {
+                  "x": 0.01,
+                  "y": 0.01
+                },
+                "rules": [
+                    {
+                        "name": "AvatarCombat",
+                        "macro_file": "tools/ldtk/AvatarCombat.chrobry"
+                    },
+                    {
+                        "name": "AvatarMovement",
+                        "macro_file": "tools/ldtk/AvatarMovement.chrobry"
+                    },
+                    {
+                        "name": "BatchedIcons",
+                        "macro_file": "tools/ldtk/BatchedIcons.chrobry"
+                    },
+                    {
+                        "name": "Blink",
+                        "macro_file": "tools/ldtk/Blink.chrobry"
+                    },
+                    {
+                        "name": "BoardAvatar",
+                        "macro_file": "tools/ldtk/BoardAvatar.chrobry"
+                    },
+                    {
+                        "name": "BoardChunk",
+                        "macro_file": "tools/ldtk/BoardChunk.chrobry"
+                    },
+                    {
+                        "name": "CameraPostProcess",
+                        "macro_file": "tools/ldtk/CameraPostProcess.chrobry"
+                    },
+                    {
+                        "name": "Enemy",
+                        "macro_file": "tools/ldtk/Enemy.chrobry"
+                    },
+                    {
+                        "name": "FollowEntity",
+                        "macro_file": "tools/ldtk/FollowEntity.chrobry"
+                    },
+                    {
+                        "name": "Health",
+                        "macro_file": "tools/ldtk/Health.chrobry"
+                    },
+                    {
+                        "name": "LevelUp",
+                        "macro_file": "tools/ldtk/LevelUp.chrobry"
+                    },
+                    {
+                        "name": "Player",
+                        "macro_file": "tools/ldtk/Player.chrobry"
+                    },
+                    {
+                        "name": "UiSync",
+                        "macro_file": "tools/ldtk/UiSync.chrobry"
+                    },
+                    {
+                        "name": "UiView",
+                        "macro_file": "tools/ldtk/UiView.chrobry"
+                    },
+                    {
+                        "name": "VolumeOverlap",
+                        "macro_file": "tools/ldtk/VolumeOverlap.chrobry"
+                    },
+                    {
+                        "name": "Weapon",
+                        "macro_file": "tools/ldtk/Weapon.chrobry"
+                    }
+                ]
+            }
+        }
+    }
+}

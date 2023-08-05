@@ -16,72 +16,42 @@ use oxygengine_ha_renderer::{
 use serde::Deserialize;
 use std::{
     collections::HashMap,
-    fmt::Write,
     fs::{copy, create_dir_all, read_to_string, write},
     io::Error,
-    path::PathBuf,
 };
 
 #[derive(Debug, Clone, Deserialize)]
-struct Params {
-    pub input_documents: Vec<PathBuf>,
-    #[serde(default)]
-    pub output: PathBuf,
-    #[serde(default)]
-    pub assets_path_prefix: String,
-}
+struct Params {}
 
-impl ParamsFromArgs for Params {
-    fn params_from_args(args: impl Iterator<Item = String>) -> Option<Self> {
-        let mut args = StructuredArguments::new(args);
-        let input_documents = args.consume_default().map(|v| v.into()).collect();
-        let output = args
-            .consume_many(&["o", "output"])
-            .next()
-            .map(|v| v.into())
-            .unwrap_or_default();
-        let assets_path_prefix = args
-            .consume_many(&["p", "prefix"])
-            .last()
-            .unwrap_or_default();
-        Some(Self {
-            input_documents,
-            output,
-            assets_path_prefix,
-        })
-    }
-}
+impl ParamsFromArgs for Params {}
 
 fn main() -> Result<(), Error> {
-    let (source, destination, params) = AssetPipelineInput::<Params>::consume().unwrap();
-    let output = destination.join(&params.output);
-    create_dir_all(&output)?;
+    AssetPipelinePlugin::run::<Params, _>(|input| {
+        let AssetPipelineInput {
+            source,
+            target,
+            assets,
+            ..
+        } = input;
+        create_dir_all(&target)?;
 
-    for path in &params.input_documents {
-        let mut assets_set = String::default();
-        let document_path = source.join(path);
-        let meta_path = document_path.with_extension("meta.json");
-        let atlas_path = document_path.with_extension("atlas");
+        let source = match source.first() {
+            Some(source) => source,
+            None => return Ok(vec![]),
+        };
+        let mut assets_used = Vec::default();
+        let meta_path = source.with_extension("meta.json");
+        let atlas_path = source.with_extension("atlas");
         if !atlas_path.exists() {
             println!(
                 "Atlas file: {:?} for document: {:?} not found",
-                atlas_path, document_path
+                atlas_path, source
             );
-            continue;
+            return Ok(vec![]);
         }
 
-        let name = document_path.with_extension("");
-        let name = name
-            .file_name()
-            .unwrap_or_else(|| panic!("Could not get document name: {:?}", document_path))
-            .to_str()
-            .unwrap();
-        let source_dir = document_path
-            .parent()
-            .map(|p| p.to_path_buf())
-            .unwrap_or_default();
-        let target_dir = output.join(name);
-        create_dir_all(&target_dir)?;
+        let mut source_dir = source.to_owned();
+        source_dir.pop();
         let meta = if meta_path.exists() {
             serde_json::from_str::<AnimationMeta>(&read_to_string(meta_path)?)?
         } else {
@@ -90,14 +60,14 @@ fn main() -> Result<(), Error> {
 
         let atlas = Atlas::parse(&read_to_string(atlas_path)?);
         let from = source_dir.join(&atlas.atlas);
-        let to = target_dir.join("image.png");
+        let to = target.join("image.png");
         copy(&from, &to)
             .unwrap_or_else(|_| panic!("Could not copy image file from {:?} to {:?}", from, to));
         let asset = ImageAssetSource::Png {
-            bytes_paths: vec![format!("{}{}/image.png", params.assets_path_prefix, name)],
+            bytes_paths: vec![format!("{}/image.png", assets)],
             descriptor: Default::default(),
         };
-        let path = target_dir.join("image.json");
+        let path = target.join("image.json");
         write(
             &path,
             serde_json::to_string_pretty(&asset)
@@ -105,23 +75,18 @@ fn main() -> Result<(), Error> {
         )
         .unwrap_or_else(|_| panic!("Could not write atlas image asset to file: {:?}", path));
 
-        let asset = convert_atlas(&atlas, &params.assets_path_prefix, name);
-        let path = target_dir.join("atlas.json");
+        let asset = convert_atlas(&atlas, &assets);
+        let path = target.join("atlas.json");
         write(
             &path,
             serde_json::to_string_pretty(&asset)
                 .unwrap_or_else(|_| panic!("Could not serialize atlas asset: {:?}", path)),
         )
         .unwrap_or_else(|_| panic!("Could not write atlas asset to file: {:?}", path));
-        writeln!(
-            assets_set,
-            "atlas://{}{}/atlas.json",
-            params.assets_path_prefix, name
-        )
-        .unwrap();
+        assets_used.push(format!("atlas://{}/atlas.json", assets));
 
-        let document = serde_json::from_str::<Document>(&read_to_string(document_path)?)?;
-        let path = target_dir.join("rig.json");
+        let document = serde_json::from_str::<Document>(&read_to_string(source)?)?;
+        let path = target.join("rig.json");
         let asset = match convert_document_to_rig(&document) {
             Ok(rig) => rig,
             Err(error) => panic!("Could not convert to rig asset: {:?}. {}", path, error),
@@ -132,14 +97,9 @@ fn main() -> Result<(), Error> {
                 .unwrap_or_else(|_| panic!("Could not serialize rig asset: {:?}", path)),
         )
         .unwrap_or_else(|_| panic!("Could not write rig asset to file: {:?}", path));
-        writeln!(
-            assets_set,
-            "rig://{}{}/rig.json",
-            params.assets_path_prefix, name
-        )
-        .unwrap();
+        assets_used.push(format!("rig://{}/rig.json", assets));
 
-        let path = target_dir.join("animation.json");
+        let path = target.join("animation.json");
         let asset = convert_document_to_animation(&document, &meta);
         write(
             &path,
@@ -147,18 +107,13 @@ fn main() -> Result<(), Error> {
                 .unwrap_or_else(|_| panic!("Could not serialize animation asset: {:?}", path)),
         )
         .unwrap_or_else(|_| panic!("Could not write animation asset to file: {:?}", path));
-        writeln!(
-            assets_set,
-            "riganim://{}{}/animation.json",
-            params.assets_path_prefix, name
-        )
-        .unwrap();
+        assets_used.push(format!("riganim://{}/animation.json", assets));
 
-        let path = target_dir.join("mesh.json");
+        let path = target.join("mesh.json");
         let asset = match convert_document_to_mesh(
             &document,
             &atlas,
-            format!("{}{}/rig.json", params.assets_path_prefix, name),
+            format!("{}/rig.json", assets),
             &meta,
         ) {
             Ok(mesh) => mesh,
@@ -170,18 +125,9 @@ fn main() -> Result<(), Error> {
                 .unwrap_or_else(|_| panic!("Could not serialize rig mesh asset: {:?}", path)),
         )
         .unwrap_or_else(|_| panic!("Could not write rig mesh asset to file: {:?}", path));
-        writeln!(
-            assets_set,
-            "mesh://{}{}/mesh.json",
-            params.assets_path_prefix, name
-        )
-        .unwrap();
-
-        let path = target_dir.join("assets.txt");
-        write(&path, assets_set)
-            .unwrap_or_else(|_| panic!("Could not write assets set to file: {:?}", path));
-    }
-    Ok(())
+        assets_used.push(format!("mesh://{}/mesh.json", assets));
+        Ok(assets_used)
+    })
 }
 
 fn convert_document_to_rig(document: &Document) -> Result<RigAsset, String> {
@@ -441,7 +387,7 @@ fn convert_document_to_mesh(
     }))
 }
 
-fn convert_atlas(atlas: &Atlas, assets_path_prefix: &str, name: &str) -> AtlasAssetSource {
+fn convert_atlas(atlas: &Atlas, assets_path_prefix: &str) -> AtlasAssetSource {
     let frames = atlas
         .regions
         .iter()
@@ -455,6 +401,6 @@ fn convert_atlas(atlas: &Atlas, assets_path_prefix: &str, name: &str) -> AtlasAs
         })
         .collect::<HashMap<_, _>>();
     let mut pages = HashMap::with_capacity(1);
-    pages.insert(format!("{}{}/image.json", assets_path_prefix, name), frames);
+    pages.insert(format!("{}/image.json", assets_path_prefix), frames);
     AtlasAssetSource::Raw(pages)
 }

@@ -1,213 +1,358 @@
-use crate::pack::pack_assets_and_write_to_file;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
-    env::set_current_dir,
-    fs::read_to_string,
+    fs::{create_dir_all, read_dir, read_to_string, write},
     io::{Error, ErrorKind, Write},
     path::{Path, PathBuf},
     process::{Command, Stdio},
 };
-
-fn pathbuf_is_empty(buf: &Path) -> bool {
-    buf.components().count() == 0
-}
 
 #[allow(clippy::trivially_copy_pass_by_ref)]
 fn bool_is_false(value: &bool) -> bool {
     !value
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
-pub struct Pipeline {
-    #[serde(default)]
-    #[serde(skip_serializing_if = "bool_is_false")]
-    pub disabled: bool,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "pathbuf_is_empty")]
-    pub source: PathBuf,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "pathbuf_is_empty")]
-    pub destination: PathBuf,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "bool_is_false")]
-    pub clear_destination: bool,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub commands: Vec<PipelineCommand>,
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AssetPhase {
+    #[default]
+    SourceToIntermediate,
+    SourceToBaked,
+    IntermediateToBaked,
 }
 
-impl Pipeline {
-    pub fn load_and_execute(path: impl AsRef<Path>) -> std::io::Result<()> {
-        let mut path = path.as_ref().to_owned();
-        let contents = read_to_string(&path)?;
-        match serde_json::from_str::<Pipeline>(&contents) {
-            Ok(pipeline) => {
-                pipeline.verify_used_plugins();
-                if path.is_file() {
-                    path.pop();
-                }
-                set_current_dir(path)?;
-                pipeline.execute()?;
+impl AssetPhase {
+    fn is_default(&self) -> bool {
+        self == &Self::SourceToIntermediate
+    }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AssetInput {
+    #[serde(default)]
+    #[serde(skip_serializing_if = "bool_is_false")]
+    pub ignore: bool,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "AssetPhase::is_default")]
+    pub phase: AssetPhase,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub source: Vec<PathBuf>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub target: Vec<PathBuf>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Pipeline::is_default")]
+    pub pipeline: Pipeline,
+}
+
+impl AssetInput {
+    pub fn bake_assets_list(path: impl AsRef<Path>, assets: &str) -> std::io::Result<()> {
+        let path = path.as_ref();
+        if !path.is_dir() {
+            return Ok(());
+        }
+        for entry in read_dir(path)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                let assets = if assets.is_empty() {
+                    entry.file_name().to_string_lossy().as_ref().to_owned()
+                } else {
+                    format!(
+                        "{}/{}",
+                        assets,
+                        entry.file_name().to_string_lossy().as_ref()
+                    )
+                };
+                Self::bake_assets_list(&path, &assets)?;
             }
-            Err(error) => println!(
-                "Could not parse pipeline JSON config: {:?}. Error: {:?}",
-                path, error
-            ),
+        }
+        let mut result = Vec::default();
+        for entry in read_dir(path)? {
+            let entry = entry?;
+            let path = entry.path();
+            let asset = if assets.is_empty() {
+                format!("meta://{}", entry.file_name().to_string_lossy().as_ref())
+            } else {
+                format!(
+                    "meta://{}/{}",
+                    assets,
+                    entry.file_name().to_string_lossy().as_ref()
+                )
+            };
+            if path.is_file()
+                && path
+                    .extension()
+                    .map(|extension| extension == "asset")
+                    .unwrap_or_default()
+            {
+                result.push(asset);
+            } else if path.is_dir() {
+                result.push(format!("{}/assets.asset", asset));
+            }
+        }
+        let path = path.join("assets.asset");
+        match serde_json::to_string_pretty(&AssetOutput { target: result }) {
+            Ok(contents) => {
+                write(path, contents)?;
+            }
+            Err(error) => {
+                println!(
+                    "Could not serialize meta asset JSON config: {:?}. Error: {:?}",
+                    path, error
+                );
+            }
         }
         Ok(())
     }
 
-    fn verify_used_plugins(&self) {
-        for command in &self.commands {
-            match command {
-                PipelineCommand::Plugin {
-                    name,
-                    do_not_verify: false,
-                    ..
-                } => {
-                    if which::which(name).is_err() {
-                        let plugin = name.rfind('-').map(|index| &name[0..index]).unwrap_or(name);
-                        let plugin = format!("{}-tools", plugin);
-                        println!(
-                            "Plugin not found: {}. Trying to install it: {}",
-                            name, plugin
-                        );
-                        let _ = Command::new("cargo").arg("install").arg(plugin).status();
+    pub fn load_and_execute(
+        phase: AssetPhase,
+        source: impl AsRef<Path>,
+        target: impl AsRef<Path>,
+        assets: &str,
+        tags: &[String],
+    ) -> std::io::Result<()> {
+        let mut source = source.as_ref().to_owned();
+        let target = target.as_ref().to_owned();
+        if source.is_file()
+            && source
+                .extension()
+                .map(|extension| extension == "asset")
+                .unwrap_or_default()
+        {
+            let contents = read_to_string(&source)?;
+            match serde_json::from_str::<AssetInput>(&contents) {
+                Ok(asset) => {
+                    if !asset.target.is_empty() || asset.ignore || asset.phase != phase {
+                        return Ok(());
+                    }
+                    for tag in asset.tags {
+                        if let Some(tag) = tag.strip_prefix('!') {
+                            if tags.iter().any(|t| t == tag) {
+                                return Ok(());
+                            }
+                        } else if !tags.iter().any(|t| t == &tag) {
+                            return Ok(());
+                        }
+                    }
+                    asset.pipeline.verify_used_plugins();
+                    if source.is_file() {
+                        source.pop();
+                    }
+                    let source = asset
+                        .source
+                        .iter()
+                        .map(|path| source.join(path))
+                        .collect::<Vec<_>>();
+                    let directory = target.with_extension("");
+                    let assets = assets.strip_suffix(".asset").unwrap_or(assets);
+                    let result = asset.pipeline.execute(&source, directory, assets)?;
+                    if !result.is_empty() {
+                        match serde_json::to_string_pretty(&AssetOutput { target: result }) {
+                            Ok(contents) => {
+                                write(target, contents)?;
+                            }
+                            Err(error) => {
+                                println!(
+                                    "Could not serialize meta asset JSON config: {:?}. Error: {:?}",
+                                    source, error
+                                );
+                            }
+                        }
                     }
                 }
-                PipelineCommand::Pipeline(pipeline) => pipeline.verify_used_plugins(),
-                _ => {}
+                Err(error) => println!(
+                    "Could not parse pipeline asset JSON config: {:?}. Error: {:?}",
+                    source, error
+                ),
+            }
+        } else if source.is_dir() {
+            for entry in read_dir(source)? {
+                let entry = entry?;
+                let source = entry.path();
+                let target = target.join(entry.file_name());
+                let assets = if assets.is_empty() {
+                    entry.file_name().to_string_lossy().as_ref().to_owned()
+                } else {
+                    format!(
+                        "{}/{}",
+                        assets,
+                        entry.file_name().to_string_lossy().as_ref()
+                    )
+                };
+                Self::load_and_execute(phase, source, target, &assets, tags)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct AssetOutput {
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub target: Vec<String>,
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+pub enum Pipeline {
+    #[default]
+    Copy,
+    Generate(Box<AssetInput>),
+    Pack {
+        #[serde(default = "Pipeline::default_pack_name")]
+        name: String,
+    },
+    Plugin {
+        #[serde(default)]
+        #[serde(skip_serializing_if = "bool_is_false")]
+        do_not_verify: bool,
+        name: String,
+        params: Value,
+    },
+    Shell {
+        command: String,
+    },
+}
+
+impl Pipeline {
+    fn is_default(&self) -> bool {
+        self == &Self::Copy
+    }
+
+    fn default_pack_name() -> String {
+        "assets".to_owned()
+    }
+
+    fn verify_used_plugins(&self) {
+        if let Self::Plugin {
+            name,
+            do_not_verify: false,
+            ..
+        } = self
+        {
+            if which::which(name).is_err() {
+                let plugin = name.rfind('-').map(|index| &name[0..index]).unwrap_or(name);
+                let plugin = format!("{}-tools", plugin);
+                println!(
+                    "Plugin not found: {}. Trying to install it: {}",
+                    name, plugin
+                );
+                let _ = Command::new("cargo").arg("install").arg(plugin).status();
             }
         }
     }
 
-    pub fn execute(self) -> Result<(), Error> {
-        if self.disabled {
-            return Ok(());
-        }
-        if self.clear_destination {
-            drop(fs_extra::dir::remove(&self.destination));
-        }
-        drop(fs_extra::dir::create_all(&self.destination, false));
-        for command in self.commands.iter().cloned() {
-            match command {
-                PipelineCommand::Copy { disabled, from, to } => {
-                    if disabled {
-                        continue;
-                    }
-                    if from.is_empty() && pathbuf_is_empty(&to) {
-                        let mut options = fs_extra::dir::CopyOptions::new();
-                        options.overwrite = true;
-                        options.copy_inside = true;
-                        options.content_only = true;
-                        if let Err(error) =
-                            fs_extra::dir::copy(&self.source, &self.destination, &options)
-                        {
-                            return Err(Error::new(
-                                ErrorKind::Other,
-                                format!("Could not copy directory content: {:?}", error),
-                            ));
-                        }
-                        continue;
-                    }
-                    let from = from
-                        .into_iter()
-                        .map(|path| {
-                            if path.is_absolute() {
-                                path
-                            } else {
-                                self.source.join(path)
-                            }
-                        })
-                        .collect::<Vec<_>>();
-                    let to = if to.is_absolute() {
-                        to
-                    } else {
-                        self.destination.join(to)
-                    };
-                    let mut options = fs_extra::dir::CopyOptions::new();
-                    options.overwrite = true;
-                    options.copy_inside = true;
-                    if let Err(error) = fs_extra::copy_items(&from, to, &options) {
-                        return Err(Error::new(
-                            ErrorKind::Other,
-                            format!("Could not copy files: {:?}", error),
-                        ));
-                    }
+    fn execute(
+        &self,
+        source: &[impl AsRef<Path>],
+        target: impl AsRef<Path>,
+        assets: &str,
+    ) -> Result<Vec<String>, Error> {
+        match self {
+            Self::Copy => {
+                let mut target = target.as_ref().to_owned();
+                target.pop();
+                create_dir_all(&target)?;
+                let mut options = fs_extra::dir::CopyOptions::new();
+                options.overwrite = true;
+                options.copy_inside = true;
+                if let Err(error) = fs_extra::copy_items(source, target, &options) {
+                    return Err(Error::new(
+                        ErrorKind::Other,
+                        format!("Could not copy files: {:?}", error),
+                    ));
                 }
-                PipelineCommand::Pack {
-                    disabled,
-                    paths,
-                    output,
-                } => {
-                    if disabled {
-                        continue;
+                Ok(vec![])
+            }
+            Self::Generate(value) => {
+                let mut directory = target.as_ref().to_owned();
+                directory.pop();
+                create_dir_all(directory)?;
+                let target = target.as_ref().with_extension("asset");
+                match serde_json::to_string_pretty(value) {
+                    Ok(contents) => {
+                        write(target, contents)?;
                     }
-                    let paths = paths
-                        .into_iter()
-                        .map(|path| {
-                            if path.is_absolute() {
-                                path
-                            } else {
-                                self.source.join(path)
-                            }
-                        })
-                        .collect::<Vec<_>>();
-                    let output = if output.is_absolute() {
-                        output
-                    } else {
-                        self.destination.join(output)
-                    };
-                    pack_assets_and_write_to_file(&paths, output)?;
-                }
-                PipelineCommand::Plugin {
-                    disabled,
-                    name,
-                    params,
-                    ..
-                } => {
-                    if disabled {
-                        continue;
-                    }
-                    let mut child = Command::new(&name)
-                        .arg(&self.source)
-                        .arg(&self.destination)
-                        .stdin(Stdio::piped())
-                        .spawn()
-                        .unwrap_or_else(|_| panic!("Could not run plugin: {0}. Make sure it is installed or install it with: `cargo install {0}`", name));
-                    let mut stdin = child.stdin.take().unwrap_or_else(|| {
-                        panic!("Could not take input stream of plugin process: {}", name)
-                    });
-                    let params = serde_json::to_string(&params).unwrap_or_else(|_| {
-                        panic!("Could not serialize params for plugin: {}", name)
-                    });
-                    stdin.write_all(params.as_bytes()).unwrap_or_else(|_| {
-                        panic!("Could not write serialized parameters for plugin: {}", name)
-                    });
-                    stdin.flush().unwrap_or_else(|_| {
-                        panic!("Could not complete sending data to plugin: {}", name)
-                    });
-                    drop(stdin);
-                    let output = child
-                        .wait_with_output()
-                        .unwrap_or_else(|_| panic!("Could not wait for plugin: {}", name));
-                    if !output.status.success() {
-                        panic!(
-                            "Plugin run failed: {}. Output: {}. Error: {}",
-                            name,
-                            String::from_utf8_lossy(&output.stdout),
-                            String::from_utf8_lossy(&output.stderr)
+                    Err(error) => {
+                        println!(
+                            "Could not serialize meta asset JSON config: {:?}. Error: {:?}",
+                            value, error
                         );
                     }
                 }
-                PipelineCommand::Shell { disabled, command } => {
-                    if disabled {
-                        continue;
-                    }
+                Ok(vec![])
+            }
+            Self::Pack { name } => {
+                let mut target = target.as_ref().to_owned();
+                target.pop();
+                create_dir_all(&target)?;
+                crate::pack::pack_assets_and_write_to_file(
+                    source,
+                    target.join(name).with_extension("pack"),
+                )?;
+                Ok(vec![])
+            }
+            Self::Plugin { name, params, .. } => {
+                create_dir_all(target.as_ref())?;
+                let mut child = Command::new(name)
+                    .args(source.iter().map(|source| source.as_ref().as_os_str()))
+                    .arg("--")
+                    .arg(target.as_ref().as_os_str())
+                    .arg("--")
+                    .arg(assets)
+                    .arg("--")
+                    .stdin(Stdio::piped())
+                    .stdout(Stdio::piped())
+                    .spawn()
+                    .unwrap_or_else(|_| {
+                        panic!(
+                            "{1}: {0}. {2}: `cargo install {0}`",
+                            name,
+                            "Could not run plugin",
+                            "Make sure it is installed or install it with",
+                        )
+                    });
+                let mut stdin = child.stdin.take().unwrap_or_else(|| {
+                    panic!("Could not take input stream of plugin process: {}", name)
+                });
+                let params = serde_json::to_string(&params)
+                    .unwrap_or_else(|_| panic!("Could not serialize params for plugin: {}", name));
+                stdin.write_all(params.as_bytes()).unwrap_or_else(|_| {
+                    panic!("Could not write serialized parameters for plugin: {}", name)
+                });
+                stdin.flush().unwrap_or_else(|_| {
+                    panic!("Could not complete sending data to plugin: {}", name)
+                });
+                drop(stdin);
+                let output = child
+                    .wait_with_output()
+                    .unwrap_or_else(|_| panic!("Could not wait for plugin: {}", name));
+                if !output.status.success() {
+                    panic!(
+                        "Plugin run failed: {}. Output: {}. Error: {}",
+                        name,
+                        String::from_utf8_lossy(&output.stdout),
+                        String::from_utf8_lossy(&output.stderr)
+                    );
+                }
+                Ok(
+                    serde_json::from_slice::<Vec<String>>(&output.stdout).unwrap_or_else(|_| {
+                        panic!("Could not deserialize assets list from plugin: {}", name)
+                    }),
+                )
+            }
+            Self::Shell { command } => {
+                create_dir_all(target.as_ref())?;
+                for source in source {
                     let command = command
-                        .replace("<source>", self.source.to_str().unwrap())
-                        .replace("<destination>", self.destination.to_str().unwrap());
+                        .replace("<source>", source.as_ref().to_string_lossy().as_ref())
+                        .replace("<target>", target.as_ref().to_string_lossy().as_ref())
+                        .replace("<assets>", assets);
                     let parts = command.split(char::is_whitespace).collect::<Vec<_>>();
                     let mut command = Command::new(parts[0]);
                     for part in &parts[1..] {
@@ -217,70 +362,8 @@ impl Pipeline {
                         .status()
                         .unwrap_or_else(|_| panic!("Shell command failed to run: {:?}", command));
                 }
-                PipelineCommand::Pipeline(mut pipeline) => {
-                    pipeline.source = if pipeline.source.is_absolute() {
-                        pipeline.source
-                    } else {
-                        self.source.join(pipeline.source)
-                    };
-                    pipeline.destination = if pipeline.destination.is_absolute() {
-                        pipeline.destination
-                    } else {
-                        self.destination.join(pipeline.destination)
-                    };
-                    pipeline.execute()?;
-                }
-                PipelineCommand::External(path) => {
-                    Self::load_and_execute(path)?;
-                }
+                Ok(vec![])
             }
         }
-        Ok(())
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum PipelineCommand {
-    Copy {
-        #[serde(default)]
-        #[serde(skip_serializing_if = "bool_is_false")]
-        disabled: bool,
-        #[serde(default)]
-        #[serde(skip_serializing_if = "Vec::is_empty")]
-        from: Vec<PathBuf>,
-        #[serde(default)]
-        #[serde(skip_serializing_if = "pathbuf_is_empty")]
-        to: PathBuf,
-    },
-    Pack {
-        #[serde(default)]
-        #[serde(skip_serializing_if = "bool_is_false")]
-        disabled: bool,
-        #[serde(default)]
-        #[serde(skip_serializing_if = "Vec::is_empty")]
-        paths: Vec<PathBuf>,
-        #[serde(default)]
-        #[serde(skip_serializing_if = "pathbuf_is_empty")]
-        output: PathBuf,
-    },
-    Plugin {
-        #[serde(default)]
-        #[serde(skip_serializing_if = "bool_is_false")]
-        disabled: bool,
-        #[serde(default)]
-        #[serde(skip_serializing_if = "bool_is_false")]
-        do_not_verify: bool,
-        name: String,
-        #[serde(default)]
-        #[serde(skip_serializing_if = "Value::is_null")]
-        params: Value,
-    },
-    Shell {
-        #[serde(default)]
-        #[serde(skip_serializing_if = "bool_is_false")]
-        disabled: bool,
-        command: String,
-    },
-    Pipeline(Pipeline),
-    External(PathBuf),
 }

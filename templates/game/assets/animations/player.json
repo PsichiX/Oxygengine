@@ -4,61 +4,61 @@
   "states": {
     "idle-down": {
       "frames": [
-        "levels/atlases/Characters.json@0x0"
+        "levels/world/atlases/Characters.json@0x0"
       ],
       "looping": true
     },
     "idle-right": {
       "frames": [
-        "levels/atlases/Characters.json@0x1"
+        "levels/world/atlases/Characters.json@0x1"
       ],
       "looping": true
     },
     "idle-up": {
       "frames": [
-        "levels/atlases/Characters.json@0x2"
+        "levels/world/atlases/Characters.json@0x2"
       ],
       "looping": true
     },
     "idle-left": {
       "frames": [
-        "levels/atlases/Characters.json@0x3"
+        "levels/world/atlases/Characters.json@0x3"
       ],
       "looping": true
     },
     "walk-down": {
       "frames": [
-        "levels/atlases/Characters.json@0x0",
-        "levels/atlases/Characters.json@1x0",
-        "levels/atlases/Characters.json@2x0",
-        "levels/atlases/Characters.json@3x0"
+        "levels/world/atlases/Characters.json@0x0",
+        "levels/world/atlases/Characters.json@1x0",
+        "levels/world/atlases/Characters.json@2x0",
+        "levels/world/atlases/Characters.json@3x0"
       ],
       "looping": true
     },
     "walk-right": {
       "frames": [
-        "levels/atlases/Characters.json@0x1",
-        "levels/atlases/Characters.json@1x1",
-        "levels/atlases/Characters.json@2x1",
-        "levels/atlases/Characters.json@3x1"
+        "levels/world/atlases/Characters.json@0x1",
+        "levels/world/atlases/Characters.json@1x1",
+        "levels/world/atlases/Characters.json@2x1",
+        "levels/world/atlases/Characters.json@3x1"
       ],
       "looping": true
     },
     "walk-up": {
       "frames": [
-        "levels/atlases/Characters.json@0x2",
-        "levels/atlases/Characters.json@1x2",
-        "levels/atlases/Characters.json@2x2",
-        "levels/atlases/Characters.json@3x2"
+        "levels/world/atlases/Characters.json@0x2",
+        "levels/world/atlases/Characters.json@1x2",
+        "levels/world/atlases/Characters.json@2x2",
+        "levels/world/atlases/Characters.json@3x2"
       ],
       "looping": true
     },
     "walk-left": {
       "frames": [
-        "levels/atlases/Characters.json@0x3",
-        "levels/atlases/Characters.json@1x3",
-        "levels/atlases/Characters.json@2x3",
-        "levels/atlases/Characters.json@3x3"
+        "levels/world/atlases/Characters.json@0x3",
+        "levels/world/atlases/Characters.json@1x3",
+        "levels/world/atlases/Characters.json@2x3",
+        "levels/world/atlases/Characters.json@3x3"
       ],
       "looping": true
     }

@@ -448,30 +448,33 @@ impl AssetsDatabase {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::assets::protocols::{
-        set::{SetAsset, SetAssetProtocol},
-        text::{TextAsset, TextAssetProtocol},
+    use crate::{
+        assets::protocols::{
+            meta::{MetaAsset, MetaAssetProtocol},
+            text::{TextAsset, TextAssetProtocol},
+        },
+        fetch::*,
     };
-    use crate::fetch::*;
 
     #[test]
     fn test_database() {
+        let list = serde_json::to_string(
+            &MetaAsset::default()
+                .with_target("txt://a.txt")
+                .with_target("txt://b.txt"),
+        )
+        .unwrap();
         let mut fetch_engine = engines::map::MapFetchEngine::default();
-        fetch_engine.map.insert(
-            "assets.txt".to_owned(),
-            br#"
-                txt://a.txt
-                txt://b.txt
-            "#
-            .to_vec(),
-        );
+        fetch_engine
+            .map
+            .insert("assets.asset".to_owned(), list.into_bytes().to_vec());
         fetch_engine.map.insert("a.txt".to_owned(), b"A".to_vec());
         fetch_engine.map.insert("b.txt".to_owned(), b"B".to_vec());
 
         let mut database = AssetsDatabase::new(fetch_engine);
         database.register(TextAssetProtocol);
-        database.register(SetAssetProtocol);
-        assert_eq!(database.load("set://assets.txt"), Ok(()));
+        database.register(MetaAssetProtocol);
+        assert_eq!(database.load("meta://assets.asset"), Ok(()));
         assert_eq!(database.loaded_count(), 0);
         assert_eq!(database.loading_count(), 1);
         assert_eq!(database.yielded_count(), 0);
@@ -485,27 +488,27 @@ mod tests {
         assert_eq!(database.yielded_count(), 0);
         assert_eq!(database.yielded_deps_count(), 0);
 
-        assert!(database.asset_by_path("set://assets.txt").is_some());
+        assert!(database.asset_by_path("meta://assets.asset").is_some());
         assert_eq!(
             &database
-                .asset_by_path("set://assets.txt")
+                .asset_by_path("meta://assets.asset")
                 .unwrap()
                 .to_full_path(),
-            "set://assets.txt"
+            "meta://assets.asset"
         );
         assert!(database
-            .asset_by_path("set://assets.txt")
+            .asset_by_path("meta://assets.asset")
             .unwrap()
-            .is::<SetAsset>());
+            .is::<MetaAsset>());
         assert_eq!(
             database
-                .asset_by_path("set://assets.txt")
+                .asset_by_path("meta://assets.asset")
                 .unwrap()
-                .get::<SetAsset>()
+                .get::<MetaAsset>()
                 .unwrap()
-                .paths()
-                .to_vec(),
-            vec!["txt://a.txt".to_owned(), "txt://b.txt".to_owned()],
+                .target()
+                .collect::<Vec<_>>(),
+            vec!["txt://a.txt", "txt://b.txt"],
         );
 
         assert!(database.asset_by_path("txt://a.txt").is_some());
@@ -534,7 +537,7 @@ mod tests {
             "B"
         );
 
-        assert!(database.remove_by_path("set://assets.txt").is_some());
+        assert!(database.remove_by_path("meta://assets.asset").is_some());
         assert_eq!(database.loaded_count(), 0);
         assert_eq!(database.loading_count(), 0);
         assert_eq!(database.yielded_count(), 0);

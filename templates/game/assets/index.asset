@@ -1,0 +1,5 @@
+{
+    "source": ["index.html"],
+    "phase": "SourceToBaked",
+    "tags": ["platform-web"]
+}

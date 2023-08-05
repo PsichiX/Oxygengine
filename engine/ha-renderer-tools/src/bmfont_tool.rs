@@ -74,11 +74,6 @@ pub struct CharAttributes {
 
 #[derive(Debug, Clone, Deserialize)]
 struct Params {
-    pub descriptors: Vec<PathBuf>,
-    #[serde(default)]
-    pub output: PathBuf,
-    #[serde(default)]
-    pub assets_path_prefix: String,
     #[serde(default)]
     pub image_filtering: ImageFiltering,
     #[serde(default)]
@@ -106,49 +101,48 @@ impl Params {
 impl ParamsFromArgs for Params {}
 
 fn main() -> Result<(), Error> {
-    let (source, destination, params) = AssetPipelineInput::<Params>::consume().unwrap();
-    let output = destination.join(&params.output);
-    create_dir_all(&output)?;
+    AssetPipelinePlugin::run::<Params, _>(|input| {
+        let AssetPipelineInput {
+            source,
+            target,
+            assets,
+            params,
+        } = input;
+        create_dir_all(&target)?;
 
-    for descriptor in &params.descriptors {
-        let descriptor = source.join(descriptor);
-        generate_sdf_font(
-            &descriptor,
-            &output,
-            &params.assets_path_prefix,
+        let source = match source.first() {
+            Some(source) => source,
+            None => return Ok(vec![]),
+        };
+        Ok(vec![generate_sdf_font(
+            source,
+            &target,
+            &assets,
             params.image_filtering,
             &params.generator,
             params.max_width,
             params.max_height,
             params.padding,
             params.force_line_height,
-        )?;
-    }
-    Ok(())
+        )?])
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
 fn generate_sdf_font(
-    descriptor: &Path,
-    output: &Path,
-    assets_path_prefix: &str,
+    source: &Path,
+    target: &Path,
+    assets: &str,
     image_filtering: ImageFiltering,
     generator: &SdfGenerator,
     max_width: u32,
     max_height: u32,
     padding: u32,
     force_line_height: Option<usize>,
-) -> Result<(), Error> {
-    let dirname = descriptor
-        .parent()
-        .map(|p| p.to_path_buf())
-        .unwrap_or_default();
-    let filename = descriptor.with_extension("");
-    let filename = filename
-        .file_name()
-        .unwrap_or_else(|| panic!("Could not get descriptor file name: {:?}", descriptor));
-    let font = serde_xml_rs::from_str::<Font>(&read_to_string(descriptor)?)
-        .unwrap_or_else(|_| panic!("Could not load bmfont XML descriptor: {:?}", descriptor));
+) -> Result<String, Error> {
+    let dirname = source.parent().map(|p| p.to_path_buf()).unwrap_or_default();
+    let font = serde_xml_rs::from_str::<Font>(&read_to_string(source)?)
+        .unwrap_or_else(|_| panic!("Could not load bmfont XML descriptor: {:?}", source));
     let glyphs = font
         .pages
         .pages
@@ -156,9 +150,7 @@ fn generate_sdf_font(
         .flat_map(|page| {
             let path = dirname.join(&page.0.file);
             let image = image::open(&path)
-                .unwrap_or_else(|_| {
-                    panic!("Could not load font: {:?} image: {:?}", descriptor, path)
-                })
+                .unwrap_or_else(|_| panic!("Could not load font: {:?} image: {:?}", source, path))
                 .into_luma8();
             font.chars
                 .chars
@@ -199,39 +191,38 @@ fn generate_sdf_font(
         .iter()
         .enumerate()
         .map(|(i, page)| {
-            let path = output.join(filename).with_extension(format!("{}.png", i));
+            let path = target.join(format!("page.{}.png", i));
             ImageExporter::export(page)
-                .unwrap_or_else(|_| panic!("Could not export font: {:?} page: {}", descriptor, i))
+                .unwrap_or_else(|_| panic!("Could not export font: {:?} page: {}", source, i))
                 .save_with_format(&path, image::ImageFormat::Png)
                 .unwrap_or_else(|_| {
                     panic!(
                         "Could not save font: {:?} page: {} to file: {:?}",
-                        descriptor, i, path
+                        source, i, path
                     )
                 });
 
-            let image_name = filename.to_str().unwrap();
             let asset = ImageAssetSource::Png {
                 descriptor: ImageDescriptor {
                     mode: ImageMode::Image2dArray,
                     ..Default::default()
                 },
-                bytes_paths: vec![format!("{}{}.{}.png", assets_path_prefix, image_name, i)],
+                bytes_paths: vec![format!("{}/page.{}.png", assets, i)],
             };
-            let path = output.join(filename).with_extension(format!("{}.json", i));
+            let path = target.join(format!("page.{}.json", i));
             write(
                 &path,
                 serde_json::to_string_pretty(&asset).unwrap_or_else(|_| {
                     panic!(
                         "Could not serialize font: {:?} page: {} image asset",
-                        descriptor, i
+                        source, i
                     )
                 }),
             )
             .unwrap_or_else(|_| {
                 panic!(
                     "Could not write font: {:?} page: {} image asset to file: {:?}",
-                    descriptor, i, path
+                    source, i, path
                 )
             });
 
@@ -247,7 +238,7 @@ fn generate_sdf_font(
                         .unwrap_or_else(|| {
                             panic!(
                                 "Could not find font: {:?} page: {} character: {}",
-                                descriptor, i, id
+                                source, i, id
                             )
                         })
                         .0;
@@ -267,7 +258,7 @@ fn generate_sdf_font(
                 })
                 .collect();
             FontAssetSourcePage {
-                image: format!("{}{}.{}.json", assets_path_prefix, image_name, i),
+                image: format!("{}/page.{}.json", assets, i),
                 characters,
             }
         })
@@ -280,17 +271,17 @@ fn generate_sdf_font(
         pages,
         filtering: image_filtering,
     };
-    let path = output.join(filename).with_extension("json");
+    let path = target.join("font.json");
     write(
         &path,
         serde_json::to_string_pretty(&asset)
-            .unwrap_or_else(|_| panic!("Could not serialize font: {:?} asset", descriptor,)),
+            .unwrap_or_else(|_| panic!("Could not serialize font: {:?} asset", source,)),
     )
     .unwrap_or_else(|_| {
         panic!(
             "Could not write font: {:?} asset to file: {:?}",
-            descriptor, path
+            source, path
         )
     });
-    Ok(())
+    Ok(format!("font://{}/font.json", assets))
 }

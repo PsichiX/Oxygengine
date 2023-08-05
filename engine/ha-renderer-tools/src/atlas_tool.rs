@@ -8,17 +8,12 @@ use std::{
     collections::HashMap,
     fs::{create_dir_all, read_dir, write},
     io::Error,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 use texture_packer::{exporter::ImageExporter, MultiTexturePacker, TexturePackerConfig};
 
 #[derive(Debug, Clone, Deserialize)]
 struct Params {
-    pub input_directories: Vec<PathBuf>,
-    #[serde(default)]
-    pub output: PathBuf,
-    #[serde(default)]
-    pub assets_path_prefix: String,
     #[serde(default = "Params::default_max_width")]
     pub max_width: u32,
     #[serde(default = "Params::default_max_height")]
@@ -44,12 +39,20 @@ impl Params {
 impl ParamsFromArgs for Params {}
 
 fn main() -> Result<(), Error> {
-    let (source, destination, params) = AssetPipelineInput::<Params>::consume().unwrap();
-    let output = destination.join(&params.output);
-    create_dir_all(&output)?;
+    AssetPipelinePlugin::run::<Params, _>(|input| {
+        let AssetPipelineInput {
+            source,
+            target,
+            assets,
+            params,
+        } = input;
+        create_dir_all(&target)?;
 
-    for directory in &params.input_directories {
-        let directory = source.join(directory);
+        let mut paths = vec![];
+        for directory in &source {
+            get_files_recursively(directory, &mut paths);
+        }
+
         let config = TexturePackerConfig {
             max_width: params.max_width,
             max_height: params.max_height,
@@ -62,18 +65,7 @@ fn main() -> Result<(), Error> {
         };
         let mut packer = MultiTexturePacker::new_skyline(config);
 
-        if !directory.is_dir() {
-            panic!("Path is not a valid directory: {:?}", directory);
-        }
-        let entries = read_dir(&directory)
-            .unwrap_or_else(|_| panic!("Directory could not be read: {:?}", directory));
-        for entry in entries {
-            let entry = entry
-                .unwrap_or_else(|_| panic!("Could not read entry in directory: {:?}", directory,));
-            let path = entry.path();
-            if !path.is_file() {
-                continue;
-            }
+        for path in paths {
             let image =
                 image::open(&path).unwrap_or_else(|_| panic!("Could not load image: {:?}", path));
             let id = path.with_extension("");
@@ -86,44 +78,33 @@ fn main() -> Result<(), Error> {
                 .pack_own(id.to_owned(), image)
                 .unwrap_or_else(|_| panic!("Could not pack image: {} in path: {:?}", id, path));
         }
-        let name = directory
-            .file_name()
-            .unwrap_or_else(|| panic!("Coult not get directory name: {:?}", directory))
-            .to_str()
-            .unwrap();
         let pages = packer
             .get_pages()
             .iter()
             .enumerate()
             .map(|(i, page)| {
-                let path = output.join(name).with_extension(format!("{}.png", i));
+                let path = target.join(format!("page.{}.png", i));
                 ImageExporter::export(page)
-                    .unwrap_or_else(|_| panic!("Could not export atlas: {:?} page: {}", name, i))
+                    .unwrap_or_else(|_| panic!("Could not export atlas page: {}", i))
                     .save_with_format(&path, image::ImageFormat::Png)
                     .unwrap_or_else(|_| {
-                        panic!(
-                            "Could not save atlas: {:?} page: {} to file: {:?}",
-                            name, i, path
-                        )
+                        panic!("Could not save atlas page: {} to file: {:?}", i, path)
                     });
                 let asset = ImageAssetSource::Png {
-                    bytes_paths: vec![format!("{}{}.{}.png", params.assets_path_prefix, name, i)],
+                    bytes_paths: vec![format!("{}/page.{}.png", assets, i)],
                     descriptor: Default::default(),
                 };
-                let path = output.join(name).with_extension(format!("{}.json", i));
+                let path = target.join(format!("page.{}.json", i));
                 write(
                     &path,
                     serde_json::to_string_pretty(&asset).unwrap_or_else(|_| {
-                        panic!(
-                            "Could not serialize atlas: {:?} page: {} image asset",
-                            name, i
-                        )
+                        panic!("Could not serialize atlas page: {} image asset", i)
                     }),
                 )
                 .unwrap_or_else(|_| {
                     panic!(
-                        "Could not write atlas: {:?} page: {} image asset to file: {:?}",
-                        name, i, path
+                        "Could not write atlas page: {} image asset to file: {:?}",
+                        i, path
                     )
                 });
                 let frames = page
@@ -144,25 +125,30 @@ fn main() -> Result<(), Error> {
                         )
                     })
                     .collect::<HashMap<_, _>>();
-                (
-                    format!("{}{}.{}.json", params.assets_path_prefix, name, i),
-                    frames,
-                )
+                (format!("{}/page.{}.json", assets, i), frames)
             })
             .collect::<HashMap<_, _>>();
         let asset = AtlasAssetSource::Raw(pages);
-        let path = output.join(name).with_extension("json");
+        let path = target.join("atlas.json");
         write(
             &path,
             serde_json::to_string_pretty(&asset)
-                .unwrap_or_else(|_| panic!("Could not serialize atlas: {:?} asset", name)),
+                .unwrap_or_else(|_| panic!("Could not serialize atlas asset")),
         )
-        .unwrap_or_else(|_| {
-            panic!(
-                "Could not write atlas: {:?} asset to file: {:?}",
-                name, path
-            )
-        });
+        .unwrap_or_else(|_| panic!("Could not write atlas asset to file: {:?}", path));
+        Ok(vec![format!("atlas://{}/atlas.json", assets)])
+    })
+}
+
+fn get_files_recursively(directory: impl AsRef<Path>, result: &mut Vec<PathBuf>) {
+    if let Ok(entries) = read_dir(directory) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                result.push(path);
+            } else if path.is_dir() {
+                get_files_recursively(path, result);
+            }
+        }
     }
-    Ok(())
 }

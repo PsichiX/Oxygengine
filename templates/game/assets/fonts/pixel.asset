@@ -1,0 +1,24 @@
+{
+    "source": ["pixel.fnt"],
+    "pipeline": {
+        "Plugin": {
+            "name": "oxygengine-ha-renderer-bmfont",
+            "params": {
+                "image_filtering": "Nearest",
+                "padding": 1,
+                "max_width": 64,
+                "max_height": 64,
+                "force_line_height": 8,
+                "generator": {
+                  "resolution": 0,
+                  "write_channels": {
+                    "red": "Alpha",
+                    "green": "Alpha",
+                    "blue": "Alpha",
+                    "alpha": "Alpha"
+                  }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,32 @@
+{
+    "source": ["world.ldtk"],
+    "pipeline": {
+        "Plugin": {
+            "name": "oxygengine-ha-renderer-ldtk",
+            "params": {
+                "tile_margin": {
+                    "x": 0.01,
+                    "y": 0.01
+                },
+                "rules": [
+                    {
+                        "name": "Player",
+                        "macro_file": "tools/ldtk/Player.chrobry"
+                    },
+                    {
+                        "name": "Speed",
+                        "macro_file": "tools/ldtk/Speed.chrobry"
+                    },
+                    {
+                        "name": "UiSync",
+                        "macro_file": "tools/ldtk/UiSync.chrobry"
+                    },
+                    {
+                        "name": "UiView",
+                        "macro_file": "tools/ldtk/UiView.chrobry"
+                    }
+                ]
+            }
+        }
+    }
+}

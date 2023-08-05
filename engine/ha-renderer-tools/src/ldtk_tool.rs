@@ -35,11 +35,6 @@ const DEFAULT_SPRITE_IMAGE: &str = "Uniforms";
 
 #[derive(Debug, Clone, Deserialize)]
 struct Params {
-    pub input_projects: Vec<PathBuf>,
-    #[serde(default)]
-    pub output: PathBuf,
-    #[serde(default)]
-    pub assets_path_prefix: String,
     #[serde(default)]
     pub tile_margin: Vec2,
     #[serde(default)]
@@ -61,43 +56,49 @@ struct Params {
 impl ParamsFromArgs for Params {}
 
 fn main() -> Result<(), Error> {
-    let (source, destination, params) = AssetPipelineInput::<Params>::consume().unwrap();
-    let output = destination.join(&params.output);
-    ensure_path(&output);
+    AssetPipelinePlugin::run::<Params, _>(|input| {
+        let AssetPipelineInput {
+            source,
+            target,
+            assets,
+            params,
+        } = input;
+        create_dir_all(&target)?;
 
-    let rules = params
-        .rules
-        .iter()
-        .map(|rule| {
-            let content = read_to_string(&rule.macro_file)
-                .unwrap_or_else(|_| panic!("Could not open macro file: {:?}", rule.macro_file));
-            (rule.name.as_str(), content)
-        })
-        .collect::<Vec<_>>();
+        let rules = params
+            .rules
+            .iter()
+            .map(|rule| {
+                let content = read_to_string(&rule.macro_file)
+                    .unwrap_or_else(|_| panic!("Could not open macro file: {:?}", rule.macro_file));
+                (rule.name.as_str(), content)
+            })
+            .collect::<Vec<_>>();
 
-    for path in &params.input_projects {
-        let path = source.join(path);
-        let dirname = path.parent().map(|p| p.to_path_buf()).unwrap_or_default();
-        let project = Project::new(path.to_str().unwrap());
-        bake_project(
+        let source = match source.first() {
+            Some(source) => source,
+            None => return Ok(vec![]),
+        };
+        let dirname = source.parent().map(|p| p.to_path_buf()).unwrap_or_default();
+        let project = Project::new(source.to_str().unwrap());
+        Ok(bake_project(
             project,
             &dirname,
-            &output,
+            &target,
             params.tile_margin,
             params.image_filtering,
             match &params.material_name {
                 Some(name) => name.as_str(),
                 None => DEFAULT_SPRITE_MATERIAL_ASSET,
             },
-            &params.assets_path_prefix,
+            &assets,
             params.image_folder_name.as_deref().unwrap_or("images"),
             params.atlas_folder_name.as_deref().unwrap_or("atlases"),
             params.prefab_folder_name.as_deref().unwrap_or("prefabs"),
             params.data_folder_name.as_deref().unwrap_or("data"),
             &rules,
-        );
-    }
-    Ok(())
+        ))
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -114,10 +115,12 @@ fn bake_project(
     prefab_folder_name: &str,
     data_folder_name: &str,
     rules: &[(&str, String)],
-) {
-    let mut image_bytes = HashMap::<_, _>::default();
-    let mut images = HashMap::<_, _>::default();
-    let mut atlases = HashMap::<_, _>::default();
+) -> Vec<String> {
+    let mut image_bytes = HashMap::new();
+    let mut images = HashMap::new();
+    let mut atlases = HashMap::new();
+    let mut instance_types_used = HashSet::new();
+    let mut assets_used = HashSet::new();
 
     for tileset in &project.defs.tilesets {
         let rel_path = match tileset.rel_path.as_ref() {
@@ -126,7 +129,7 @@ fn bake_project(
         };
 
         let image_bytes_name = format!(
-            "{}{}/{}.png",
+            "{}/{}/{}.png",
             assets_path_prefix, image_folder_name, tileset.identifier
         );
         let image_bytes_path = output
@@ -153,7 +156,7 @@ fn bake_project(
         image_bytes.insert(tileset.uid, image_bytes_name.to_owned());
 
         let image_name = format!(
-            "{}{}/{}.json",
+            "{}/{}/{}.json",
             assets_path_prefix, image_folder_name, tileset.identifier
         );
         let asset = ImageAssetSource::Png {
@@ -178,7 +181,7 @@ fn bake_project(
         images.insert(tileset.uid, image_name.to_owned());
 
         let atlas_name = format!(
-            "{}{}/{}.json",
+            "{}/{}/{}.json",
             assets_path_prefix, atlas_folder_name, tileset.identifier
         );
         let asset = AtlasAssetSource::TileSet({
@@ -215,8 +218,6 @@ fn bake_project(
         atlases.insert(tileset.uid, atlas_name.to_owned());
     }
 
-    let mut instance_types_used = HashSet::new();
-
     for level in &project.levels {
         if level_field_value("Ignore", level)
             .and_then(|v| v.as_bool())
@@ -228,7 +229,6 @@ fn bake_project(
         let variables = level_variables(level);
 
         if let Some(layer_instances) = &level.layer_instances {
-            let mut assets_used = HashSet::new();
             let mut asset = PrefabScene {
                 template_name: Some(level.identifier.to_owned()),
                 ..Default::default()
@@ -413,7 +413,7 @@ fn bake_project(
 
             if let Some(data_asset) = data_asset {
                 let data_name = format!(
-                    "{}{}/{}.json",
+                    "{}/{}/{}.json",
                     assets_path_prefix, data_folder_name, level.identifier
                 );
                 let data_path = output
@@ -823,11 +823,10 @@ fn bake_project(
                 }
             }
 
-            let prefab_name = format!(
-                "{}{}/{}.json",
+            assets_used.insert(format!(
+                "prefab://{}/{}/{}.json",
                 assets_path_prefix, prefab_folder_name, level.identifier
-            );
-            assets_used.insert(format!("prefab://{}", prefab_name));
+            ));
             let prefab_path = output
                 .join(prefab_folder_name)
                 .join(&level.identifier)
@@ -843,16 +842,9 @@ fn bake_project(
                 }),
             )
             .unwrap_or_else(|_| panic!("Could not write prefab asset to file: {:?}", prefab_path));
-
-            let set_path = output.join(&level.identifier).with_extension("txt");
-            ensure_path(&set_path);
-            write(
-                &set_path,
-                assets_used.into_iter().collect::<Vec<_>>().join("\n"),
-            )
-            .unwrap_or_else(|_| panic!("Could not write set asset to file: {:?}", set_path));
         }
     }
+    assets_used.into_iter().collect()
 }
 
 fn level_field_value<'a>(name: &str, level: &'a Level) -> Option<&'a Value> {

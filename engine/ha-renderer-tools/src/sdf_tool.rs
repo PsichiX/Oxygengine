@@ -8,7 +8,6 @@ use serde::Deserialize;
 use std::{
     fs::{create_dir_all, write},
     io::Error,
-    path::PathBuf,
 };
 
 #[derive(Debug, Clone, Deserialize)]
@@ -34,11 +33,6 @@ impl Default for ValueSource {
 
 #[derive(Debug, Clone, Deserialize)]
 struct Params {
-    pub input_images: Vec<PathBuf>,
-    #[serde(default)]
-    pub output: PathBuf,
-    #[serde(default)]
-    pub assets_path_prefix: String,
     #[serde(default)]
     pub generator: SdfGenerator,
     #[serde(default)]
@@ -48,18 +42,21 @@ struct Params {
 impl ParamsFromArgs for Params {}
 
 fn main() -> Result<(), Error> {
-    let (source, destination, params) = AssetPipelineInput::<Params>::consume().unwrap();
-    let output = destination.join(&params.output);
-    create_dir_all(&output)?;
+    AssetPipelinePlugin::run::<Params, _>(|input| {
+        let AssetPipelineInput {
+            source,
+            target,
+            assets,
+            params,
+        } = input;
+        create_dir_all(&target)?;
 
-    for path in &params.input_images {
-        let path = source.join(path);
-        let filename = path.with_extension("");
-        let filename = filename
-            .file_name()
-            .unwrap_or_else(|| panic!("Could not get image file name: {:?}", path));
-        let image = image::open(&path)
-            .unwrap_or_else(|_| panic!("Could not load image: {:?}", path))
+        let source = match source.first() {
+            Some(source) => source,
+            None => return Ok(vec![]),
+        };
+        let image = image::open(source)
+            .unwrap_or_else(|_| panic!("Could not load image: {:?}", source))
             .into_rgba8();
         let image = match &params.value_source {
             ValueSource::Saturation => DynamicImage::ImageRgba8(image).into_luma8(),
@@ -76,24 +73,23 @@ fn main() -> Result<(), Error> {
         };
         let image = params.generator.process(&image);
 
-        let image_name = filename.to_str().unwrap();
-        let path = output.join(format!("{}.png", image_name));
+        let path = target.join("image.png");
         image
             .save_with_format(&path, ImageFormat::Png)
             .unwrap_or_else(|_| panic!("Could not save image: {:?}", path));
 
         let asset = ImageAssetSource::Png {
-            bytes_paths: vec![format!("{}{}.png", params.assets_path_prefix, image_name)],
+            bytes_paths: vec![format!("{}/image.png", assets)],
             descriptor: Default::default(),
         };
-        let path = output.join(format!("{}.json", image_name));
+        let path = target.join("image.json");
         write(
             &path,
             serde_json::to_string_pretty(&asset).expect("Could not serialize image asset"),
         )
         .unwrap_or_else(|_| panic!("Could not write image asset to file: {:?}", path));
-    }
-    Ok(())
+        Ok(vec![format!("image://{}/image.json", assets)])
+    })
 }
 
 fn preprocess_image(image: RgbaImage, red: f32, green: f32, blue: f32, alpha: f32) -> GrayImage {

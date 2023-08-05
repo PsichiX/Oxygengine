@@ -33,7 +33,7 @@ prod OPERATION PROFILE PLATFORM = "desktop":
     just prod-{{OPERATION}} {{PROFILE}} {{PLATFORM}}
 
 bake PLATFORM = "desktop":
-    oxygengine-ignite pipeline ./platforms/{{PLATFORM}}/pipeline.json
+    oxygengine-ignite pipeline -t platform-{{PLATFORM}}
 
 live-desktop:
     oxygengine-ignite live desktop

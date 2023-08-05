@@ -15,7 +15,7 @@ impl State for LoadingState {
             }
         } else {
             self.preloader = Some(
-                AssetPackPreloader::new("assets.pack", &mut assets, vec!["set://assets.txt"])
+                AssetPackPreloader::new("assets.pack", &mut assets, vec!["meta://assets.asset"])
                     .expect("could not create asset pack preloader"),
             );
         }

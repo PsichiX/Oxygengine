@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-backend-desktop"
-version = "0.40.1"
+version = "0.41.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Desktopeb backend module for Oxygengine"
@@ -14,5 +14,5 @@ readme = "../../README.md"
 scalar64 = ["oxygengine-core/scalar64"]
 
 [dependencies]
-oxygengine-core = { version = "0.40", path = "../core" }
+oxygengine-core = { version = "0.41", path = "../core" }
 glutin = "0.28"

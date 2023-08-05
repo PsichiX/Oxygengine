@@ -34,7 +34,10 @@ pub fn pack_assets<P: AsRef<Path>>(paths: &[P]) -> Result<Vec<u8>, Error> {
     }
 }
 
-pub fn pack_assets_and_write_to_file<P: AsRef<Path>>(paths: &[P], output: P) -> Result<(), Error> {
+pub fn pack_assets_and_write_to_file(
+    paths: &[impl AsRef<Path>],
+    output: impl AsRef<Path>,
+) -> Result<(), Error> {
     let contents = pack_assets(paths)?;
     write(output.as_ref(), contents)?;
     println!("Done! packed to file: {:?}", output.as_ref());

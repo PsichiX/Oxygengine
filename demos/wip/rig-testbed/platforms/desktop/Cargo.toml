@@ -8,9 +8,12 @@ publish = false
 name = "rig-testbed"
 path = "../../src/desktop_main.rs"
 
+[features]
+distribution = []
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 
 [dependencies.oxygengine]
-version = "0.40"
+version = "0.41"
 features = ["desktop-ha-game"]

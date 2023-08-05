@@ -1,11 +1,5 @@
 use serde::Deserialize;
-use std::{collections::HashMap, fs::read_to_string, path::PathBuf};
-
-pub struct AssetPipelineInput<T> {
-    pub source: PathBuf,
-    pub destination: PathBuf,
-    pub params: T,
-}
+use std::{collections::HashMap, fs::read_to_string, io::Write, path::PathBuf};
 
 pub trait ParamsFromArgs: Sized {
     fn params_from_args(_args: impl Iterator<Item = String>) -> Option<Self> {
@@ -61,15 +55,61 @@ impl StructuredArguments {
     }
 }
 
+pub struct AssetPipelinePlugin;
+
+impl AssetPipelinePlugin {
+    pub fn run<T, E>(
+        f: impl FnOnce(AssetPipelineInput<T>) -> Result<Vec<String>, E>,
+    ) -> Result<(), E>
+    where
+        T: for<'de> Deserialize<'de> + ParamsFromArgs,
+    {
+        let output = f(AssetPipelineInput::<T>::consume())?;
+        serde_json::to_writer(std::io::stdout(), &output)
+            .expect("Could not serialize output content");
+        let _ = std::io::stdout().flush();
+        Ok(())
+    }
+}
+
+pub struct AssetPipelineInput<T> {
+    pub source: Vec<PathBuf>,
+    pub target: PathBuf,
+    pub assets: String,
+    pub params: T,
+}
+
 impl<T> AssetPipelineInput<T> {
-    pub fn consume() -> Self
+    fn consume() -> Self
     where
         T: for<'de> Deserialize<'de> + ParamsFromArgs,
     {
         let mut args = std::env::args();
         args.next();
-        let source = PathBuf::from(args.next().expect("* Could not read source path"));
-        let destination = PathBuf::from(args.next().expect("* Could not read destination path"));
+        let mut source = vec![];
+        let mut target = Default::default();
+        let mut assets = Default::default();
+        for arg in args.by_ref() {
+            if arg == "--" {
+                break;
+            } else {
+                source.push(arg.into());
+            }
+        }
+        for arg in args.by_ref() {
+            if arg == "--" {
+                break;
+            } else {
+                target = arg.into();
+            }
+        }
+        for arg in args.by_ref() {
+            if arg == "--" {
+                break;
+            } else {
+                assets = arg;
+            }
+        }
         let params = if let Some(arg) = args.next() {
             if arg == "--" {
                 T::params_from_args(args).expect("Could not read args input content")
@@ -93,12 +133,9 @@ impl<T> AssetPipelineInput<T> {
         };
         Self {
             source,
-            destination,
+            target,
+            assets,
             params,
         }
-    }
-
-    pub fn unwrap(self) -> (PathBuf, PathBuf, T) {
-        (self.source, self.destination, self.params)
     }
 }

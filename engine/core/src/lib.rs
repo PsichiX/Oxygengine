@@ -36,7 +36,7 @@ pub mod prelude {
             database::*,
             protocol::*,
             protocols::{
-                binary::*, json::*, localization::*, pack::*, prefab::*, set::*, text::*, *,
+                binary::*, json::*, localization::*, meta::*, pack::*, prefab::*, text::*, *,
             },
             system::*,
             *,

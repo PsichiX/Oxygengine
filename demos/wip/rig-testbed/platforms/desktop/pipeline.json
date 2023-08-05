@@ -1,7 +1,0 @@
-{
-    "commands": [
-      {
-        "External": "../pipeline.json"
-      }
-    ]
-  }

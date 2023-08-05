@@ -1,0 +1,12 @@
+{
+    "source": ["ui"],
+    "pipeline": {
+        "Plugin": {
+            "name": "oxygengine-ha-renderer-atlas",
+            "params": {
+                "max_width": 64,
+                "max_height": 64
+            }
+        }
+    }
+}

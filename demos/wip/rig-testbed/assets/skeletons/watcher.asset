@@ -1,0 +1,9 @@
+{
+    "source": ["watcher.json"],
+    "pipeline": {
+        "Plugin": {
+            "name": "oxygengine-ha-renderer-spine",
+            "params": {}
+        }
+    }
+}
