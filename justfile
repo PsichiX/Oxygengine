@@ -74,7 +74,7 @@ remove-lockfiles:
   find . -name Cargo.lock -type f -exec rm {} +
 
 make-presets-pack:
-  OXY_DONT_AUTO_UPDATE=1 cargo run --manifest-path ./engine/ignite/Cargo.toml -- pipeline
+  OXY_DONT_AUTO_UPDATE=1 cargo run --manifest-path ./engine/ignite/Cargo.toml -- pack -i ./templates -o ./target/oxygengine-presets.pack
 
 update-ignite-presets:
   just make-presets-pack
@@ -120,9 +120,9 @@ update:
   just update-demos
 
 publish:
-  cargo publish --no-verify --manifest-path ./engine/ignite/Cargo.toml
-  sleep 1
   cargo publish --no-verify --manifest-path ./engine/build-tools/Cargo.toml
+  sleep 1
+  cargo publish --no-verify --manifest-path ./engine/ignite/Cargo.toml
   sleep 1
   cargo publish --no-verify --manifest-path ./engine/core/Cargo.toml
   sleep 1
