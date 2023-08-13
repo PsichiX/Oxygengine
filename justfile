@@ -120,61 +120,63 @@ update:
   just update-demos
 
 publish:
-  cargo publish --no-verify --manifest-path ./engine/build-tools/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/ignite/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/core/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/backend-web/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/backend-desktop/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/utils/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/ai/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/animation/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/audio/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/audio-backend-web/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/ha-renderer/Cargo.toml
-  sleep 20
-  cargo publish --no-verify --manifest-path ./engine/ha-renderer-tools/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/ha-renderer-debugger/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/editor-tools/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/editor-tools-backend-web/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/input/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/input-device-web/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/input-device-desktop/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/navigation/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/network/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/network-backend-desktop/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/network-backend-native/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/network-backend-web/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/physics-2d/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/procedural/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/user-interface/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/visual-novel/Cargo.toml
-  sleep 1
-  cargo publish --no-verify --manifest-path ./engine/overworld/Cargo.toml
+  # cargo publish --no-verify --manifest-path ./engine/build-tools/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/ignite/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/core/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/backend-web/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/backend-desktop/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/utils/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/ai/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/animation/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/audio/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/audio-backend-web/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/ha-renderer/Cargo.toml
+  # sleep 20
+  # cargo publish --no-verify --manifest-path ./engine/ha-renderer-tools/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/ha-renderer-debugger/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/editor-tools/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/editor-tools-backend-web/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/input/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/input-device-web/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/input-device-desktop/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/navigation/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/network/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/network-backend-desktop/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/network-backend-native/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/network-backend-web/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/physics-2d/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/procedural/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/user-interface/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/visual-novel/Cargo.toml
+  # sleep 1
+  # cargo publish --no-verify --manifest-path ./engine/overworld/Cargo.toml
+  # sleep 1
+  cargo publish --no-verify --manifest-path ./engine/nodes/Cargo.toml
   sleep 1
   cargo publish --no-verify --manifest-path ./engine/prototype/Cargo.toml
   sleep 1
