@@ -1,12 +1,5 @@
 extern crate oxygengine_core as core;
 
-pub mod __internal {
-    pub use core::scripting::{
-        intuicio::data::managed::{DynamicManagedRef, DynamicManagedRefMut},
-        ScriptFunctionReference,
-    };
-}
-
 use core::{
     app::AppBuilder,
     ecs::{
@@ -109,24 +102,24 @@ impl ScriptedNodeSignal {
         let scripting = universe.expect_resource::<Scripting>();
         let hierarchy = universe.expect_resource::<Hierarchy>();
 
-        if let Some(function) = scripting.registry.find_function(self.function.query()) {
-            Self::execute(
-                self.entity,
-                function,
-                &self.arguments,
-                self.broadcast,
-                &world,
-                &mut nodes,
-                &scripting,
-                &hierarchy,
-            );
-        }
+        let token = nodes.context.stack().store();
+        Self::execute(
+            self.entity,
+            &self.function,
+            &self.arguments,
+            self.broadcast,
+            &world,
+            &mut nodes,
+            &scripting,
+            &hierarchy,
+        );
+        nodes.context.stack().restore(token);
     }
 
     #[allow(clippy::too_many_arguments)]
     pub fn execute(
         entity: Entity,
-        function: FunctionHandle,
+        function_ref: &ScriptFunctionReference,
         args: &[ScriptedNodesParam],
         broadcast: bool,
         world: &World,
@@ -136,42 +129,51 @@ impl ScriptedNodeSignal {
     ) {
         if let Ok(mut node) = world.query_one::<&mut ScriptedNode>(entity) {
             if let Some(node) = node.get() {
-                if let Some(handle) = &function.signature().struct_handle {
-                    if node.0.type_hash() != &handle.type_hash() {
-                        return;
-                    }
+                let mut query = function_ref.query();
+                if query.struct_query.is_none() {
+                    query.struct_query = Some(StructQuery {
+                        type_hash: Some(*node.0.type_hash()),
+                        ..Default::default()
+                    });
                 }
-                for arg in args.iter().rev() {
-                    match arg {
-                        ScriptedNodesParam::Ref(arg) => {
-                            nodes.context.stack().push(arg.borrow().unwrap());
-                        }
-                        ScriptedNodesParam::RefMut(arg) => {
-                            nodes.context.stack().push(arg.borrow_mut().unwrap());
-                        }
-                        ScriptedNodesParam::ScopedRef(arg, _) => {
-                            nodes.context.stack().push(arg.borrow().unwrap());
-                        }
-                        ScriptedNodesParam::ScopedRefMut(arg, _) => {
-                            nodes.context.stack().push(arg.borrow_mut().unwrap());
+                if let Some(function) = scripting.registry.find_function(query) {
+                    if let Some(handle) = &function.signature().struct_handle {
+                        if node.0.type_hash() != &handle.type_hash() {
+                            return;
                         }
                     }
-                }
-                nodes.context.stack().push(node.0.borrow_mut().unwrap());
-                function.invoke(&mut nodes.context, &scripting.registry);
-                if broadcast {
-                    if let Some(iter) = hierarchy.children(entity) {
-                        for entity in iter {
-                            ScriptedNodeSignal::execute(
-                                entity,
-                                function.clone(),
-                                args,
-                                broadcast,
-                                world,
-                                nodes,
-                                scripting,
-                                hierarchy,
-                            );
+                    for arg in args.iter().rev() {
+                        match arg {
+                            ScriptedNodesParam::Ref(arg) => {
+                                nodes.context.stack().push(arg.borrow().unwrap());
+                            }
+                            ScriptedNodesParam::RefMut(arg) => {
+                                nodes.context.stack().push(arg.borrow_mut().unwrap());
+                            }
+                            ScriptedNodesParam::ScopedRef(arg, _) => {
+                                nodes.context.stack().push(arg.borrow().unwrap());
+                            }
+                            ScriptedNodesParam::ScopedRefMut(arg, _) => {
+                                nodes.context.stack().push(arg.borrow_mut().unwrap());
+                            }
+                        }
+                    }
+                    nodes.context.stack().push(node.0.borrow_mut().unwrap());
+                    function.invoke(&mut nodes.context, &scripting.registry);
+                    if broadcast {
+                        if let Some(iter) = hierarchy.children(entity) {
+                            for entity in iter {
+                                ScriptedNodeSignal::execute(
+                                    entity,
+                                    function_ref,
+                                    args,
+                                    broadcast,
+                                    world,
+                                    nodes,
+                                    scripting,
+                                    hierarchy,
+                                );
+                            }
                         }
                     }
                 }
@@ -227,18 +229,16 @@ impl ScriptedNodes {
         let hierarchy = universe.expect_resource::<Hierarchy>();
 
         for signal in std::mem::take(&mut self.signals) {
-            if let Some(function) = scripting.registry.find_function(signal.function.query()) {
-                ScriptedNodeSignal::execute(
-                    signal.entity,
-                    function,
-                    &signal.arguments,
-                    signal.broadcast,
-                    &world,
-                    self,
-                    &scripting,
-                    &hierarchy,
-                );
-            }
+            ScriptedNodeSignal::execute(
+                signal.entity,
+                &signal.function,
+                &signal.arguments,
+                signal.broadcast,
+                &world,
+                self,
+                &scripting,
+                &hierarchy,
+            );
         }
 
         for (tree, parent) in std::mem::take(&mut self.spawns) {
@@ -270,7 +270,7 @@ impl ScriptedNodes {
         );
     }
 
-    pub fn dispatch(
+    pub fn dispatch<T: ScriptedNodeComponentPack>(
         &mut self,
         universe: &Universe,
         function: ScriptFunctionReference,
@@ -280,32 +280,22 @@ impl ScriptedNodes {
         let scripting = universe.expect_resource::<Scripting>();
         let hierarchy = universe.expect_resource::<Hierarchy>();
 
-        if let Some(function) = scripting.registry.find_function(function.query()) {
-            for (entity, _) in world
-                .query::<()>()
-                .with::<&ScriptedNode>()
-                .without::<&Parent>()
-                .iter()
-            {
-                self.execute(
-                    entity,
-                    function.clone(),
-                    args,
-                    &world,
-                    &scripting,
-                    &hierarchy,
-                )
-            }
+        let token = self.context.stack().store();
+        for (entity, _) in world
+            .query::<()>()
+            .with::<&ScriptedNode>()
+            .without::<&Parent>()
+            .iter()
+        {
+            self.execute::<T>(entity, &function, args, &world, &scripting, &hierarchy)
         }
-        self.context
-            .stack()
-            .restore(unsafe { DataStackToken::new(0) });
+        self.context.stack().restore(token);
     }
 
-    pub fn execute(
+    pub fn execute<T: ScriptedNodeComponentPack>(
         &mut self,
         entity: Entity,
-        function: FunctionHandle,
+        function_ref: &ScriptFunctionReference,
         args: &[ScriptedNodesParam],
         world: &World,
         scripting: &Scripting,
@@ -313,32 +303,52 @@ impl ScriptedNodes {
     ) {
         if let Ok(mut node) = world.query_one::<&mut ScriptedNode>(entity) {
             if let Some(node) = node.get() {
-                if let Some(handle) = &function.signature().struct_handle {
-                    if node.0.type_hash() != &handle.type_hash() {
+                let mut query = function_ref.query();
+                if query.struct_query.is_none() {
+                    query.struct_query = Some(StructQuery {
+                        type_hash: Some(*node.0.type_hash()),
+                        ..Default::default()
+                    });
+                }
+                if let Some(function) = scripting.registry.find_function(query) {
+                    if let Some(handle) = &function.signature().struct_handle {
+                        if node.0.type_hash() != &handle.type_hash() {
+                            return;
+                        }
+                    }
+                    let mut compontents_params = vec![];
+                    if !T::query_param(entity, world, &mut compontents_params) {
                         return;
                     }
-                }
-                for arg in args.iter().rev() {
-                    match arg {
-                        ScriptedNodesParam::Ref(arg) => {
-                            self.context.stack().push(arg.borrow().unwrap());
-                        }
-                        ScriptedNodesParam::RefMut(arg) => {
-                            self.context.stack().push(arg.borrow_mut().unwrap());
-                        }
-                        ScriptedNodesParam::ScopedRef(arg, _) => {
-                            self.context.stack().push(arg.borrow().unwrap());
-                        }
-                        ScriptedNodesParam::ScopedRefMut(arg, _) => {
-                            self.context.stack().push(arg.borrow_mut().unwrap());
+                    for arg in compontents_params.iter().chain(args.iter()).rev() {
+                        match arg {
+                            ScriptedNodesParam::Ref(arg) => {
+                                self.context.stack().push(arg.borrow().unwrap());
+                            }
+                            ScriptedNodesParam::RefMut(arg) => {
+                                self.context.stack().push(arg.borrow_mut().unwrap());
+                            }
+                            ScriptedNodesParam::ScopedRef(arg, _) => {
+                                self.context.stack().push(arg.borrow().unwrap());
+                            }
+                            ScriptedNodesParam::ScopedRefMut(arg, _) => {
+                                self.context.stack().push(arg.borrow_mut().unwrap());
+                            }
                         }
                     }
-                }
-                self.context.stack().push(node.0.borrow_mut().unwrap());
-                function.invoke(&mut self.context, &scripting.registry);
-                if let Some(iter) = hierarchy.children(entity) {
-                    for entity in iter {
-                        self.execute(entity, function.clone(), args, world, scripting, hierarchy)
+                    self.context.stack().push(node.0.borrow_mut().unwrap());
+                    function.invoke(&mut self.context, &scripting.registry);
+                    if let Some(iter) = hierarchy.children(entity) {
+                        for entity in iter {
+                            self.execute::<T>(
+                                entity,
+                                function_ref,
+                                args,
+                                world,
+                                scripting,
+                                hierarchy,
+                            )
+                        }
                     }
                 }
             }
@@ -386,6 +396,73 @@ impl ScriptedNodesTree {
     }
 }
 
+pub trait ScriptedNodeComponentPack: Sized {
+    fn query_param(entity: Entity, world: &World, list: &mut Vec<ScriptedNodesParam>) -> bool;
+}
+
+impl ScriptedNodeComponentPack for () {
+    fn query_param(_: Entity, _: &World, _: &mut Vec<ScriptedNodesParam>) -> bool {
+        true
+    }
+}
+
+impl<T: Component> ScriptedNodeComponentPack for &T {
+    fn query_param(entity: Entity, world: &World, list: &mut Vec<ScriptedNodesParam>) -> bool {
+        if let Ok(mut query) = world.query_one::<&T>(entity) {
+            if let Some(component) = query.get() {
+                list.push(ScriptedNodesParam::scoped_ref(component));
+                return true;
+            }
+        }
+        false
+    }
+}
+
+impl<T: Component> ScriptedNodeComponentPack for &mut T {
+    fn query_param(entity: Entity, world: &World, list: &mut Vec<ScriptedNodesParam>) -> bool {
+        if let Ok(mut query) = world.query_one::<&mut T>(entity) {
+            if let Some(component) = query.get() {
+                list.push(ScriptedNodesParam::scoped_ref_mut(component));
+                return true;
+            }
+        }
+        false
+    }
+}
+
+macro_rules! impl_component_tuple {
+    ($($type:ident),+) => {
+        impl<$($type: ScriptedNodeComponentPack),+> ScriptedNodeComponentPack for ($($type,)+) {
+            #[allow(non_snake_case)]
+            fn query_param(entity: Entity, world: &World, list: &mut Vec<ScriptedNodesParam>) -> bool {
+                $(
+                    if !$type::query_param(entity, world, list) {
+                        return false;
+                    }
+                )+
+                true
+            }
+        }
+    };
+}
+
+impl_component_tuple!(A);
+impl_component_tuple!(A, B);
+impl_component_tuple!(A, B, C);
+impl_component_tuple!(A, B, C, D);
+impl_component_tuple!(A, B, C, D, E);
+impl_component_tuple!(A, B, C, D, E, F);
+impl_component_tuple!(A, B, C, D, E, F, G);
+impl_component_tuple!(A, B, C, D, E, F, G, H);
+impl_component_tuple!(A, B, C, D, E, F, G, H, I);
+impl_component_tuple!(A, B, C, D, E, F, G, H, I, J);
+impl_component_tuple!(A, B, C, D, E, F, G, H, I, J, K);
+impl_component_tuple!(A, B, C, D, E, F, G, H, I, J, K, L);
+impl_component_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M);
+impl_component_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N);
+impl_component_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
+impl_component_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
+
 pub fn bundle_installer<PB>(
     builder: &mut AppBuilder<PB>,
     nodes: ScriptedNodes,
@@ -395,20 +472,4 @@ where
 {
     builder.install_resource(nodes);
     Ok(())
-}
-
-#[macro_export]
-macro_rules! nodes_dispatch {
-    ($nodes:expr, $universe:expr => $function:ident( $($arg:expr),* ) ) => {
-        $nodes.dispatch(
-            $universe,
-            $crate::__internal::ScriptFunctionReference::parse(stringify!($function))
-                .unwrap_or_else(|error| panic!(
-                    "Could not parse script function reference: {}. Error: {}",
-                    stringify!($function),
-                    error,
-                )),
-            &[ $( ($arg).into() ),* ],
-        );
-    };
 }

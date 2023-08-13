@@ -2,8 +2,6 @@
 pub use oxygengine_core::{debug, error, info, log, warn};
 #[cfg(feature = "oxygengine-input")]
 pub use oxygengine_input::include_input_mappings;
-#[cfg(feature = "oxygengine-nodes")]
-pub use oxygengine_nodes::nodes_dispatch;
 #[cfg(feature = "oxygengine-user-interface")]
 pub use oxygengine_user_interface::{post_hooks, pre_hooks, unpack_named_slots, widget};
 

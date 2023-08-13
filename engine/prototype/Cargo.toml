@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-prototype"
-version = "0.42.0"
+version = "0.43.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Prototyping utilities module for Oxygengine"
@@ -47,17 +47,17 @@ scalar64 = [
 ]
 
 [dependencies]
-oxygengine-core = { version = "0.42", path = "../core" }
-oxygengine-backend-web = { version = "0.42", path = "../backend-web", optional = true }
-oxygengine-backend-desktop = { version = "0.42", path = "../backend-desktop", optional = true }
-oxygengine-audio = { version = "0.42", path = "../audio" }
-oxygengine-audio-backend-web = { version = "0.42", path = "../audio-backend-web", optional = true }
-# oxygengine-audio-backend-desktop = { version = "0.42", path = "../audio-backend-desktop", optional = true }
-oxygengine-input = { version = "0.42", path = "../input" }
-oxygengine-input-device-web = { version = "0.42", path = "../input-device-web", optional = true }
-oxygengine-input-device-desktop = { version = "0.42", path = "../input-device-desktop", optional = true }
-oxygengine-ha-renderer = { version = "0.42", path = "../ha-renderer" }
-oxygengine-editor-tools-backend-web = { version = "0.42", path = "../editor-tools-backend-web", optional = true }
-oxygengine-ha-renderer-debugger = { version = "0.42", path = "../ha-renderer-debugger", optional = true }
-oxygengine-nodes = { version = "0.42", path = "../nodes" }
+oxygengine-core = { version = "0.43", path = "../core" }
+oxygengine-backend-web = { version = "0.43", path = "../backend-web", optional = true }
+oxygengine-backend-desktop = { version = "0.43", path = "../backend-desktop", optional = true }
+oxygengine-audio = { version = "0.43", path = "../audio" }
+oxygengine-audio-backend-web = { version = "0.43", path = "../audio-backend-web", optional = true }
+# oxygengine-audio-backend-desktop = { version = "0.43", path = "../audio-backend-desktop", optional = true }
+oxygengine-input = { version = "0.43", path = "../input" }
+oxygengine-input-device-web = { version = "0.43", path = "../input-device-web", optional = true }
+oxygengine-input-device-desktop = { version = "0.43", path = "../input-device-desktop", optional = true }
+oxygengine-ha-renderer = { version = "0.43", path = "../ha-renderer" }
+oxygengine-editor-tools-backend-web = { version = "0.43", path = "../editor-tools-backend-web", optional = true }
+oxygengine-ha-renderer-debugger = { version = "0.43", path = "../ha-renderer-debugger", optional = true }
+oxygengine-nodes = { version = "0.43", path = "../nodes" }
 serde = { version = "1", features = ["derive"] }

@@ -1,4 +1,4 @@
-use crate::nodes::character::*;
+use crate::nodes::{character::*, indicator::*};
 use oxygengine::prelude::*;
 
 #[derive(Debug, Default)]
@@ -14,7 +14,16 @@ impl State for GameState {
                     .size(100.0)
                     .speed(250.0)
                     .animation_speed(15.0),
-            ),
+            )
+            .component(HaTransform::default())
+            .child(|_| {
+                ScriptedNodesTree::new(
+                    Indicator::new(crate::assets::image::LOGO)
+                        .size(50.0)
+                        .animation_speed(5.0),
+                )
+                .component(HaTransform::translation(vec3(0.0, -70.0, 0.0)))
+            }),
             None,
         );
     }
@@ -35,12 +44,16 @@ impl State for GameState {
         }
 
         nodes.maintain(universe);
-        nodes_dispatch! {
-            nodes, universe => event_update(&dt, &*inputs)
-        }
-        nodes_dispatch! {
-            nodes, universe => event_draw(&mut *renderables)
-        }
+        nodes.dispatch::<&mut HaTransform>(
+            &universe,
+            ScriptFunctionReference::parse("event_update").unwrap(),
+            &[(&dt).into(), (&*inputs).into()],
+        );
+        nodes.dispatch::<&mut HaTransform>(
+            &universe,
+            ScriptFunctionReference::parse("event_draw").unwrap(),
+            &[(&dt).into(), (&mut *renderables).into()],
+        );
 
         gui(pointer, &camera, &mut renderables, &mut (), |mut gui| {
             gui.margin(16.0, 16.0, 16.0, 16.0, |mut gui| {

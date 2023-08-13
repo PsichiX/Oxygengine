@@ -1,4 +1,4 @@
-use crate::nodes::character::Character;
+use crate::nodes::{character::Character, indicator::Indicator};
 use oxygengine::prelude::{intuicio::prelude::*, *};
 
 pub fn bootload<T>(app: T) -> T
@@ -8,9 +8,11 @@ where
     let mut registry = Registry::default();
     registry.add_struct(NativeStructBuilder::new::<InputController>().build());
     registry.add_struct(NativeStructBuilder::new::<Renderables>().build());
+    registry.add_struct(NativeStructBuilder::new::<HaTransform>().build());
     Scripting::install(&mut registry);
     ScriptedNodes::install(&mut registry);
     Character::install(&mut registry);
+    Indicator::install(&mut registry);
 
     app.view_size(512.0)
         .sprite_filtering(ImageFiltering::Nearest)
