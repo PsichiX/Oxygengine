@@ -4,7 +4,10 @@ use crate::{
     math::*,
     mesh::rig::{deformer::DeformerArea, skeleton::Skeleton, Rig},
 };
-use core::prefab::{Prefab, PrefabComponent};
+use core::{
+    prefab::{Prefab, PrefabComponent},
+    scripting::intuicio::core::object::{DynamicObject, TypedDynamicObject},
+};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, HashMap},
@@ -464,12 +467,129 @@ impl HaRigDeformer {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HaRigControlNode {
+    #[serde(default)]
+    transform: HaTransform,
+    #[serde(default)]
+    parent_bone: Option<String>,
+    #[serde(skip)]
+    dirty: bool,
+}
+
+impl HaRigControlNode {
+    pub fn with_transform(mut self, transform: HaTransform) -> Self {
+        self.set_transform(transform);
+        self
+    }
+
+    pub fn with_parent_bone(mut self, bone: Option<String>) -> Self {
+        self.set_parent_bone(bone);
+        self
+    }
+
+    pub fn transform(&self) -> &HaTransform {
+        &self.transform
+    }
+
+    pub fn set_transform(&mut self, transform: HaTransform) {
+        self.transform = transform;
+        self.dirty = true;
+    }
+
+    pub fn parent_node(&self) -> Option<&str> {
+        self.parent_bone.as_deref()
+    }
+
+    pub fn set_parent_bone(&mut self, bone: Option<String>) {
+        self.parent_bone = bone;
+        self.dirty = true;
+    }
+
+    pub fn is_dirty(&self) -> bool {
+        self.dirty
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct HaRigControl {
+    #[serde(default)]
+    controls: HashMap<String, HaRigControlNode>,
+    #[serde(skip)]
+    pub named_properties: DynamicObject,
+    #[serde(skip)]
+    pub typed_properties: TypedDynamicObject,
+    #[serde(skip)]
+    dirty: bool,
+}
+
+impl Default for HaRigControl {
+    fn default() -> Self {
+        Self {
+            controls: Default::default(),
+            named_properties: Default::default(),
+            typed_properties: Default::default(),
+            dirty: true,
+        }
+    }
+}
+
+impl HaRigControl {
+    pub fn is_dirty(&self) -> bool {
+        self.dirty || self.controls.values().any(|node| node.is_dirty())
+    }
+
+    pub fn control(&self, name: &str) -> Option<&HaRigControlNode> {
+        self.controls.get(name)
+    }
+
+    pub fn control_mut(&mut self, name: &str) -> Option<&mut HaRigControlNode> {
+        self.dirty = true;
+        self.controls.get_mut(name)
+    }
+
+    pub fn set_control(
+        &mut self,
+        name: impl ToString,
+        node: HaRigControlNode,
+    ) -> Option<HaRigControlNode> {
+        self.dirty = true;
+        self.controls.insert(name.to_string(), node)
+    }
+}
+
+impl Clone for HaRigControl {
+    fn clone(&self) -> Self {
+        Self {
+            controls: self.controls.clone(),
+            named_properties: Default::default(),
+            typed_properties: Default::default(),
+            dirty: true,
+        }
+    }
+}
+
+impl std::fmt::Debug for HaRigControl {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HaRigControl")
+            .field("controls", &self.controls)
+            .field(
+                "properties",
+                &self.named_properties.property_names().collect::<Vec<_>>(),
+            )
+            .field("dirty", &self.dirty)
+            .finish()
+    }
+}
+
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct HaRigInstance {
     #[serde(default)]
     pub skeleton: HaRigSkeleton,
     #[serde(default)]
     pub deformer: HaRigDeformer,
+    #[serde(default)]
+    pub control: HaRigControl,
     #[serde(default)]
     asset: String,
     #[serde(skip)]

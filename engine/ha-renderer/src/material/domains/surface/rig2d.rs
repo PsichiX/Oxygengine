@@ -6,7 +6,7 @@ use crate::{
             Geometry, GeometryPrimitives, GeometryTriangle, GeometryValues, GeometryVertices,
             GeometryVerticesColumn,
         },
-        rig::Rig,
+        rig::{deformer::Deformer, skeleton::Skeleton},
         transformers::apply_deformer::apply_deformer,
         vertex_factory::{StaticVertexFactory, VertexType},
         MeshError,
@@ -296,12 +296,17 @@ impl SurfaceRig2dFactory {
         self
     }
 
-    pub fn geometry(&self, rig: &Rig, meta: bool) -> Result<Geometry, MeshError> {
+    pub fn geometry(
+        &self,
+        skeleton: &Skeleton,
+        deformer: &Deformer,
+        meta: bool,
+    ) -> Result<Geometry, MeshError> {
         let mut nodes = self
             .nodes
             .iter()
             .filter_map(|node| {
-                rig.skeleton
+                skeleton
                     .bone_with_index(&node.bone)
                     .map(|(bone, index)| (node, bone, index))
             })
@@ -360,7 +365,7 @@ impl SurfaceRig2dFactory {
                     if *range <= 0.0 {
                         return None;
                     }
-                    rig.skeleton.bone_with_index(bone).map(|(bone, index)| {
+                    skeleton.bone_with_index(bone).map(|(bone, index)| {
                         let start = bone.local_matrix().mul_point(vec2(0.0, 0.0));
                         let end = bone.local_matrix().mul_point(bone.target().into());
                         (index, start, end, *range)
@@ -462,17 +467,21 @@ impl SurfaceRig2dFactory {
             ])?,
             GeometryPrimitives::triangles(triangles),
         );
-        if !rig.deformer.areas.is_empty() {
-            result = apply_deformer(result, &rig.deformer)?;
+        if !deformer.areas.is_empty() {
+            result = apply_deformer(result, deformer)?;
         }
         Ok(result)
     }
 
-    pub fn factory<T>(&self, rig: &Rig) -> Result<StaticVertexFactory, MeshError>
+    pub fn factory<T>(
+        &self,
+        skeleton: &Skeleton,
+        deformer: &Deformer,
+    ) -> Result<StaticVertexFactory, MeshError>
     where
         T: VertexType,
     {
-        self.geometry(rig, false)?.factory::<T>()
+        self.geometry(skeleton, deformer, false)?.factory::<T>()
     }
 }
 

@@ -3,9 +3,10 @@ pub mod desktop;
 #[cfg(feature = "web")]
 pub mod web;
 
-use oxygengine_core::prelude::*;
+use oxygengine_core::{prelude::*, scripting::intuicio::prelude::*};
 use oxygengine_ha_renderer::prelude::*;
 use oxygengine_input::prelude::*;
+use oxygengine_nodes::*;
 
 pub trait PrototypeApp {
     fn clear_color(self, value: Rgba) -> Self;
@@ -13,6 +14,8 @@ pub trait PrototypeApp {
     fn view_size(self, value: Scalar) -> Self;
     fn preload_asset(self, path: impl ToString) -> Self;
     fn input_mappings(self, mappings: InputMappings) -> Self;
+    fn nodes(self, nodes: ScriptedNodes) -> Self;
+    fn scripting_registry(self, registry: Registry) -> Self;
     fn run(self);
 }
 

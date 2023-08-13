@@ -6,6 +6,7 @@ use oxygengine_editor_tools_backend_web::prelude::*;
 use oxygengine_ha_renderer::prelude::*;
 use oxygengine_input::prelude::*;
 use oxygengine_input_device_web::prelude::*;
+use oxygengine_nodes::*;
 use std::collections::HashSet;
 
 pub struct WebPrototypeApp {
@@ -16,6 +17,8 @@ pub struct WebPrototypeApp {
     pub view_size: Scalar,
     pub preload_assets: HashSet<String>,
     pub input_mappings: InputMappings,
+    pub nodes: ScriptedNodes,
+    pub scripting_registry: Registry,
 }
 
 impl WebPrototypeApp {
@@ -28,6 +31,8 @@ impl WebPrototypeApp {
             view_size: 1024.0,
             preload_assets: Default::default(),
             input_mappings: Default::default(),
+            nodes: Default::default(),
+            scripting_registry: Registry::default().with_basic_types(),
         }
     }
 
@@ -63,6 +68,16 @@ impl PrototypeApp for WebPrototypeApp {
         self
     }
 
+    fn nodes(mut self, nodes: ScriptedNodes) -> Self {
+        self.nodes = nodes;
+        self
+    }
+
+    fn scripting_registry(mut self, registry: Registry) -> Self {
+        self.scripting_registry = registry;
+        self
+    }
+
     fn run(self) {
         #[cfg(feature = "console_error_panic_hook")]
         #[cfg(debug_assertions)]
@@ -75,6 +90,11 @@ impl PrototypeApp for WebPrototypeApp {
             .with_bundle(
                 oxygengine_core::assets::bundle_installer,
                 make_assets(&self.preload_assets),
+            )
+            .unwrap()
+            .with_bundle(
+                oxygengine_core::scripting::bundle_installer,
+                self.scripting_registry,
             )
             .unwrap()
             .with_bundle(
@@ -93,6 +113,8 @@ impl PrototypeApp for WebPrototypeApp {
             )
             .unwrap()
             .with_bundle(oxygengine_audio::bundle_installer, WebAudio::default())
+            .unwrap()
+            .with_bundle(oxygengine_nodes::bundle_installer, self.nodes)
             .unwrap()
             .with_bundle(crate::bundle_installer, |renderables, camera| {
                 renderables.sprite_filtering = self.sprite_filtering;

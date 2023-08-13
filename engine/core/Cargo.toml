@@ -26,3 +26,8 @@ hecs = { version = "0.10", features = ["macros"] }
 lazy_static = "1.4"
 pest = "2.1"
 pest_derive = "2.1"
+
+[dependencies.intuicio-essentials]
+version = "0.20"
+default-features = false
+features = ["vm"]

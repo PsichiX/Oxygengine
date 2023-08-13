@@ -1,13 +1,12 @@
+pub mod control;
 pub mod deformer;
 pub mod skeleton;
 
-use crate::mesh::rig::{deformer::Deformer, skeleton::Skeleton};
-use serde::{Deserialize, Serialize};
+use crate::mesh::rig::{control::RigControl, deformer::Deformer, skeleton::Skeleton};
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone)]
 pub struct Rig {
-    #[serde(default)]
     pub skeleton: Skeleton,
-    #[serde(default)]
     pub deformer: Deformer,
+    pub control: Option<RigControl>,
 }

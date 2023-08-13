@@ -1,10 +1,11 @@
 use crate::{app::*, materials::*, systems::render_prototype_stage::*};
 // use oxygengine_audio_backend_desktop::prelude::*;
 use oxygengine_backend_desktop::prelude::*;
-use oxygengine_core::prelude::*;
+use oxygengine_core::{prelude::*, scripting::intuicio::prelude::*};
 use oxygengine_ha_renderer::prelude::*;
 use oxygengine_input::prelude::*;
 use oxygengine_input_device_desktop::prelude::*;
+use oxygengine_nodes::*;
 use std::{collections::HashSet, sync::Arc};
 
 pub struct DesktopPrototypeApp {
@@ -14,6 +15,8 @@ pub struct DesktopPrototypeApp {
     pub view_size: Scalar,
     pub preload_assets: HashSet<String>,
     pub input_mappings: InputMappings,
+    pub nodes: ScriptedNodes,
+    pub scripting_registry: Registry,
 }
 
 impl DesktopPrototypeApp {
@@ -25,6 +28,8 @@ impl DesktopPrototypeApp {
             view_size: 1024.0,
             preload_assets: Default::default(),
             input_mappings: Default::default(),
+            nodes: Default::default(),
+            scripting_registry: Registry::default().with_basic_types(),
         }
     }
 }
@@ -55,6 +60,16 @@ impl PrototypeApp for DesktopPrototypeApp {
         self
     }
 
+    fn nodes(mut self, nodes: ScriptedNodes) -> Self {
+        self.nodes = nodes;
+        self
+    }
+
+    fn scripting_registry(mut self, registry: Registry) -> Self {
+        self.scripting_registry = registry;
+        self
+    }
+
     fn run(self) {
         #[cfg(debug_assertions)]
         logger_setup(DefaultLogger);
@@ -64,6 +79,11 @@ impl PrototypeApp for DesktopPrototypeApp {
             .with_bundle(
                 oxygengine_core::assets::bundle_installer,
                 make_assets(&self.preload_assets),
+            )
+            .unwrap()
+            .with_bundle(
+                oxygengine_core::scripting::bundle_installer,
+                self.scripting_registry,
             )
             .unwrap()
             .with_bundle(
@@ -78,6 +98,8 @@ impl PrototypeApp for DesktopPrototypeApp {
             .unwrap()
             // .with_bundle(oxygengine_audio::bundle_installer, DesktopAudio::default())
             // .unwrap()
+            .with_bundle(oxygengine_nodes::bundle_installer, self.nodes)
+            .unwrap()
             .with_bundle(crate::bundle_installer, |renderables, camera| {
                 renderables.sprite_filtering = self.sprite_filtering;
                 camera.view_size = self.view_size;

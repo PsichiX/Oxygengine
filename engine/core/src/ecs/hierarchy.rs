@@ -3,7 +3,7 @@ use crate::{
         commands::{DespawnEntity, UniverseCommands},
         components::Name,
         life_cycle::EntityChanges,
-        Comp, Entity, Universe, WorldRef,
+        Comp, Entity, Universe, Without, WorldRef,
     },
     prefab::{Prefab, PrefabError, PrefabProxy},
     state::StateToken,
@@ -38,6 +38,7 @@ impl Prefab for ParentPrefabProxy {}
 
 #[derive(Debug, Default)]
 pub struct Hierarchy {
+    roots: HashSet<Entity>,
     child_parent_relations: HashMap<Entity, Entity>,
     parent_children_relations: HashMap<Entity, HashSet<Entity>>,
     entity_names_map: HashMap<Entity, String>,
@@ -46,7 +47,15 @@ pub struct Hierarchy {
 
 impl Hierarchy {
     pub fn roots(&self) -> impl Iterator<Item = Entity> + '_ {
+        self.roots.iter().copied()
+    }
+
+    pub fn parents(&self) -> impl Iterator<Item = Entity> + '_ {
         self.parent_children_relations.keys().copied()
+    }
+
+    pub fn childs(&self) -> impl Iterator<Item = Entity> + '_ {
+        self.child_parent_relations.keys().copied()
     }
 
     pub fn parent(&self, child: Entity) -> Option<Entity> {
@@ -111,6 +120,40 @@ impl Hierarchy {
         }
         Some(root)
     }
+
+    pub fn iter(&self) -> HierarchyIter {
+        HierarchyIter {
+            hierarchy: self,
+            stack: vec![Box::new(self.roots.iter().copied())],
+        }
+    }
+}
+
+pub struct HierarchyIter<'a> {
+    hierarchy: &'a Hierarchy,
+    stack: Vec<Box<dyn Iterator<Item = Entity> + 'a>>,
+}
+
+impl<'a> Iterator for HierarchyIter<'a> {
+    type Item = Entity;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(mut iter) = self.stack.pop() {
+                if let Some(entity) = iter.next() {
+                    self.stack.push(iter);
+                    if let Some(children) = self.hierarchy.children(entity) {
+                        self.stack.push(Box::new(children));
+                    }
+                    return Some(entity);
+                } else {
+                    continue;
+                }
+            } else {
+                return None;
+            }
+        }
+    }
 }
 
 pub type HierarchySystemResources<'a> = (
@@ -129,15 +172,21 @@ pub fn hierarchy_system(universe: &mut Universe) {
     if changes.has_changed() {
         despawn(&mut commands, &changes, &hierarchy);
 
+        hierarchy.roots = HashSet::with_capacity(world.len() as usize);
         hierarchy.child_parent_relations = HashMap::with_capacity(world.len() as usize);
         hierarchy.parent_children_relations = HashMap::with_capacity(world.len() as usize / 10);
         hierarchy.entity_names_map = HashMap::with_capacity(world.len() as usize / 10);
         hierarchy.name_entities_map = HashMap::with_capacity(world.len() as usize / 10);
     } else {
+        hierarchy.roots.clear();
         hierarchy.child_parent_relations.clear();
         hierarchy.parent_children_relations.clear();
         hierarchy.entity_names_map.clear();
         hierarchy.name_entities_map.clear();
+    }
+
+    for (entity, _) in world.query::<Without<(), &Parent>>().iter() {
+        hierarchy.roots.insert(entity);
     }
 
     for (child, (parent, name)) in world.query::<(Option<&Parent>, Option<&Name>)>().iter() {

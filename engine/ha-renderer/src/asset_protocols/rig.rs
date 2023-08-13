@@ -1,9 +1,13 @@
 use crate::mesh::rig::{
+    control::RigControl,
     deformer::Deformer,
-    skeleton::{SkeletonError, SkeletonHierarchy},
+    skeleton::{Skeleton, SkeletonError, SkeletonHierarchy},
     Rig,
 };
-use core::assets::protocol::{AssetLoadResult, AssetProtocol};
+use core::{
+    assets::protocol::{AssetLoadResult, AssetProtocol},
+    scripting::{intuicio::core::registry::Registry, ScriptFunctionReference},
+};
 use serde::{Deserialize, Serialize};
 use std::str::from_utf8;
 
@@ -17,11 +21,21 @@ pub struct RigAsset {
     skeleton: SkeletonHierarchy,
     #[serde(default)]
     deformer: Deformer,
+    #[serde(default)]
+    control: Option<ScriptFunctionReference>,
 }
 
 impl RigAsset {
-    pub fn new(skeleton: SkeletonHierarchy, deformer: Deformer) -> Self {
-        Self { skeleton, deformer }
+    pub fn new(
+        skeleton: SkeletonHierarchy,
+        deformer: Deformer,
+        control: Option<ScriptFunctionReference>,
+    ) -> Self {
+        Self {
+            skeleton,
+            deformer,
+            control,
+        }
     }
 
     pub fn skeleton(&self) -> &SkeletonHierarchy {
@@ -32,14 +46,29 @@ impl RigAsset {
         &self.deformer
     }
 
-    pub fn rig(&self) -> Result<Rig, RigAssetError> {
+    pub fn control(&self) -> Option<&ScriptFunctionReference> {
+        self.control.as_ref()
+    }
+
+    pub fn build_skeleton(&self) -> Result<Skeleton, RigAssetError> {
+        self.skeleton
+            .to_owned()
+            .try_into()
+            .map_err(RigAssetError::Skeleton)
+    }
+
+    pub fn build_control(&self, registry: &Registry) -> Option<RigControl> {
+        self.control
+            .as_ref()
+            .and_then(|control| registry.find_function(control.query()))
+            .map(|function| RigControl { function })
+    }
+
+    pub fn build_rig(&self, registry: &Registry) -> Result<Rig, RigAssetError> {
         Ok(Rig {
-            skeleton: self
-                .skeleton
-                .to_owned()
-                .try_into()
-                .map_err(RigAssetError::Skeleton)?,
+            skeleton: self.build_skeleton()?,
             deformer: self.deformer.to_owned(),
+            control: self.build_control(registry),
         })
     }
 }

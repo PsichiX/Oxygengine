@@ -15,6 +15,7 @@ pub mod state;
 pub mod localization;
 pub mod ecs;
 pub mod jobs;
+pub mod scripting;
 pub mod storage;
 pub mod utils;
 
@@ -61,6 +62,7 @@ pub mod prelude {
         localization::*,
         log::*,
         prefab::*,
+        scripting::*,
         state::*,
         storage::{
             engines::{map::*, *},

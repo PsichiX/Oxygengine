@@ -58,6 +58,7 @@ desktop-ha-prototype = [
   "oxygengine-ha-renderer/desktop",
   "oxygengine-input",
   "oxygengine-input-device-desktop",
+  "oxygengine-nodes",
 ]
 web-ha-prototype = [
   "oxygengine-prototype/web",
@@ -68,6 +69,7 @@ web-ha-prototype = [
   "oxygengine-ha-renderer/web",
   "oxygengine-input",
   "oxygengine-input-device-web",
+  "oxygengine-nodes",
   "web-ha-renderer-debugger",
 ]
 desktop-headless-game = [
@@ -222,4 +224,9 @@ optional = true
 [dependencies.oxygengine-prototype]
 version = "0.41"
 path = "../prototype"
+optional = true
+
+[dependencies.oxygengine-nodes]
+version = "0.41"
+path = "../nodes"
 optional = true

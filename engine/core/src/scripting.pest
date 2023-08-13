@@ -1,0 +1,7 @@
+main_struct_reference   =  { SOI ~ struct_reference ~ EOI }
+main_function_reference =  { SOI ~ function_reference ~ EOI }
+identifier              =  { XID_START ~ XID_CONTINUE+ }
+struct_reference        =  { (identifier ~ ows ~ "::" ~ ows)? ~ identifier }
+function_reference      =  { ("<" ~ ows ~ struct_reference ~ ows ~ ">" ~ ows)? ~ (identifier ~ ows ~ "::" ~ ows)? ~ identifier }
+ws                      = _{ " " | "\t" | "\r" | "\n" }
+ows                     = _{ ws* }

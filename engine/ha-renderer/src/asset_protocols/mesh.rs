@@ -141,32 +141,65 @@ impl SurfaceFactory {
                         )))
                     }
                 };
-                let rig = match rig.rig() {
-                    Ok(rig) => rig,
+                let skeleton = match rig.build_skeleton() {
+                    Ok(skeleton) => skeleton,
                     Err(error) => {
                         return Err(MeshError::Internal(format!(
-                            "Could not get Rig from asset: {:?}. Error: {:?}",
+                            "Could not get Skeleton from rig asset: {:?}. Error: {:?}",
                             asset, error
                         )))
                     }
                 };
+                let deformer = rig.deformer();
                 match (deforming, skinning, texture, color) {
-                    (true, true, true, true) => factory.factory::<SurfaceVertexDSPTC>(&rig),
-                    (true, true, true, false) => factory.factory::<SurfaceVertexDSPT>(&rig),
-                    (true, true, false, true) => factory.factory::<SurfaceVertexDSPC>(&rig),
-                    (true, true, false, false) => factory.factory::<SurfaceVertexDSP>(&rig),
-                    (true, false, true, true) => factory.factory::<SurfaceVertexDPTC>(&rig),
-                    (true, false, true, false) => factory.factory::<SurfaceVertexDPT>(&rig),
-                    (true, false, false, true) => factory.factory::<SurfaceVertexDPC>(&rig),
-                    (true, false, false, false) => factory.factory::<SurfaceVertexDP>(&rig),
-                    (false, true, true, true) => factory.factory::<SurfaceVertexSPTC>(&rig),
-                    (false, true, true, false) => factory.factory::<SurfaceVertexSPT>(&rig),
-                    (false, true, false, true) => factory.factory::<SurfaceVertexSPC>(&rig),
-                    (false, true, false, false) => factory.factory::<SurfaceVertexSP>(&rig),
-                    (false, false, true, true) => factory.factory::<SurfaceVertexPTC>(&rig),
-                    (false, false, true, false) => factory.factory::<SurfaceVertexPT>(&rig),
-                    (false, false, false, true) => factory.factory::<SurfaceVertexPC>(&rig),
-                    (false, false, false, false) => factory.factory::<SurfaceVertexP>(&rig),
+                    (true, true, true, true) => {
+                        factory.factory::<SurfaceVertexDSPTC>(&skeleton, deformer)
+                    }
+                    (true, true, true, false) => {
+                        factory.factory::<SurfaceVertexDSPT>(&skeleton, deformer)
+                    }
+                    (true, true, false, true) => {
+                        factory.factory::<SurfaceVertexDSPC>(&skeleton, deformer)
+                    }
+                    (true, true, false, false) => {
+                        factory.factory::<SurfaceVertexDSP>(&skeleton, deformer)
+                    }
+                    (true, false, true, true) => {
+                        factory.factory::<SurfaceVertexDPTC>(&skeleton, deformer)
+                    }
+                    (true, false, true, false) => {
+                        factory.factory::<SurfaceVertexDPT>(&skeleton, deformer)
+                    }
+                    (true, false, false, true) => {
+                        factory.factory::<SurfaceVertexDPC>(&skeleton, deformer)
+                    }
+                    (true, false, false, false) => {
+                        factory.factory::<SurfaceVertexDP>(&skeleton, deformer)
+                    }
+                    (false, true, true, true) => {
+                        factory.factory::<SurfaceVertexSPTC>(&skeleton, deformer)
+                    }
+                    (false, true, true, false) => {
+                        factory.factory::<SurfaceVertexSPT>(&skeleton, deformer)
+                    }
+                    (false, true, false, true) => {
+                        factory.factory::<SurfaceVertexSPC>(&skeleton, deformer)
+                    }
+                    (false, true, false, false) => {
+                        factory.factory::<SurfaceVertexSP>(&skeleton, deformer)
+                    }
+                    (false, false, true, true) => {
+                        factory.factory::<SurfaceVertexPTC>(&skeleton, deformer)
+                    }
+                    (false, false, true, false) => {
+                        factory.factory::<SurfaceVertexPT>(&skeleton, deformer)
+                    }
+                    (false, false, false, true) => {
+                        factory.factory::<SurfaceVertexPC>(&skeleton, deformer)
+                    }
+                    (false, false, false, false) => {
+                        factory.factory::<SurfaceVertexP>(&skeleton, deformer)
+                    }
                 }
             }
         }

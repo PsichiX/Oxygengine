@@ -4,11 +4,7 @@ use crate::{
     prefab::PrefabManager,
 };
 pub use hecs::*;
-use std::{
-    any::TypeId,
-    collections::{HashMap, VecDeque},
-    marker::PhantomData,
-};
+use std::{any::TypeId, collections::HashMap, marker::PhantomData};
 
 pub trait UniverseCommand: Send + Sync {
     fn run(&mut self, universe: &mut Universe);
@@ -25,7 +21,7 @@ impl UniverseCommand for ClosureUniverseCommand {
 pub struct SpawnEntity {
     pub entity_builder: EntityBuilder,
     #[allow(clippy::type_complexity)]
-    on_complete: Option<Box<dyn FnMut(&mut Universe, Entity) + Send + Sync>>,
+    on_complete: Option<Box<dyn FnOnce(&mut Universe, Entity) + Send + Sync>>,
 }
 
 impl SpawnEntity {
@@ -47,7 +43,7 @@ impl SpawnEntity {
 
     pub fn on_complete<F>(mut self, f: F) -> Self
     where
-        F: FnMut(&mut Universe, Entity) + Send + Sync + 'static,
+        F: FnOnce(&mut Universe, Entity) + Send + Sync + 'static,
     {
         self.on_complete = Some(Box::new(f));
         self
@@ -59,7 +55,7 @@ impl SpawnEntity {
         changes.spawned.insert(entity);
         let components = changes.added_components.entry(entity).or_default();
         components.extend(self.entity_builder.component_types());
-        if let Some(mut on_complete) = self.on_complete.take() {
+        if let Some(on_complete) = self.on_complete.take() {
             (on_complete)(universe, entity);
         }
         entity
@@ -262,7 +258,7 @@ impl UniverseCommand for InstantiatePrefab {
 }
 
 pub struct UniverseCommands {
-    queue: VecDeque<Box<dyn UniverseCommand>>,
+    queue: Vec<Box<dyn UniverseCommand>>,
     resize: usize,
 }
 
@@ -284,10 +280,10 @@ impl UniverseCommands {
     }
 
     pub fn schedule_raw(&mut self, command: Box<dyn UniverseCommand>) {
-        if self.resize > 0 && self.queue.len() + 1 >= self.queue.capacity() {
+        if self.resize > 0 && self.queue.len() == self.queue.capacity() {
             self.queue.reserve(self.resize);
         }
-        self.queue.push_back(command);
+        self.queue.push(command);
     }
 
     pub fn schedule_fn<F>(&mut self, f: F)
@@ -297,8 +293,17 @@ impl UniverseCommands {
         self.schedule(ClosureUniverseCommand(Box::new(f)));
     }
 
-    pub fn execute(&mut self, universe: &mut Universe) {
-        while let Some(mut command) = self.queue.pop_front() {
+    pub fn execute(&mut self) -> UniverseCommandsExecutor {
+        let commands = Vec::with_capacity(self.queue.len());
+        UniverseCommandsExecutor(std::mem::replace(&mut self.queue, commands))
+    }
+}
+
+pub struct UniverseCommandsExecutor(Vec<Box<dyn UniverseCommand>>);
+
+impl UniverseCommandsExecutor {
+    pub fn execute(self, universe: &mut Universe) {
+        for mut command in self.0 {
             command.run(universe);
         }
     }

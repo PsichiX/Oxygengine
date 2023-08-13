@@ -163,7 +163,7 @@ fn convert_document_to_rig(document: &Document) -> Result<RigAsset, String> {
         }
     }
     match hierarchy.into_iter().next() {
-        Some((_, v)) => Ok(RigAsset::new(v, Default::default())),
+        Some((_, v)) => Ok(RigAsset::new(v, Default::default(), Default::default())),
         None => Err("Could not find root bone!".to_owned()),
     }
 }

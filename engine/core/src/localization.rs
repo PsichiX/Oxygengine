@@ -15,7 +15,7 @@ use std::{collections::HashMap, fmt::Write};
 mod parser {
     #[derive(Parser)]
     #[grammar = "localization.pest"]
-    pub(crate) struct SentenceParser;
+    pub(super) struct SentenceParser;
 }
 
 #[derive(Default)]

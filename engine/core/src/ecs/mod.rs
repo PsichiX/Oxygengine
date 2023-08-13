@@ -379,7 +379,10 @@ impl Universe {
             return;
         }
         self.expect_resource_mut::<EntityChanges>().clear();
-        self.expect_resource_mut::<UniverseCommands>().execute(self);
+        let mut commands = self.expect_resource_mut::<UniverseCommands>();
+        let executor = commands.execute();
+        drop(commands);
+        executor.execute(self);
         self.expect_resource_mut::<EntityChanges>()
             .entities
             .extend(self.world().iter().map(|entity_ref| entity_ref.entity()));

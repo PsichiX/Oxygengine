@@ -33,6 +33,7 @@ parallel = [
   "oxygengine-ha-renderer/parallel",
   "oxygengine-audio/parallel",
   "oxygengine-input/parallel",
+  "oxygengine-nodes/parallel",
 ]
 scalar64 = [
   "oxygengine-core/scalar64",
@@ -42,6 +43,7 @@ scalar64 = [
   "oxygengine-audio-backend-web/scalar64",
   "oxygengine-input/scalar64",
   "oxygengine-input-device-web/scalar64",
+  "oxygengine-nodes/scalar64",
 ]
 
 [dependencies]
@@ -57,4 +59,5 @@ oxygengine-input-device-desktop = { version = "0.41", path = "../input-device-de
 oxygengine-ha-renderer = { version = "0.41", path = "../ha-renderer" }
 oxygengine-editor-tools-backend-web = { version = "0.41", path = "../editor-tools-backend-web", optional = true }
 oxygengine-ha-renderer-debugger = { version = "0.41", path = "../ha-renderer-debugger", optional = true }
+oxygengine-nodes = { version = "0.41", path = "../nodes" }
 serde = { version = "1", features = ["derive"] }

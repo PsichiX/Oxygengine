@@ -77,7 +77,7 @@ impl State for GameState {
         database.insert(Asset::new(
             "rig",
             "@rig/test",
-            RigAsset::new(Default::default(), deformer),
+            RigAsset::new(Default::default(), deformer, None),
         ));
 
         commands.schedule(SpawnEntity::from_bundle((

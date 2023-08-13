@@ -9,21 +9,43 @@ use crate::{
 use core::{
     assets::{asset::AssetId, database::AssetsDatabase},
     ecs::{life_cycle::EntityChanges, Comp, Entity, Universe, WorldRef},
+    scripting::{
+        intuicio::{
+            core::context::Context,
+            data::{lifetime::*, managed::*},
+        },
+        Scripting,
+    },
 };
 use std::collections::HashMap;
 
-#[derive(Debug, Default)]
+const CONTEXT_CAPACITY: usize = 10240;
+
 pub struct HaRigSystemCache {
     map: HashMap<String, (Rig, AssetId)>,
     table: HashMap<AssetId, String>,
     skinning_data_images: HashMap<Entity, ImageId>,
     deformer_data_images: HashMap<Entity, ImageId>,
+    control_context: Context,
+}
+
+impl Default for HaRigSystemCache {
+    fn default() -> Self {
+        Self {
+            map: Default::default(),
+            table: Default::default(),
+            skinning_data_images: Default::default(),
+            deformer_data_images: Default::default(),
+            control_context: Context::new(CONTEXT_CAPACITY, CONTEXT_CAPACITY, CONTEXT_CAPACITY),
+        }
+    }
 }
 
 pub type HaRigSystemResources<'a> = (
     WorldRef,
     &'a AssetsDatabase,
     &'a EntityChanges,
+    &'a Scripting,
     &'a mut HaRenderer,
     &'a mut HaRigSystemCache,
     Comp<&'a mut HaRigInstance>,
@@ -31,13 +53,17 @@ pub type HaRigSystemResources<'a> = (
 );
 
 pub fn ha_rig_system(universe: &mut Universe) {
-    let (world, assets, changes, mut renderer, mut cache, ..) =
+    let (world, assets, changes, scripting, mut renderer, mut cache, ..) =
         universe.query_resources::<HaRigSystemResources>();
+    let cache = &mut *cache;
 
     for id in assets.lately_loaded_protocol("rig") {
         if let Some(asset) = assets.asset_by_id(*id) {
             let path = asset.path();
-            if let Some(rig) = asset.get::<RigAsset>().and_then(|asset| asset.rig().ok()) {
+            if let Some(rig) = asset
+                .get::<RigAsset>()
+                .and_then(|asset| asset.build_rig(&scripting.registry).ok())
+            {
                 cache.map.insert(path.to_owned(), (rig, *id));
                 cache.table.insert(*id, path.to_owned());
             }
@@ -63,14 +89,15 @@ pub fn ha_rig_system(universe: &mut Universe) {
     {
         let dirty_deformer = rig.deformer.is_dirty();
         let dirty_skeleton = rig.skeleton.is_dirty();
-        if !dirty_deformer && !dirty_skeleton {
+        let dirty_control = rig.control.is_dirty();
+        if !dirty_deformer && !dirty_skeleton && !dirty_control {
             continue;
         }
 
         if let Some((asset, _)) = cache.map.get(rig.asset()) {
             rig.try_initialize(asset);
 
-            if rig.deformer.is_dirty() {
+            if dirty_deformer {
                 let image_id = cache
                     .deformer_data_images
                     .get(&entity)
@@ -147,6 +174,21 @@ pub fn ha_rig_system(universe: &mut Universe) {
                             );
                         }
                     }
+                }
+            }
+
+            if dirty_control {
+                if let Some(control) = asset.control.as_ref() {
+                    let rig_lifetime = Lifetime::default();
+                    let rig = ManagedRefMut::new(rig, rig_lifetime.borrow_mut().unwrap());
+                    let asset_lifetime = Lifetime::default();
+                    let asset = ManagedRef::new(asset, asset_lifetime.borrow().unwrap());
+                    control.function.call::<(), _>(
+                        &mut cache.control_context,
+                        &scripting.registry,
+                        (rig, asset),
+                        true,
+                    );
                 }
             }
         }

@@ -1,7 +1,7 @@
-separator = _{ "|" }
+separator    = _{ "|" }
 no_separator = _{ "\\|" | !separator }
-text = { (no_separator ~ ANY)* }
-identifier = { ASCII_ALPHANUMERIC+ }
-param = _{ no_separator ~ "@" ~ identifier  }
-chunk = _{ param | text }
-sentence = { SOI ~ chunk ~ (separator ~ chunk)* ~ EOI }
+text         =  { (no_separator ~ ANY)* }
+identifier   =  { XID_START ~ XID_CONTINUE+ }
+param        = _{ no_separator ~ "@" ~ identifier }
+chunk        = _{ param | text }
+sentence     =  { SOI ~ chunk ~ (separator ~ chunk)* ~ EOI }

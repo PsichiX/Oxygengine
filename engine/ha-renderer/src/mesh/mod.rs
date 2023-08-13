@@ -1,3 +1,4 @@
+pub mod controls;
 pub mod geometry;
 pub mod rig;
 pub mod transformers;

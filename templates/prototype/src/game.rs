@@ -1,18 +1,21 @@
-use crate::character::*;
+use crate::nodes::character::*;
 use oxygengine::prelude::*;
 
 #[derive(Debug, Default)]
-pub struct GameState {
-    crab: Option<Character>,
-}
+pub struct GameState;
 
 impl State for GameState {
-    fn on_enter(&mut self, _: &mut Universe) {
-        self.crab = Some(
-            Character::new(crate::assets::image::CRAB)
-                .size(100.0)
-                .speed(100.0)
-                .animation_speed(10.0),
+    fn on_enter(&mut self, universe: &mut Universe) {
+        let mut nodes = universe.expect_resource_mut::<ScriptedNodes>();
+
+        nodes.spawn(
+            ScriptedNodesTree::new(
+                Character::new(crate::assets::image::CRAB)
+                    .size(100.0)
+                    .speed(250.0)
+                    .animation_speed(15.0),
+            ),
+            None,
         );
     }
 
@@ -22,24 +25,21 @@ impl State for GameState {
         let inputs = universe.expect_resource::<InputController>();
         let mut audio = universe.expect_resource_mut::<AudioPlayer>();
         let camera = universe.expect_resource::<Camera>();
+        let mut nodes = universe.expect_resource_mut::<ScriptedNodes>();
 
         let dt = lifecycle.delta_time_seconds();
         let clicked = inputs.trigger_or_default("mouse-action").is_pressed();
         let pointer = Vec2::from(inputs.multi_axis_or_default(["mouse-x", "mouse-y"]));
-        let player_move =
-            Vec2::from(inputs.mirror_multi_axis_or_default([
-                ("move-right", "move-left"),
-                ("move-down", "move-up"),
-            ]));
-
         if clicked {
             audio.play(crate::assets::audio::POP, 1.0);
         }
 
-        if let Some(crab) = self.crab.as_mut() {
-            crab.move_position(dt, player_move);
-            crab.update_animation(dt);
-            crab.draw(&mut renderables);
+        nodes.maintain(universe);
+        nodes_dispatch! {
+            nodes, universe => event_update(&dt, &*inputs)
+        }
+        nodes_dispatch! {
+            nodes, universe => event_draw(&mut *renderables)
         }
 
         gui(pointer, &camera, &mut renderables, &mut (), |mut gui| {
