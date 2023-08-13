@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-input"
-version = "0.41.0"
+version = "0.42.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Input module for Oxygengine"
@@ -16,6 +16,6 @@ parallel = ["oxygengine-core/parallel"]
 scalar64 = ["oxygengine-core/scalar64"]
 
 [dependencies]
-oxygengine-core = { version = "0.41", path = "../core" }
+oxygengine-core = { version = "0.42", path = "../core" }
 serde = { version = "1", features = ["derive"] }
 toml = "0.7"

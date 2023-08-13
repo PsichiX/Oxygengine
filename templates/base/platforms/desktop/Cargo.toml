@@ -12,5 +12,5 @@ path = "../../src/desktop_main.rs"
 serde = { version = "1", features = ["derive"] }
 
 [dependencies.oxygengine]
-version = "0.41"
+version = "0.42"
 features = ["desktop-ha-game"]
