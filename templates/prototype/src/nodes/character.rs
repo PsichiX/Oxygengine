@@ -19,6 +19,8 @@ pub struct Character {
     pub animation_speed: Scalar,
     #[intuicio(ignore)]
     animation_phase: Scalar,
+    #[intuicio(ignore)]
+    indicator: ScriptedNodeEntity,
 }
 
 impl Character {
@@ -28,7 +30,7 @@ impl Character {
         registry.add_function(Self::event_draw__define_function(registry));
     }
 
-    pub fn new(image: impl ToString) -> Self {
+    pub fn new(image: impl ToString, indicator: ScriptedNodeEntity) -> Self {
         Self {
             image: image.to_string(),
             size: 100.0.into(),
@@ -36,6 +38,7 @@ impl Character {
             speed: 100.0,
             animation_speed: 1.0,
             animation_phase: 0.0,
+            indicator,
         }
     }
 
@@ -54,7 +57,13 @@ impl Character {
         self
     }
 
-    pub fn update(&mut self, transform: &mut HaTransform, dt: Scalar, inputs: &InputController) {
+    pub fn update(
+        &mut self,
+        transform: &mut HaTransform,
+        dt: Scalar,
+        inputs: &InputController,
+        signals: &mut ScriptedNodesSignals,
+    ) {
         let direction =
             Vec2::from(inputs.mirror_multi_axis_or_default([
                 ("move-right", "move-left"),
@@ -67,6 +76,15 @@ impl Character {
                 self.mirror_horizontaly = false;
             } else if dir.x < 0.0 {
                 self.mirror_horizontaly = true;
+            }
+        }
+
+        if inputs.trigger_or_default("mouse-action").is_pressed() {
+            if let Some(entity) = self.indicator.get() {
+                signals.signal::<()>(ScriptedNodeSignal::new(
+                    entity,
+                    ScriptFunctionReference::parse("event_toggle_visibility").unwrap(),
+                ));
             }
         }
     }
@@ -94,8 +112,9 @@ impl Character {
         transform: &mut HaTransform,
         dt: &Scalar,
         inputs: &InputController,
+        signals: &mut ScriptedNodesSignals,
     ) {
-        this.update(transform, *dt, inputs);
+        this.update(transform, *dt, inputs, signals);
     }
 
     #[intuicio_method(transformer = "DynamicManagedValueTransformer")]

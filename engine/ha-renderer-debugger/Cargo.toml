@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-ha-renderer-debugger"
-version = "0.43.0"
+version = "0.44.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Debugger for Hardware Accelerated renderer module for Oxygengine"
@@ -16,8 +16,8 @@ parallel = ["oxygengine-core/parallel"]
 scalar64 = ["oxygengine-core/scalar64"]
 
 [dependencies]
-oxygengine-core = { version = "0.43", path = "../core" }
-oxygengine-ha-renderer = { version = "0.43", path = "../ha-renderer" }
-oxygengine-editor-tools = { version = "0.43", path = "../editor-tools" }
+oxygengine-core = { version = "0.44", path = "../core" }
+oxygengine-ha-renderer = { version = "0.44", path = "../ha-renderer" }
+oxygengine-editor-tools = { version = "0.44", path = "../editor-tools" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

@@ -107,18 +107,18 @@ impl SpriteRenderable {
         self
     }
 
-    pub fn tint(mut self, value: Rgba) -> Self {
-        self.tint = value;
+    pub fn tint(mut self, value: impl Into<Rgba>) -> Self {
+        self.tint = value.into();
         self
     }
 
-    pub fn tiling(mut self, value: Vec2) -> Self {
-        self.tiling = value;
+    pub fn tiling(mut self, value: impl Into<Vec2>) -> Self {
+        self.tiling = value.into();
         self
     }
 
-    pub fn region(mut self, value: Rect) -> Self {
-        self.region = Some(value);
+    pub fn region(mut self, value: impl Into<Rect>) -> Self {
+        self.region = Some(value.into());
         self
     }
 

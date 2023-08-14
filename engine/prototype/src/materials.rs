@@ -9,6 +9,7 @@ pub fn default_prototype_sprite_material_graph() -> MaterialGraph {
             [fragment] uniform mainImage: sampler2D;
             [fragment] uniform mainImageOffset: vec2;
             [fragment] uniform mainImageSize: vec2;
+            [fragment] uniform mainImageTiling: vec2;
             [fragment] uniform tint: vec4;
         }
 
@@ -19,7 +20,7 @@ pub fn default_prototype_sprite_material_graph() -> MaterialGraph {
         [coord = (truncate_vec3, v: [TextureCoord => vTexCoord])]
         [color = (virtualTexture2d,
             sampler: mainImage,
-            coord: coord,
+            coord: (fract_vec2, v: (mul_vec2, a: coord, b: mainImageTiling)),
             offset: mainImageOffset,
             size: mainImageSize
         )]

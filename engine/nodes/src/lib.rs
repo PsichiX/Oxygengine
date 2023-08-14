@@ -18,7 +18,37 @@ use std::borrow::Cow;
 
 const DEFAULT_CAPACITY: usize = 10240;
 
+#[derive(Default, Clone)]
+pub struct ScriptedNodeEntity(AsyncShared<Option<Entity>>);
+
+impl ScriptedNodeEntity {
+    pub fn set(&mut self, entity: Entity) {
+        if let Some(mut data) = self.0.write() {
+            *data = Some(entity);
+        }
+    }
+
+    pub fn get(&self) -> Option<Entity> {
+        self.0.read().and_then(|data| data.as_ref().copied())
+    }
+
+    pub fn take(&mut self) -> Option<Entity> {
+        self.0.write().and_then(|mut data| data.take())
+    }
+}
+
+impl std::fmt::Debug for ScriptedNodeEntity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut result = f.debug_struct("ScriptedNodeEntity");
+        match self.get() {
+            Some(entity) => result.field("entity", &entity).finish(),
+            None => result.finish_non_exhaustive(),
+        }
+    }
+}
+
 pub enum ScriptedNodesParam {
+    Owned(DynamicManaged),
     Ref(DynamicManagedRef),
     RefMut(DynamicManagedRefMut),
     ScopedRef(DynamicManagedRef, Lifetime),
@@ -26,6 +56,10 @@ pub enum ScriptedNodesParam {
 }
 
 impl ScriptedNodesParam {
+    pub fn owned<T: 'static>(value: T) -> Self {
+        Self::Owned(DynamicManaged::new(value))
+    }
+
     pub fn scoped_ref<T: 'static>(value: &T) -> Self {
         let lifetime = Lifetime::default();
         let data = DynamicManagedRef::new(value, lifetime.borrow().unwrap());
@@ -36,6 +70,12 @@ impl ScriptedNodesParam {
         let lifetime = Lifetime::default();
         let data = DynamicManagedRefMut::new(value, lifetime.borrow_mut().unwrap());
         Self::ScopedRefMut(data, lifetime)
+    }
+}
+
+impl From<DynamicManaged> for ScriptedNodesParam {
+    fn from(value: DynamicManaged) -> Self {
+        Self::Owned(value)
     }
 }
 
@@ -70,6 +110,8 @@ pub struct ScriptedNodeSignal {
     function: ScriptFunctionReference,
     arguments: Vec<ScriptedNodesParam>,
     broadcast: bool,
+    bubble: bool,
+    ignore_me: bool,
 }
 
 impl ScriptedNodeSignal {
@@ -83,11 +125,13 @@ impl ScriptedNodeSignal {
             function,
             arguments: Default::default(),
             broadcast: false,
+            bubble: false,
+            ignore_me: false,
         }
     }
 
-    pub fn arg(mut self, data: ScriptedNodesParam) -> Self {
-        self.arguments.push(data);
+    pub fn arg(mut self, data: impl Into<ScriptedNodesParam>) -> Self {
+        self.arguments.push(data.into());
         self
     }
 
@@ -96,18 +140,30 @@ impl ScriptedNodeSignal {
         self
     }
 
-    pub fn dispatch(&self, universe: &Universe) {
+    pub fn bubble(mut self) -> Self {
+        self.bubble = true;
+        self
+    }
+
+    pub fn ignore_me(mut self) -> Self {
+        self.ignore_me = true;
+        self
+    }
+
+    pub fn dispatch<T: ScriptedNodeComponentPack>(&self, universe: &Universe) {
         let world = universe.world();
         let mut nodes = universe.expect_resource_mut::<ScriptedNodes>();
         let scripting = universe.expect_resource::<Scripting>();
         let hierarchy = universe.expect_resource::<Hierarchy>();
 
         let token = nodes.context.stack().store();
-        Self::execute(
+        Self::execute::<T>(
             self.entity,
             &self.function,
             &self.arguments,
             self.broadcast,
+            self.bubble,
+            self.ignore_me,
             &world,
             &mut nodes,
             &scripting,
@@ -117,11 +173,13 @@ impl ScriptedNodeSignal {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn execute(
+    pub fn execute<T: ScriptedNodeComponentPack>(
         entity: Entity,
         function_ref: &ScriptFunctionReference,
         args: &[ScriptedNodesParam],
         broadcast: bool,
+        bubble: bool,
+        ignore_me: bool,
         world: &World,
         nodes: &mut ScriptedNodes,
         scripting: &Scripting,
@@ -136,56 +194,109 @@ impl ScriptedNodeSignal {
                         ..Default::default()
                     });
                 }
-                if let Some(function) = scripting.registry.find_function(query) {
-                    if let Some(handle) = &function.signature().struct_handle {
-                        if node.0.type_hash() != &handle.type_hash() {
+                if !ignore_me {
+                    if let Some(function) = scripting.registry.find_function(query) {
+                        if let Some(handle) = &function.signature().struct_handle {
+                            if node.0.type_hash() != &handle.type_hash() {
+                                return;
+                            }
+                        }
+                        let mut compontents_params = vec![];
+                        if !T::query_param(entity, world, &mut compontents_params) {
                             return;
                         }
-                    }
-                    for arg in args.iter().rev() {
-                        match arg {
-                            ScriptedNodesParam::Ref(arg) => {
-                                nodes.context.stack().push(arg.borrow().unwrap());
-                            }
-                            ScriptedNodesParam::RefMut(arg) => {
-                                nodes.context.stack().push(arg.borrow_mut().unwrap());
-                            }
-                            ScriptedNodesParam::ScopedRef(arg, _) => {
-                                nodes.context.stack().push(arg.borrow().unwrap());
-                            }
-                            ScriptedNodesParam::ScopedRefMut(arg, _) => {
-                                nodes.context.stack().push(arg.borrow_mut().unwrap());
-                            }
-                        }
-                    }
-                    nodes.context.stack().push(node.0.borrow_mut().unwrap());
-                    function.invoke(&mut nodes.context, &scripting.registry);
-                    if broadcast {
-                        if let Some(iter) = hierarchy.children(entity) {
-                            for entity in iter {
-                                ScriptedNodeSignal::execute(
-                                    entity,
-                                    function_ref,
-                                    args,
-                                    broadcast,
-                                    world,
-                                    nodes,
-                                    scripting,
-                                    hierarchy,
-                                );
+                        for arg in compontents_params.iter().chain(args.iter()).rev() {
+                            match arg {
+                                ScriptedNodesParam::Owned(arg) => {
+                                    nodes.context.stack().push(arg.borrow().unwrap());
+                                }
+                                ScriptedNodesParam::Ref(arg) => {
+                                    nodes.context.stack().push(arg.borrow().unwrap());
+                                }
+                                ScriptedNodesParam::RefMut(arg) => {
+                                    nodes.context.stack().push(arg.borrow_mut().unwrap());
+                                }
+                                ScriptedNodesParam::ScopedRef(arg, _) => {
+                                    nodes.context.stack().push(arg.borrow().unwrap());
+                                }
+                                ScriptedNodesParam::ScopedRefMut(arg, _) => {
+                                    nodes.context.stack().push(arg.borrow_mut().unwrap());
+                                }
                             }
                         }
+                        nodes.context.stack().push(node.0.borrow_mut().unwrap());
+                        function.invoke(&mut nodes.context, &scripting.registry);
                     }
                 }
+            }
+        }
+        if broadcast {
+            if let Some(iter) = hierarchy.children(entity) {
+                for entity in iter {
+                    Self::execute::<T>(
+                        entity,
+                        function_ref,
+                        args,
+                        true,
+                        false,
+                        false,
+                        world,
+                        nodes,
+                        scripting,
+                        hierarchy,
+                    );
+                }
+            }
+        }
+        if bubble {
+            if let Some(entity) = hierarchy.parent(entity) {
+                Self::execute::<T>(
+                    entity,
+                    function_ref,
+                    args,
+                    false,
+                    true,
+                    false,
+                    world,
+                    nodes,
+                    scripting,
+                    hierarchy,
+                );
             }
         }
     }
 }
 
+#[derive(Default)]
+pub struct ScriptedNodesSpawns {
+    spawns: Vec<(ScriptedNodesTree, Option<Entity>)>,
+}
+
+impl ScriptedNodesSpawns {
+    pub fn spawn(&mut self, tree: ScriptedNodesTree, parent: Option<Entity>) {
+        self.spawns.push((tree, parent));
+    }
+
+    pub fn spawn_root(&mut self, tree: ScriptedNodesTree) {
+        self.spawn(tree, None)
+    }
+}
+
+#[derive(Default)]
+pub struct ScriptedNodesSignals {
+    #[allow(clippy::type_complexity)]
+    signals: Vec<Box<dyn FnOnce(&Universe) + Send + Sync>>,
+}
+
+impl ScriptedNodesSignals {
+    pub fn signal<T: ScriptedNodeComponentPack>(&mut self, signal: ScriptedNodeSignal) {
+        self.signals
+            .push(Box::new(move |universe| signal.dispatch::<T>(universe)));
+    }
+}
+
 pub struct ScriptedNodes {
     context: Context,
-    signals: Vec<ScriptedNodeSignal>,
-    spawns: Vec<(ScriptedNodesTree, Option<Entity>)>,
 }
 
 impl Default for ScriptedNodes {
@@ -209,40 +320,22 @@ impl ScriptedNodes {
     ) -> Self {
         Self {
             context: Context::new(stack_capacity, registers_capacity, heap_page_capacity),
-            signals: Default::default(),
-            spawns: Default::default(),
         }
     }
 
-    pub fn signal(&mut self, signal: ScriptedNodeSignal) {
-        self.signals.push(signal);
-    }
-
-    pub fn spawn(&mut self, tree: ScriptedNodesTree, parent: Option<Entity>) {
-        self.spawns.push((tree, parent));
-    }
-
-    pub fn maintain(&mut self, universe: &Universe) {
-        let world = universe.world();
-        let mut commands = universe.expect_resource_mut::<UniverseCommands>();
-        let scripting = universe.expect_resource::<Scripting>();
-        let hierarchy = universe.expect_resource::<Hierarchy>();
-
-        for signal in std::mem::take(&mut self.signals) {
-            ScriptedNodeSignal::execute(
-                signal.entity,
-                &signal.function,
-                &signal.arguments,
-                signal.broadcast,
-                &world,
-                self,
-                &scripting,
-                &hierarchy,
-            );
+    pub fn maintain(universe: &Universe) {
+        {
+            let mut signals = universe.expect_resource_mut::<ScriptedNodesSignals>();
+            for signal in std::mem::take(&mut signals.signals) {
+                signal(universe);
+            }
         }
-
-        for (tree, parent) in std::mem::take(&mut self.spawns) {
-            Self::execute_spawn(tree, parent, &mut commands);
+        {
+            let mut commands = universe.expect_resource_mut::<UniverseCommands>();
+            let mut spawns = universe.expect_resource_mut::<ScriptedNodesSpawns>();
+            for (tree, parent) in std::mem::take(&mut spawns.spawns) {
+                Self::execute_spawn(tree, parent, &mut commands);
+            }
         }
     }
 
@@ -255,6 +348,8 @@ impl ScriptedNodes {
             data: object,
             children,
             mut components,
+            setup,
+            bind,
         } = tree;
         if let Some(entity) = parent {
             components.add(Parent(entity));
@@ -262,6 +357,13 @@ impl ScriptedNodes {
         components.add(ScriptedNode(object));
         commands.schedule(
             SpawnEntity::new(components).on_complete(move |universe, entity| {
+                if let Some(function) = setup {
+                    let mut signals = universe.expect_resource_mut::<ScriptedNodesSignals>();
+                    signals.signal::<()>(ScriptedNodeSignal::new(entity, function));
+                }
+                if let Some(bind) = bind {
+                    (bind)(entity);
+                }
                 let mut commands = universe.expect_resource_mut::<UniverseCommands>();
                 for child in children {
                     Self::execute_spawn((child)(entity), Some(entity), &mut commands);
@@ -322,6 +424,9 @@ impl ScriptedNodes {
                     }
                     for arg in compontents_params.iter().chain(args.iter()).rev() {
                         match arg {
+                            ScriptedNodesParam::Owned(arg) => {
+                                self.context.stack().push(arg.borrow().unwrap());
+                            }
                             ScriptedNodesParam::Ref(arg) => {
                                 self.context.stack().push(arg.borrow().unwrap());
                             }
@@ -338,19 +443,12 @@ impl ScriptedNodes {
                     }
                     self.context.stack().push(node.0.borrow_mut().unwrap());
                     function.invoke(&mut self.context, &scripting.registry);
-                    if let Some(iter) = hierarchy.children(entity) {
-                        for entity in iter {
-                            self.execute::<T>(
-                                entity,
-                                function_ref,
-                                args,
-                                world,
-                                scripting,
-                                hierarchy,
-                            )
-                        }
-                    }
                 }
+            }
+        }
+        if let Some(iter) = hierarchy.children(entity) {
+            for entity in iter {
+                self.execute::<T>(entity, function_ref, args, world, scripting, hierarchy)
             }
         }
     }
@@ -360,9 +458,15 @@ pub struct ScriptedNodesTree {
     data: DynamicManaged,
     components: EntityBuilder,
     children: Vec<Box<dyn FnOnce(Entity) -> Self + Send + Sync>>,
+    setup: Option<ScriptFunctionReference>,
+    bind: Option<Box<dyn FnOnce(Entity) + Send + Sync>>,
 }
 
 impl ScriptedNodesTree {
+    pub fn empty() -> Self {
+        Self::new(())
+    }
+
     pub fn new<T: 'static>(data: T) -> Self {
         Self::new_raw(DynamicManaged::new(data))
     }
@@ -372,6 +476,8 @@ impl ScriptedNodesTree {
             data,
             children: Default::default(),
             components: Default::default(),
+            setup: None,
+            bind: None,
         }
     }
 
@@ -392,6 +498,16 @@ impl ScriptedNodesTree {
 
     pub fn child(mut self, f: impl FnOnce(Entity) -> Self + Send + Sync + 'static) -> Self {
         self.children.push(Box::new(f));
+        self
+    }
+
+    pub fn setup(mut self, function: ScriptFunctionReference) -> Self {
+        self.setup = Some(function);
+        self
+    }
+
+    pub fn bind(mut self, f: impl FnOnce(Entity) + Send + Sync + 'static) -> Self {
+        self.bind = Some(Box::new(f));
         self
     }
 }
@@ -471,5 +587,7 @@ where
     PB: PipelineBuilder,
 {
     builder.install_resource(nodes);
+    builder.install_resource(ScriptedNodesSpawns::default());
+    builder.install_resource(ScriptedNodesSignals::default());
     Ok(())
 }

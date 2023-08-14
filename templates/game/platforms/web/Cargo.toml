@@ -21,7 +21,7 @@ serde = { version = "1", features = ["derive"] }
 rand = "0.8"
 
 [dependencies.oxygengine]
-version = "0.43"
+version = "0.44"
 features = [
   "web-ha-game",
   "oxygengine-overworld",

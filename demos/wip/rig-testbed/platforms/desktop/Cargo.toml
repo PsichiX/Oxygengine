@@ -15,5 +15,5 @@ distribution = []
 serde = { version = "1", features = ["derive"] }
 
 [dependencies.oxygengine]
-version = "0.43"
+version = "0.44"
 features = ["desktop-ha-game"]

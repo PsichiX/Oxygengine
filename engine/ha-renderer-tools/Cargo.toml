@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-ha-renderer-tools"
-version = "0.43.0"
+version = "0.44.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Tools for Hardware Accelerated renderer module for Oxygengine"
@@ -11,10 +11,10 @@ documentation = "https://docs.rs/oxygengine-ha-renderer-tools"
 readme = "../../README.md"
 
 [dependencies]
-oxygengine-build-tools = { version = "0.43", path = "../build-tools" }
-oxygengine-core = { version = "0.43", path = "../core" }
-oxygengine-ha-renderer = { version = "0.43", path = "../ha-renderer" }
-oxygengine-animation = { version = "0.43", path = "../animation" }
+oxygengine-build-tools = { version = "0.44", path = "../build-tools" }
+oxygengine-core = { version = "0.44", path = "../core" }
+oxygengine-ha-renderer = { version = "0.44", path = "../ha-renderer" }
+oxygengine-animation = { version = "0.44", path = "../animation" }
 serde = { version = "1", features = ["derive"] }
 serde-xml-rs = "0.6"
 serde_json = "1"

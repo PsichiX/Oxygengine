@@ -141,7 +141,7 @@ publish:
   cargo publish --no-verify --manifest-path ./engine/audio-backend-web/Cargo.toml
   sleep 1
   cargo publish --no-verify --manifest-path ./engine/ha-renderer/Cargo.toml
-  sleep 20
+  sleep 1
   cargo publish --no-verify --manifest-path ./engine/ha-renderer-tools/Cargo.toml
   sleep 1
   cargo publish --no-verify --manifest-path ./engine/ha-renderer-debugger/Cargo.toml

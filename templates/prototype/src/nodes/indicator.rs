@@ -10,6 +10,8 @@ pub struct Indicator {
     #[intuicio(ignore)]
     pub image: String,
     #[intuicio(ignore)]
+    pub show: bool,
+    #[intuicio(ignore)]
     pub size: Vec2,
     #[intuicio(ignore)]
     pub animation_speed: Scalar,
@@ -20,6 +22,7 @@ pub struct Indicator {
 impl Indicator {
     pub fn install(registry: &mut Registry) {
         registry.add_struct(Self::define_struct(registry));
+        registry.add_function(Self::event_toggle_visibility__define_function(registry));
         registry.add_function(Self::event_update__define_function(registry));
         registry.add_function(Self::event_draw__define_function(registry));
     }
@@ -27,6 +30,7 @@ impl Indicator {
     pub fn new(image: impl ToString) -> Self {
         Self {
             image: image.to_string(),
+            show: false,
             size: 100.0.into(),
             animation_speed: 1.0,
             animation_phase: 0.0,
@@ -44,27 +48,37 @@ impl Indicator {
     }
 
     pub fn update(&mut self, dt: Scalar) {
-        self.animation_phase += dt * self.animation_speed;
+        if self.show {
+            self.animation_phase += dt * self.animation_speed;
+        }
     }
 
     pub fn draw(&self, transform: &mut HaTransform, renderables: &mut Renderables) {
-        let scale = (self.animation_phase.sin() + 3.0) * 0.25;
-        renderables.draw(
-            SpriteRenderable::new(&self.image)
-                .position(transform.get_world_origin())
-                .size(self.size * transform.get_world_scale_lossy() * scale),
-        );
+        if self.show {
+            let scale = (self.animation_phase.sin() + 3.0) * 0.25;
+            renderables.draw(
+                SpriteRenderable::new(&self.image)
+                    .position(transform.get_world_origin())
+                    .size(self.size * transform.get_world_scale_lossy() * scale),
+            );
+        }
     }
 }
 
 #[intuicio_methods(module_name = "game")]
 impl Indicator {
     #[intuicio_method(transformer = "DynamicManagedValueTransformer")]
+    pub fn event_toggle_visibility(this: &mut Self) {
+        this.show = !this.show;
+    }
+
+    #[intuicio_method(transformer = "DynamicManagedValueTransformer")]
     pub fn event_update(
         this: &mut Self,
         _transform: &mut HaTransform,
         dt: &Scalar,
         _inputs: &InputController,
+        _signals: &mut ScriptedNodesSignals,
     ) {
         this.update(*dt);
     }
