@@ -24,7 +24,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
       - name: Install Just
-        run: cargo install just || true
+        run: cargo install just --force
       - name: Build
         run: just build
       # - name: Test

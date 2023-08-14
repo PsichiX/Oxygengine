@@ -81,10 +81,10 @@ update-ignite-presets:
   OXY_UPDATE_PRESETS=1 OXY_UPDATE_FILE=./target/oxygengine-presets.pack cargo run --manifest-path ./engine/ignite/Cargo.toml -- --help
 
 install-ignite:
-  cargo install --path ./engine/ignite
+  cargo install --path ./engine/ignite --force
 
 install-tools-ha-renderer:
-  cargo install --path ./engine/ha-renderer-tools
+  cargo install --path ./engine/ha-renderer-tools --force
 
 install-tools:
   just install-ignite
