@@ -48,6 +48,10 @@ pub fn build_app(
         .unwrap()
         .with_bundle(oxygengine::core::prefab::bundle_installer, make_prefabs())
         .unwrap()
+        .with_bundle(
+            oxygengine::core::scripting::bundle_installer,
+            make_scripting_registry(),
+        )
         .with_bundle(oxygengine::core::ecs::life_cycle::events_system_installer::<_, HaVolumeOverlapEvent>, "volume-overlap")
         .unwrap()
         .with_bundle(oxygengine::input::bundle_installer, inputs_factory)
@@ -194,6 +198,10 @@ fn make_prefabs() -> impl FnMut(&mut PrefabManager) {
         prefabs.register_component_factory::<BatchedAttacksTag>("BatchedAttacksTag");
         prefabs.register_component_factory::<LevelUp>("LevelUp");
     }
+}
+
+fn make_scripting_registry() -> Registry {
+    Registry::default().with_basic_types()
 }
 
 fn make_renderer(

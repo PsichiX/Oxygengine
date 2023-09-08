@@ -8,6 +8,7 @@ pub struct HaRenderPrototypeStageSystemCache {
     fonts_map: HashMap<String, AssetId>,
     fonts_table: HashMap<AssetId, String>,
     text_pool: Vec<(MeshId, ImageId, bool)>,
+    shape_pool: Vec<(MeshId, bool)>,
 }
 
 pub type HaRenderPrototypeStageSystemResources<'a> = (
@@ -80,9 +81,14 @@ pub fn ha_render_prototype_stage_system(universe: &mut Universe) {
             renderables.text_material_reference = MaterialReference::Id(id);
         }
     }
+    if let MaterialReference::Asset(path) = &renderables.shape_material_reference {
+        if let Some(id) = material_mapping.resource_by_name(path) {
+            renderables.shape_material_reference = MaterialReference::Id(id);
+        }
+    }
 
     for renderable in &mut buffer {
-        if let Renderable::Advanced(renderable) = renderable {
+        if let Renderable::Mesh(renderable) = renderable {
             renderable.mesh.update_references(&mesh_mapping);
             renderable
                 .material
@@ -109,42 +115,58 @@ pub fn ha_render_prototype_stage_system(universe: &mut Universe) {
             false
         }
     });
+    cache.shape_pool.retain_mut(|(mesh_id, keep)| {
+        if *keep {
+            *keep = false;
+            true
+        } else {
+            let _ = renderer.remove_mesh(*mesh_id);
+            false
+        }
+    });
 
     let mut text_mesh_pool_index = 0;
+    let mut shape_mesh_pool_index = 0;
     for renderable in &buffer {
-        if let Renderable::Text(renderable) = renderable {
-            if let Some(font_asset) = cache.fonts_map.get(&renderable.font) {
-                if let Some(font_asset) = assets.asset_by_id(*font_asset) {
-                    if let Some(font_asset) = font_asset.get::<FontAsset>() {
-                        if let Some((_, image_asset)) = font_asset.pages_image_assets.get(0) {
-                            if let Some(image_id) = image_mapping.resource_by_asset(*image_asset) {
-                                let text = renderable.to_text_instance();
-                                if let Ok(factory) = SurfaceTextFactory::factory::<SurfaceVertexText>(
-                                    &text, font_asset,
-                                ) {
-                                    if let Some((mesh, image, keep)) =
-                                        cache.text_pool.get_mut(text_mesh_pool_index)
+        match renderable {
+            Renderable::Text(renderable) => {
+                if let Some(font_asset) = cache.fonts_map.get(&renderable.font) {
+                    if let Some(font_asset) = assets.asset_by_id(*font_asset) {
+                        if let Some(font_asset) = font_asset.get::<FontAsset>() {
+                            if let Some((_, image_asset)) = font_asset.pages_image_assets.get(0) {
+                                if let Some(image_id) =
+                                    image_mapping.resource_by_asset(*image_asset)
+                                {
+                                    let text = renderable.to_text_instance();
+                                    if let Ok(factory) =
+                                        SurfaceTextFactory::factory::<SurfaceVertexText>(
+                                            &text, font_asset,
+                                        )
                                     {
-                                        if let Some(m) = renderer.mesh_mut(*mesh) {
-                                            m.set_vertex_storage_all(BufferStorage::Stream);
-                                            m.set_index_storage(BufferStorage::Stream);
-                                            if factory.write_into(m).is_ok() {
-                                                *image = image_id;
-                                                *keep = true;
-                                                text_mesh_pool_index += 1;
+                                        if let Some((mesh, image, keep)) =
+                                            cache.text_pool.get_mut(text_mesh_pool_index)
+                                        {
+                                            if let Some(m) = renderer.mesh_mut(*mesh) {
+                                                m.set_vertex_storage_all(BufferStorage::Stream);
+                                                m.set_index_storage(BufferStorage::Stream);
+                                                if factory.write_into(m).is_ok() {
+                                                    *image = image_id;
+                                                    *keep = true;
+                                                    text_mesh_pool_index += 1;
+                                                }
                                             }
-                                        }
-                                    } else {
-                                        if cache.text_pool.len() == cache.text_pool.capacity() {
-                                            cache
-                                                .text_pool
-                                                .reserve(renderables.text_pool_resize_count);
-                                        }
-                                        let mut m = Mesh::new(factory.layout().to_owned());
-                                        if factory.write_into(&mut m).is_ok() {
-                                            if let Ok(mesh_id) = renderer.add_mesh(m) {
-                                                cache.text_pool.push((mesh_id, image_id, true));
-                                                text_mesh_pool_index += 1;
+                                        } else {
+                                            if cache.text_pool.len() == cache.text_pool.capacity() {
+                                                cache
+                                                    .text_pool
+                                                    .reserve(renderables.text_pool_resize_count);
+                                            }
+                                            let mut m = Mesh::new(factory.layout().to_owned());
+                                            if factory.write_into(&mut m).is_ok() {
+                                                if let Ok(mesh_id) = renderer.add_mesh(m) {
+                                                    cache.text_pool.push((mesh_id, image_id, true));
+                                                    text_mesh_pool_index += 1;
+                                                }
                                             }
                                         }
                                     }
@@ -154,6 +176,34 @@ pub fn ha_render_prototype_stage_system(universe: &mut Universe) {
                     }
                 }
             }
+            Renderable::Shape(renderable) => {
+                if let Ok(factory) = renderable.factory() {
+                    if let Some((mesh, keep)) = cache.shape_pool.get_mut(shape_mesh_pool_index) {
+                        if let Some(m) = renderer.mesh_mut(*mesh) {
+                            m.set_vertex_storage_all(BufferStorage::Stream);
+                            m.set_index_storage(BufferStorage::Stream);
+                            if factory.write_into(m).is_ok() {
+                                *keep = true;
+                                shape_mesh_pool_index += 1;
+                            }
+                        }
+                    } else {
+                        if cache.shape_pool.len() == cache.shape_pool.capacity() {
+                            cache
+                                .shape_pool
+                                .reserve(renderables.shape_pool_resize_count);
+                        }
+                        let mut m = Mesh::new(factory.layout().to_owned());
+                        if factory.write_into(&mut m).is_ok() {
+                            if let Ok(mesh_id) = renderer.add_mesh(m) {
+                                cache.shape_pool.push((mesh_id, true));
+                                shape_mesh_pool_index += 1;
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
         }
     }
 
@@ -180,6 +230,7 @@ pub fn ha_render_prototype_stage_system(universe: &mut Universe) {
             transform_stack.clear();
 
             text_mesh_pool_index = 0;
+            shape_mesh_pool_index = 0;
             for renderable in &mut buffer {
                 match renderable {
                     Renderable::PushTransform(transform) => {
@@ -216,7 +267,7 @@ pub fn ha_render_prototype_stage_system(universe: &mut Universe) {
                     Renderable::PopScissor => {
                         scissor_stack.pop();
                     }
-                    Renderable::Advanced(renderable) => {
+                    Renderable::Mesh(renderable) => {
                         renderable.mesh.update_references(&mesh_mapping);
                         renderable
                             .material
@@ -283,7 +334,7 @@ pub fn ha_render_prototype_stage_system(universe: &mut Universe) {
                                 .unwrap_or(MaterialBlending::Alpha),
                             ..Default::default()
                         });
-                        let renderable = AdvancedRenderable {
+                        let renderable = MeshRenderable {
                             transform: renderable.transform,
                             mesh: HaMeshInstance {
                                 reference: renderables.sprite_mesh_reference.to_owned(),
@@ -323,8 +374,42 @@ pub fn ha_render_prototype_stage_system(universe: &mut Universe) {
                                 .unwrap_or(MaterialBlending::Alpha),
                             ..Default::default()
                         });
-                        let renderable = AdvancedRenderable {
+                        let renderable = MeshRenderable {
                             transform: renderable.transform,
+                            mesh: HaMeshInstance {
+                                reference: MeshReference::Id(mesh_id),
+                                ..Default::default()
+                            },
+                            material,
+                        };
+                        record_commands(
+                            &renderable,
+                            &transform_stack,
+                            &scissor_stack,
+                            &renderer,
+                            time,
+                            &info,
+                            &mut recorder,
+                        );
+                    }
+                    Renderable::Shape(_) => {
+                        let mesh_id = match cache.shape_pool.get(shape_mesh_pool_index) {
+                            Some((mesh_id, _)) => *mesh_id,
+                            None => continue,
+                        };
+                        shape_mesh_pool_index += 1;
+                        let mut material = HaMaterialInstance::new(
+                            renderables.shape_material_reference.to_owned(),
+                        );
+                        material.override_draw_options = Some(MaterialDrawOptions {
+                            blending: blending_stack
+                                .last()
+                                .copied()
+                                .unwrap_or(MaterialBlending::Alpha),
+                            ..Default::default()
+                        });
+                        let renderable = MeshRenderable {
+                            transform: Default::default(),
                             mesh: HaMeshInstance {
                                 reference: MeshReference::Id(mesh_id),
                                 ..Default::default()
@@ -353,7 +438,7 @@ pub fn ha_render_prototype_stage_system(universe: &mut Universe) {
 }
 
 fn record_commands(
-    renderable: &AdvancedRenderable,
+    renderable: &MeshRenderable,
     transform_stack: &[Mat4],
     scissor_stack: &[(usize, usize, usize, usize)],
     renderer: &HaRenderer,

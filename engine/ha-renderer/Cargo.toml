@@ -35,6 +35,9 @@ serde_json = "1"
 bincode = "1"
 ktx2 = "0.3"
 tabled = "0.12"
+pest = "2.1"
+pest_derive = "2.1"
+snailquote = "0.3"
 
 [dependencies.wasm-bindgen]
 version = "0.2"

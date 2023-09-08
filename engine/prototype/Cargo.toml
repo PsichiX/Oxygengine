@@ -61,3 +61,4 @@ oxygengine-editor-tools-backend-web = { version = "0.44", path = "../editor-tool
 oxygengine-ha-renderer-debugger = { version = "0.44", path = "../ha-renderer-debugger", optional = true }
 oxygengine-nodes = { version = "0.44", path = "../nodes" }
 serde = { version = "1", features = ["derive"] }
+rstar = "0.11"

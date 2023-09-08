@@ -213,14 +213,46 @@ where
         self.cached[index].sample_along_axis(axis_value, axis_index)
     }
 
-    pub fn sample_direction(&self, factor: Scalar) -> T {
+    /// Velocity of change along the curve axis.
+    pub fn sample_first_derivative(&self, factor: Scalar) -> T {
         let (index, factor) = self.find_curve_index_factor(factor);
-        self.cached[index].sample_direction(factor)
+        self.cached[index].sample_first_derivative(factor)
     }
 
-    pub fn sample_direction_along_axis(&self, axis_value: Scalar, axis_index: usize) -> Option<T> {
+    /// Velocity of change along the curve axis.
+    pub fn sample_first_derivative_along_axis(
+        &self,
+        axis_value: Scalar,
+        axis_index: usize,
+    ) -> Option<T> {
         let index = self.find_curve_index_by_axis_value(axis_value, axis_index)?;
-        self.cached[index].sample_direction_along_axis(axis_value, axis_index)
+        self.cached[index].sample_first_derivative_along_axis(axis_value, axis_index)
+    }
+
+    /// Acceleration of change along the curve axis.
+    pub fn sample_second_derivative(&self, factor: Scalar) -> T {
+        let (index, factor) = self.find_curve_index_factor(factor);
+        self.cached[index].sample_second_derivative(factor)
+    }
+
+    /// Acceleration of change along the curve axis.
+    pub fn sample_second_derivative_along_axis(
+        &self,
+        axis_value: Scalar,
+        axis_index: usize,
+    ) -> Option<T> {
+        let index = self.find_curve_index_by_axis_value(axis_value, axis_index)?;
+        self.cached[index].sample_second_derivative_along_axis(axis_value, axis_index)
+    }
+
+    pub fn sample_k(&self, factor: Scalar) -> Scalar {
+        let (index, factor) = self.find_curve_index_factor(factor);
+        self.cached[index].sample_k(factor)
+    }
+
+    pub fn sample_curvature_radius(&self, factor: Scalar) -> Scalar {
+        let (index, factor) = self.find_curve_index_factor(factor);
+        self.cached[index].sample_curvature_radius(factor)
     }
 
     pub fn sample_tangent(&self, factor: Scalar) -> T {
@@ -297,6 +329,8 @@ where
         let index = self.find_curve_index_by_axis_value(axis_value, axis_index)?;
         self.cached[index].find_time_for_axis(axis_value, axis_index)
     }
+
+    // TODO: find_time_for()
 }
 
 impl<T> TryFrom<SplineDef<T>> for Spline<T>

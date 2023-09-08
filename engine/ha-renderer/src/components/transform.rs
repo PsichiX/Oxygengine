@@ -207,6 +207,10 @@ impl HaTransform {
         self.transform_world_direction(Vec3::unit_z())
     }
 
+    pub fn get_world_rotation_lossy(&self) -> Rotator {
+        Rotator::look_at(self.get_world_forward(), self.get_world_up())
+    }
+
     pub fn get_world_scale_lossy(&self) -> Vec3 {
         let matrix = &self.cached_world_matrix;
         let x = (matrix.cols.x.x * matrix.cols.x.x

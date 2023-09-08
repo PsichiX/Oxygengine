@@ -3,8 +3,16 @@ use core::{
     prefab::{Prefab, PrefabComponent},
     Scalar,
 };
+use pest::{iterators::Pair, Parser};
 use serde::{Deserialize, Serialize};
 use std::str::Chars;
+
+#[allow(clippy::upper_case_acronyms)]
+mod parser {
+    #[derive(pest_derive::Parser)]
+    #[grammar = "components/text_instance.pest"]
+    pub(super) struct ContentParser;
+}
 
 pub enum HaTextElementIter<'a> {
     NewLine {
@@ -197,18 +205,112 @@ impl HaTextFragment {
 pub struct HaTextContent(pub Vec<HaTextFragment>);
 
 impl HaTextContent {
-    pub fn parse(text: &str) -> Self {
-        let mut result = vec![];
-        let mut first = true;
-        for line in text.split(|c| c == '\r' || c == '\n') {
-            if first {
-                first = false;
-            } else {
-                result.push(HaTextFragment::NewLine);
+    pub fn parse(text: &str) -> Result<Self, String> {
+        match parser::ContentParser::parse(parser::Rule::main, text) {
+            Ok(mut pairs) => {
+                let mut stack = vec![];
+                let mut result = vec![];
+                for pair in pairs.next().unwrap().into_inner() {
+                    match pair.as_rule() {
+                        parser::Rule::text_string => {
+                            let content = snailquote::unescape(pair.as_str()).unwrap();
+                            for (index, part) in content.split(&['\r', '\n']).enumerate() {
+                                if index > 0 {
+                                    result.push(HaTextFragment::NewLine);
+                                }
+                                result.push(HaTextFragment::Text {
+                                    text: part.to_owned(),
+                                    params: stack.last().cloned().unwrap_or_default(),
+                                });
+                            }
+                        }
+                        parser::Rule::params_start => {
+                            let mut result = stack.last().cloned().unwrap_or_default();
+                            for pair in pair.into_inner() {
+                                let pair = pair.into_inner().next().unwrap();
+                                match pair.as_rule() {
+                                    parser::Rule::size => {
+                                        result.size = Some(Self::parse_number(
+                                            pair.into_inner().next().unwrap(),
+                                        ));
+                                    }
+                                    parser::Rule::color => {
+                                        result.color = Some(Self::parse_color(
+                                            pair.into_inner().next().unwrap(),
+                                        ));
+                                    }
+                                    parser::Rule::outline => {
+                                        result.outline = Some(Self::parse_color(
+                                            pair.into_inner().next().unwrap(),
+                                        ));
+                                    }
+                                    parser::Rule::thickness => {
+                                        result.thickness = Some(Self::parse_number(
+                                            pair.into_inner().next().unwrap(),
+                                        ));
+                                    }
+                                    parser::Rule::cursive => {
+                                        result.cursive = Some(Self::parse_number(
+                                            pair.into_inner().next().unwrap(),
+                                        ));
+                                    }
+                                    parser::Rule::wrapping => {
+                                        let pair = pair.into_inner().next().unwrap();
+                                        match pair.as_rule() {
+                                            parser::Rule::wrapping_character => {
+                                                result.wrapping = Some(HaTextWrapping::Character);
+                                            }
+                                            parser::Rule::wrapping_word => {
+                                                result.wrapping = Some(HaTextWrapping::Word);
+                                            }
+                                            parser::Rule::wrapping_set => {
+                                                let content = snailquote::unescape(
+                                                    pair.into_inner().next().unwrap().as_str(),
+                                                )
+                                                .unwrap();
+                                                result.wrapping =
+                                                    Some(HaTextWrapping::Set(content));
+                                            }
+                                            _ => {}
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            stack.push(result);
+                        }
+                        parser::Rule::params_end => {
+                            stack.pop();
+                        }
+                        _ => {}
+                    }
+                }
+                Ok(Self(result))
             }
-            result.push(HaTextFragment::text(line))
+            Err(error) => Err(format!("{}", error)),
         }
-        Self(result)
+    }
+
+    fn parse_number(pair: Pair<parser::Rule>) -> Scalar {
+        pair.as_str().parse::<Scalar>().unwrap()
+    }
+
+    fn parse_color(pair: Pair<parser::Rule>) -> Rgba {
+        let mut result = Rgba::white();
+        let mut pairs = pair.into_inner();
+        if let Some(pair) = pairs.next() {
+            result.r = Self::parse_number(pair);
+        }
+        if let Some(pair) = pairs.next() {
+            result.g = Self::parse_number(pair);
+        }
+        if let Some(pair) = pairs.next() {
+            result.b = Self::parse_number(pair);
+        }
+        if let Some(pair) = pairs.next() {
+            result.a = Self::parse_number(pair);
+        }
+        result
     }
 }
 
@@ -218,12 +320,9 @@ impl From<HaRichTextBuilder> for HaTextContent {
     }
 }
 
-impl<T> From<T> for HaTextContent
-where
-    T: AsRef<str>,
-{
-    fn from(other: T) -> Self {
-        Self::parse(other.as_ref())
+impl<T: AsRef<str>> From<T> for HaTextContent {
+    fn from(value: T) -> Self {
+        Self::parse(value.as_ref()).unwrap()
     }
 }
 
@@ -631,6 +730,9 @@ mod tests {
                 ]
             ]
         };
+        let c =
+            HaTextContent::parse("[s=64]webgl2[c=(1,0,0) w=c]text\nrenderer[|]42[/][/]").unwrap();
         assert_eq!(a, b);
+        assert_eq!(a, c);
     }
 }

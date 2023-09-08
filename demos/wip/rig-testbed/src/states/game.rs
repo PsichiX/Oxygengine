@@ -77,7 +77,7 @@ impl State for GameState {
         database.insert(Asset::new(
             "rig",
             "@rig/test",
-            RigAsset::new(Default::default(), deformer, None),
+            RigAsset::new(Default::default(), deformer, vec![]),
         ));
 
         commands.schedule(SpawnEntity::from_bundle((
@@ -130,11 +130,9 @@ impl State for GameState {
                 let mut instance = HaRigInstance::default();
                 instance.set_asset("skeletons/watcher/rig.json");
                 instance
-            },
-            {
-                let mut instance = HaRigAnimationInstance::default();
-                instance.set_animation("skeletons/watcher/animation.json");
-                instance.play("#walk");
+                    .control
+                    .property("animation-asset")
+                    .set("skeletons/watcher/animation.json".to_owned());
                 instance
             },
             HaTransform::default(),
@@ -149,14 +147,22 @@ impl State for GameState {
         let walk = input.trigger_or_default("walk").is_pressed();
         let run = input.trigger_or_default("run").is_pressed();
         let watch = input.trigger_or_default("watch").is_pressed();
+        let play = input.trigger_or_default("play").is_pressed();
 
-        for (_, instance) in world.query::<&mut HaRigAnimationInstance>().iter() {
+        for (_, instance) in world.query::<&mut HaRigInstance>().iter() {
+            if play {
+                instance
+                    .control
+                    .property("playing")
+                    .or_default::<bool>()
+                    .and_modify::<bool>(|playing| *playing = !*playing);
+            }
             if walk {
-                instance.play("#walk");
+                instance.control.property("state").set("#walk".to_owned());
             } else if run {
-                instance.play("#run");
+                instance.control.property("state").set("#run".to_owned());
             } else if watch {
-                instance.play("#watch");
+                instance.control.property("state").set("#watch".to_owned());
             }
         }
 

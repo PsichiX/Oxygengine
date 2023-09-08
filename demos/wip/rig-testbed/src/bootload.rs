@@ -1,5 +1,5 @@
 use crate::states::loading::LoadingState;
-use oxygengine::prelude::*;
+use oxygengine::prelude::{intuicio::prelude::*, *};
 
 pub fn build_app(
     fetch_engine: impl FetchEngine + 'static,
@@ -16,6 +16,11 @@ pub fn build_app(
         )
         .unwrap()
         .with_bundle(oxygengine::core::prefab::bundle_installer, make_prefabs())
+        .unwrap()
+        .with_bundle(
+            oxygengine::core::scripting::bundle_installer,
+            make_scripting_registry(),
+        )
         .unwrap()
         .with_bundle(oxygengine::input::bundle_installer, inputs_factory)
         .unwrap()
@@ -43,6 +48,13 @@ fn make_prefabs() -> impl FnMut(&mut PrefabManager) {
         oxygengine::input::prefabs_installer(prefabs);
         oxygengine::ha_renderer::prefabs_installer(prefabs);
     }
+}
+
+fn make_scripting_registry() -> Registry {
+    let mut registry = Registry::default().with_basic_types();
+    oxygengine::core::scripting::scripting_installer(&mut registry);
+    oxygengine::ha_renderer::scripting_installer(&mut registry);
+    registry
 }
 
 fn make_renderer(

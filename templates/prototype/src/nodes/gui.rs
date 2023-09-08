@@ -1,42 +1,37 @@
+use crate::{game::GameState, nodes::enemy::EnemyNode};
 use oxygengine::prelude::{
     intuicio::derive::*,
     intuicio::{core as intuicio_core, data as intuicio_data, prelude::*},
     *,
 };
 
-#[derive(IntuicioStruct, Debug, Default)]
-#[intuicio(name = "GameUi", module_name = "game")]
-pub struct GameUi;
+const GAME_OVER_NORMAL: &str = "Game Over!";
+const GAME_OVER_HOVER: &str = "Click to restart";
 
-impl GameUi {
+#[derive(IntuicioStruct, Debug, Default)]
+#[intuicio(name = "GuiNode", module_name = "game")]
+pub struct GuiNode {
+    #[intuicio(ignore)]
+    pub game_over: bool,
+    #[intuicio(ignore)]
+    pub score: usize,
+}
+
+impl GuiNode {
     pub fn install(registry: &mut Registry) {
         registry.add_struct(Self::define_struct(registry));
         registry.add_function(Self::event_draw_gui__define_function(registry));
+        registry.add_function(Self::signal_game_over__define_function(registry));
+        registry.add_function(Self::signal_game_start__define_function(registry));
+        registry.add_function(Self::signal_score_increased__define_function(registry));
     }
 
-    pub fn draw(camera: &Camera, inputs: &InputController, renderables: &mut Renderables) {
-        let pointer = Vec2::from(inputs.multi_axis_or_default(["mouse-x", "mouse-y"]));
-
-        gui(pointer, camera, renderables, &mut (), |mut gui| {
-            gui.margin(16.0, 16.0, 16.0, 16.0, |mut gui| {
-                gui.cut_bottom(75.0, |mut gui| {
-                    Self::message_panel_widget(
-                        gui.gui(),
-                        crate::assets::image::LOGO,
-                        "Welcome to Oxygengine's prototyping module, let's have some fun!",
-                        "Use WSAD keys to move Ferris around!",
-                    );
-                });
-            });
-        });
-    }
-
-    fn message_panel_widget<T>(
+    fn popup_widget<T>(
         mut gui: Gui<T>,
-        avatar: &str,
         message_normal: &str,
         message_hovers: &str,
-    ) {
+        clicked: bool,
+    ) -> bool {
         gui.button(move |mut gui, hovers| {
             gui.sprite_sliced(
                 crate::assets::image::PANEL,
@@ -46,46 +41,93 @@ impl GameUi {
                 false,
             );
             gui.cut_left(gui.layout().h, |mut gui| {
-                Self::avatar_widget(gui.gui(), avatar, hovers);
+                gui.sprite(crate::assets::image::LOGO, Rgba::white());
             });
-            gui.text(
-                crate::assets::font::ROBOTO,
-                if hovers {
-                    message_hovers
-                } else {
-                    message_normal
-                },
-                20.0,
-                Rgba::white(),
-                0.0,
-            );
-            false
-        });
-    }
-
-    fn avatar_widget<T>(mut gui: Gui<T>, image: &str, hovers: bool) {
-        if hovers {
-            gui.clip(|mut gui| {
-                gui.scale(1.25, 0.5, |mut gui| {
-                    gui.sprite(image, Rgba::white());
-                });
+            gui.margin(12.0, 0.0, 0.0, 0.0, |mut gui| {
+                gui.text(
+                    crate::assets::font::ROBOTO,
+                    if hovers {
+                        message_hovers
+                    } else {
+                        message_normal
+                    },
+                    30.0,
+                    Rgba::white(),
+                    0.5,
+                );
             });
-        } else {
-            gui.sprite(image, Rgba::white());
-        };
+            clicked
+        })
     }
 }
 
 #[intuicio_methods(module_name = "game")]
-impl GameUi {
+impl GuiNode {
     #[intuicio_method(transformer = "DynamicManagedValueTransformer")]
     pub fn event_draw_gui(
-        _this: &mut Self,
+        this: &mut Self,
         _transform: &mut HaTransform,
-        camera: &Camera,
-        inputs: &InputController,
-        renderables: &mut Renderables,
+        universe: &Universe,
+        _entity: Entity,
     ) {
-        Self::draw(camera, inputs, renderables);
+        let world = &*universe.world();
+        let camera = &*universe.expect_resource::<Camera>();
+        let inputs = &*universe.expect_resource::<InputController>();
+        let renderables = &mut *universe.expect_resource_mut::<Renderables>();
+        let mut spawns = universe.expect_resource_mut::<ScriptedNodesSpawns>();
+        let mut commands = universe.expect_resource_mut::<UniverseCommands>();
+        let pointer = Vec2::from(inputs.multi_axis_or_default(["mouse-x", "mouse-y"]));
+        let clicked = inputs.trigger_or_default("mouse-action").is_pressed();
+
+        gui(pointer, camera, renderables, &mut (), |mut gui| {
+            gui.margin(16.0, 16.0, 16.0, 16.0, |mut gui| {
+                gui.text(
+                    crate::assets::font::ROBOTO,
+                    &format!("Score: {}", this.score),
+                    40.0,
+                    Rgba::white(),
+                    0.0,
+                );
+
+                if this.game_over {
+                    gui.freeform_aligned(
+                        vec2(300.0, 100.0),
+                        vec2(0.5, 0.0),
+                        vec2(0.5, 0.0),
+                        |mut gui| {
+                            if Self::popup_widget(
+                                gui.gui(),
+                                GAME_OVER_NORMAL,
+                                GAME_OVER_HOVER,
+                                clicked,
+                            ) {
+                                spawns.spawn_root(GameState::create_player(vec2(0.0, 0.0)));
+                                for entity in
+                                    ScriptedNodeEntity::find_all_of_type_raw::<EnemyNode>(world)
+                                {
+                                    commands.schedule(DespawnEntity(entity));
+                                }
+                            }
+                        },
+                    );
+                }
+            });
+        });
+    }
+
+    #[intuicio_method(transformer = "DynamicManagedValueTransformer")]
+    pub fn signal_game_over(this: &mut Self, _entity: Entity) {
+        this.game_over = true;
+    }
+
+    #[intuicio_method(transformer = "DynamicManagedValueTransformer")]
+    pub fn signal_game_start(this: &mut Self, _entity: Entity) {
+        this.game_over = false;
+        this.score = 0;
+    }
+
+    #[intuicio_method(transformer = "DynamicManagedValueTransformer")]
+    pub fn signal_score_increased(this: &mut Self, _entity: Entity) {
+        this.score += 1;
     }
 }

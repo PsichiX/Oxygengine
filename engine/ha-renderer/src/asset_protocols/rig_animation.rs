@@ -2,6 +2,7 @@ use crate::{components::transform::HaTransform, math::*};
 use animation::phase::Phase;
 use core::{
     assets::protocol::{AssetLoadResult, AssetProtocol},
+    scripting::{intuicio::data::managed::DynamicManaged, ScriptingValue},
     Scalar,
 };
 use serde::{Deserialize, Serialize};
@@ -11,127 +12,105 @@ fn default_speed() -> Scalar {
     1.0
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum RigAnimationValue {
-    Bool(bool),
-    Integer(i32),
-    Scalar(Scalar),
-    String(String),
-}
-
-impl RigAnimationValue {
-    pub fn as_bool(&self) -> Option<bool> {
-        match self {
-            Self::Bool(v) => Some(*v),
-            _ => None,
-        }
-    }
-
-    pub fn as_integer(&self) -> Option<i32> {
-        match self {
-            Self::Integer(v) => Some(*v),
-            _ => None,
-        }
-    }
-
-    pub fn as_scalar(&self) -> Option<Scalar> {
-        match self {
-            Self::Scalar(v) => Some(*v),
-            _ => None,
-        }
-    }
-
-    pub fn as_str(&self) -> Option<&str> {
-        match self {
-            Self::String(v) => Some(v.as_str()),
-            _ => None,
-        }
-    }
-}
-
-impl From<bool> for RigAnimationValue {
-    fn from(v: bool) -> Self {
-        Self::Bool(v)
-    }
-}
-
-impl From<i32> for RigAnimationValue {
-    fn from(v: i32) -> Self {
-        Self::Integer(v)
-    }
-}
-
-impl From<Scalar> for RigAnimationValue {
-    fn from(v: Scalar) -> Self {
-        Self::Scalar(v)
-    }
-}
-
-impl From<String> for RigAnimationValue {
-    fn from(v: String) -> Self {
-        Self::String(v)
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RigAnimationCondition {
+    Not(Box<Self>),
+    And(Vec<Self>),
+    Or(Vec<Self>),
     Bool(bool),
     IntegerEquals(i32),
-    IntegerNotEquals(i32),
     IntegerGreater(i32),
     IntegerLess(i32),
     /// (from inclusive, to inclusive)
     IntegerRange(i32, i32),
     /// (value, threshold)
     ScalarNearlyEquals(Scalar, Scalar),
-    /// (value, threshold)
-    ScalarNotNearlyEquals(Scalar, Scalar),
     ScalarGreater(Scalar),
     ScalarLess(Scalar),
     /// (from inclusive, to inclusive)
     ScalarRange(Scalar, Scalar),
     StringEquals(String),
-    StringNotEquals(String),
     StringContains(String),
-    StringNotContains(String),
     StringTagged {
-        tag: String,
-        separator: String,
-    },
-    StringNotTagged {
         tag: String,
         separator: String,
     },
 }
 
 impl RigAnimationCondition {
-    pub fn validate(&self, value: &RigAnimationValue) -> bool {
-        match (self, value) {
-            (Self::Bool(c), RigAnimationValue::Bool(v)) => c == v,
-            (Self::IntegerEquals(c), RigAnimationValue::Integer(v)) => c == v,
-            (Self::IntegerNotEquals(c), RigAnimationValue::Integer(v)) => c != v,
-            (Self::IntegerGreater(c), RigAnimationValue::Integer(v)) => v > c,
-            (Self::IntegerLess(c), RigAnimationValue::Integer(v)) => v < c,
-            (Self::IntegerRange(a, b), RigAnimationValue::Integer(v)) => v >= a && v <= b,
-            (Self::ScalarNearlyEquals(c, t), RigAnimationValue::Scalar(v)) => (c - v).abs() < *t,
-            (Self::ScalarNotNearlyEquals(c, t), RigAnimationValue::Scalar(v)) => {
-                (c - v).abs() >= *t
+    pub fn validate(&self, value: &DynamicManaged) -> bool {
+        match self {
+            RigAnimationCondition::Not(c) => {
+                return !c.validate(value);
             }
-            (Self::ScalarGreater(c), RigAnimationValue::Scalar(v)) => v > c,
-            (Self::ScalarLess(c), RigAnimationValue::Scalar(v)) => v < c,
-            (Self::ScalarRange(a, b), RigAnimationValue::Scalar(v)) => v >= a && v <= b,
-            (Self::StringEquals(c), RigAnimationValue::String(v)) => c == v,
-            (Self::StringNotEquals(c), RigAnimationValue::String(v)) => c != v,
-            (Self::StringContains(c), RigAnimationValue::String(v)) => v.contains(c),
-            (Self::StringNotContains(c), RigAnimationValue::String(v)) => !v.contains(c),
-            (Self::StringTagged { tag, separator }, RigAnimationValue::String(v)) => {
-                v.split(separator).any(|part| part == tag)
+            RigAnimationCondition::And(c) => {
+                return c.iter().all(|c| c.validate(value));
             }
-            (Self::StringNotTagged { tag, separator }, RigAnimationValue::String(v)) => {
-                !v.split(separator).any(|part| part == tag)
+            RigAnimationCondition::Or(c) => {
+                return c.iter().any(|c| c.validate(value));
             }
-            _ => false,
+            RigAnimationCondition::Bool(c) => {
+                if let Some(v) = value.read::<bool>() {
+                    return *v == *c;
+                }
+            }
+            RigAnimationCondition::IntegerEquals(c) => {
+                if let Some(v) = value.read::<i32>() {
+                    return *v == *c;
+                }
+            }
+            RigAnimationCondition::IntegerGreater(c) => {
+                if let Some(v) = value.read::<i32>() {
+                    return *v > *c;
+                }
+            }
+            RigAnimationCondition::IntegerLess(c) => {
+                if let Some(v) = value.read::<i32>() {
+                    return *v < *c;
+                }
+            }
+            RigAnimationCondition::IntegerRange(a, b) => {
+                if let Some(v) = value.read::<i32>() {
+                    return *v >= *a && *v <= *b;
+                }
+            }
+            RigAnimationCondition::ScalarNearlyEquals(c, t) => {
+                if let Some(v) = value.read::<Scalar>() {
+                    return (*c - *v).abs() < *t;
+                }
+            }
+            RigAnimationCondition::ScalarGreater(c) => {
+                if let Some(v) = value.read::<Scalar>() {
+                    return *v > *c;
+                }
+            }
+            RigAnimationCondition::ScalarLess(c) => {
+                if let Some(v) = value.read::<Scalar>() {
+                    return *v < *c;
+                }
+            }
+            RigAnimationCondition::ScalarRange(a, b) => {
+                if let Some(v) = value.read::<Scalar>() {
+                    return *v >= *a && *v <= *b;
+                }
+            }
+            RigAnimationCondition::StringEquals(c) => {
+                if let Some(v) = value.read::<String>() {
+                    return *v == *c;
+                }
+            }
+            RigAnimationCondition::StringContains(c) => {
+                if let Some(v) = value.read::<String>() {
+                    return v.contains(c);
+                }
+            }
+            RigAnimationCondition::StringTagged { tag, separator } => {
+                if let Some(v) = value.read::<String>() {
+                    return v.split(separator).any(|part| part == tag);
+                }
+            }
         }
+        false
     }
 }
 
@@ -165,7 +144,7 @@ pub struct RigAnimationSignal {
     pub time: Scalar,
     pub id: String,
     #[serde(default)]
-    pub params: HashMap<String, RigAnimationValue>,
+    pub params: HashMap<String, ScriptingValue>,
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]

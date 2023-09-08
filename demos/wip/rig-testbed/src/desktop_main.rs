@@ -1,4 +1,4 @@
-#![windows_subsystem = "windows"]
+#![cfg_attr(feature = "distribution", windows_subsystem = "windows")]
 
 mod bootload;
 mod states;
