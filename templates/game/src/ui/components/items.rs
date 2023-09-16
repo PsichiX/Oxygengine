@@ -10,11 +10,11 @@ pub struct ItemsProps {
 }
 
 pub fn heart_items(context: WidgetContext) -> WidgetNode {
-    items(context, "atlases/ui.json@heart")
+    items(context, "atlases/ui/atlas.json@heart")
 }
 
 pub fn sword_items(context: WidgetContext) -> WidgetNode {
-    items(context, "atlases/ui.json@sword")
+    items(context, "atlases/ui/atlas.json@sword")
 }
 
 fn items(context: WidgetContext, image: &str) -> WidgetNode {
@@ -41,7 +41,7 @@ fn items(context: WidgetContext, image: &str) -> WidgetNode {
                         .key("background")
                         .with_props(ImageBoxProps {
                             material: ImageBoxMaterial::Image(ImageBoxImage {
-                                id: "atlases/ui.json@dot".to_owned(),
+                                id: "atlases/ui/atlas.json@dot".to_owned(),
                                 tint: Color {
                                     r: 0.0,
                                     g: 0.0,
@@ -67,7 +67,7 @@ fn items(context: WidgetContext, image: &str) -> WidgetNode {
                         .key("frame")
                         .with_props(ImageBoxProps {
                             material: ImageBoxMaterial::Image(ImageBoxImage {
-                                id: "atlases/ui.json@bar-rect".to_owned(),
+                                id: "atlases/ui/atlas.json@bar-rect".to_owned(),
                                 scaling: ImageBoxImageScaling::Frame(ImageBoxFrame {
                                     source: Rect {
                                         left: 1.0,
@@ -128,7 +128,7 @@ fn items(context: WidgetContext, image: &str) -> WidgetNode {
                             TextBoxProps {
                                 text: format!("{}/{}", count, capacity),
                                 font: TextBoxFont {
-                                    name: "fonts/pixel.json".to_owned(),
+                                    name: "fonts/pixel/font.json".to_owned(),
                                     size: 8.0,
                                 },
                                 horizontal_align: if reversed {

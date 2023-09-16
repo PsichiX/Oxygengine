@@ -18,7 +18,7 @@ pub fn bar(context: WidgetContext) -> WidgetNode {
             make_widget!(image_box)
                 .with_props(ImageBoxProps {
                     material: ImageBoxMaterial::Image(ImageBoxImage {
-                        id: "atlases/ui.json@dot".to_owned(),
+                        id: "atlases/ui/atlas.json@dot".to_owned(),
                         tint: Color {
                             r: 0.0,
                             g: 0.0,
@@ -43,7 +43,7 @@ pub fn bar(context: WidgetContext) -> WidgetNode {
             make_widget!(image_box)
                 .with_props(ImageBoxProps {
                     material: ImageBoxMaterial::Image(ImageBoxImage {
-                        id: "atlases/ui.json@dot".to_owned(),
+                        id: "atlases/ui/atlas.json@dot".to_owned(),
                         tint: color,
                         ..Default::default()
                     }),
@@ -61,7 +61,7 @@ pub fn bar(context: WidgetContext) -> WidgetNode {
         )
         .listed_slot(make_widget!(image_box).with_props(ImageBoxProps {
             material: ImageBoxMaterial::Image(ImageBoxImage {
-                id: "atlases/ui.json@bar-rect".to_owned(),
+                id: "atlases/ui/atlas.json@bar-rect".to_owned(),
                 scaling: ImageBoxImageScaling::Frame(ImageBoxFrame {
                     source: Rect {
                         left: 1.0,

@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-audio-backend-web"
-version = "0.45.0"
+version = "0.45.1"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Audio Web backend module for Oxygengine"

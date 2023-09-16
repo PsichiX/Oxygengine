@@ -5,7 +5,7 @@ pub fn gui(_context: WidgetContext) -> WidgetNode {
         .with_props(TextBoxProps {
             text: "Hello World!".to_owned(),
             font: TextBoxFont {
-                name: "fonts/roboto.json".to_owned(),
+                name: "fonts/roboto/font.json".to_owned(),
                 size: 64.0,
             },
             horizontal_align: TextBoxHorizontalAlign::Center,
