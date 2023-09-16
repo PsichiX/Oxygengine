@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-utils"
-version = "0.44.0"
+version = "0.45.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Utilities module for Oxygengine"

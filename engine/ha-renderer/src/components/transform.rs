@@ -207,6 +207,10 @@ impl HaTransform {
         self.transform_world_direction(Vec3::unit_z())
     }
 
+    pub fn get_world_rotation_lossy(&self) -> Rotator {
+        Rotator::look_at(self.get_world_forward(), self.get_world_up())
+    }
+
     pub fn get_world_scale_lossy(&self) -> Vec3 {
         let matrix = &self.cached_world_matrix;
         let x = (matrix.cols.x.x * matrix.cols.x.x
@@ -292,6 +296,14 @@ impl HaTransform {
         self.cached_inverse_world_matrix
     }
 
+    pub fn relative_to_world(&self, other: &Self) -> Self {
+        Self::from_matrix(self.inverse_world_matrix() * other.world_matrix())
+    }
+
+    pub fn relative_to_local(&self, other: &Self) -> Self {
+        Self::from_matrix(self.inverse_local_matrix() * other.local_matrix())
+    }
+
     fn rebuild_local_matrix(&mut self) {
         self.cached_local_matrix = Mat4::from(Transform {
             position: self.translation,
@@ -301,7 +313,7 @@ impl HaTransform {
         self.cached_inverse_local_matrix = self.cached_local_matrix.inverted();
     }
 
-    pub(crate) fn rebuild_world_matrix(&mut self, parent: Option<&HaTransform>) {
+    pub fn rebuild_world_matrix(&mut self, parent: Option<&HaTransform>) {
         if let Some(parent) = parent {
             self.cached_world_matrix = parent.world_matrix() * self.cached_local_matrix;
         } else {

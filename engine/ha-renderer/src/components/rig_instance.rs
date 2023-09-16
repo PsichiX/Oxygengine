@@ -6,7 +6,14 @@ use crate::{
 };
 use core::{
     prefab::{Prefab, PrefabComponent},
-    scripting::intuicio::core::object::{DynamicObject, TypedDynamicObject},
+    scripting::intuicio::data::{
+        lifetime::Lifetime,
+        managed::{DynamicManaged, DynamicManagedRef, DynamicManagedRefMut},
+    },
+};
+use oxygengine_core::scripting::{
+    intuicio::prelude::{ValueReadAccess, ValueWriteAccess},
+    ScriptingValue,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -467,14 +474,14 @@ impl HaRigDeformer {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct HaRigControlNode {
     #[serde(default)]
     transform: HaTransform,
     #[serde(default)]
     parent_bone: Option<String>,
     #[serde(skip)]
-    dirty: bool,
+    lifetime: Lifetime,
 }
 
 impl HaRigControlNode {
@@ -494,7 +501,18 @@ impl HaRigControlNode {
 
     pub fn set_transform(&mut self, transform: HaTransform) {
         self.transform = transform;
-        self.dirty = true;
+    }
+
+    pub fn borrow_transform(&self) -> Option<DynamicManagedRef> {
+        self.lifetime
+            .borrow()
+            .map(|lifetime| DynamicManagedRef::new(&self.transform, lifetime))
+    }
+
+    pub fn borrow_transform_mut(&mut self) -> Option<DynamicManagedRefMut> {
+        self.lifetime
+            .borrow_mut()
+            .map(|lifetime| DynamicManagedRefMut::new(&mut self.transform, lifetime))
     }
 
     pub fn parent_node(&self) -> Option<&str> {
@@ -503,48 +521,225 @@ impl HaRigControlNode {
 
     pub fn set_parent_bone(&mut self, bone: Option<String>) {
         self.parent_bone = bone;
-        self.dirty = true;
-    }
-
-    pub fn is_dirty(&self) -> bool {
-        self.dirty
     }
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct HaRigControl {
-    #[serde(default)]
-    controls: HashMap<String, HaRigControlNode>,
-    #[serde(skip)]
-    pub named_properties: DynamicObject,
-    #[serde(skip)]
-    pub typed_properties: TypedDynamicObject,
-    #[serde(skip)]
-    dirty: bool,
-}
-
-impl Default for HaRigControl {
-    fn default() -> Self {
+impl Clone for HaRigControlNode {
+    fn clone(&self) -> Self {
         Self {
-            controls: Default::default(),
-            named_properties: Default::default(),
-            typed_properties: Default::default(),
-            dirty: true,
+            transform: self.transform.clone(),
+            parent_bone: self.parent_bone.clone(),
+            lifetime: Default::default(),
         }
     }
 }
 
-impl HaRigControl {
-    pub fn is_dirty(&self) -> bool {
-        self.dirty || self.controls.values().any(|node| node.is_dirty())
+impl std::fmt::Debug for HaRigControlNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HaRigControlNode")
+            .field("transform", &self.transform)
+            .field("parent_bone", &self.parent_bone)
+            .finish_non_exhaustive()
+    }
+}
+
+pub struct HaRigControlSignal {
+    pub name: String,
+    pub params: HashMap<String, DynamicManaged>,
+}
+
+impl HaRigControlSignal {
+    pub fn new(name: impl ToString) -> Self {
+        Self {
+            name: name.to_string(),
+            params: Default::default(),
+        }
     }
 
+    pub fn param_raw(mut self, name: impl ToString, value: DynamicManaged) -> Self {
+        self.params.insert(name.to_string(), value);
+        self
+    }
+
+    pub fn param<T: 'static>(self, name: impl ToString, value: T) -> Self {
+        self.param_raw(name, DynamicManaged::new(value))
+    }
+
+    pub fn params(mut self, iter: impl IntoIterator<Item = (String, DynamicManaged)>) -> Self {
+        self.params.extend(iter.into_iter());
+        self
+    }
+
+    pub fn read<T: 'static>(&self, name: &str) -> Option<ValueReadAccess<T>> {
+        self.params.get(name)?.read::<T>()
+    }
+}
+
+pub struct HaRigControlProperty<'a> {
+    control: &'a mut HaRigControl,
+    name: &'a str,
+}
+
+impl<'a> HaRigControlProperty<'a> {
+    pub fn delete(self) -> Option<DynamicManaged> {
+        self.control.properties.remove(self.name)
+    }
+
+    pub fn does_exists(self) -> bool {
+        self.control.properties.contains_key(self.name)
+    }
+
+    pub fn while_occupied(self) -> Option<Self> {
+        if self.control.properties.contains_key(self.name) {
+            Some(self)
+        } else {
+            None
+        }
+    }
+
+    pub fn while_vacant(self) -> Option<Self> {
+        if !self.control.properties.contains_key(self.name) {
+            Some(self)
+        } else {
+            None
+        }
+    }
+
+    pub fn set<T: 'static>(self, data: T) {
+        self.control
+            .properties
+            .insert(self.name.to_owned(), DynamicManaged::new(data));
+    }
+
+    pub fn set_raw(self, data: DynamicManaged) {
+        self.control.properties.insert(self.name.to_owned(), data);
+    }
+
+    pub fn and_modify<T: 'static>(self, f: impl FnOnce(&mut T)) -> Self {
+        self.control
+            .properties
+            .entry(self.name.to_owned())
+            .and_modify(|data| {
+                if let Some(mut data) = data.write::<T>() {
+                    f(&mut data);
+                }
+            });
+        self
+    }
+
+    pub fn or_default<T: 'static>(self) -> Self
+    where
+        T: Default,
+    {
+        self.control
+            .properties
+            .entry(self.name.to_owned())
+            .or_insert_with(|| DynamicManaged::new(T::default()));
+        self
+    }
+
+    pub fn or_insert<T: 'static>(self, data: T) -> Self {
+        self.control
+            .properties
+            .entry(self.name.to_owned())
+            .or_insert(DynamicManaged::new(data));
+        self
+    }
+
+    pub fn or_insert_raw(self, data: DynamicManaged) -> Self {
+        self.control
+            .properties
+            .entry(self.name.to_owned())
+            .or_insert(data);
+        self
+    }
+
+    pub fn or_insert_with<T: 'static>(self, f: impl FnOnce() -> T) -> Self {
+        self.control
+            .properties
+            .entry(self.name.to_owned())
+            .or_insert_with(|| DynamicManaged::new(f()));
+        self
+    }
+
+    pub fn or_insert_with_raw(self, f: impl FnOnce() -> DynamicManaged) -> Self {
+        self.control
+            .properties
+            .entry(self.name.to_owned())
+            .or_insert_with(|| f());
+        self
+    }
+
+    pub fn borrow(self) -> Option<DynamicManagedRef> {
+        self.control.properties.get(self.name)?.borrow()
+    }
+
+    pub fn borrow_mut(self) -> Option<DynamicManagedRefMut> {
+        self.control.properties.get_mut(self.name)?.borrow_mut()
+    }
+
+    pub fn read<T: 'static>(self) -> Option<ValueReadAccess<'a, T>> {
+        self.control.properties.get(self.name)?.read::<T>()
+    }
+
+    pub fn write<T: 'static>(self) -> Option<ValueWriteAccess<'a, T>> {
+        self.control.properties.get_mut(self.name)?.write::<T>()
+    }
+
+    pub fn consumed<T: 'static>(self) -> Option<T> {
+        match self.control.properties.remove(self.name)?.consume::<T>() {
+            Ok(result) => Some(result),
+            Err(data) => {
+                self.control.properties.insert(self.name.to_owned(), data);
+                None
+            }
+        }
+    }
+
+    pub fn cloned<T: Clone + 'static>(self) -> Option<T> {
+        Some(self.control.properties.get(self.name)?.read::<T>()?.clone())
+    }
+
+    pub fn copied<T: Copy + 'static>(self) -> Option<T> {
+        Some(*self.control.properties.get(self.name)?.read::<T>()?)
+    }
+
+    pub fn managed(self) -> Option<&'a DynamicManaged> {
+        self.control.properties.get(self.name)
+    }
+
+    pub fn managed_mut(self) -> Option<&'a mut DynamicManaged> {
+        self.control.properties.get_mut(self.name)
+    }
+}
+
+#[derive(Default, Clone, Serialize, Deserialize)]
+pub struct HaRigControlDef {
+    #[serde(default)]
+    pub controls: HashMap<String, HaRigControlNode>,
+    #[serde(default)]
+    pub properties: HashMap<String, ScriptingValue>,
+}
+
+#[derive(Default, Serialize, Deserialize)]
+#[serde(try_from = "HaRigControlDef")]
+pub struct HaRigControl {
+    #[serde(default)]
+    controls: HashMap<String, HaRigControlNode>,
+    #[serde(skip)]
+    pub(crate) states: Vec<DynamicManaged>,
+    #[serde(skip)]
+    properties: HashMap<String, DynamicManaged>,
+    #[serde(skip)]
+    pub(crate) signals: Vec<HaRigControlSignal>,
+}
+
+impl HaRigControl {
     pub fn control(&self, name: &str) -> Option<&HaRigControlNode> {
         self.controls.get(name)
     }
 
     pub fn control_mut(&mut self, name: &str) -> Option<&mut HaRigControlNode> {
-        self.dirty = true;
         self.controls.get_mut(name)
     }
 
@@ -553,19 +748,30 @@ impl HaRigControl {
         name: impl ToString,
         node: HaRigControlNode,
     ) -> Option<HaRigControlNode> {
-        self.dirty = true;
         self.controls.insert(name.to_string(), node)
     }
-}
 
-impl Clone for HaRigControl {
-    fn clone(&self) -> Self {
-        Self {
-            controls: self.controls.clone(),
-            named_properties: Default::default(),
-            typed_properties: Default::default(),
-            dirty: true,
+    pub fn delete_control(&mut self, name: &str) -> Option<HaRigControlNode> {
+        self.controls.remove(name)
+    }
+
+    pub fn reset(&mut self) {
+        self.states.clear();
+    }
+
+    pub fn property<'a>(&'a mut self, name: &'a str) -> HaRigControlProperty<'a> {
+        HaRigControlProperty {
+            control: self,
+            name,
         }
+    }
+
+    pub fn signal(&mut self, signal: HaRigControlSignal) {
+        self.signals.push(signal);
+    }
+
+    pub fn signals(&self) -> &[HaRigControlSignal] {
+        &self.signals
     }
 }
 
@@ -573,16 +779,28 @@ impl std::fmt::Debug for HaRigControl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("HaRigControl")
             .field("controls", &self.controls)
-            .field(
-                "properties",
-                &self.named_properties.property_names().collect::<Vec<_>>(),
-            )
-            .field("dirty", &self.dirty)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+impl TryFrom<HaRigControlDef> for HaRigControl {
+    type Error = Box<dyn std::error::Error>;
+
+    fn try_from(value: HaRigControlDef) -> Result<Self, Self::Error> {
+        Ok(Self {
+            controls: value.controls,
+            states: Default::default(),
+            properties: value
+                .properties
+                .into_iter()
+                .map(|(name, value)| Ok((name, value.produce()?)))
+                .collect::<Result<_, Box<dyn std::error::Error>>>()?,
+            signals: Default::default(),
+        })
+    }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct HaRigInstance {
     #[serde(default)]
     pub skeleton: HaRigSkeleton,

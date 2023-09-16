@@ -35,10 +35,9 @@ pub mod prelude {
         code_material_functions,
         components::{
             camera::*, gizmo::*, immediate_batch::*, material_instance::*, mesh_instance::*,
-            postprocess::*, rig_animation_instance::*, rig_instance::*,
-            sprite_animation_instance::*, text_instance::*, tilemap_instance::*, transform::*,
-            virtual_image_uniforms::*, visibility::*, volume::*, volume_overlap::*,
-            volume_visibility::*, *,
+            postprocess::*, rig_instance::*, sprite_animation_instance::*, text_instance::*,
+            tilemap_instance::*, transform::*, virtual_image_uniforms::*, visibility::*, volume::*,
+            volume_overlap::*, volume_visibility::*, *,
         },
         constants::material_uniforms::*,
         graph_material_function,
@@ -62,6 +61,7 @@ pub mod prelude {
         material_graph_output, material_value_type,
         math::*,
         mesh::{
+            controls::animation::*,
             geometry::*,
             rig::{deformer::*, skeleton::*, *},
             vertex_factory::*,
@@ -73,11 +73,11 @@ pub mod prelude {
         resources::{camera_cache::*, gizmos::*, material_library::*, resource_mapping::*, *},
         rich_text,
         systems::{
-            apply_rig_animation::*, apply_sprite_animation_to_material::*, atlas::*,
-            camera_cache::*, font::*, immediate_batch::*, mesh_bounds_gizmo::*,
-            render_forward_stage::*, render_gizmo_stage::*, render_postprocess_stage::*,
-            renderer::*, rig_animation::*, sprite_animation::*, tilemap::*, transform::*,
-            virtual_image_uniforms::*, volume_overlap::*, volume_visibility::*, *,
+            apply_sprite_animation_to_material::*, atlas::*, camera_cache::*, font::*,
+            immediate_batch::*, mesh_bounds_gizmo::*, render_forward_stage::*,
+            render_gizmo_stage::*, render_postprocess_stage::*, renderer::*, sprite_animation::*,
+            tilemap::*, transform::*, virtual_image_uniforms::*, volume_overlap::*,
+            volume_visibility::*, *,
         },
         Error, HaRendererBundleSetup, HasContextResources, ResourceReference, Resources,
     };
@@ -105,7 +105,6 @@ use crate::{
         material_instance::HaMaterialInstance,
         mesh_instance::HaMeshInstance,
         postprocess::HaPostProcess,
-        rig_animation_instance::HaRigAnimationInstance,
         rig_instance::HaRigInstance,
         sprite_animation_instance::HaSpriteAnimationInstance,
         text_instance::HaTextInstance,
@@ -145,11 +144,10 @@ use crate::{
         },
         MaterialDrawOptions, MaterialError, MaterialId, MaterialResourceMapping,
     },
-    mesh::{MeshError, MeshId, MeshResourceMapping},
+    mesh::{controls::animation::AnimationRigControl, MeshError, MeshId, MeshResourceMapping},
     render_target::{RenderTargetError, RenderTargetId},
     resources::{camera_cache::CameraCache, gizmos::Gizmos, material_library::MaterialLibrary},
     systems::{
-        apply_rig_animation::{ha_apply_rig_animation, HaApplyRigAnimationSystemResources},
         apply_sprite_animation_to_material::{
             ha_apply_sprite_animation_to_material, HaApplySpriteAnimationToMaterialSystemResources,
         },
@@ -177,9 +175,6 @@ use crate::{
             HaRendererMaintenanceSystemResources,
         },
         rig::{ha_rig_system, HaRigSystemCache, HaRigSystemResources},
-        rig_animation::{
-            ha_rig_animation, HaRigAnimationSystemCache, HaRigAnimationSystemResources,
-        },
         sprite_animation::{
             ha_sprite_animation, HaSpriteAnimationSystemCache, HaSpriteAnimationSystemResources,
         },
@@ -206,6 +201,7 @@ use core::{
     },
     id::ID,
     prefab::PrefabManager,
+    scripting::intuicio::core::{registry::Registry, struct_type::NativeStructBuilder},
 };
 use glow::HasContext;
 use serde::{Deserialize, Serialize};
@@ -433,7 +429,6 @@ where
     builder.install_resource(HaFontSystemCache::default());
     builder.install_resource(HaTileMapSystemCache::default());
     builder.install_resource(HaSpriteAnimationSystemCache::default());
-    builder.install_resource(HaRigAnimationSystemCache::default());
     builder.install_resource(HaRigSystemCache::default());
     builder.install_resource(HaVolumeVisibilitySystemCache::default());
     builder.install_resource(HaVolumeOverlapSystemCache::default());
@@ -493,16 +488,6 @@ where
     builder.install_system::<HaFontSystemResources>("font", ha_font_system, &[])?;
     builder.install_system::<HaTileMapSystemResources>("tilemap", ha_tilemap_system, &[])?;
     builder.install_system::<HaRigSystemResources>("rig", ha_rig_system, &[])?;
-    builder.install_system::<HaRigAnimationSystemResources>(
-        "skeletal-animation",
-        ha_rig_animation,
-        &["rig"],
-    )?;
-    builder.install_system::<HaApplyRigAnimationSystemResources>(
-        "apply-skeletal-animation",
-        ha_apply_rig_animation,
-        &["skeletal-animation"],
-    )?;
     builder.install_system::<HaSpriteAnimationSystemResources>(
         "sprite-animation",
         ha_sprite_animation,
@@ -869,7 +854,6 @@ pub fn prefabs_installer(prefabs: &mut PrefabManager) {
     prefabs.register_component_factory::<HaMaterialInstance>("HaMaterialInstance");
     prefabs.register_component_factory::<HaMeshInstance>("HaMeshInstance");
     prefabs.register_component_factory::<HaSpriteAnimationInstance>("HaSpriteAnimationInstance");
-    prefabs.register_component_factory::<HaRigAnimationInstance>("HaSkeletalAnimationInstance");
     prefabs.register_component_factory::<HaRigInstance>("HaRigInstance");
     prefabs.register_component_factory::<HaTextInstance>("HaTextInstance");
     prefabs.register_component_factory::<HaTileMapInstance>("HaTileMapInstance");
@@ -891,4 +875,13 @@ where
         "HaImmediateBatch-{}",
         postfix
     ));
+}
+
+pub fn scripting_installer(registry: &mut Registry) {
+    registry.add_struct(
+        NativeStructBuilder::new_named::<HaRigInstance>("HaRigInstance")
+            .module_name("ha_renderer")
+            .build(),
+    );
+    AnimationRigControl::install(registry);
 }

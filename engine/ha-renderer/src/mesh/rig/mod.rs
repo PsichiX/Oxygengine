@@ -8,5 +8,5 @@ use crate::mesh::rig::{control::RigControl, deformer::Deformer, skeleton::Skelet
 pub struct Rig {
     pub skeleton: Skeleton,
     pub deformer: Deformer,
-    pub control: Option<RigControl>,
+    pub controls: Vec<RigControl>,
 }

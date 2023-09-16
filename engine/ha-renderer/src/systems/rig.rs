@@ -1,17 +1,18 @@
 use crate::{
     asset_protocols::rig::*,
-    components::{material_instance::*, rig_instance::*},
+    components::{material_instance::*, rig_instance::*, transform::*},
     ha_renderer::HaRenderer,
     image::*,
     material::common::MaterialValue,
     mesh::rig::*,
 };
 use core::{
+    app::AppLifeCycle,
     assets::{asset::AssetId, database::AssetsDatabase},
     ecs::{life_cycle::EntityChanges, Comp, Entity, Universe, WorldRef},
     scripting::{
         intuicio::{
-            core::context::Context,
+            core::{context::Context, object::Object},
             data::{lifetime::*, managed::*},
         },
         Scripting,
@@ -43,6 +44,7 @@ impl Default for HaRigSystemCache {
 
 pub type HaRigSystemResources<'a> = (
     WorldRef,
+    &'a AppLifeCycle,
     &'a AssetsDatabase,
     &'a EntityChanges,
     &'a Scripting,
@@ -53,7 +55,7 @@ pub type HaRigSystemResources<'a> = (
 );
 
 pub fn ha_rig_system(universe: &mut Universe) {
-    let (world, assets, changes, scripting, mut renderer, mut cache, ..) =
+    let (world, lifecycle, assets, changes, scripting, mut renderer, mut cache, ..) =
         universe.query_resources::<HaRigSystemResources>();
     let cache = &mut *cache;
 
@@ -83,16 +85,12 @@ pub fn ha_rig_system(universe: &mut Universe) {
         }
     }
 
-    for (entity, (rig, material)) in world
-        .query::<(&mut HaRigInstance, &mut HaMaterialInstance)>()
+    for (entity, (rig, material, transform)) in world
+        .query::<(&mut HaRigInstance, &mut HaMaterialInstance, &HaTransform)>()
         .iter()
     {
         let dirty_deformer = rig.deformer.is_dirty();
         let dirty_skeleton = rig.skeleton.is_dirty();
-        let dirty_control = rig.control.is_dirty();
-        if !dirty_deformer && !dirty_skeleton && !dirty_control {
-            continue;
-        }
 
         if let Some((asset, _)) = cache.map.get(rig.asset()) {
             rig.try_initialize(asset);
@@ -177,20 +175,84 @@ pub fn ha_rig_system(universe: &mut Universe) {
                 }
             }
 
-            if dirty_control {
-                if let Some(control) = asset.control.as_ref() {
-                    let rig_lifetime = Lifetime::default();
-                    let rig = ManagedRefMut::new(rig, rig_lifetime.borrow_mut().unwrap());
-                    let asset_lifetime = Lifetime::default();
-                    let asset = ManagedRef::new(asset, asset_lifetime.borrow().unwrap());
-                    control.function.call::<(), _>(
-                        &mut cache.control_context,
-                        &scripting.registry,
-                        (rig, asset),
-                        true,
-                    );
-                }
+            let delta_time = lifecycle.delta_time_seconds();
+            rig.control.signals.clear();
+            if rig.control.states.len() != asset.controls.len() {
+                rig.control.states = asset
+                    .controls
+                    .iter()
+                    .map(|control| {
+                        let mut object = Object::new(control.struct_type.clone());
+                        for (name, value) in &control.bindings {
+                            if let Some(field) = object.write_field(&name) {
+                                *field = value.to_owned();
+                            }
+                        }
+                        let (handle, memory) = unsafe { object.into_inner() };
+                        DynamicManaged::new_raw(handle.type_hash(), Lifetime::default(), memory)
+                    })
+                    .collect();
             }
+            let mut rig_states = std::mem::take(&mut rig.control.states);
+            'controls: for (state, control) in rig_states.iter_mut().zip(asset.controls.iter()) {
+                let token = cache.control_context.stack().store();
+                let rig_lifetime = Lifetime::default();
+                let asset_lifetime = Lifetime::default();
+                let material_lifetime = Lifetime::default();
+                let assets_lifetime = Lifetime::default();
+                let transform_lifetime = Lifetime::default();
+                for arg in control.solve_function.signature().inputs.iter().rev() {
+                    match arg.name.as_str() {
+                        "this" => {
+                            let state = state.borrow_mut().unwrap();
+                            cache.control_context.stack().push(state);
+                        }
+                        "rig" => {
+                            let rig =
+                                DynamicManagedRefMut::new(rig, rig_lifetime.borrow_mut().unwrap());
+                            cache.control_context.stack().push(rig);
+                        }
+                        "asset" => {
+                            let asset =
+                                DynamicManagedRef::new(asset, asset_lifetime.borrow().unwrap());
+                            cache.control_context.stack().push(asset);
+                        }
+                        "material" => {
+                            let material = DynamicManagedRefMut::new(
+                                material,
+                                material_lifetime.borrow_mut().unwrap(),
+                            );
+                            cache.control_context.stack().push(material);
+                        }
+                        "assets" => {
+                            let assets =
+                                DynamicManagedRef::new(&*assets, assets_lifetime.borrow().unwrap());
+                            cache.control_context.stack().push(assets);
+                        }
+                        "transform" => {
+                            let transform = DynamicManagedRef::new(
+                                &*transform,
+                                transform_lifetime.borrow().unwrap(),
+                            );
+                            cache.control_context.stack().push(transform);
+                        }
+                        "delta_time" => {
+                            cache
+                                .control_context
+                                .stack()
+                                .push(DynamicManaged::new(delta_time));
+                        }
+                        _ => {
+                            cache.control_context.stack().restore(token);
+                            continue 'controls;
+                        }
+                    }
+                }
+                control
+                    .solve_function
+                    .invoke(&mut cache.control_context, &scripting.registry);
+            }
+            rig.control.states = rig_states;
         }
     }
 }

@@ -12,6 +12,7 @@ pub trait Curved {
     fn scale(&self, value: Scalar) -> Self;
     fn inverse_scale(&self, value: Scalar) -> Self;
     fn length(&self) -> Scalar;
+    fn length_squared(&self) -> Scalar;
     fn get_axis(&self, index: usize) -> Option<Scalar>;
     fn interpolate(&self, other: &Self, factor: Scalar) -> Self;
     fn is_valid(&self) -> bool;
@@ -40,6 +41,10 @@ impl Curved for Scalar {
 
     fn length(&self) -> Scalar {
         self.abs()
+    }
+
+    fn length_squared(&self) -> Scalar {
+        self * self
     }
 
     fn get_axis(&self, index: usize) -> Option<Scalar> {
@@ -81,7 +86,11 @@ impl Curved for (Scalar, Scalar) {
     }
 
     fn length(&self) -> Scalar {
-        (self.0 * self.0 + self.1 * self.1).sqrt()
+        self.length_squared().sqrt()
+    }
+
+    fn length_squared(&self) -> Scalar {
+        self.0 * self.0 + self.1 * self.1
     }
 
     fn get_axis(&self, index: usize) -> Option<Scalar> {
@@ -131,6 +140,10 @@ where
         self.read().unwrap().length()
     }
 
+    fn length_squared(&self) -> Scalar {
+        self.read().unwrap().length_squared()
+    }
+
     fn get_axis(&self, index: usize) -> Option<Scalar> {
         self.read().unwrap().get_axis(index)
     }
@@ -150,7 +163,7 @@ where
 pub trait CurvedChange {
     fn offset(&self, other: &Self) -> Self;
     fn delta(&self, other: &Self) -> Self;
-    fn slope(&self, other: &Self) -> Scalar;
+    fn dot(&self, other: &Self) -> Scalar;
 }
 
 impl CurvedChange for (Scalar, Scalar) {
@@ -162,7 +175,7 @@ impl CurvedChange for (Scalar, Scalar) {
         (other.0 - self.0, other.1 - self.1)
     }
 
-    fn slope(&self, other: &Self) -> Scalar {
+    fn dot(&self, other: &Self) -> Scalar {
         self.0 * other.0 + self.1 * other.1
     }
 }
@@ -183,10 +196,10 @@ where
         Arc::new(RwLock::new(from.delta(to)))
     }
 
-    fn slope(&self, other: &Self) -> Scalar {
+    fn dot(&self, other: &Self) -> Scalar {
         let from: &T = &self.read().unwrap();
         let to: &T = &other.read().unwrap();
-        from.slope(to)
+        from.dot(to)
     }
 }
 
@@ -377,13 +390,14 @@ where
     }
 
     /// Velocity of change along the curve.
-    pub fn sample_first_derivative(&self, factor: Scalar) -> T {
+    pub fn sample_first_derivative(&self, mut factor: Scalar) -> T {
+        factor = factor.max(0.0).min(1.0);
         let a = self.from.delta(&self.from_param);
         let b = self.from_param.delta(&self.to_param);
         let c = self.to_param.delta(&self.to);
         let d = a.interpolate(&b, factor);
         let e = b.interpolate(&c, factor);
-        d.interpolate(&e, factor)
+        d.interpolate(&e, factor).scale(3.0)
     }
 
     /// Velocity of change along the curve axis.
@@ -397,13 +411,14 @@ where
     }
 
     /// Acceleration of change along the curve.
-    pub fn sample_second_derivative(&self, factor: Scalar) -> T {
+    pub fn sample_second_derivative(&self, mut factor: Scalar) -> T {
+        factor = factor.max(0.0).min(1.0);
         let a = self.from.delta(&self.from_param);
         let b = self.from_param.delta(&self.to_param);
         let c = self.to_param.delta(&self.to);
         let d = a.delta(&b);
         let e = b.delta(&c);
-        d.interpolate(&e, factor)
+        d.interpolate(&e, factor).scale(6.0)
     }
 
     /// Acceleration of change along the curve axis.
@@ -416,18 +431,20 @@ where
         Some(self.sample_second_derivative(factor))
     }
 
-    pub fn sample_direction(&self, mut factor: Scalar) -> T {
-        factor = factor.max(EPSILON).min(1.0 - EPSILON);
-        self.sample_first_derivative(factor)
+    pub fn sample_k(&self, mut factor: Scalar) -> Scalar {
+        factor = factor.max(0.0).min(1.0);
+        let first = self.sample_first_derivative(factor);
+        let second = self.sample_second_derivative(factor);
+        second.length() / first.length().powf(1.5)
     }
 
-    pub fn sample_direction_along_axis(&self, axis_value: Scalar, axis_index: usize) -> Option<T> {
-        let factor = self.find_time_for_axis(axis_value, axis_index)?;
-        Some(self.sample_direction(factor))
+    pub fn sample_curvature_radius(&self, factor: Scalar) -> Scalar {
+        1.0 / self.sample_k(factor)
     }
 
-    pub fn sample_tangent(&self, factor: Scalar) -> T {
-        let direction = self.sample_direction(factor);
+    pub fn sample_tangent(&self, mut factor: Scalar) -> T {
+        factor = factor.clamp(EPSILON, 1.0 - EPSILON);
+        let direction = self.sample_first_derivative(factor);
         let length = direction.length();
         direction.inverse_scale(length)
     }
@@ -508,7 +525,7 @@ where
             }
             let tangent = self.sample_tangent(guess);
             let slope = if let Some(last_tangent) = last_tangent {
-                tangent.slope(&last_tangent)
+                tangent.dot(&last_tangent)
             } else {
                 1.0
             };
@@ -516,5 +533,23 @@ where
             guess -= dv * slope;
         }
         Some(guess)
+    }
+
+    /// initial time guess, number of iterations, fn(time, curve) -> time
+    pub fn find_time_for(
+        &self,
+        mut guess: Scalar,
+        iterations: usize,
+        mut f: impl FnMut(Scalar, &Self) -> Scalar,
+    ) -> Scalar {
+        guess = guess.clamp(0.0, 1.0);
+        for _ in 0..iterations {
+            let time = f(guess, self);
+            if (time - guess).abs() < EPSILON {
+                return time;
+            }
+            guess = time;
+        }
+        guess
     }
 }

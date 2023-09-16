@@ -6,14 +6,52 @@ use crate::mesh::rig::{
 };
 use core::{
     assets::protocol::{AssetLoadResult, AssetProtocol},
-    scripting::{intuicio::core::registry::Registry, ScriptFunctionReference},
+    scripting::{
+        intuicio::core::registry::Registry, ScriptFunctionReference, ScriptStructReference,
+    },
 };
 use serde::{Deserialize, Serialize};
-use std::str::from_utf8;
+use std::{collections::HashMap, str::from_utf8};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RigAssetError {
     Skeleton(SkeletonError),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RigAssetControl {
+    pub struct_type: ScriptStructReference,
+    pub init_function: Option<ScriptFunctionReference>,
+    pub solve_function: Option<ScriptFunctionReference>,
+    /// {field name: field string value}
+    pub bindings: HashMap<String, String>,
+}
+
+impl RigAssetControl {
+    pub fn new(struct_type: ScriptStructReference) -> Self {
+        Self {
+            struct_type,
+            init_function: None,
+            solve_function: None,
+            bindings: Default::default(),
+        }
+    }
+
+    pub fn init_function(mut self, function: ScriptFunctionReference) -> Self {
+        self.init_function = Some(function);
+        self
+    }
+
+    pub fn solve_function(mut self, function: ScriptFunctionReference) -> Self {
+        self.solve_function = Some(function);
+        self
+    }
+
+    pub fn binding(mut self, field_name: impl ToString, field_value: impl ToString) -> Self {
+        self.bindings
+            .insert(field_name.to_string(), field_value.to_string());
+        self
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -22,19 +60,19 @@ pub struct RigAsset {
     #[serde(default)]
     deformer: Deformer,
     #[serde(default)]
-    control: Option<ScriptFunctionReference>,
+    controls: Vec<RigAssetControl>,
 }
 
 impl RigAsset {
     pub fn new(
         skeleton: SkeletonHierarchy,
         deformer: Deformer,
-        control: Option<ScriptFunctionReference>,
+        controls: Vec<RigAssetControl>,
     ) -> Self {
         Self {
             skeleton,
             deformer,
-            control,
+            controls,
         }
     }
 
@@ -46,8 +84,8 @@ impl RigAsset {
         &self.deformer
     }
 
-    pub fn control(&self) -> Option<&ScriptFunctionReference> {
-        self.control.as_ref()
+    pub fn controls(&self) -> &[RigAssetControl] {
+        &self.controls
     }
 
     pub fn build_skeleton(&self) -> Result<Skeleton, RigAssetError> {
@@ -57,18 +95,38 @@ impl RigAsset {
             .map_err(RigAssetError::Skeleton)
     }
 
-    pub fn build_control(&self, registry: &Registry) -> Option<RigControl> {
-        self.control
-            .as_ref()
-            .and_then(|control| registry.find_function(control.query()))
-            .map(|function| RigControl { function })
+    pub fn build_controls(&self, registry: &Registry) -> Vec<RigControl> {
+        self.controls
+            .iter()
+            .filter_map(|control| {
+                let struct_type = registry.find_struct(control.struct_type.query())?;
+                let init_function = control
+                    .init_function
+                    .as_ref()
+                    .and_then(|function| registry.find_function(function.query()))
+                    .or_else(|| registry.find_function(control.struct_type.method("init").query()));
+                let solve_function = control
+                    .solve_function
+                    .as_ref()
+                    .and_then(|function| registry.find_function(function.query()))
+                    .or_else(|| {
+                        registry.find_function(control.struct_type.method("solve").query())
+                    })?;
+                Some(RigControl {
+                    struct_type,
+                    init_function,
+                    solve_function,
+                    bindings: control.bindings.to_owned(),
+                })
+            })
+            .collect()
     }
 
     pub fn build_rig(&self, registry: &Registry) -> Result<Rig, RigAssetError> {
         Ok(Rig {
             skeleton: self.build_skeleton()?,
             deformer: self.deformer.to_owned(),
-            control: self.build_control(registry),
+            controls: self.build_controls(registry),
         })
     }
 }

@@ -2,6 +2,11 @@ use crate::resources::*;
 use oxygengine_core::prelude::*;
 use oxygengine_ha_renderer::prelude::*;
 
+#[cfg(not(feature = "scalar64"))]
+use std::f32::consts::TAU;
+#[cfg(feature = "scalar64")]
+use std::f64::consts::TAU;
+
 pub enum Renderable {
     PushTransform(Transform2d),
     PopTransform,
@@ -9,14 +14,15 @@ pub enum Renderable {
     PopBlending,
     PushScissor(Rect),
     PopScissor,
-    Advanced(AdvancedRenderable),
+    Mesh(MeshRenderable),
     Sprite(SpriteRenderable),
     Text(TextRenderable),
+    Shape(ShapeRenderable),
 }
 
-impl From<AdvancedRenderable> for Renderable {
-    fn from(other: AdvancedRenderable) -> Self {
-        Self::Advanced(other)
+impl From<MeshRenderable> for Renderable {
+    fn from(other: MeshRenderable) -> Self {
+        Self::Mesh(other)
     }
 }
 
@@ -32,14 +38,20 @@ impl From<TextRenderable> for Renderable {
     }
 }
 
+impl From<ShapeRenderable> for Renderable {
+    fn from(other: ShapeRenderable) -> Self {
+        Self::Shape(other)
+    }
+}
+
 #[derive(Debug, Default, Clone)]
-pub struct AdvancedRenderable {
+pub struct MeshRenderable {
     pub transform: Transform2d,
     pub mesh: HaMeshInstance,
     pub material: HaMaterialInstance,
 }
 
-impl AdvancedRenderable {
+impl MeshRenderable {
     pub fn transform(mut self, value: Transform2d) -> Self {
         self.transform = value;
         self
@@ -267,14 +279,232 @@ impl TextRenderable {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum ShapeRenderable {
+    Points {
+        tint: Rgba,
+        points: Vec<Vec2>,
+        size: Scalar,
+    },
+    Lines {
+        tint: Rgba,
+        points: Vec<Vec2>,
+        size: Scalar,
+    },
+    Polygon {
+        tint: Rgba,
+        points: Vec<Vec2>,
+    },
+    Triangles {
+        tint: Rgba,
+        points: Vec<[Vec2; 3]>,
+    },
+    Circle {
+        tint: Rgba,
+        center: Vec2,
+        radius: Scalar,
+        segments: usize,
+    },
+}
+
+impl ShapeRenderable {
+    pub fn factory(&self) -> Result<StaticVertexFactory, MeshError> {
+        let (vertices, triangles) = match self {
+            ShapeRenderable::Points { tint, points, size } => {
+                let color = Vec4::from(*tint);
+                let half_size = size * 0.5;
+                let vertices = points
+                    .iter()
+                    .copied()
+                    .flat_map(|point| {
+                        let point = Vec3::from(point);
+                        [
+                            SurfaceVertexPC {
+                                position: point + vec3(-half_size, -half_size, 0.0),
+                                color,
+                            },
+                            SurfaceVertexPC {
+                                position: point + vec3(half_size, -half_size, 0.0),
+                                color,
+                            },
+                            SurfaceVertexPC {
+                                position: point + vec3(half_size, half_size, 0.0),
+                                color,
+                            },
+                            SurfaceVertexPC {
+                                position: point + vec3(-half_size, half_size, 0.0),
+                                color,
+                            },
+                        ]
+                    })
+                    .collect::<Vec<_>>();
+                let triangles = (0..points.len())
+                    .flat_map(|index| {
+                        let offset = index as u32 * 4;
+                        [
+                            (offset, offset + 1, offset + 2),
+                            (offset + 2, offset + 3, offset),
+                        ]
+                    })
+                    .collect::<Vec<_>>();
+                (vertices, triangles)
+            }
+            ShapeRenderable::Lines { tint, points, size } => {
+                let color = Vec4::from(*tint);
+                let half_size = size * 0.5;
+                let vertices = points
+                    .windows(2)
+                    .flat_map(|points| {
+                        let from = points[0];
+                        let to = points[1];
+                        let direction = to - from;
+                        let forward = direction.normalized();
+                        let right = vec2(-forward.y, forward.x);
+                        [
+                            SurfaceVertexPC {
+                                position: (from - right * half_size).into(),
+                                color,
+                            },
+                            SurfaceVertexPC {
+                                position: (to - right * half_size).into(),
+                                color,
+                            },
+                            SurfaceVertexPC {
+                                position: (to + right * half_size).into(),
+                                color,
+                            },
+                            SurfaceVertexPC {
+                                position: (from + right * half_size).into(),
+                                color,
+                            },
+                        ]
+                    })
+                    .chain(points.windows(3).map(|points| SurfaceVertexPC {
+                        position: points[1].into(),
+                        color,
+                    }))
+                    .collect::<Vec<_>>();
+                let triangles = (0..(points.len() - 1))
+                    .flat_map(|index| {
+                        let offset = index as u32 * 4;
+                        [
+                            (offset, offset + 1, offset + 2),
+                            (offset + 2, offset + 3, offset),
+                        ]
+                    })
+                    .chain((0..(points.len() - 2)).flat_map(|index| {
+                        let index = index as u32;
+                        let knots_offset = (points.len() - 1) as u32 * 4;
+                        let bar_offset = index * 4;
+                        [
+                            (knots_offset + index, bar_offset + 1, bar_offset + 4),
+                            (knots_offset + index, bar_offset + 2, bar_offset + 7),
+                        ]
+                    }))
+                    .collect::<Vec<_>>();
+                (vertices, triangles)
+            }
+            ShapeRenderable::Polygon { tint, points } => {
+                let color = Vec4::from(*tint);
+                let vertices = points
+                    .iter()
+                    .copied()
+                    .map(|point| SurfaceVertexPC {
+                        position: Vec3::from(point),
+                        color,
+                    })
+                    .collect::<Vec<_>>();
+                let triangles = (0..points.len() - 2)
+                    .map(|index| (0u32, index as u32 + 1, index as u32 + 2))
+                    .collect::<Vec<_>>();
+                (vertices, triangles)
+            }
+            ShapeRenderable::Triangles { tint, points } => {
+                let color = Vec4::from(*tint);
+                let vertices = points
+                    .iter()
+                    .flat_map(|[a, b, c]| {
+                        [
+                            SurfaceVertexPC {
+                                position: Vec3::from(*a),
+                                color,
+                            },
+                            SurfaceVertexPC {
+                                position: Vec3::from(*b),
+                                color,
+                            },
+                            SurfaceVertexPC {
+                                position: Vec3::from(*c),
+                                color,
+                            },
+                        ]
+                    })
+                    .collect::<Vec<_>>();
+                let triangles = (0..points.len())
+                    .map(|index| {
+                        let index = index as u32 * 3;
+                        (index, index + 1, index + 2)
+                    })
+                    .collect::<Vec<_>>();
+                (vertices, triangles)
+            }
+            ShapeRenderable::Circle {
+                tint,
+                center,
+                radius,
+                segments,
+            } => {
+                let color = Vec4::from(*tint);
+                let center = *center;
+                let radius = *radius;
+                let segments = *segments;
+                let vertices = std::iter::once(SurfaceVertexPC {
+                    position: center.into(),
+                    color,
+                })
+                .chain((0..segments).map(|index| {
+                    let angle = index as Scalar * TAU / segments as Scalar;
+                    let (y, x) = angle.sin_cos();
+                    SurfaceVertexPC {
+                        position: (center + vec2(x, y) * radius).into(),
+                        color,
+                    }
+                }))
+                .collect::<Vec<_>>();
+                let triangles = (0..segments)
+                    .map(|index| {
+                        (
+                            0u32,
+                            (index % segments) as u32 + 1,
+                            ((index + 1) % segments) as u32 + 1,
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                (vertices, triangles)
+            }
+        };
+        let mut result = StaticVertexFactory::new(
+            SurfaceVertexPC::vertex_layout()?,
+            vertices.len(),
+            triangles.len(),
+            MeshDrawMode::Triangles,
+        );
+        result.vertices(&vertices, None)?;
+        result.triangles(&triangles, None)?;
+        Ok(result)
+    }
+}
+
 pub struct Renderables {
     pub(crate) buffer_stack: Vec<Vec<Renderable>>,
     pub buffer_resize_count: usize,
     pub sprite_mesh_reference: MeshReference,
     pub sprite_material_reference: MaterialReference,
+    pub sprite_filtering: ImageFiltering,
     pub text_material_reference: MaterialReference,
     pub text_pool_resize_count: usize,
-    pub sprite_filtering: ImageFiltering,
+    pub shape_material_reference: MaterialReference,
+    pub shape_pool_resize_count: usize,
 }
 
 impl Default for Renderables {
@@ -286,11 +516,15 @@ impl Default for Renderables {
             sprite_material_reference: MaterialReference::Asset(
                 "@material/graph/prototype/sprite".to_owned(),
             ),
+            sprite_filtering: ImageFiltering::Linear,
             text_material_reference: MaterialReference::Asset(
                 "@material/graph/surface/flat/text".to_owned(),
             ),
             text_pool_resize_count: 64,
-            sprite_filtering: ImageFiltering::Linear,
+            shape_material_reference: MaterialReference::Asset(
+                "@material/graph/surface/flat/color".to_owned(),
+            ),
+            shape_pool_resize_count: 64,
         }
     }
 }

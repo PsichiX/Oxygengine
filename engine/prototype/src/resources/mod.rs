@@ -1,6 +1,7 @@
 pub mod audio_player;
 pub mod camera;
 pub mod renderables;
+pub mod spatial_queries;
 
 use oxygengine_core::prelude::*;
 use oxygengine_ha_renderer::prelude::*;

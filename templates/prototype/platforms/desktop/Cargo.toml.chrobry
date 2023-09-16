@@ -12,8 +12,9 @@ path = "../../src/desktop_main.rs"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+rand = "0.8"
 
 [dependencies.oxygengine]
-version = "0.44"
+version = "0.45"
 features = ["desktop-ha-prototype"]
 ```

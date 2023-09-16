@@ -10,6 +10,7 @@ use std::{collections::HashSet, sync::Arc};
 
 pub struct DesktopPrototypeApp {
     pub initial_state: Box<dyn State>,
+    pub title: String,
     pub clear_color: Rgba,
     pub sprite_filtering: ImageFiltering,
     pub view_size: Scalar,
@@ -21,8 +22,13 @@ pub struct DesktopPrototypeApp {
 
 impl DesktopPrototypeApp {
     pub fn new(initial_state: impl State + 'static) -> Self {
+        Self::new_named(initial_state, "Oxygengine Game")
+    }
+
+    pub fn new_named(initial_state: impl State + 'static, title: impl ToString) -> Self {
         Self {
             initial_state: Box::new(initial_state),
+            title: title.to_string(),
             clear_color: Rgba::gray(0.2),
             sprite_filtering: Default::default(),
             view_size: 1024.0,
@@ -74,7 +80,11 @@ impl PrototypeApp for DesktopPrototypeApp {
         #[cfg(debug_assertions)]
         logger_setup(DefaultLogger);
 
-        let runner = DesktopAppRunner::new(DesktopAppConfig::default());
+        let runner = DesktopAppRunner::new(DesktopAppConfig {
+            title: self.title,
+            vsync: true,
+            ..Default::default()
+        });
         let app = App::build::<LinearPipelineBuilder>()
             .with_bundle(
                 oxygengine_core::assets::bundle_installer,

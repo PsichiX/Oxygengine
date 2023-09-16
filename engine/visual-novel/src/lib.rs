@@ -67,7 +67,11 @@ impl Curved for Position {
     }
 
     fn length(&self) -> Scalar {
-        (self.0 * self.0 + self.1 * self.1).sqrt()
+        self.length_squared().sqrt()
+    }
+
+    fn length_squared(&self) -> Scalar {
+        self.0 * self.0 + self.1 * self.1
     }
 
     fn get_axis(&self, index: usize) -> Option<Scalar> {
@@ -97,7 +101,7 @@ impl CurvedChange for Position {
         Self(other.0 - self.0, other.1 - self.1)
     }
 
-    fn slope(&self, other: &Self) -> Scalar {
+    fn dot(&self, other: &Self) -> Scalar {
         self.0 * other.0 + self.1 * other.1
     }
 }
@@ -163,7 +167,11 @@ impl Curved for Color {
     }
 
     fn length(&self) -> Scalar {
-        (self.0 * self.0 + self.1 * self.1 + self.2 * self.2).sqrt()
+        self.length_squared().sqrt()
+    }
+
+    fn length_squared(&self) -> Scalar {
+        self.0 * self.0 + self.1 * self.1 + self.2 * self.2
     }
 
     fn get_axis(&self, index: usize) -> Option<Scalar> {
@@ -194,7 +202,7 @@ impl CurvedChange for Color {
         Self(other.0 - self.0, other.1 - self.1, other.2 - self.2)
     }
 
-    fn slope(&self, other: &Self) -> Scalar {
+    fn dot(&self, other: &Self) -> Scalar {
         self.0 * other.0 + self.1 * other.1 + self.2 * other.2
     }
 }

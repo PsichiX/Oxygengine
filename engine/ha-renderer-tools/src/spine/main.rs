@@ -5,7 +5,7 @@ mod meta;
 use crate::{atlas::*, document::*, meta::*};
 use oxygengine_animation::{phase::*, spline::*};
 use oxygengine_build_tools::*;
-use oxygengine_core::{assets::protocol::*, Scalar};
+use oxygengine_core::{assets::protocol::*, scripting::*, Scalar};
 use oxygengine_ha_renderer::{
     asset_protocols::{atlas::*, image::*, mesh::*, rig::*, rig_animation::*},
     components::transform::*,
@@ -162,10 +162,18 @@ fn convert_document_to_rig(document: &Document) -> Result<RigAsset, String> {
             }
         }
     }
-    match hierarchy.into_iter().next() {
-        Some((_, v)) => Ok(RigAsset::new(v, Default::default(), Default::default())),
-        None => Err("Could not find root bone!".to_owned()),
-    }
+    let root = match hierarchy.into_iter().next() {
+        Some((_, root)) => root,
+        None => return Err("Could not find root bone!".to_owned()),
+    };
+    let control = RigAssetControl::new(
+        ScriptStructReference::parse("control_rig::AnimationRigControl").unwrap(),
+    )
+    .binding("playing_property", "playing")
+    .binding("speed_property", "speed")
+    .binding("animation_asset_property", "animation-asset")
+    .binding("state_property", "state");
+    Ok(RigAsset::new(root, Default::default(), vec![control]))
 }
 
 struct PhaseExtractMeta {
@@ -274,19 +282,29 @@ fn convert_document_to_animation(document: &Document, meta: &AnimationMeta) -> R
                 .map(|event| {
                     let mut params = HashMap::default();
                     if let Some(v) = event.int_value {
-                        params.insert("int".to_owned(), RigAnimationValue::Integer(v as _));
+                        if let Ok(value) = ScriptingValue::new(v as i32) {
+                            params.insert("int".to_owned(), value);
+                        }
                     }
                     if let Some(v) = event.float_value {
-                        params.insert("float".to_owned(), RigAnimationValue::Scalar(v));
+                        if let Ok(value) = ScriptingValue::new(v) {
+                            params.insert("float".to_owned(), value);
+                        }
                     }
                     if let Some(v) = &event.string_value {
-                        params.insert("string".to_owned(), RigAnimationValue::String(v.to_owned()));
+                        if let Ok(value) = ScriptingValue::new(v.to_owned()) {
+                            params.insert("string".to_owned(), value);
+                        }
                     }
                     if let Some(v) = event.volume {
-                        params.insert("volume".to_owned(), RigAnimationValue::Scalar(v));
+                        if let Ok(value) = ScriptingValue::new(v) {
+                            params.insert("volume".to_owned(), value);
+                        }
                     }
                     if let Some(v) = event.balance {
-                        params.insert("balance".to_owned(), RigAnimationValue::Scalar(v));
+                        if let Ok(value) = ScriptingValue::new(v) {
+                            params.insert("balance".to_owned(), value);
+                        }
                     }
                     RigAnimationSignal {
                         time: event.time,

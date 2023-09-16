@@ -1,0 +1,21 @@
+main               =  { (text_separator | params_end | params_start | text_string)+ }
+params_start       =  { !("\\" ~ "[") ~ "[" ~ ows ~ param ~ ((ws ~ param)* ~ ows) ~ "]" }
+params_end         = @{ !("\\" ~ "[") ~ "[" ~ ows ~ "/" ~ ows ~ "]" }
+text_separator     = _{ !("\\" ~ "[") ~ "[" ~ ows ~ "|" ~ ows ~ "]" }
+param              =  { size | color | outline | thickness | cursive | wrapping }
+size               =  { ("size" | "s") ~ ows ~ "=" ~ ows ~ number }
+color              =  { ("color" | "c") ~ ows ~ "=" ~ ows ~ number_tuple }
+outline            =  { ("outline" | "o") ~ ows ~ "=" ~ ows ~ number_tuple }
+thickness          =  { ("thickness" | "t") ~ ows ~ "=" ~ ows ~ number }
+cursive            =  { ("cursive" | "i") ~ ows ~ "=" ~ ows ~ number }
+wrapping           =  { ("wrapping" | "w") ~ ows ~ "=" ~ ows ~ (wrapping_character | wrapping_word | wrapping_set) }
+wrapping_character =  { "character" | "c" }
+wrapping_word      =  { "word" | "w" }
+wrapping_set       =  { "(" ~ wrapping_string ~ ")" }
+number             = @{ ("+" | "-")? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+number_tuple       =  { "(" ~ ows ~ number ~ (ows ~ "," ~ ows ~ number)* ~ ows ~ ")" }
+wrapping_string    = @{ (!")" ~ character)+ }
+text_string        = @{ (!(text_separator | params_end | params_start) ~ character)+ }
+character          =  { "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4}) | "\\" ~ ANY | ANY }
+ws                 = _{ " " | "\t" | "\r" | "\n" }
+ows                = _{ ws* }

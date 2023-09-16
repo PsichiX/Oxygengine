@@ -4,10 +4,10 @@ use core::{
     app::AppBuilder,
     ecs::{
         commands::{SpawnEntity, UniverseCommands},
-        components::{Name, NonPersistent},
+        components::Name,
         hierarchy::{Hierarchy, Parent},
         pipeline::{PipelineBuilder, PipelineBuilderError},
-        Component, Entity, EntityBuilder, Universe, World,
+        Component, Entity, EntityBuilder, Query, Universe, World,
     },
     scripting::{
         intuicio::{core::prelude::*, data::prelude::*},
@@ -22,6 +22,56 @@ const DEFAULT_CAPACITY: usize = 10240;
 pub struct ScriptedNodeEntity(AsyncShared<Option<Entity>>);
 
 impl ScriptedNodeEntity {
+    pub fn new(entity: Entity) -> Self {
+        Self(AsyncShared::new(Some(entity)))
+    }
+
+    pub fn find(path: &str, hierarchy: &Hierarchy) -> Self {
+        if let Some(entity) = hierarchy.entity_by_name(path) {
+            Self::new(entity)
+        } else {
+            Self::default()
+        }
+    }
+
+    pub fn find_raw(path: &str, hierarchy: &Hierarchy) -> Option<Entity> {
+        if let Some(entity) = hierarchy.entity_by_name(path) {
+            Some(entity)
+        } else {
+            None
+        }
+    }
+
+    pub fn find_all_of_type<T: 'static>(world: &World) -> Vec<Self> {
+        world
+            .query::<&ScriptedNode>()
+            .iter()
+            .filter_map(move |(entity, node)| {
+                if node.is::<T>() {
+                    Some(Self::new(entity))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    pub fn find_all_of_type_raw<T: 'static>(world: &World) -> Vec<Entity> {
+        world
+            .query::<&ScriptedNode>()
+            .iter()
+            .filter_map(
+                move |(entity, node)| {
+                    if node.is::<T>() {
+                        Some(entity)
+                    } else {
+                        None
+                    }
+                },
+            )
+            .collect()
+    }
+
     pub fn set(&mut self, entity: Entity) {
         if let Some(mut data) = self.0.write() {
             *data = Some(entity);
@@ -32,8 +82,58 @@ impl ScriptedNodeEntity {
         self.0.read().and_then(|data| data.as_ref().copied())
     }
 
+    pub fn is_valid(&self) -> bool {
+        self.0.read().map(|data| data.is_some()).unwrap_or_default()
+    }
+
     pub fn take(&mut self) -> Option<Entity> {
         self.0.write().and_then(|mut data| data.take())
+    }
+
+    pub fn node<Q: Query, R>(
+        &self,
+        world: &World,
+        mut f: impl FnMut(&ScriptedNode, Q::Item<'_>) -> R,
+    ) -> Option<R> {
+        let entity = *self.0.read()?.as_ref()?;
+        let mut query = world.query_one::<(&ScriptedNode, Q)>(entity).ok()?;
+        let (node, query) = query.get()?;
+        Some(f(node, query))
+    }
+
+    pub fn node_mut<Q: Query, R>(
+        &self,
+        world: &World,
+        mut f: impl FnMut(&mut ScriptedNode, Q::Item<'_>) -> R,
+    ) -> Option<R> {
+        let entity = *self.0.read()?.as_ref()?;
+        let mut query = world.query_one::<(&mut ScriptedNode, Q)>(entity).ok()?;
+        let (node, query) = query.get()?;
+        Some(f(node, query))
+    }
+
+    pub fn with<T: 'static, Q: Query, R>(
+        &self,
+        world: &World,
+        mut f: impl FnMut(&T, Q::Item<'_>) -> R,
+    ) -> Option<R> {
+        let entity = *self.0.read()?.as_ref()?;
+        let mut query = world.query_one::<(&ScriptedNode, Q)>(entity).ok()?;
+        let (node, query) = query.get()?;
+        let node = node.read::<T>()?;
+        Some(f(&node, query))
+    }
+
+    pub fn with_mut<T: 'static, Q: Query, R>(
+        &self,
+        world: &World,
+        mut f: impl FnMut(&mut T, Q::Item<'_>) -> R,
+    ) -> Option<R> {
+        let entity = *self.0.read()?.as_ref()?;
+        let mut query = world.query_one::<(&mut ScriptedNode, Q)>(entity).ok()?;
+        let (node, query) = query.get()?;
+        let mut node = node.write::<T>()?;
+        Some(f(&mut node, query))
     }
 }
 
@@ -60,13 +160,19 @@ impl ScriptedNodesParam {
         Self::Owned(DynamicManaged::new(value))
     }
 
-    pub fn scoped_ref<T: 'static>(value: &T) -> Self {
+    pub fn scoped_ref<'a, T: 'static>(value: &'a T) -> Self
+    where
+        Self: 'a,
+    {
         let lifetime = Lifetime::default();
         let data = DynamicManagedRef::new(value, lifetime.borrow().unwrap());
         Self::ScopedRef(data, lifetime)
     }
 
-    pub fn scoped_ref_mut<T: 'static>(value: &mut T) -> Self {
+    pub fn scoped_ref_mut<'a, T: 'static>(value: &'a mut T) -> Self
+    where
+        Self: 'a,
+    {
         let lifetime = Lifetime::default();
         let data = DynamicManagedRefMut::new(value, lifetime.borrow_mut().unwrap());
         Self::ScopedRefMut(data, lifetime)
@@ -103,10 +209,43 @@ impl<T: 'static> From<&mut T> for ScriptedNodesParam {
     }
 }
 
-pub struct ScriptedNode(pub DynamicManaged);
+pub struct ScriptedNode {
+    pub active: bool,
+    pub object: DynamicManaged,
+}
+
+impl ScriptedNode {
+    pub fn new<T: 'static>(data: T) -> Self {
+        Self::new_raw(DynamicManaged::new(data))
+    }
+
+    pub fn new_raw(object: DynamicManaged) -> Self {
+        Self {
+            active: true,
+            object,
+        }
+    }
+
+    pub fn with_active(mut self, value: bool) -> Self {
+        self.active = value;
+        self
+    }
+
+    pub fn is<T: 'static>(&self) -> bool {
+        self.object.is::<T>()
+    }
+
+    pub fn read<T: 'static>(&self) -> Option<ValueReadAccess<T>> {
+        self.object.read::<T>()
+    }
+
+    pub fn write<T: 'static>(&mut self) -> Option<ValueWriteAccess<T>> {
+        self.object.write::<T>()
+    }
+}
 
 pub struct ScriptedNodeSignal {
-    entity: Entity,
+    entity: Option<Entity>,
     function: ScriptFunctionReference,
     arguments: Vec<ScriptedNodesParam>,
     broadcast: bool,
@@ -115,11 +254,11 @@ pub struct ScriptedNodeSignal {
 }
 
 impl ScriptedNodeSignal {
-    pub fn parse(entity: Entity, content: &str) -> Result<Self, String> {
+    pub fn parse(entity: Option<Entity>, content: &str) -> Result<Self, String> {
         Ok(Self::new(entity, ScriptFunctionReference::parse(content)?))
     }
 
-    pub fn new(entity: Entity, function: ScriptFunctionReference) -> Self {
+    pub fn new(entity: Option<Entity>, function: ScriptFunctionReference) -> Self {
         Self {
             entity,
             function,
@@ -156,20 +295,40 @@ impl ScriptedNodeSignal {
         let scripting = universe.expect_resource::<Scripting>();
         let hierarchy = universe.expect_resource::<Hierarchy>();
 
-        let token = nodes.context.stack().store();
-        Self::execute::<T>(
-            self.entity,
-            &self.function,
-            &self.arguments,
-            self.broadcast,
-            self.bubble,
-            self.ignore_me,
-            &world,
-            &mut nodes,
-            &scripting,
-            &hierarchy,
-        );
-        nodes.context.stack().restore(token);
+        if let Some(entity) = self.entity {
+            Self::execute::<T>(
+                entity,
+                &self.function,
+                &self.arguments,
+                self.broadcast,
+                self.bubble,
+                self.ignore_me,
+                &world,
+                &mut nodes,
+                &scripting,
+                &hierarchy,
+            );
+        } else {
+            for (entity, _) in world
+                .query::<()>()
+                .with::<&ScriptedNode>()
+                .without::<&Parent>()
+                .iter()
+            {
+                Self::execute::<T>(
+                    entity,
+                    &self.function,
+                    &self.arguments,
+                    self.broadcast,
+                    self.bubble,
+                    self.ignore_me,
+                    &world,
+                    &mut nodes,
+                    &scripting,
+                    &hierarchy,
+                );
+            }
+        }
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -185,26 +344,26 @@ impl ScriptedNodeSignal {
         scripting: &Scripting,
         hierarchy: &Hierarchy,
     ) {
-        if let Ok(mut node) = world.query_one::<&mut ScriptedNode>(entity) {
-            if let Some(node) = node.get() {
-                let mut query = function_ref.query();
-                if query.struct_query.is_none() {
-                    query.struct_query = Some(StructQuery {
-                        type_hash: Some(*node.0.type_hash()),
-                        ..Default::default()
-                    });
-                }
-                if !ignore_me {
+        let token = nodes.context.stack().store();
+        let result = if !ignore_me {
+            if let Ok(mut query) = world.query_one::<(&mut ScriptedNode, T)>(entity) {
+                if let Some((node, pack)) = query.get() {
+                    let mut query = function_ref.query();
+                    if query.struct_query.is_none() {
+                        query.struct_query = Some(StructQuery {
+                            type_hash: Some(*node.object.type_hash()),
+                            ..Default::default()
+                        });
+                    }
                     if let Some(function) = scripting.registry.find_function(query) {
                         if let Some(handle) = &function.signature().struct_handle {
-                            if node.0.type_hash() != &handle.type_hash() {
+                            if node.object.type_hash() != &handle.type_hash() {
                                 return;
                             }
                         }
+                        nodes.context.stack().push(DynamicManaged::new(entity));
                         let mut compontents_params = vec![];
-                        if !T::query_param(entity, world, &mut compontents_params) {
-                            return;
-                        }
+                        T::query_param(pack, &mut compontents_params);
                         for arg in compontents_params.iter().chain(args.iter()).rev() {
                             match arg {
                                 ScriptedNodesParam::Owned(arg) => {
@@ -224,12 +383,27 @@ impl ScriptedNodeSignal {
                                 }
                             }
                         }
-                        nodes.context.stack().push(node.0.borrow_mut().unwrap());
-                        function.invoke(&mut nodes.context, &scripting.registry);
+                        nodes
+                            .context
+                            .stack()
+                            .push(node.object.borrow_mut().unwrap());
+                        Some((function, compontents_params))
+                    } else {
+                        None
                     }
+                } else {
+                    None
                 }
+            } else {
+                None
             }
+        } else {
+            None
+        };
+        if let Some((function, _)) = result {
+            function.invoke(&mut nodes.context, &scripting.registry);
         }
+        nodes.context.stack().restore(token);
         if broadcast {
             if let Some(iter) = hierarchy.children(entity) {
                 for entity in iter {
@@ -306,13 +480,6 @@ impl Default for ScriptedNodes {
 }
 
 impl ScriptedNodes {
-    pub fn install(registry: &mut Registry) {
-        registry.add_struct(NativeStructBuilder::new_uninitialized::<DynamicManaged>().build());
-        registry.add_struct(NativeStructBuilder::new_uninitialized::<DynamicManagedRef>().build());
-        registry
-            .add_struct(NativeStructBuilder::new_uninitialized::<DynamicManagedRefMut>().build());
-    }
-
     pub fn new(
         stack_capacity: usize,
         registers_capacity: usize,
@@ -345,7 +512,8 @@ impl ScriptedNodes {
         commands: &mut UniverseCommands,
     ) {
         let ScriptedNodesTree {
-            data: object,
+            active,
+            object,
             children,
             mut components,
             setup,
@@ -354,19 +522,19 @@ impl ScriptedNodes {
         if let Some(entity) = parent {
             components.add(Parent(entity));
         }
-        components.add(ScriptedNode(object));
+        components.add(ScriptedNode { active, object });
         commands.schedule(
             SpawnEntity::new(components).on_complete(move |universe, entity| {
                 if let Some(function) = setup {
                     let mut signals = universe.expect_resource_mut::<ScriptedNodesSignals>();
-                    signals.signal::<()>(ScriptedNodeSignal::new(entity, function));
+                    signals.signal::<()>(ScriptedNodeSignal::new(Some(entity), function));
                 }
                 if let Some(bind) = bind {
                     (bind)(entity);
                 }
                 let mut commands = universe.expect_resource_mut::<UniverseCommands>();
                 for child in children {
-                    Self::execute_spawn((child)(entity), Some(entity), &mut commands);
+                    Self::execute_spawn((child)(), Some(entity), &mut commands);
                 }
             }),
         );
@@ -382,16 +550,14 @@ impl ScriptedNodes {
         let scripting = universe.expect_resource::<Scripting>();
         let hierarchy = universe.expect_resource::<Hierarchy>();
 
-        let token = self.context.stack().store();
         for (entity, _) in world
             .query::<()>()
             .with::<&ScriptedNode>()
             .without::<&Parent>()
             .iter()
         {
-            self.execute::<T>(entity, &function, args, &world, &scripting, &hierarchy)
+            self.execute::<T>(entity, &function, args, &world, &scripting, &hierarchy);
         }
-        self.context.stack().restore(token);
     }
 
     pub fn execute<T: ScriptedNodeComponentPack>(
@@ -403,25 +569,32 @@ impl ScriptedNodes {
         scripting: &Scripting,
         hierarchy: &Hierarchy,
     ) {
-        if let Ok(mut node) = world.query_one::<&mut ScriptedNode>(entity) {
-            if let Some(node) = node.get() {
+        if let Ok(mut query) = world.query_one::<&ScriptedNode>(entity) {
+            if let Some(node) = query.get() {
+                if !node.active {
+                    return;
+                }
+            }
+        }
+        let token = self.context.stack().store();
+        let result = if let Ok(mut query) = world.query_one::<(&mut ScriptedNode, T)>(entity) {
+            if let Some((node, pack)) = query.get() {
                 let mut query = function_ref.query();
                 if query.struct_query.is_none() {
                     query.struct_query = Some(StructQuery {
-                        type_hash: Some(*node.0.type_hash()),
+                        type_hash: Some(*node.object.type_hash()),
                         ..Default::default()
                     });
                 }
                 if let Some(function) = scripting.registry.find_function(query) {
                     if let Some(handle) = &function.signature().struct_handle {
-                        if node.0.type_hash() != &handle.type_hash() {
+                        if node.object.type_hash() != &handle.type_hash() {
                             return;
                         }
                     }
+                    self.context.stack().push(DynamicManaged::new(entity));
                     let mut compontents_params = vec![];
-                    if !T::query_param(entity, world, &mut compontents_params) {
-                        return;
-                    }
+                    T::query_param(pack, &mut compontents_params);
                     for arg in compontents_params.iter().chain(args.iter()).rev() {
                         match arg {
                             ScriptedNodesParam::Owned(arg) => {
@@ -441,23 +614,34 @@ impl ScriptedNodes {
                             }
                         }
                     }
-                    self.context.stack().push(node.0.borrow_mut().unwrap());
-                    function.invoke(&mut self.context, &scripting.registry);
+                    self.context.stack().push(node.object.borrow_mut().unwrap());
+                    Some((function, compontents_params))
+                } else {
+                    None
                 }
+            } else {
+                None
             }
+        } else {
+            None
+        };
+        if let Some((function, _)) = result {
+            function.invoke(&mut self.context, &scripting.registry);
         }
+        self.context.stack().restore(token);
         if let Some(iter) = hierarchy.children(entity) {
             for entity in iter {
-                self.execute::<T>(entity, function_ref, args, world, scripting, hierarchy)
+                self.execute::<T>(entity, function_ref, args, &world, scripting, hierarchy);
             }
         }
     }
 }
 
 pub struct ScriptedNodesTree {
-    data: DynamicManaged,
+    active: bool,
+    object: DynamicManaged,
     components: EntityBuilder,
-    children: Vec<Box<dyn FnOnce(Entity) -> Self + Send + Sync>>,
+    children: Vec<Box<dyn FnOnce() -> Self + Send + Sync>>,
     setup: Option<ScriptFunctionReference>,
     bind: Option<Box<dyn FnOnce(Entity) + Send + Sync>>,
 }
@@ -471,9 +655,10 @@ impl ScriptedNodesTree {
         Self::new_raw(DynamicManaged::new(data))
     }
 
-    pub fn new_raw(data: DynamicManaged) -> Self {
+    pub fn new_raw(object: DynamicManaged) -> Self {
         Self {
-            data,
+            active: true,
+            object,
             children: Default::default(),
             components: Default::default(),
             setup: None,
@@ -486,8 +671,8 @@ impl ScriptedNodesTree {
         self
     }
 
-    pub fn non_persistent(mut self) -> Self {
-        self.components.add(NonPersistent);
+    pub fn inactive(mut self) -> Self {
+        self.active = false;
         self
     }
 
@@ -496,7 +681,7 @@ impl ScriptedNodesTree {
         self
     }
 
-    pub fn child(mut self, f: impl FnOnce(Entity) -> Self + Send + Sync + 'static) -> Self {
+    pub fn child(mut self, f: impl FnOnce() -> Self + Send + Sync + 'static) -> Self {
         self.children.push(Box::new(f));
         self
     }
@@ -512,51 +697,35 @@ impl ScriptedNodesTree {
     }
 }
 
-pub trait ScriptedNodeComponentPack: Sized {
-    fn query_param(entity: Entity, world: &World, list: &mut Vec<ScriptedNodesParam>) -> bool;
+pub trait ScriptedNodeComponentPack: Query {
+    fn query_param(pack: Self::Item<'_>, list: &mut Vec<ScriptedNodesParam>);
 }
 
 impl ScriptedNodeComponentPack for () {
-    fn query_param(_: Entity, _: &World, _: &mut Vec<ScriptedNodesParam>) -> bool {
-        true
-    }
+    fn query_param(_: (), _: &mut Vec<ScriptedNodesParam>) {}
 }
 
 impl<T: Component> ScriptedNodeComponentPack for &T {
-    fn query_param(entity: Entity, world: &World, list: &mut Vec<ScriptedNodesParam>) -> bool {
-        if let Ok(mut query) = world.query_one::<&T>(entity) {
-            if let Some(component) = query.get() {
-                list.push(ScriptedNodesParam::scoped_ref(component));
-                return true;
-            }
-        }
-        false
+    fn query_param(pack: Self::Item<'_>, list: &mut Vec<ScriptedNodesParam>) {
+        list.push(ScriptedNodesParam::scoped_ref(pack));
     }
 }
 
 impl<T: Component> ScriptedNodeComponentPack for &mut T {
-    fn query_param(entity: Entity, world: &World, list: &mut Vec<ScriptedNodesParam>) -> bool {
-        if let Ok(mut query) = world.query_one::<&mut T>(entity) {
-            if let Some(component) = query.get() {
-                list.push(ScriptedNodesParam::scoped_ref_mut(component));
-                return true;
-            }
-        }
-        false
+    fn query_param(pack: Self::Item<'_>, list: &mut Vec<ScriptedNodesParam>) {
+        list.push(ScriptedNodesParam::scoped_ref_mut(pack));
     }
 }
 
 macro_rules! impl_component_tuple {
     ($($type:ident),+) => {
         impl<$($type: ScriptedNodeComponentPack),+> ScriptedNodeComponentPack for ($($type,)+) {
-            #[allow(non_snake_case)]
-            fn query_param(entity: Entity, world: &World, list: &mut Vec<ScriptedNodesParam>) -> bool {
+            fn query_param(pack: Self::Item<'_>, list: &mut Vec<ScriptedNodesParam>) {
+                #[allow(non_snake_case)]
+                let ( $($type,)+ ) = pack;
                 $(
-                    if !$type::query_param(entity, world, list) {
-                        return false;
-                    }
+                    $type::query_param($type, list);
                 )+
-                true
             }
         }
     };
@@ -577,7 +746,6 @@ impl_component_tuple!(A, B, C, D, E, F, G, H, I, J, K, L);
 impl_component_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M);
 impl_component_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N);
 impl_component_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
-impl_component_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
 
 pub fn bundle_installer<PB>(
     builder: &mut AppBuilder<PB>,

@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-overworld"
-version = "0.44.0"
+version = "0.45.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "RPG overworld module for Oxygengine"
@@ -25,6 +25,6 @@ scalar64 = [
 ]
 
 [dependencies]
-oxygengine-core = { version = "0.44", path = "../core" }
-oxygengine-navigation = { version = "0.44", path = "../navigation" }
+oxygengine-core = { version = "0.45", path = "../core" }
+oxygengine-navigation = { version = "0.45", path = "../navigation" }
 serde = { version = "1", features = ["derive"] }

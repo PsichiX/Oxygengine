@@ -3,13 +3,13 @@ use crate::{
         commands::{DespawnEntity, UniverseCommands},
         components::Name,
         life_cycle::EntityChanges,
-        Comp, Entity, Universe, Without, WorldRef,
+        Comp, Entity, Universe, WorldRef,
     },
     prefab::{Prefab, PrefabError, PrefabProxy},
     state::StateToken,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Parent(pub Entity);
@@ -38,9 +38,9 @@ impl Prefab for ParentPrefabProxy {}
 
 #[derive(Debug, Default)]
 pub struct Hierarchy {
-    roots: HashSet<Entity>,
+    roots: Vec<Entity>,
     child_parent_relations: HashMap<Entity, Entity>,
-    parent_children_relations: HashMap<Entity, HashSet<Entity>>,
+    parent_children_relations: HashMap<Entity, Vec<Entity>>,
     entity_names_map: HashMap<Entity, String>,
     name_entities_map: HashMap<String, Entity>,
 }
@@ -124,28 +124,30 @@ impl Hierarchy {
     pub fn iter(&self) -> HierarchyIter {
         HierarchyIter {
             hierarchy: self,
-            stack: vec![Box::new(self.roots.iter().copied())],
+            iter_stack: vec![Box::new(self.roots.iter().copied())],
+            parent_stack: vec![],
         }
     }
 }
 
 pub struct HierarchyIter<'a> {
     hierarchy: &'a Hierarchy,
-    stack: Vec<Box<dyn Iterator<Item = Entity> + 'a>>,
+    iter_stack: Vec<Box<dyn Iterator<Item = Entity> + 'a>>,
+    parent_stack: Vec<Entity>,
 }
 
 impl<'a> Iterator for HierarchyIter<'a> {
-    type Item = Entity;
+    type Item = (Entity, Option<Entity>);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if let Some(mut iter) = self.stack.pop() {
+            if let Some(mut iter) = self.iter_stack.pop() {
                 if let Some(entity) = iter.next() {
-                    self.stack.push(iter);
+                    self.iter_stack.push(iter);
                     if let Some(children) = self.hierarchy.children(entity) {
-                        self.stack.push(Box::new(children));
+                        self.iter_stack.push(Box::new(children));
                     }
-                    return Some(entity);
+                    return Some((entity, self.parent_stack.last().copied()));
                 } else {
                     continue;
                 }
@@ -172,7 +174,7 @@ pub fn hierarchy_system(universe: &mut Universe) {
     if changes.has_changed() {
         despawn(&mut commands, &changes, &hierarchy);
 
-        hierarchy.roots = HashSet::with_capacity(world.len() as usize);
+        hierarchy.roots = Vec::with_capacity(world.len() as usize);
         hierarchy.child_parent_relations = HashMap::with_capacity(world.len() as usize);
         hierarchy.parent_children_relations = HashMap::with_capacity(world.len() as usize / 10);
         hierarchy.entity_names_map = HashMap::with_capacity(world.len() as usize / 10);
@@ -185,33 +187,24 @@ pub fn hierarchy_system(universe: &mut Universe) {
         hierarchy.name_entities_map.clear();
     }
 
-    for (entity, _) in world.query::<Without<(), &Parent>>().iter() {
-        hierarchy.roots.insert(entity);
+    for (entity, _) in world.query::<()>().without::<&Parent>().iter() {
+        hierarchy.roots.push(entity);
     }
 
     for (child, (parent, name)) in world.query::<(Option<&Parent>, Option<&Name>)>().iter() {
         if let Some(parent) = parent {
             hierarchy.child_parent_relations.insert(child, parent.0);
-            let list = hierarchy
+            let list: &mut Vec<Entity> = hierarchy
                 .parent_children_relations
                 .entry(parent.0)
                 .or_default();
-            list.insert(child);
+            list.push(child);
         }
         if let Some(name) = name {
             let name: String = name.0.clone().into();
             hierarchy.entity_names_map.insert(child, name.to_owned());
             hierarchy.name_entities_map.insert(name, child);
         }
-    }
-
-    for (child, parent) in world.query::<&Parent>().iter() {
-        hierarchy.child_parent_relations.insert(child, parent.0);
-        let list = hierarchy
-            .parent_children_relations
-            .entry(parent.0)
-            .or_default();
-        list.insert(child);
     }
 
     for (child, name) in world.query::<&Name>().iter() {

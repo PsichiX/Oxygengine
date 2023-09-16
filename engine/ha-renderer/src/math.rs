@@ -279,6 +279,12 @@ impl Rotator {
         );
         result.into()
     }
+
+    pub fn from_to(mut from: Vec3, mut to: Vec3) -> Self {
+        from = from.normalized();
+        to = to.normalized();
+        Quat::rotation_from_to_3d(from, to).into()
+    }
 }
 
 impl Add for Rotator {

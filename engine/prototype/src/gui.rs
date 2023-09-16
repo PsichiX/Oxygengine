@@ -152,7 +152,7 @@ impl<'a, T> Gui<'a, T> {
                     rect.x += offset.x / dim.x;
                     rect.y += offset.y / dim.y;
                 }
-                Renderable::Advanced(renderable) => renderable.transform.position += offset,
+                Renderable::Mesh(renderable) => renderable.transform.position += offset,
                 Renderable::Sprite(renderable) => renderable.transform.position += offset,
                 Renderable::Text(renderable) => renderable.transform.position += offset,
                 _ => {}

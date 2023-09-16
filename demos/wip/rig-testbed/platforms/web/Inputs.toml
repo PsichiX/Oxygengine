@@ -2,3 +2,4 @@
 walk = "KeyA"
 run = "KeyS"
 watch = "KeyD"
+play = "KeyF"

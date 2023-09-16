@@ -2,6 +2,7 @@ pub mod app;
 pub mod constants;
 pub mod gui;
 pub mod materials;
+pub mod nodes;
 pub mod resources;
 pub mod systems;
 
@@ -17,13 +18,17 @@ pub mod prelude {
         constants::material_uniforms::*,
         gui::*,
         materials::*,
-        resources::{audio_player::*, camera::*, renderables::*, *},
+        nodes::{spatial::*, sprite::*, text::*, *},
+        resources::{audio_player::*, camera::*, renderables::*, spatial_queries::*, *},
         systems::{audio_player::*, camera::*, render_prototype_stage::*, *},
     };
 }
 
 use crate::{
-    resources::{audio_player::AudioPlayer, camera::Camera, renderables::Renderables},
+    resources::{
+        audio_player::AudioPlayer, camera::Camera, renderables::Renderables,
+        spatial_queries::SpatialQueries,
+    },
     systems::{
         audio_player::{audio_player_system, AudioPlayerResources},
         camera::{camera_system, CameraSystemResources},
@@ -53,6 +58,7 @@ where
     builder.install_resource(renderables);
     builder.install_resource(camera);
     builder.install_resource(AudioPlayer::default());
+    builder.install_resource(SpatialQueries::default());
     builder.install_resource(HaRenderPrototypeStageSystemCache::default());
 
     builder.install_system::<CameraSystemResources>("camera", camera_system, &[])?;

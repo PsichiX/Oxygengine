@@ -22,7 +22,7 @@ use crate::{
         sync_game_state_info::{sync_game_state_info_system, SyncGameStateInfoSystemResources},
     },
 };
-use oxygengine::prelude::*;
+use oxygengine::prelude::{intuicio::prelude::Registry, *};
 use std::collections::HashMap;
 
 pub const BOARD_TILE_SIZE: (u8, u8) = (8, 8);
@@ -47,6 +47,11 @@ pub fn build_app(
         )
         .unwrap()
         .with_bundle(oxygengine::core::prefab::bundle_installer, make_prefabs())
+        .unwrap()
+        .with_bundle(
+            oxygengine::core::scripting::bundle_installer,
+            make_scripting_registry(),
+        )
         .unwrap()
         .with_bundle(oxygengine::core::ecs::life_cycle::events_system_installer::<_, HaVolumeOverlapEvent>, "volume-overlap")
         .unwrap()
@@ -194,6 +199,10 @@ fn make_prefabs() -> impl FnMut(&mut PrefabManager) {
         prefabs.register_component_factory::<BatchedAttacksTag>("BatchedAttacksTag");
         prefabs.register_component_factory::<LevelUp>("LevelUp");
     }
+}
+
+fn make_scripting_registry() -> Registry {
+    Registry::default().with_basic_types()
 }
 
 fn make_renderer(
