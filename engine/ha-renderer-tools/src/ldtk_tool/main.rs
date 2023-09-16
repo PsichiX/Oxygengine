@@ -1,5 +1,6 @@
+pub mod schema;
+
 use image::*;
-use ldtk_rust::*;
 use oxygengine_build_tools::*;
 use oxygengine_core::{
     ecs::components::{Name, NonPersistentPrefabProxy, Tag},
@@ -18,6 +19,7 @@ use oxygengine_ha_renderer::{
     math::*,
     mesh::*,
 };
+use schema::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
@@ -32,6 +34,16 @@ const DEFAULT_SPRITE_UNIFORMS_MATERIAL_ASSET: &str =
     "@material/graph/surface/flat/virtual-uniform-texture-2d";
 const DEFAULT_SPRITE_MESH_ASSET: &str = "@mesh/surface/quad/pt";
 const DEFAULT_SPRITE_IMAGE: &str = "Uniforms";
+
+impl Project {
+    pub fn new(path: impl AsRef<Path>) -> Self {
+        let path = path.as_ref();
+        let content = read_to_string(path)
+            .unwrap_or_else(|_| panic!("Could not load LDtk document: {:?}", path));
+        serde_json::from_str(&content)
+            .unwrap_or_else(|_| panic!("Could not parse LDtk document: {:?}", path))
+    }
+}
 
 #[derive(Debug, Clone, Deserialize)]
 struct Params {
@@ -80,7 +92,7 @@ fn main() -> Result<(), Error> {
             None => return Ok(vec![]),
         };
         let dirname = source.parent().map(|p| p.to_path_buf()).unwrap_or_default();
-        let project = Project::new(source.to_str().unwrap());
+        let project = Project::new(source);
         Ok(bake_project(
             project,
             &dirname,
@@ -563,22 +575,25 @@ fn bake_project(
                                 _ => DEFAULT_SPRITE_MATERIAL_ASSET,
                             })
                         });
-                    let sprite_image_name = if let (true, Some(tileset_id), Some(tile_id)) = (
-                        sprite_image.is_some(),
-                        entity_def.tileset_id,
-                        entity_def.tile_id,
-                    ) {
+                    let sprite_image_name = if let (true, Some(tile_rect)) =
+                        (sprite_image.is_some(), &entity_def.tile_rect)
+                    {
                         let tileset = project
                             .defs
                             .tilesets
                             .iter()
-                            .find(|t| t.uid == tileset_id)
-                            .unwrap_or_else(|| panic!("Could not find tileset: {}", tileset_id));
-                        let atlas = atlases.get(&tileset_id).unwrap_or_else(|| {
-                            panic!("Could not find atlas for tileset: {}", tileset_id)
+                            .find(|t| t.uid == tile_rect.tileset_uid)
+                            .unwrap_or_else(|| {
+                                panic!("Could not find tileset: {}", tile_rect.tileset_uid)
+                            });
+                        let atlas = atlases.get(&tile_rect.tileset_uid).unwrap_or_else(|| {
+                            panic!(
+                                "Could not find atlas for tileset: {}",
+                                tile_rect.tileset_uid
+                            )
                         });
-                        let tcol = tile_id % tileset.c_wid;
-                        let trow = tile_id / tileset.c_wid;
+                        let tcol = tile_rect.x / tileset.tile_grid_size;
+                        let trow = tile_rect.y / tileset.tile_grid_size;
                         assets_used.insert(format!("atlas://{}", atlas));
                         Some(format!("{}@{}x{}", atlas, tcol, trow))
                     } else {

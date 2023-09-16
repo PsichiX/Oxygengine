@@ -20,7 +20,6 @@ serde-xml-rs = "0.6"
 serde_json = "1"
 image = "0.24"
 texture_packer = "0.25"
-ldtk_rust = "0.6"
 chrobry-core = "1"
 
 [[bin]]
@@ -37,7 +36,7 @@ path = "./src/sdf_tool.rs"
 
 [[bin]]
 name = "oxygengine-ha-renderer-ldtk"
-path = "./src/ldtk_tool.rs"
+path = "./src/ldtk_tool/main.rs"
 
 [[bin]]
 name = "oxygengine-ha-renderer-spine"
