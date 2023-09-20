@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-input-device-web"
-version = "0.45.1"
+version = "0.46.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Web input devices module for Oxygengine"
@@ -17,16 +17,16 @@ scalar64 = ["oxygengine-core/scalar64", "oxygengine-input/scalar64"]
 wasm-bindgen = "0.2"
 
 [dependencies.oxygengine-core]
-version = "0.45"
+version = "0.46"
 path = "../core"
 features = ["web"]
 
 [dependencies.oxygengine-backend-web]
-version = "0.45"
+version = "0.46"
 path = "../backend-web"
 
 [dependencies.oxygengine-input]
-version = "0.45"
+version = "0.46"
 path = "../input"
 features = ["web"]
 

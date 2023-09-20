@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-ha-renderer"
-version = "0.45.1"
+version = "0.46.0"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Hardware Accelerated renderer module for Oxygengine"
@@ -22,9 +22,9 @@ parallel = ["oxygengine-core/parallel"]
 scalar64 = ["oxygengine-core/scalar64"]
 
 [dependencies]
-oxygengine-core = { version = "0.45", path = "../core" }
-oxygengine-animation = { version = "0.45", path = "../animation" }
-oxygengine-utils = { version = "0.45", path = "../utils" }
+oxygengine-core = { version = "0.46", path = "../core" }
+oxygengine-animation = { version = "0.46", path = "../animation" }
+oxygengine-utils = { version = "0.46", path = "../utils" }
 glow = "0.12"
 vek = { version = "0.15", features = ["mint", "rgba", "uv"] }
 png = "0.17"
@@ -45,12 +45,12 @@ optional = true
 features = ["serde-serialize"]
 
 [dependencies.oxygengine-backend-web]
-version = "0.45"
+version = "0.46"
 path = "../backend-web"
 optional = true
 
 [dependencies.oxygengine-backend-desktop]
-version = "0.45"
+version = "0.46"
 path = "../backend-desktop"
 optional = true
 
