@@ -4214,46 +4214,8 @@
 					"acceptFileTypes": null,
 					"defaultOverride": {
 						"id": "V_String",
-						"params": ["NAME: gui"]
-					},
-					"textLanguageMode": null,
-					"symmetricalRef": false,
-					"autoChainRef": true,
-					"allowOutOfLevelRef": true,
-					"allowedRefs": "OnlySame",
-					"allowedRefsEntityUid": null,
-					"allowedRefTags": [],
-					"tilesetUid": null
-				},
-				{
-					"identifier": "UiSync",
-					"doc": null,
-					"__type": "String",
-					"uid": 82,
-					"type": "F_String",
-					"isArray": false,
-					"canBeNull": true,
-					"arrayMinLength": null,
-					"arrayMaxLength": null,
-					"editorDisplayMode": "NameAndValue",
-					"editorDisplayScale": 1,
-					"editorDisplayPos": "Above",
-					"editorLinkStyle": "StraightArrow",
-					"editorDisplayColor": null,
-					"editorAlwaysShow": true,
-					"editorShowInWorld": true,
-					"editorCutLongValues": true,
-					"editorTextSuffix": null,
-					"editorTextPrefix": null,
-					"useForSmartColor": false,
-					"min": null,
-					"max": null,
-					"regex": null,
-					"acceptFileTypes": null,
-					"defaultOverride": {
-						"id": "V_String",
 						"params": [
-							"SIZE: 144 | COLORED_MATERIAL: @material/graph/surface/flat/color | IMAGE_MATERIAL: @material/graph/surface/flat/texture-2d | TEXT_MATERIAL: @material/graph/surface/flat/text"
+							"NAME: gui | SIZE: 144 | COLORED_MATERIAL: @material/graph/surface/flat/color | IMAGE_MATERIAL: @material/graph/surface/flat/texture-2d | TEXT_MATERIAL: @material/graph/surface/flat/text"
 						]
 					},
 					"textLanguageMode": null,
@@ -5506,8 +5468,7 @@
 									"id": "V_Bool",
 									"params": [ true ]
 								}] },
-								{ "__identifier": "UiView", "__type": "String", "__value": "NAME: gui", "__tile": null, "defUid": 81, "realEditorValues": [] },
-								{ "__identifier": "UiSync", "__type": "String", "__value": "SIZE: 144 | COLORED_MATERIAL: @material/graph/surface/flat/color | IMAGE_MATERIAL: @material/graph/surface/flat/texture-2d | TEXT_MATERIAL: @material/graph/surface/flat/text", "__tile": null, "defUid": 82, "realEditorValues": [] },
+								{ "__identifier": "UiView", "__type": "String", "__value": "NAME: gui | SIZE: 144 | COLORED_MATERIAL: @material/graph/surface/flat/color | IMAGE_MATERIAL: @material/graph/surface/flat/texture-2d | TEXT_MATERIAL: @material/graph/surface/flat/text", "__tile": null, "defUid": 81, "realEditorValues": [] },
 								{ "__identifier": "Singleton", "__type": "Bool", "__value": true, "__tile": null, "defUid": 199, "realEditorValues": [] },
 								{ "__identifier": "FollowEntity", "__type": "String", "__value": "NAME: player | STRENGTH_FACTOR: 2", "__tile": null, "defUid": 214, "realEditorValues": [] }
 							]

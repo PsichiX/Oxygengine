@@ -319,12 +319,22 @@ impl RenderQueue {
                             y = y.max(*sy);
                         }
                     }
-                    context.scissor(x as _, (height - h - y) as _, w as _, h as _);
+                    context.scissor(
+                        x as _,
+                        height.saturating_sub(h).saturating_sub(y) as _,
+                        w as _,
+                        h as _,
+                    );
                     scissor_stack.push((x, y, w, h));
                 },
                 RenderCommand::PopScissor => unsafe {
                     if let Some((x, y, w, h)) = scissor_stack.pop() {
-                        context.scissor(x as _, (height - h - y) as _, w as _, h as _);
+                        context.scissor(
+                            x as _,
+                            height.saturating_sub(h).saturating_sub(y) as _,
+                            w as _,
+                            h as _,
+                        );
                     } else {
                         context.disable(SCISSOR_TEST);
                     }

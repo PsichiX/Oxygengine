@@ -5,10 +5,6 @@
             "name": "oxygengine-ha-renderer-ldtk",
             "params": {
                 "image_filtering": "Nearest",
-                "tile_margin": {
-                  "x": 0.01,
-                  "y": 0.01
-                },
                 "rules": [
                     {
                         "name": "AvatarCombat",
@@ -57,10 +53,6 @@
                     {
                         "name": "Player",
                         "macro_file": "tools/ldtk/Player.chrobry"
-                    },
-                    {
-                        "name": "UiSync",
-                        "macro_file": "tools/ldtk/UiSync.chrobry"
                     },
                     {
                         "name": "UiView",
