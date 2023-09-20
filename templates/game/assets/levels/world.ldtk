@@ -4228,44 +4228,6 @@
 					"tilesetUid": null
 				},
 				{
-					"identifier": "Singleton",
-					"doc": null,
-					"__type": "Bool",
-					"uid": 199,
-					"type": "F_Bool",
-					"isArray": false,
-					"canBeNull": false,
-					"arrayMinLength": null,
-					"arrayMaxLength": null,
-					"editorDisplayMode": "Hidden",
-					"editorDisplayScale": 1,
-					"editorDisplayPos": "Above",
-					"editorLinkStyle": "StraightArrow",
-					"editorDisplayColor": null,
-					"editorAlwaysShow": false,
-					"editorShowInWorld": true,
-					"editorCutLongValues": true,
-					"editorTextSuffix": null,
-					"editorTextPrefix": null,
-					"useForSmartColor": false,
-					"min": null,
-					"max": null,
-					"regex": null,
-					"acceptFileTypes": null,
-					"defaultOverride": {
-						"id": "V_Bool",
-						"params": [ true ]
-					},
-					"textLanguageMode": null,
-					"symmetricalRef": false,
-					"autoChainRef": true,
-					"allowOutOfLevelRef": true,
-					"allowedRefs": "OnlySame",
-					"allowedRefsEntityUid": null,
-					"allowedRefTags": [],
-					"tilesetUid": null
-				},
-				{
 					"identifier": "FollowEntity",
 					"doc": null,
 					"__type": "String",
@@ -4293,6 +4255,44 @@
 					"defaultOverride": {
 						"id": "V_String",
 						"params": ["NAME: player | STRENGTH_FACTOR: 2"]
+					},
+					"textLanguageMode": null,
+					"symmetricalRef": false,
+					"autoChainRef": true,
+					"allowOutOfLevelRef": true,
+					"allowedRefs": "OnlySame",
+					"allowedRefsEntityUid": null,
+					"allowedRefTags": [],
+					"tilesetUid": null
+				},
+				{
+					"identifier": "Singleton",
+					"doc": null,
+					"__type": "Bool",
+					"uid": 199,
+					"type": "F_Bool",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayScale": 1,
+					"editorDisplayPos": "Above",
+					"editorLinkStyle": "StraightArrow",
+					"editorDisplayColor": null,
+					"editorAlwaysShow": false,
+					"editorShowInWorld": true,
+					"editorCutLongValues": true,
+					"editorTextSuffix": null,
+					"editorTextPrefix": null,
+					"useForSmartColor": false,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_Bool",
+						"params": [ true ]
 					},
 					"textLanguageMode": null,
 					"symmetricalRef": false,
@@ -5469,8 +5469,8 @@
 									"params": [ true ]
 								}] },
 								{ "__identifier": "UiView", "__type": "String", "__value": "NAME: gui | SIZE: 144 | COLORED_MATERIAL: @material/graph/surface/flat/color | IMAGE_MATERIAL: @material/graph/surface/flat/texture-2d | TEXT_MATERIAL: @material/graph/surface/flat/text", "__tile": null, "defUid": 81, "realEditorValues": [] },
-								{ "__identifier": "Singleton", "__type": "Bool", "__value": true, "__tile": null, "defUid": 199, "realEditorValues": [] },
-								{ "__identifier": "FollowEntity", "__type": "String", "__value": "NAME: player | STRENGTH_FACTOR: 2", "__tile": null, "defUid": 214, "realEditorValues": [] }
+								{ "__identifier": "FollowEntity", "__type": "String", "__value": "NAME: player | STRENGTH_FACTOR: 2", "__tile": null, "defUid": 214, "realEditorValues": [] },
+								{ "__identifier": "Singleton", "__type": "Bool", "__value": true, "__tile": null, "defUid": 199, "realEditorValues": [] }
 							]
 						},
 						{
