@@ -1,7 +1,6 @@
 use crate::{
     components::{avatar_combat::*, player::*, weapon::*},
     resources::effects::*,
-    utils::*,
 };
 use oxygengine::prelude::*;
 
@@ -12,8 +11,6 @@ pub type PlayerCombatSystemResources<'a> = (
     WorldRef,
     &'a InputStack,
     &'a Board,
-    &'a HaBoardSettings,
-    &'a CameraCache,
     &'a BoardSystemCache,
     &'a mut Effects,
     Comp<&'a BoardAvatar>,
@@ -24,7 +21,7 @@ pub type PlayerCombatSystemResources<'a> = (
 );
 
 pub fn player_combat_system(universe: &mut Universe) {
-    let (world, input_stack, board, settings, camera_cache, board_cache, mut effects, ..) =
+    let (world, input_stack, board, board_cache, mut effects, ..) =
         universe.query_resources::<PlayerCombatSystemResources>();
 
     for (_, (avatar, input, combat, weapon)) in world
@@ -41,37 +38,31 @@ pub fn player_combat_system(universe: &mut Universe) {
             Some(input) => input,
             None => continue,
         };
-
-        let pointer_board_location =
-            input_pointer_to_board_location(input, &camera_cache, &board, &settings);
-        if pointer_board_location.is_none() {
+        if !input.trigger_state_or_default("action").is_on() {
             continue;
         }
 
-        let (points, token) = match (weapon.0.checked_sub(POINTS_PER_ATTACK), avatar.token()) {
-            (Some(points), Some(token)) => (points, token),
+        let token = match avatar.token() {
+            Some(token) => token,
             _ => continue,
         };
 
-        let (from, to) = match (board.token_location(token), pointer_board_location) {
-            (Some(from), Some(to)) => (from, to),
+        let location = match board.token_location(token) {
+            Some(location) => location,
             _ => continue,
         };
 
-        let (dx, dy) = board.location_relative(from, to);
-        if !is_touching_side(dx, dy) {
-            continue;
-        }
-
-        let other_token = match board.occupancy(to) {
-            Ok(Some(token)) => token,
-            _ => continue,
-        };
-
-        if let Some(entity) = board_cache.entity_by_token(other_token) {
-            combat.try_attack(entity, POINTS_PER_ATTACK);
-            weapon.0 = points;
-            effects.attack(to, ATTACK_EFFECT_DURATION);
+        for other_location in board.locations_around_cardinal(location, 1) {
+            if let Ok(Some(other_token)) = board.occupancy(other_location) {
+                if let Some(entity) = board_cache.entity_by_token(other_token) {
+                    if let Some(new_count) = weapon.0.checked_sub(POINTS_PER_ATTACK) {
+                        if combat.try_attack(entity, POINTS_PER_ATTACK) {
+                            weapon.0 = new_count;
+                            effects.attack(other_location, ATTACK_EFFECT_DURATION);
+                        }
+                    }
+                }
+            }
         }
     }
 }

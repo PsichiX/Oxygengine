@@ -54,6 +54,8 @@ pub struct BoardAvatar {
     pub(crate) active_action: Option<(BoardAvatarAction, Scalar, bool)>,
     #[serde(skip)]
     pub(crate) token: Option<BoardToken>,
+    #[serde(skip)]
+    pub(crate) has_lately_completed_action: bool,
 }
 
 impl BoardAvatar {
@@ -77,11 +79,19 @@ impl BoardAvatar {
         self.actions_queue.iter().cloned()
     }
 
+    pub fn actions_queue_size(&self) -> usize {
+        self.actions_queue.len()
+    }
+
+    pub fn has_lately_completed_action(&self) -> bool {
+        self.has_lately_completed_action
+    }
+
     /// (action, time, completed)?
-    pub fn active_action(&self) -> Option<(&BoardAvatarAction, Scalar, bool)> {
+    pub fn active_action(&self) -> Option<(&BoardAvatarAction, Scalar)> {
         self.active_action
             .as_ref()
-            .map(|(action, time, completed)| (action, *time, *completed))
+            .map(|(action, time, _)| (action, *time))
     }
 
     pub fn in_progress(&self) -> bool {

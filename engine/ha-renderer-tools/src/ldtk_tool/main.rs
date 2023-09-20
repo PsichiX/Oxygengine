@@ -18,6 +18,7 @@ use oxygengine_ha_renderer::{
     material::*,
     math::*,
     mesh::*,
+    render_target::*,
 };
 use schema::*;
 use serde::{Deserialize, Serialize};
@@ -673,17 +674,35 @@ fn bake_project(
                         let inside = entity_field_value("CameraInsideView", entity, entity_def)
                             .and_then(|v| v.as_bool())
                             .unwrap_or_default();
-                        let mut camera = HaCamera::default();
-                        camera.projection =
-                            HaCameraProjection::Orthographic(HaCameraOrthographic {
-                                scaling: HaCameraOrtographicScaling::FitToView(
-                                    Vec2::new(entity.width as _, entity.height as _),
-                                    inside,
-                                ),
-                                centered: true,
-                                ignore_depth_planes: false,
-                            });
-                        camera.pipeline = PipelineSource::Registry(pipeline);
+                        let clip_area = entity_field_value("CameraClipArea", entity, entity_def)
+                            .and_then(|v| v.as_str())
+                            .map(|v| {
+                                let parts = v
+                                    .trim()
+                                    .split('|')
+                                    .map(|v| parse_viewport_value(v))
+                                    .collect::<Vec<_>>();
+                                RenderTargetClipArea {
+                                    left: parts.get(0).copied().unwrap_or_default(),
+                                    right: parts.get(1).copied().unwrap_or_default(),
+                                    top: parts.get(2).copied().unwrap_or_default(),
+                                    bottom: parts.get(3).copied().unwrap_or_default(),
+                                }
+                            })
+                            .unwrap_or_default();
+                        let camera = HaCamera::default()
+                            .with_projection(HaCameraProjection::Orthographic(
+                                HaCameraOrthographic {
+                                    scaling: HaCameraOrtographicScaling::FitToView(
+                                        Vec2::new(entity.width as _, entity.height as _),
+                                        inside,
+                                    ),
+                                    centered: true,
+                                    ignore_depth_planes: false,
+                                },
+                            ))
+                            .with_clip_area(clip_area)
+                            .with_pipeline(PipelineSource::Registry(pipeline));
                         entity_data.components.insert(
                             "HaCamera".to_owned(),
                             camera.to_prefab().unwrap_or_else(|_| {
@@ -924,6 +943,52 @@ fn process_macro(content: &str, variables: HashMap<String, String>, name: &str) 
 
 fn is_separator(c: char) -> bool {
     c == '\r' || c == '\n' || c == '|'
+}
+
+fn parse_viewport_value(v: &str) -> RenderTargetClipAreaValue {
+    let parts = v.trim().split(':').collect::<Vec<_>>();
+    match parts[0] {
+        "Exact" => RenderTargetClipAreaValue::Exact(
+            parts
+                .get(1)
+                .expect("Exact value expects a value!")
+                .trim()
+                .parse()
+                .expect("Exact value cannot be parsed!"),
+        ),
+        "Margin" => RenderTargetClipAreaValue::Margin(
+            parts
+                .get(1)
+                .expect("Margin value expects a value!")
+                .trim()
+                .parse()
+                .expect("Margin value cannot be parsed!"),
+        ),
+        "Anchor" => RenderTargetClipAreaValue::Anchor(
+            parts
+                .get(1)
+                .expect("Anchor value expects a value!")
+                .trim()
+                .parse()
+                .expect("Anchor value cannot be parsed!"),
+        ),
+        "AspectRatio" => {
+            let width = parts
+                .get(1)
+                .expect("AspectRatio first value expects a value!")
+                .trim()
+                .parse()
+                .expect("AspectRatio first value cannot be parsed!");
+            let height = parts
+                .get(2)
+                .expect("AspectRatio second value expects a value!")
+                .trim()
+                .parse()
+                .expect("AspectRatio second value cannot be parsed!");
+            RenderTargetClipAreaValue::AspectRatio { width, height }
+        }
+        _ => RenderTargetClipAreaValue::Full,
+    }
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]

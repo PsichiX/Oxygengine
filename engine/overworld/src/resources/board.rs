@@ -606,6 +606,35 @@ impl Board {
         location
     }
 
+    pub fn locations_around(
+        &self,
+        location: Location,
+        range: usize,
+    ) -> impl Iterator<Item = Location> + '_ {
+        let range = range as isize;
+        (-range..=range)
+            .into_iter()
+            .flat_map(move |y| (-range..=range).into_iter().map(move |x| (x, y)))
+            .filter(|(x, y)| *x != 0 || *y != 0)
+            .map(move |(x, y)| self.location_move(location, x, y))
+    }
+
+    pub fn locations_around_cardinal(
+        &self,
+        location: Location,
+        range: usize,
+    ) -> impl Iterator<Item = Location> + '_ {
+        let range = range as isize;
+        (-range..=range)
+            .filter(|index| *index != 0)
+            .map(move |index| self.location_move(location, index, 0))
+            .chain(
+                (-range..=range)
+                    .filter(|index| *index != 0)
+                    .map(move |index| self.location_move(location, 0, index)),
+            )
+    }
+
     pub fn location_relative(&self, from: Location, to: Location) -> (isize, isize) {
         let wx = (to.world.col - from.world.col) * self.chunk_cols as isize;
         let wy = (to.world.row - from.world.row) * self.chunk_rows as isize;

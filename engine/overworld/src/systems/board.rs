@@ -44,6 +44,7 @@ pub fn board_system(universe: &mut Universe) {
     }
 
     for (entity, avatar) in world.query::<&mut BoardAvatar>().iter() {
+        avatar.has_lately_completed_action = false;
         if avatar.token.is_none() {
             if let Ok(token) = board.acquire_token(avatar.location()) {
                 avatar.token = Some(token);
@@ -74,6 +75,7 @@ pub fn board_system(universe: &mut Universe) {
                         avatar.location = location;
                         *time = duration;
                         *completed = true;
+                        avatar.has_lately_completed_action = true;
                     }
                 }
                 if !*completed {

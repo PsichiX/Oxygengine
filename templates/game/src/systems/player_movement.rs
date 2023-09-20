@@ -36,8 +36,6 @@ pub fn player_movement_system(universe: &mut Universe) {
             None => continue,
         };
 
-        let pointer_board_location =
-            input_pointer_to_board_location(input, &camera_cache, &board, &settings);
         let token = match avatar.token() {
             Some(token) => token,
             None => continue,
@@ -47,24 +45,35 @@ pub fn player_movement_system(universe: &mut Universe) {
         animation.set_value("dir-x", SpriteAnimationValue::Scalar(dir.x));
         animation.set_value("dir-y", SpriteAnimationValue::Scalar(dir.y));
 
-        let (mut from, to) = match (board.token_location(token), pointer_board_location) {
-            (Some(from), Some(to)) => (from, to),
-            _ => continue,
-        };
-        avatar.clear_actions_queue();
+        if let Some(location) =
+            input_pointer_to_board_location(input, &camera_cache, &board, &settings)
+        {
+            let (mut from, to) = match (board.token_location(token), location) {
+                (Some(from), to) => (from, to),
+                _ => continue,
+            };
+            avatar.clear_actions_queue();
 
-        let path = match board.find_path(from, to, BoardIgnoreOccupancy::ForTokens(&[token])) {
-            Ok(path) => path,
-            _ => continue,
-        };
-        for location in path.into_iter().skip(1) {
-            let (x, y) = board.location_relative(from, location);
-            from = location;
-            avatar.enqueue_action(BoardAvatarAction::Move {
-                duration: movement.step_duration,
-                x,
-                y,
-            });
+            let path = match board.find_path(from, to, BoardIgnoreOccupancy::ForTokens(&[token])) {
+                Ok(path) => path,
+                _ => continue,
+            };
+            for location in path.into_iter().skip(1) {
+                let (x, y) = board.location_relative(from, location);
+                from = location;
+                avatar.enqueue_action(BoardAvatarAction::Move {
+                    duration: movement.step_duration,
+                    x,
+                    y,
+                });
+            }
+        } else if let Some(direction) = input_direction_to_board_direction(input) {
+            if !avatar.in_progress() || avatar.has_lately_completed_action() {
+                avatar.perform_single_action(BoardAvatarAction::MoveStep {
+                    duration: movement.step_duration,
+                    direction,
+                });
+            }
         }
     }
 }

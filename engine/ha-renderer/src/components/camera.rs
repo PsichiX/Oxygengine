@@ -4,7 +4,7 @@ use crate::{
     material::common::MaterialRenderTargetSignature,
     math::*,
     pipeline::{render_queue::*, stage::*, *},
-    render_target::RenderTargetViewport,
+    render_target::RenderTargetClipArea,
 };
 use core::{
     prefab::{Prefab, PrefabComponent},
@@ -162,6 +162,8 @@ impl HaCameraProjection {
 
 #[derive(Debug, Clone)]
 pub struct HaStageCameraInfo {
+    pub x: usize,
+    pub y: usize,
     pub width: usize,
     pub height: usize,
     pub transform_matrix: Mat4,
@@ -171,14 +173,14 @@ pub struct HaStageCameraInfo {
 
 impl HaStageCameraInfo {
     pub fn render_target_to_screen(&self, mut point: Vec2) -> Vec2 {
-        point.x = (2.0 * point.x / self.width as Scalar) - 1.0;
-        point.y = (-2.0 * point.y / self.height as Scalar) + 1.0;
+        point.x = (2.0 * (point.x - self.x as Scalar) / self.width as Scalar) - 1.0;
+        point.y = (-2.0 * (point.y - self.y as Scalar) / self.height as Scalar) + 1.0;
         point
     }
 
-    pub fn screen_to_device(&self, mut point: Vec2) -> Vec2 {
-        point.x = (point.x + 1.0) * 0.5 * self.width as Scalar;
-        point.y = (point.y + 1.0) * 0.5 * self.height as Scalar;
+    pub fn screen_to_render_target(&self, mut point: Vec2) -> Vec2 {
+        point.x = (point.x + 1.0) * 0.5 * self.width as Scalar + self.x as Scalar;
+        point.y = (point.y + 1.0) * 0.5 * self.height as Scalar + self.y as Scalar;
         point
     }
 
@@ -278,10 +280,9 @@ pub struct HaCamera {
     #[serde(default)]
     pub projection: HaCameraProjection,
     #[serde(default)]
-    pub viewport: RenderTargetViewport,
+    pub clip_area: RenderTargetClipArea,
     #[serde(default)]
     pub pipeline: PipelineSource,
-
     #[serde(skip)]
     pub(crate) cached_pipeline: Option<PipelineId>,
 }
@@ -292,8 +293,8 @@ impl HaCamera {
         self
     }
 
-    pub fn with_viewport(mut self, viewport: RenderTargetViewport) -> Self {
-        self.viewport = viewport;
+    pub fn with_clip_area(mut self, clip_area: RenderTargetClipArea) -> Self {
+        self.clip_area = clip_area;
         self
     }
 
@@ -331,7 +332,7 @@ impl HaCamera {
                     let render_target = renderer.render_targets.get(render_target.1)?;
                     let width = render_target.width();
                     let height = render_target.height();
-                    let (_, _, width, height) = self.viewport.rect(width, height);
+                    let (x, y, width, height) = self.clip_area.rect(width, height);
                     let transform_matrix = camera_transform.world_matrix();
                     let view_matrix = transform_matrix.inverted();
                     let projection_matrix =
@@ -339,6 +340,8 @@ impl HaCamera {
                     Some((
                         stage.type_id,
                         HaStageCameraInfo {
+                            x,
+                            y,
                             width,
                             height,
                             transform_matrix,
@@ -378,14 +381,16 @@ impl HaCamera {
                 .filter_map(|stage| {
                     let render_target = pipeline.render_targets.get(&stage.render_target)?;
                     let render_target = renderer.render_targets.get(render_target.1)?;
-                    let width = render_target.width();
-                    let height = render_target.height();
-                    let (x, y, width, height) = self.viewport.rect(width, height);
+                    let target_width = render_target.width();
+                    let target_height = render_target.height();
+                    let (x, y, width, height) = self.clip_area.rect(target_width, target_height);
                     let transform_matrix = camera_transform.world_matrix();
                     let view_matrix = transform_matrix.inverted();
                     let projection_matrix =
                         self.projection.matrix(Vec2::new(width as _, height as _));
                     let info = StageProcessInfo {
+                        x,
+                        y,
                         width,
                         height,
                         transform_matrix,
@@ -397,13 +402,15 @@ impl HaCamera {
                         domain: stage.domain.to_owned(),
                         filters: stage.filters.to_owned(),
                     };
-                    if !matches!(self.viewport, RenderTargetViewport::Full) {
-                        if let Ok(mut queue) = stage.render_queue.write() {
-                            queue
-                                .record(0, 0, RenderCommand::Viewport(x, y, width, height))
-                                .ok()?;
-                            queue.record(0, 0, RenderCommand::SortingBarrier).ok()?;
-                        }
+                    if let Ok(mut queue) = stage.render_queue.write() {
+                        let mut queue = queue.auto_recorder(None);
+                        queue
+                            .record(RenderCommand::Viewport(x, y, width, height))
+                            .ok()?;
+                        queue
+                            .record(RenderCommand::PushScissor(x, y, width, height, true))
+                            .ok()?;
+                        queue.record(RenderCommand::SortingBarrier).ok()?;
                     }
                     Some((stage.type_id, info, Arc::clone(&stage.render_queue)))
                 }),

@@ -89,7 +89,7 @@ pub fn ha_board_sync_system(universe: &mut Universe) {
         let from = board_location_to_world_position(avatar.location(), &board, &settings);
         let mut position = avatar
             .active_action()
-            .and_then(|(action, time, _)| Some((avatar.token()?, action, time)))
+            .and_then(|(action, time)| Some((avatar.token()?, action, time)))
             .and_then(|(token, action, time)| {
                 let to = board_location_to_world_position(
                     board.token_location(token)?,

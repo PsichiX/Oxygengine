@@ -160,69 +160,79 @@ impl RenderTargetSizeValue {
     }
 }
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
-pub enum RenderTargetViewport {
+#[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+pub enum RenderTargetClipAreaValue {
+    #[default]
     Full,
-    Anchors {
-        left: Scalar,
-        right: Scalar,
-        top: Scalar,
-        bottom: Scalar,
-    },
-    Margins {
-        left: usize,
-        right: usize,
-        top: usize,
-        bottom: usize,
+    Exact(usize),
+    Margin(usize),
+    Anchor(Scalar),
+    AspectRatio {
+        width: usize,
+        height: usize,
     },
 }
 
-impl Default for RenderTargetViewport {
-    fn default() -> Self {
-        Self::Full
-    }
+#[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+pub struct RenderTargetClipArea {
+    pub left: RenderTargetClipAreaValue,
+    pub right: RenderTargetClipAreaValue,
+    pub top: RenderTargetClipAreaValue,
+    pub bottom: RenderTargetClipAreaValue,
 }
 
-impl RenderTargetViewport {
+impl RenderTargetClipArea {
     /// (x, y, width, height)
-    pub fn rect(self, width: usize, height: usize) -> (usize, usize, usize, usize) {
-        match self {
-            Self::Full => (0, 0, width, height),
-            Self::Anchors {
-                left,
-                right,
-                top,
-                bottom,
-            } => {
-                let fx = left.max(0.0).min(1.0) * width as Scalar;
-                let tx = right.max(0.0).min(1.0) * width as Scalar;
-                let fy = top.max(0.0).min(1.0) * height as Scalar;
-                let ty = bottom.max(0.0).min(1.0) * height as Scalar;
-                (
-                    fx.min(tx) as _,
-                    fy.min(ty) as _,
-                    (tx - fx).abs() as _,
-                    (ty - fy).abs() as _,
-                )
-            }
-            Self::Margins {
-                left,
-                right,
-                top,
-                bottom,
-            } => {
-                let fx = left.min(width);
-                let tx = width.checked_sub(right.min(width)).unwrap_or_default();
-                let fy = top.min(height);
-                let ty = height.checked_sub(bottom.min(height)).unwrap_or_default();
-                (
-                    fx.min(tx) as _,
-                    fy.min(ty) as _,
-                    (fx.max(tx) - fx.min(tx)) as _,
-                    (fy.max(ty) - fy.min(ty)) as _,
-                )
-            }
+    pub fn rect(&self, width: usize, height: usize) -> (usize, usize, usize, usize) {
+        let left = match self.left {
+            RenderTargetClipAreaValue::Full => 0,
+            RenderTargetClipAreaValue::Exact(v) => v,
+            RenderTargetClipAreaValue::Margin(v) => v,
+            RenderTargetClipAreaValue::Anchor(v) => (v.clamp(0.0, 1.0) * width as Scalar) as usize,
+            RenderTargetClipAreaValue::AspectRatio {
+                width: w,
+                height: h,
+            } => width.saturating_sub(w * height / h) / 2,
         }
+        .clamp(0, width);
+        let right = match self.right {
+            RenderTargetClipAreaValue::Full => width,
+            RenderTargetClipAreaValue::Exact(v) => v,
+            RenderTargetClipAreaValue::Margin(v) => width.saturating_sub(v),
+            RenderTargetClipAreaValue::Anchor(v) => (v.clamp(0.0, 1.0) * width as Scalar) as usize,
+            RenderTargetClipAreaValue::AspectRatio {
+                width: w,
+                height: h,
+            } => (width + w * height / h) / 2,
+        }
+        .clamp(0, width);
+        let top = match self.top {
+            RenderTargetClipAreaValue::Full => 0,
+            RenderTargetClipAreaValue::Exact(v) => v,
+            RenderTargetClipAreaValue::Margin(v) => v,
+            RenderTargetClipAreaValue::Anchor(v) => (v.clamp(0.0, 1.0) * height as Scalar) as usize,
+            RenderTargetClipAreaValue::AspectRatio {
+                width: w,
+                height: h,
+            } => height.saturating_sub(h * width / w) / 2,
+        }
+        .clamp(0, height);
+        let bottom = match self.bottom {
+            RenderTargetClipAreaValue::Full => height,
+            RenderTargetClipAreaValue::Exact(v) => v,
+            RenderTargetClipAreaValue::Margin(v) => height.saturating_sub(v),
+            RenderTargetClipAreaValue::Anchor(v) => (v.clamp(0.0, 1.0) * height as Scalar) as usize,
+            RenderTargetClipAreaValue::AspectRatio {
+                width: w,
+                height: h,
+            } => (height + h * width / w) / 2,
+        }
+        .clamp(0, height);
+        let x = left.min(right);
+        let y = top.min(bottom);
+        let w = left.max(right) - x;
+        let h = top.max(bottom) - y;
+        (x, y, w, h)
     }
 }
 
@@ -623,6 +633,8 @@ impl RenderTarget {
             return Err(RenderTargetError::NoResources);
         }
         unsafe {
+            context.enable(BLEND);
+            context.disable(SCISSOR_TEST);
             context.viewport(0, 0, self.cached_width as _, self.cached_height as _);
             context.color_mask(true, true, true, true);
             context.depth_mask(true);

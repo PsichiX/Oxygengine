@@ -245,7 +245,6 @@ fn render(
             Ok(render_queue) => render_queue,
             Err(_) => continue,
         };
-        render_queue.clear();
         let colored_material_id = match sync.colored_material.reference.id() {
             Some(id) => *id,
             None => continue,

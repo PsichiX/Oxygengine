@@ -33,8 +33,9 @@ pub enum RenderCommand {
     ApplyDrawOptions(MaterialDrawOptions),
     ActivateMesh(MeshId),
     DrawMesh(MeshDrawRange),
-    /// (x, y, width, height)
-    Scissor(Option<(usize, usize, usize, usize)>),
+    /// (x, y, width, height, clipped)
+    PushScissor(usize, usize, usize, usize, bool),
+    PopScissor,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -173,8 +174,9 @@ impl RenderQueue {
         context: &Context,
         resources: &RenderStageResources<'_>,
         stats: &mut RenderStats,
+        height: usize,
     ) -> Result<(), RenderQueueError> {
-        let result = self.execute_inner(context, resources, stats);
+        let result = self.execute_inner(context, resources, stats, height);
         if !self.persistent {
             self.commands.clear();
         }
@@ -186,12 +188,13 @@ impl RenderQueue {
         context: &Context,
         resources: &RenderStageResources<'_>,
         stats: &mut RenderStats,
+        height: usize,
     ) -> Result<(), RenderQueueError> {
         let mut current_material = None;
         let mut current_mesh = None;
         let mut current_uniforms = HashMap::<&str, &MaterialValue>::with_capacity(32);
         let mut last_uniforms = HashMap::<&str, &MaterialValue>::with_capacity(32);
-        let mut current_scissor = None;
+        let mut scissor_stack = Vec::<(usize, usize, usize, usize)>::with_capacity(32);
         for (_, command) in &self.commands {
             match command {
                 RenderCommand::SortingBarrier => {}
@@ -304,22 +307,28 @@ impl RenderQueue {
                         last_uniforms.insert(key, value);
                     }
                 }
-                RenderCommand::Scissor(rect) => {
-                    match (current_scissor.is_some(), rect) {
-                        (false, Some(rect)) => unsafe {
-                            context.enable(SCISSOR_TEST);
-                            context.scissor(rect.0 as _, rect.1 as _, rect.2 as _, rect.3 as _);
-                        },
-                        (true, Some(rect)) => unsafe {
-                            context.scissor(rect.0 as _, rect.1 as _, rect.2 as _, rect.3 as _);
-                        },
-                        (true, None) => unsafe {
-                            context.disable(SCISSOR_TEST);
-                        },
-                        (false, None) => {}
+                RenderCommand::PushScissor(mut x, mut y, mut w, mut h, clipped) => unsafe {
+                    if scissor_stack.is_empty() {
+                        context.enable(SCISSOR_TEST);
                     }
-                    current_scissor = *rect;
-                }
+                    if *clipped {
+                        if let Some((sx, sy, sw, sh)) = scissor_stack.last() {
+                            w = w.saturating_sub(sx.saturating_sub(x)).min(*sw);
+                            x = x.max(*sx);
+                            h = h.saturating_sub(sy.saturating_sub(y)).min(*sh);
+                            y = y.max(*sy);
+                        }
+                    }
+                    context.scissor(x as _, (height - h - y) as _, w as _, h as _);
+                    scissor_stack.push((x, y, w, h));
+                },
+                RenderCommand::PopScissor => unsafe {
+                    if let Some((x, y, w, h)) = scissor_stack.pop() {
+                        context.scissor(x as _, (height - h - y) as _, w as _, h as _);
+                    } else {
+                        context.disable(SCISSOR_TEST);
+                    }
+                },
             }
         }
         Ok(())

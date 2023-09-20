@@ -39,7 +39,7 @@ impl State for BootState {
                         centered: true,
                         ignore_depth_planes: false,
                     }))
-                    .with_viewport(RenderTargetViewport::Full)
+                    .with_clip_area(Default::default())
                     .with_pipeline(PipelineSource::Registry("prototype".to_owned())),
                 HaDefaultCamera,
                 HaTransform::default(),

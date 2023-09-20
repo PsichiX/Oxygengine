@@ -23,6 +23,21 @@ pub fn input_pointer_to_board_location(
         })
 }
 
+pub fn input_direction_to_board_direction(input: &InputStackListener) -> Option<BoardDirection> {
+    let direction = Vec2::from(input.axes_state_or_default("direction"));
+    if direction.x < -0.0 {
+        Some(BoardDirection::West)
+    } else if direction.x > 0.0 {
+        Some(BoardDirection::East)
+    } else if direction.y < -0.0 {
+        Some(BoardDirection::North)
+    } else if direction.y > 0.0 {
+        Some(BoardDirection::South)
+    } else {
+        None
+    }
+}
+
 pub fn is_touching_side(dx: isize, dy: isize) -> bool {
     matches!((dx, dy), (-1, 0) | (1, 0) | (0, -1) | (0, 1))
 }

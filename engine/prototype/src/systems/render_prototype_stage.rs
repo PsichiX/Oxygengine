@@ -225,7 +225,6 @@ pub fn ha_render_prototype_stage_system(universe: &mut Universe) {
                 Ok(render_queue) => render_queue,
                 Err(_) => continue,
             };
-            render_queue.clear();
             let mut recorder = render_queue.auto_recorder(None);
             transform_stack.clear();
 
@@ -249,19 +248,10 @@ pub fn ha_render_prototype_stage_system(universe: &mut Universe) {
                     }
                     Renderable::PushScissor(mut scissor) => {
                         scissor = scissor.intersection(rect(0.0, 0.0, 1.0, 1.0));
-                        let mut x = (scissor.x * info.width as Scalar) as usize;
-                        let mut y =
-                            ((1.0 - scissor.y - scissor.h) * info.height as Scalar) as usize;
-                        let mut w = (scissor.w * info.width as Scalar) as usize;
-                        let mut h = (scissor.h * info.height as Scalar) as usize;
-                        if let Some(parent) = scissor_stack.last() {
-                            let r = (x + w).min(parent.0 + parent.2);
-                            let b = (y + h).min(parent.1 + parent.3);
-                            x = x.max(parent.0);
-                            y = y.max(parent.1);
-                            w = r - x;
-                            h = b - y;
-                        }
+                        let x = (scissor.x * info.width as Scalar) as usize;
+                        let y = (scissor.y * info.height as Scalar) as usize;
+                        let w = (scissor.w * info.width as Scalar) as usize;
+                        let h = (scissor.h * info.height as Scalar) as usize;
                         scissor_stack.push((x, y, w, h));
                     }
                     Renderable::PopScissor => {
@@ -490,7 +480,9 @@ fn record_commands(
     if let Some(draw_options) = &renderable.material.override_draw_options {
         let _ = recorder.record(RenderCommand::ApplyDrawOptions(draw_options.to_owned()));
     }
-    let _ = recorder.record(RenderCommand::Scissor(scissor_stack.last().copied()));
+    if let Some((x, y, w, h)) = scissor_stack.last() {
+        let _ = recorder.record(RenderCommand::PushScissor(*x, *y, *w, *h, false));
+    }
     let draw_range = renderable
         .mesh
         .override_draw_range
@@ -499,4 +491,7 @@ fn record_commands(
         .unwrap_or_default();
     let _ = recorder.record(RenderCommand::DrawMesh(draw_range));
     let _ = recorder.record(RenderCommand::ResetUniforms);
+    if !scissor_stack.is_empty() {
+        let _ = recorder.record(RenderCommand::PopScissor);
+    }
 }

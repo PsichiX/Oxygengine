@@ -11,7 +11,7 @@
 	"iid": "14525670-3b70-11ee-ac39-e9cec696c78c",
 	"jsonVersion": "1.3.4",
 	"appBuildId": 470178,
-	"nextUid": 279,
+	"nextUid": 281,
 	"identifierStyle": "Capitalize",
 	"toc": [],
 	"worldLayout": "Free",
@@ -4115,6 +4115,44 @@
 					"tilesetUid": null
 				},
 				{
+					"identifier": "CameraClipArea",
+					"doc": null,
+					"__type": "String",
+					"uid": 280,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayScale": 1,
+					"editorDisplayPos": "Above",
+					"editorLinkStyle": "StraightArrow",
+					"editorDisplayColor": null,
+					"editorAlwaysShow": false,
+					"editorShowInWorld": true,
+					"editorCutLongValues": true,
+					"editorTextSuffix": null,
+					"editorTextPrefix": null,
+					"useForSmartColor": false,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_String",
+						"params": ["Fill | Fill | Fill | Fill"]
+					},
+					"textLanguageMode": null,
+					"symmetricalRef": false,
+					"autoChainRef": true,
+					"allowOutOfLevelRef": true,
+					"allowedRefs": "OnlySame",
+					"allowedRefsEntityUid": null,
+					"allowedRefTags": [],
+					"tilesetUid": null
+				},
+				{
 					"identifier": "DefaultCamera",
 					"doc": null,
 					"__type": "Bool",
@@ -5307,18 +5345,18 @@
 						},
 						{
 							"__identifier": "Player",
-							"__grid": [3,7],
+							"__grid": [3,6],
 							"__pivot": [0.5,0.5],
 							"__tags": [ "player", "entity" ],
 							"__tile": { "tilesetUid": 43, "x": 0, "y": 0, "w": 8, "h": 8 },
 							"__smartColor": "#FFFFFF",
 							"__worldX": 28,
-							"__worldY": 60,
+							"__worldY": 52,
 							"iid": "db0bdd81-8dc0-11ec-9d4d-53ee8002f752",
 							"width": 8,
 							"height": 8,
 							"defUid": 39,
-							"px": [28,60],
+							"px": [28,52],
 							"fieldInstances": [
 								{ "__identifier": "Name", "__type": "String", "__value": "player", "__tile": null, "defUid": 78, "realEditorValues": [] },
 								{ "__identifier": "MeshAsset", "__type": "Bool", "__value": true, "__tile": null, "defUid": 56, "realEditorValues": [] },
@@ -5460,6 +5498,10 @@
 									"params": ["NAME: main-camera"]
 								}] },
 								{ "__identifier": "CameraInsideView", "__type": "Bool", "__value": false, "__tile": null, "defUid": 63, "realEditorValues": [] },
+								{ "__identifier": "CameraClipArea", "__type": "String", "__value": "AspectRatio: 160 : 144 | AspectRatio: 160 : 144", "__tile": null, "defUid": 280, "realEditorValues": [{
+									"id": "V_String",
+									"params": ["AspectRatio: 160 : 144 | AspectRatio: 160 : 144"]
+								}] },
 								{ "__identifier": "DefaultCamera", "__type": "Bool", "__value": true, "__tile": null, "defUid": 217, "realEditorValues": [{
 									"id": "V_Bool",
 									"params": [ true ]

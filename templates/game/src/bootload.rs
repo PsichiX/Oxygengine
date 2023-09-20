@@ -209,6 +209,7 @@ fn make_renderer(
     interface: impl HaPlatformInterface + Send + Sync + 'static,
 ) -> HaRendererBundleSetup {
     let mut renderer = HaRenderer::new(interface)
+        .with_stage::<()>("prepare")
         .with_stage::<RenderForwardStage>("forward")
         .with_stage::<RenderPostProcessStage>("postprocess")
         .with_stage::<RenderGizmoStage>("gizmos")
@@ -223,13 +224,13 @@ fn make_renderer(
                         buffers: TargetBuffers::default()
                             .with_color(TargetBuffer::color("finalColor"))
                             .unwrap_or_else(|error| panic!("{:?}", error)),
-                        width: RenderTargetSizeValue::ScreenAspectHeight {
-                            value: 144,
-                            round_up: true,
+                        width: RenderTargetSizeValue::Exact {
+                            value: 160,
+                            level: 0,
                         },
-                        height: RenderTargetSizeValue::ScreenAspectHeight {
+                        height: RenderTargetSizeValue::Exact {
                             value: 144,
-                            round_up: true,
+                            level: 0,
                         },
                     },
                 )
@@ -238,7 +239,16 @@ fn make_renderer(
                         .render_target("buffer")
                         .domain("@material/domain/surface/flat")
                         .clear_settings(ClearSettings {
-                            color: Some(Rgba::gray(0.2)),
+                            color: Some(Rgba::black()),
+                            depth: false,
+                            stencil: false,
+                        }),
+                )
+                .stage(
+                    StageDescriptor::new("prepare")
+                        .render_target("main")
+                        .clear_settings(ClearSettings {
+                            color: Some(Rgba::black()),
                             depth: false,
                             stencil: false,
                         }),

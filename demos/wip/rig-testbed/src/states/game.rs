@@ -88,7 +88,6 @@ impl State for GameState {
                     centered: true,
                     ignore_depth_planes: false,
                 }))
-                .with_viewport(RenderTargetViewport::Full)
                 .with_pipeline(PipelineSource::Registry("default".to_owned())),
             HaDefaultCamera,
             HaTransform::translation(vec3(200.0, -280.0, 0.0)),

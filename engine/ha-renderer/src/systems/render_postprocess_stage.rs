@@ -91,7 +91,6 @@ pub fn ha_render_postprocess_stage_system(universe: &mut Universe) {
                 Ok(render_queue) => render_queue,
                 Err(_) => continue,
             };
-            render_queue.clear();
             let mut recorder = render_queue.auto_recorder(None);
 
             let _ = recorder.record(RenderCommand::ActivateMesh(mesh_id));

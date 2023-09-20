@@ -16,6 +16,8 @@ pub enum StageError {}
 
 #[derive(Debug)]
 pub struct StageProcessInfo {
+    pub x: usize,
+    pub y: usize,
     pub width: usize,
     pub height: usize,
     pub transform_matrix: Mat4,

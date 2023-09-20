@@ -350,10 +350,6 @@ fn execute_pipelines(renderer: &mut HaRenderer) {
         Some(context) => context,
         None => return,
     };
-    unsafe {
-        context.enable(BLEND);
-        context.disable(SCISSOR_TEST);
-    }
     let mut stats = RenderStats::default();
     let resources = renderer.stage_resources();
     for pipeline in renderer.pipelines.values() {
@@ -369,7 +365,12 @@ fn execute_pipelines(renderer: &mut HaRenderer) {
                         let stats = &mut stats;
                         let resources = &resources;
                         let _ = render_target.render(context, stage.clear_settings, |context| {
-                            let _ = render_queue.execute(context, resources, stats);
+                            let _ = render_queue.execute(
+                                context,
+                                resources,
+                                stats,
+                                render_target.height(),
+                            );
                             unsafe {
                                 context.use_program(None);
                                 context.bind_vertex_array(None);
