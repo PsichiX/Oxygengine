@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-input-device-desktop"
-version = "0.46.0"
+version = "0.46.1"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "Desktop input devices module for Oxygengine"

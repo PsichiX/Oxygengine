@@ -1,6 +1,6 @@
 [package]
 name = "oxygengine-overworld"
-version = "0.46.0"
+version = "0.46.1"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 edition = "2021"
 description = "RPG overworld module for Oxygengine"

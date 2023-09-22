@@ -254,6 +254,8 @@ pub struct EntityDefinition {
     pub tileset_id: Option<i64>,
     /// Unique Int identifier
     pub uid: i64,
+    /// This tile overrides the one defined in `tileRect` in the UI
+    pub ui_tile_rect: Option<TilesetRectangle>,
     /// Pixel width
     pub width: i64,
 }
@@ -518,16 +520,16 @@ pub struct EnumDefinition {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EnumValueDefinition {
-    /// **WARNING**: this deprecated value will be *removed* completely on version 1.4.0+
-    /// Replaced by: `tileRect`
+    /// **WARNING**: this deprecated value is no longer exported since version 1.4.0  Replaced
+    /// by: `tileRect`
     #[serde(rename = "__tileSrcRect")]
     pub tile_src_rect: Option<Vec<i64>>,
     /// Optional color
     pub color: i64,
     /// Enum value
     pub id: String,
-    /// **WARNING**: this deprecated value will be *removed* completely on version 1.4.0+
-    /// Replaced by: `tileRect`
+    /// **WARNING**: this deprecated value is no longer exported since version 1.4.0  Replaced
+    /// by: `tileRect`
     pub tile_id: Option<i64>,
     /// Optional tileset rectangle to represents this value
     pub tile_rect: Option<TilesetRectangle>,
@@ -570,6 +572,8 @@ pub struct LayerDefinition {
     /// array order is not related to actual IntGrid values! As user can re-order IntGrid values
     /// freely, you may value "2" before value "1" in this array.
     pub int_grid_values: Vec<IntGridValueDefinition>,
+    /// Group informations for IntGrid values
+    pub int_grid_values_groups: Vec<IntGridValueGroupDefinition>,
     /// Parallax horizontal factor (from -1 to 1, defaults to 0) which affects the scrolling
     /// speed of this layer, creating a fake 3D (parallax) effect.
     pub parallax_factor_x: f64,
@@ -616,6 +620,8 @@ pub struct AutoLayerRuleGroup {
     pub active: bool,
     /// *This field was removed in 1.0.0 and should no longer be used.*
     pub collapsed: Option<bool>,
+    pub color: Option<String>,
+    pub icon: Option<TilesetRectangle>,
     pub is_optional: bool,
     pub name: String,
     pub rules: Vec<AutoLayerRuleDefinition>,
@@ -703,13 +709,27 @@ pub enum TileMode {
 
 /// IntGrid value definition
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IntGridValueDefinition {
     pub color: String,
+    /// Parent group identifier (0 if none)
+    pub group_uid: i64,
     /// User defined unique identifier
     pub identifier: Option<String>,
     pub tile: Option<TilesetRectangle>,
     /// The IntGrid value itself
     pub value: i64,
+}
+
+/// IntGrid value group definition
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct IntGridValueGroupDefinition {
+    /// User defined color
+    pub color: Option<String>,
+    /// User defined string identifier
+    pub identifier: Option<String>,
+    /// Group unique ID
+    pub uid: i64,
 }
 
 /// Type of the layer as Haxe Enum Possible values: `IntGrid`, `Entities`, `Tiles`,
@@ -829,6 +849,7 @@ pub struct ForcedRefs {
     pub field_instance: Option<FieldInstance>,
     pub grid_point: Option<GridPoint>,
     pub int_grid_value_def: Option<IntGridValueDefinition>,
+    pub int_grid_value_group_def: Option<IntGridValueGroupDefinition>,
     pub int_grid_value_instance: Option<IntGridValueInstance>,
     pub layer_def: Option<LayerDefinition>,
     pub layer_instance: Option<LayerInstance>,
@@ -1066,9 +1087,10 @@ pub struct Level {
     /// Position informations of the background image, if there is one.
     #[serde(rename = "__bgPos")]
     pub bg_pos: Option<LevelBackgroundPosition>,
-    /// An array listing all other levels touching this one on the world map.<br/>  Only relevant
-    /// for world layouts where level spatial positioning is manual (ie. GridVania, Free). For
-    /// Horizontal and Vertical layouts, this array is always empty.
+    /// An array listing all other levels touching this one on the world map. Since 1.4.0, this
+    /// includes levels that overlap in the same world layer, or in nearby world layers.<br/>
+    /// Only relevant for world layouts where level spatial positioning is manual (ie. GridVania,
+    /// Free). For Horizontal and Vertical layouts, this array is always empty.
     #[serde(rename = "__neighbours")]
     pub neighbours: Vec<NeighbourLevel>,
     /// The "guessed" color for this level in the editor, decided using either the background
@@ -1158,7 +1180,9 @@ pub enum BgPos {
 #[serde(rename_all = "camelCase")]
 pub struct NeighbourLevel {
     /// A single lowercase character tipping on the level location (`n`orth, `s`outh, `w`est,
-    /// `e`ast).
+    /// `e`ast).<br/>  Since 1.4.0, this character value can also be `<` (neighbour depth is
+    /// lower), `>` (neighbour depth is greater) or `o` (levels overlap and share the same world
+    /// depth).
     pub dir: String,
     /// Neighbour Instance Identifier
     pub level_iid: String,

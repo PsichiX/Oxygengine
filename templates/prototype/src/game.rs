@@ -55,8 +55,7 @@ impl State for GameState {
             .expect_resource::<AppLifeCycle>()
             .delta_time_seconds();
         let player_exists =
-            ScriptedNodeEntity::find("player", &*universe.expect_resource::<Hierarchy>())
-                .is_valid();
+            ScriptedNodeEntity::find("player", &universe.expect_resource::<Hierarchy>()).is_valid();
 
         match self.phase {
             Phase::Start => {

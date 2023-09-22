@@ -666,7 +666,7 @@ impl<'a> HaRigControlProperty<'a> {
         self.control
             .properties
             .entry(self.name.to_owned())
-            .or_insert_with(|| f());
+            .or_insert_with(f);
         self
     }
 

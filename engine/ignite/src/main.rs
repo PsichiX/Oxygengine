@@ -341,7 +341,7 @@ async fn main() -> Result<()> {
 
             println!("Make project: {:?}", &destination);
             println!("* Prepare project structure...");
-            copy_dir(&preset_path, &destination, &id)?;
+            copy_dir(&preset_path, &destination, &id, true)?;
             println!("Done!");
         }
         Commands::Pack { input, output } => {
@@ -557,7 +557,7 @@ async fn main() -> Result<()> {
                 .expect("Could not run assets pipeline");
             set_current_dir(current_path.join(crate_dir))?;
             println!("* Copying assets to output directory");
-            copy_dir(&assets, &out_dir, "")
+            copy_dir(&assets, &out_dir, "", true)
                 .expect("Could not copy baked assets to output directory");
             println!("* Done in: {:?}", timer.elapsed());
         }
@@ -586,35 +586,43 @@ async fn serve_dir(port: u16, root: PathBuf) {
     warp::serve(routes).run(([127, 0, 0, 1], port)).await;
 }
 
-fn copy_dir(from: &Path, to: &Path, id: &str) -> Result<()> {
+fn copy_dir(from: &Path, to: &Path, id: &str, mut execute_templates: bool) -> Result<()> {
     if from.is_dir() {
+        if execute_templates && from.join(".templateignore").is_file() {
+            execute_templates = false;
+        }
         for entry in read_dir(from)? {
             let entry = entry?;
             let path = entry.path();
             if path.is_dir() {
                 let dir = to.join(path.file_name().unwrap());
                 create_dir_all(&dir)?;
-                copy_dir(&path, &dir, id)?;
+                copy_dir(&path, &dir, id, execute_templates)?;
             } else if path.is_file() {
-                if let Some(ext) = path.extension() {
-                    if ext == "chrobry" {
-                        if let Ok(contents) = read_to_string(&path) {
-                            let mut vars = HashMap::new();
-                            vars.insert("IGNITE_ID".to_owned(), id.to_owned());
-                            match chrobry_core::generate(&contents, "\n", vars, |_| Ok("".to_owned())) {
-                                Ok(contents) => {
-                                    let to = to.join(path.file_stem().unwrap());
-                                    write(to, contents)?;
+                if path.file_name().unwrap_or_default().to_string_lossy() == ".templateignore" {
+                    continue;
+                }
+                if execute_templates {
+                    if let Some(ext) = path.extension() {
+                        if ext == "chrobry" {
+                            if let Ok(contents) = read_to_string(&path) {
+                                let mut vars = HashMap::new();
+                                vars.insert("IGNITE_ID".to_owned(), id.to_owned());
+                                match chrobry_core::generate(&contents, "\n", vars, |_| Ok("".to_owned())) {
+                                    Ok(contents) => {
+                                        let to = to.join(path.file_stem().unwrap());
+                                        write(to, contents)?;
+                                    }
+                                    Err(error) => println!(
+                                        "Could not generate file from Chrobry template: {:?}. Error: {:?}",
+                                        path, error
+                                    ),
                                 }
-                                Err(error) => println!(
-                                    "Could not generate file from Chrobry template: {:?}. Error: {:?}",
-                                    path, error
-                                ),
+                            } else {
+                                println!("Could not open Chrobry template file: {:?}", path);
                             }
-                        } else {
-                            println!("Could not open Chrobry template file: {:?}", path);
+                            continue;
                         }
-                        continue;
                     }
                 }
                 let to = to.join(path.file_name().unwrap());

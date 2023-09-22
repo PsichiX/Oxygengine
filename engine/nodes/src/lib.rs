@@ -35,11 +35,7 @@ impl ScriptedNodeEntity {
     }
 
     pub fn find_raw(path: &str, hierarchy: &Hierarchy) -> Option<Entity> {
-        if let Some(entity) = hierarchy.entity_by_name(path) {
-            Some(entity)
-        } else {
-            None
-        }
+        hierarchy.entity_by_name(path)
     }
 
     pub fn find_all_of_type<T: 'static>(world: &World) -> Vec<Self> {
@@ -631,7 +627,7 @@ impl ScriptedNodes {
         self.context.stack().restore(token);
         if let Some(iter) = hierarchy.children(entity) {
             for entity in iter {
-                self.execute::<T>(entity, function_ref, args, &world, scripting, hierarchy);
+                self.execute::<T>(entity, function_ref, args, world, scripting, hierarchy);
             }
         }
     }

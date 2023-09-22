@@ -680,7 +680,7 @@ fn bake_project(
                                 let parts = v
                                     .trim()
                                     .split('|')
-                                    .map(|v| parse_viewport_value(v))
+                                    .map(parse_viewport_value)
                                     .collect::<Vec<_>>();
                                 RenderTargetClipArea {
                                     left: parts.get(0).copied().unwrap_or_default(),

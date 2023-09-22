@@ -184,7 +184,7 @@ pub fn ha_rig_system(universe: &mut Universe) {
                     .map(|control| {
                         let mut object = Object::new(control.struct_type.clone());
                         for (name, value) in &control.bindings {
-                            if let Some(field) = object.write_field(&name) {
+                            if let Some(field) = object.write_field(name) {
                                 *field = value.to_owned();
                             }
                         }
@@ -231,7 +231,7 @@ pub fn ha_rig_system(universe: &mut Universe) {
                         }
                         "transform" => {
                             let transform = DynamicManagedRef::new(
-                                &*transform,
+                                transform,
                                 transform_lifetime.borrow().unwrap(),
                             );
                             cache.control_context.stack().push(transform);

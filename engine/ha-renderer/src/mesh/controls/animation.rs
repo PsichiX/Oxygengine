@@ -360,7 +360,7 @@ impl AnimationRigControl {
             None => return,
         };
         let animation = match assets
-            .asset_by_path(&animation_asset)
+            .asset_by_path(animation_asset)
             .and_then(|asset| asset.get::<RigAnimationAsset>())
         {
             Some(animation) => animation,

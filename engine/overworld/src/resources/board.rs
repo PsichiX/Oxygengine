@@ -613,8 +613,7 @@ impl Board {
     ) -> impl Iterator<Item = Location> + '_ {
         let range = range as isize;
         (-range..=range)
-            .into_iter()
-            .flat_map(move |y| (-range..=range).into_iter().map(move |x| (x, y)))
+            .flat_map(move |y| (-range..=range).map(move |x| (x, y)))
             .filter(|(x, y)| *x != 0 || *y != 0)
             .map(move |(x, y)| self.location_move(location, x, y))
     }
